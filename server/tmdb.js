@@ -57,6 +57,8 @@ export async function enrichFilm(film, key) {
     poster,
     director,
     cast,
+    studio: film.studio || 'Sony Pictures Releasing',
+    rated: film.rated || (m.adult ? 'NC-17' : 'R'),
     tmdbId: m.id,
   }
 }

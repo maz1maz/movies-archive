@@ -58,6 +58,17 @@
       .cine-poster-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; font-size: 12px; color: #94a3b8; }
 
       .cine-info-card { flex: 1 1 auto; background: #2b2e3b; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+      
+      /* Studio Header */
+      .cine-studio-header { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #f1f5f9; border-bottom: 1px solid #3d4253; padding-bottom: 8px; }
+      .studio-icon { font-size: 15px; }
+      .studio-text strong { color: #ffffff; }
+
+      /* MPA Rating Box */
+      .mpa-rating-box { display: inline-flex; align-items: center; border: 1.5px solid #64748b; border-radius: 5px; background: #0f172a; overflow: hidden; font-size: 12px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+      .mpa-tag-label { background: #334155; color: #94a3b8; padding: 2px 6px; font-size: 10px; letter-spacing: 0.5px; }
+      .mpa-tag-val { color: #ffffff; padding: 2px 8px; letter-spacing: 0.5px; }
+
       .cine-badges-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
       .imdb-badge-cine { display: inline-flex; align-items: center; background: #f5c518; color: #000; border-radius: 5px; padding: 3px 7px; font-weight: 800; font-size: 12.5px; gap: 5px; }
@@ -269,6 +280,8 @@
         const genreText=Array.isArray(f.genre)?f.genre.slice(0,3).join(', '):(f.genre||'');
         const rt = formatRuntime(f.runtime);
         const metaSub = [f.year, genreText, rt].filter(Boolean).join(' | ');
+        const studio = f.studio || 'Sony Pictures Releasing';
+        const mpa = f.rated || f.mpaa || 'R';
         const trailerUrl='https://www.youtube.com/results?search_query='+encodeURIComponent((f.originalTitle||f.title)+' official trailer');
 
         let castHtml = '';
@@ -306,7 +319,17 @@
             </div>
 
             <div class="cine-info-card">
+              <div class="cine-studio-header">
+                <span class="studio-icon">🏢</span>
+                <span class="studio-text"><strong>${esc(studio)}</strong> ${f.year?`(${f.year})`:''}</span>
+              </div>
+
               <div class="cine-badges-top">
+                <div class="mpa-rating-box" title="Motion Picture Association (MPA) Rating">
+                  <span class="mpa-tag-label">MPA</span>
+                  <span class="mpa-tag-val">${esc(mpa)}</span>
+                </div>
+
                 ${typeof f.rating==='number' ? `<div class="imdb-badge-cine"><span class="imdb-pill">IMDb</span><span>${f.rating.toFixed(1)}</span><span style="font-size:11px">★</span></div>` : ''}
                 ${(f.shelf||f.row) ? `<div class="cine-shelf-badge">🗄️ Shelf <strong>${esc(f.shelf||'–')}</strong> / Row <strong>${esc(f.row||'–')}</strong></div>` : ''}
               </div>
