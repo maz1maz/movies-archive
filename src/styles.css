@@ -771,16 +771,314 @@ body.light {
   }
 }
 
-@media (max-width: 640px) {
-  .modal {
-    grid-template-columns: 1fr;
-  }
-  .modal-poster {
-    max-width: 200px;
-    margin: 0 auto;
-  }
-  .header-inner {
+/* ---------- CLZ Style Modal (Matching 6.pdf) ---------- */
+.modal-clz {
+  width: min(920px, 96vw);
+  grid-template-columns: 1fr;
+  padding: 24px 28px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.clz-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.clz-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.clz-subtitle {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.clz-top-section {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+}
+
+.clz-poster-wrap {
+  position: relative;
+  width: 170px;
+  flex: 0 0 auto;
+  aspect-ratio: 2 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.clz-poster-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.clz-poster-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.clz-info-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.clz-meta-line {
+  font-size: 13.5px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.clz-year {
+  margin-left: 6px;
+  color: var(--muted);
+}
+
+.clz-synopsis {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  opacity: 0.9;
+}
+
+.clz-badges-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* IMDb Yellow Badge */
+.imdb-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #f5c518;
+  color: #000;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-weight: 800;
+  font-size: 13px;
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(245, 197, 24, 0.3);
+}
+
+.imdb-logo {
+  background: #000;
+  color: #f5c518;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.clz-location-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.clz-specs-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.clz-spec-item {
+  font-size: 13px;
+}
+.clz-spec-item.font-semibold {
+  font-weight: 600;
+  color: var(--text);
+}
+.clz-spec-item.muted {
+  color: var(--muted);
+}
+
+/* Bottom Grid: 3 columns */
+.clz-bottom-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 180px;
+  gap: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+
+.clz-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.clz-col-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.clz-view-all {
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.clz-table {
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.clz-table-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+.clz-table-row:last-child {
+  border-bottom: none;
+}
+
+.clz-table-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.clz-actor-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clz-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+  flex: 0 0 auto;
+}
+
+.crew-row .crew-label {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 80px;
+}
+
+.crew-row .crew-value {
+  color: var(--muted);
+  text-align: right;
+}
+
+.clz-trailer-card {
+  display: block;
+  text-decoration: none;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  position: relative;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.clz-trailer-card:hover {
+  transform: translateY(-2px);
+  border-color: #38bdf8;
+}
+
+.clz-trailer-thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clz-trailer-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.7;
+}
+
+.clz-play-btn {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.75);
+  border: 2px solid #fff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.clz-trailer-label {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .clz-top-section {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
+  }
+  .clz-bottom-grid {
+    grid-template-columns: 1fr;
   }
 }
