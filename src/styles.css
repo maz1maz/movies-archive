@@ -645,11 +645,178 @@ body.light {
   line-height: 1.2;
   word-break: break-word;
 }
-.cine-actor-character {
-  font-size: 9.5px;
+/* ---------- Clickable Person Styles ---------- */
+.clickable-person {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.clickable-person:hover {
+  transform: translateY(-2px);
+}
+.clickable-person:hover .cine-actor-avatar-wrap {
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+.clickable-person:hover .cine-actor-name {
+  color: #38bdf8;
+}
+
+.clickable-person-text {
+  cursor: pointer;
+  color: #38bdf8;
+  transition: color 0.15s;
+}
+.clickable-person-text:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+
+/* ---------- Person Modal ---------- */
+.modal-person {
+  position: relative;
+  width: min(720px, 94vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: #232631;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: #f8fafc;
+}
+
+.person-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 16px;
+}
+
+.person-avatar-circle {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  flex: 0 0 auto;
+}
+
+.person-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.person-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
   color: #94a3b8;
+}
+
+.person-films-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 16px;
+}
+
+.person-film-card {
+  background: #2b2e3b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: transform 0.15s, border-color 0.15s;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+}
+
+.person-film-card:hover {
+  transform: translateY(-4px);
+  border-color: #38bdf8;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.person-film-poster {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  background: #1e293b;
+  overflow: hidden;
+}
+
+.person-film-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.person-poster-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  line-height: 1.1;
+  padding: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.person-location-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.82);
+  color: #38bdf8;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.person-film-meta {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.person-film-title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.person-film-year {
+  margin: 0;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.person-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 0;
+  color: #94a3b8;
+  font-size: 14px;
 }
 
 /* Crew Table */

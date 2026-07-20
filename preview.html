@@ -79,7 +79,11 @@
       .cine-cast-grid { display: flex; flex-wrap: wrap; gap: 10px 12px; max-height: 130px; overflow-y: hidden; transition: max-height 0.25s ease; }
       .cine-cast-grid.expanded { max-height: 280px; overflow-y: auto; }
       
-      .cine-cast-item { display: flex; flex-direction: column; align-items: center; width: 52px; gap: 4px; }
+      .cine-cast-item { display: flex; flex-direction: column; align-items: center; width: 52px; gap: 4px; cursor: pointer; transition: transform 0.15s; }
+      .cine-cast-item:hover { transform: translateY(-2px); }
+      .cine-cast-item:hover .cine-actor-avatar-wrap { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,0.4); }
+      .cine-cast-item:hover .cine-actor-name { color: #38bdf8; }
+
       .cine-actor-avatar-wrap { position: relative; width: 42px; height: 42px; border-radius: 50%; overflow: hidden; background: #334155; border: 1.5px solid #475569; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.35); }
       .cine-actor-img { width: 100%; height: 100%; object-fit: cover; }
       .cine-actor-fallback { width: 100%; height: 100%; color: #f1f5f9; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; background: #334155; }
@@ -91,6 +95,8 @@
       .cine-crew-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; border-bottom: 1px solid #2d3241; }
       .crew-key { color: #94a3b8; }
       .crew-val { color: #f1f5f9; text-align: right; font-weight: 500; }
+      .crew-val.clickable { cursor: pointer; color: #38bdf8; }
+      .crew-val.clickable:hover { text-decoration: underline; color: #7dd3fc; }
 
       .cine-trailer-card { display: block; text-decoration: none; border-radius: 10px; overflow: hidden; border: 1px solid #334155; transition: transform 0.15s; }
       .cine-trailer-card:hover { transform: scale(1.02); }
@@ -99,6 +105,24 @@
       .cine-play-circle { position: absolute; width: 38px; height: 38px; border-radius: 50%; background: rgba(255, 255, 255, 0.9); color: #000; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
       .play-triangle { font-size: 13px; margin-left: 2px; }
       .cine-hd-tag { position: absolute; bottom: 6px; left: 6px; background: rgba(0,0,0,0.85); color: #ea580c; font-size: 9.5px; font-weight: 800; padding: 1px 5px; border-radius: 3px; }
+
+      /* Person Modal */
+      .modal-person { position: relative; width: min(720px, 94vw); max-height: 88vh; overflow-y: auto; background: #232631; border: 1px solid #334155; border-radius: 16px; padding: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.75); display: flex; flex-direction: column; gap: 20px; color: #f8fafc; }
+      .person-header { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #334155; padding-bottom: 16px; }
+      .person-avatar-circle { width: 54px; height: 54px; border-radius: 50%; background: #2563eb; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; border: 2px solid #38bdf8; box-shadow: 0 4px 14px rgba(37,99,235,0.4); flex: 0 0 auto; }
+      .person-title { margin: 0; font-size: 22px; font-weight: 700; color: #38bdf8; }
+      .person-subtitle { margin: 4px 0 0; font-size: 13px; color: #94a3b8; }
+      .person-films-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; }
+      .person-film-card { background: #2b2e3b; border: 1px solid #334155; border-radius: 12px; overflow: hidden; cursor: pointer; padding: 0; text-align: left; transition: transform .15s, border-color .15s; color: inherit; display: flex; flex-direction: column; }
+      .person-film-card:hover { transform: translateY(-4px); border-color: #38bdf8; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+      .person-film-poster { position: relative; aspect-ratio: 2 / 3; background: #1e293b; overflow: hidden; }
+      .person-film-poster img { width: 100%; height: 100%; object-fit: cover; }
+      .person-poster-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; font-size: 11px; color: #94a3b8; }
+      .person-location-badge { position: absolute; bottom: 6px; right: 6px; background: rgba(0,0,0,0.82); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+      .person-film-meta { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+      .person-film-title { margin: 0; font-size: 12.5px; font-weight: 600; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .person-film-year { margin: 0; font-size: 11px; color: #94a3b8; }
+      .person-empty { grid-column: 1 / -1; text-align: center; padding: 40px 0; color: #94a3b8; font-size: 14px; }
     </style>
   </head>
   <body>
@@ -148,6 +172,56 @@
         if(!el || !btn) return;
         const isExp = el.classList.toggle('expanded');
         btn.textContent = isExp ? textExpanded : textCollapsed;
+      }
+
+      function openPersonModal(personName){
+        const target = personName.trim().toLowerCase();
+        const matches = FILMS.filter(f => {
+          if ((f.director||'').toLowerCase().includes(target)) return true;
+          if ((f.writer||'').toLowerCase().includes(target)) return true;
+          if ((f.producer||'').toLowerCase().includes(target)) return true;
+          if ((f.musician||f.composer||'').toLowerCase().includes(target)) return true;
+          const castList = Array.isArray(f.cast) ? f.cast : [];
+          return castList.some(act => {
+            const name = typeof act==='object'?act.name:act;
+            return (name||'').toLowerCase().includes(target);
+          });
+        });
+
+        let gridHtml = '';
+        if(matches.length === 0){
+          gridHtml = `<div class="person-empty">No films found for ${esc(personName)}</div>`;
+        } else {
+          matches.forEach(f => {
+            const loc = (f.shelf||f.row) ? `<span class="person-location-badge">📍 ${esc(f.shelf||'–')} / ${esc(f.row||'–')}</span>` : '';
+            gridHtml += `<button class="person-film-card" onclick="openModal(${f.__i})">
+              <div class="person-film-poster">
+                <img src="${esc(f.poster)}" alt="${esc(f.title)}" onerror="this.style.display='none'">
+                <div class="person-poster-fallback">${esc(f.title)}</div>
+                ${loc}
+              </div>
+              <div class="person-film-meta">
+                <h4 class="person-film-title">${esc(f.title)}</h4>
+                <p class="person-film-year">${f.year||'—'} · ${(f.genre||[]).slice(0,2).join(', ')}</p>
+              </div>
+            </button>`;
+          });
+        }
+
+        const initial = personName[0] ? personName[0].toUpperCase() : '👤';
+
+        document.getElementById('modal').innerHTML = `<div class="modal-person" onclick="event.stopPropagation()">
+          <button class="cine-close" onclick="closeModal()">✕</button>
+          <div class="person-header">
+            <div class="person-avatar-circle">${esc(initial)}</div>
+            <div>
+              <h2 class="person-title">${esc(personName)}</h2>
+              <p class="person-subtitle">Found <strong>${matches.length}</strong> film(s) in your archive</p>
+            </div>
+          </div>
+          <div class="person-films-grid">${gridHtml}</div>
+        </div>`;
+        document.getElementById('modal').style.display = 'flex';
       }
 
       function getList(){
@@ -206,7 +280,7 @@
             const character = typeof act === 'object' ? act.character : null;
             const initials = name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
 
-            castHtml += `<div class="cine-cast-item">
+            castHtml += `<div class="cine-cast-item" onclick="openPersonModal('${esc(name)}')">
               <div class="cine-actor-avatar-wrap">
                 <img src="${esc(photo)}" alt="${esc(name)}" class="cine-actor-img" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex'">
                 <div class="cine-actor-fallback" style="display:none">${esc(initials)}</div>
@@ -259,8 +333,8 @@
                 <button type="button" id="crewBtn" class="cine-accordion-btn" onclick="toggleAccordion('crewTable','crewBtn','Show less ▴','View all ▾')">View all ▾</button>
               </div>
               <div class="cine-crew-table" id="crewTable">
-                ${f.director ? `<div class="cine-crew-row"><span class="crew-key">Director</span><span class="crew-val">${esc(f.director)}</span></div>` : ''}
-                <div class="cine-crew-row"><span class="crew-key">Writer</span><span class="crew-val">${esc(f.director||'—')}</span></div>
+                ${f.director ? `<div class="cine-crew-row"><span class="crew-key">Director</span><span class="crew-val clickable" onclick="openPersonModal('${esc(f.director)}')">${esc(f.director)}</span></div>` : ''}
+                <div class="cine-crew-row"><span class="crew-key">Writer</span><span class="crew-val clickable" onclick="openPersonModal('${esc(f.director||'')}')">${esc(f.director||'—')}</span></div>
                 <div class="cine-crew-row"><span class="crew-key">Producer</span><span class="crew-val">${esc(f.producer||'Executive Producers')}</span></div>
                 <div class="cine-crew-row"><span class="crew-key">Country</span><span class="crew-val">${esc(f.country||'USA')}</span></div>
                 ${f.runtime ? `<div class="cine-crew-row"><span class="crew-key">Runtime</span><span class="crew-val">${f.runtime} mins (${rt})</span></div>` : ''}

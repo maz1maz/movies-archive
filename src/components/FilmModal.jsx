@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { IconClose } from './icons.jsx'
 
-export default function FilmModal({ film, onClose }) {
+export default function FilmModal({ film, onSelectPerson, onClose }) {
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
 
@@ -148,7 +148,12 @@ export default function FilmModal({ film, onClose }) {
                     .toUpperCase()
 
                   return (
-                    <div key={idx} className="cine-cast-item">
+                    <div
+                      key={idx}
+                      className="cine-cast-item clickable-person"
+                      onClick={() => onSelectPerson && onSelectPerson(name)}
+                      title={`See all films featuring ${name}`}
+                    >
                       <div className="cine-actor-avatar-wrap">
                         <img
                           src={photoUrl}
@@ -190,12 +195,25 @@ export default function FilmModal({ film, onClose }) {
               )}
             </div>
             <div className={`cine-crew-table ${showAllCrew ? 'expanded' : ''}`}>
-              {displayedCrew.map((item, idx) => (
-                <div key={idx} className="cine-crew-row">
-                  <span className="crew-key">{item.label}</span>
-                  <span className="crew-val">{item.value}</span>
-                </div>
-              ))}
+              {displayedCrew.map((item, idx) => {
+                const isPerson = ['Director', 'Writer', 'Producer', 'Musician', 'Cinematography'].includes(item.label)
+                return (
+                  <div key={idx} className="cine-crew-row">
+                    <span className="crew-key">{item.label}</span>
+                    <span
+                      className={`crew-val ${isPerson ? 'clickable-person-text' : ''}`}
+                      onClick={() => {
+                        if (isPerson && onSelectPerson && item.value) {
+                          onSelectPerson(item.value)
+                        }
+                      }}
+                      title={isPerson ? `See all films featuring ${item.value}` : ''}
+                    >
+                      {item.value}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
