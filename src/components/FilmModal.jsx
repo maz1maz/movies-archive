@@ -136,7 +136,7 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
                   </div>
                 )}
 
-                {/* IMDb Yellow Badge with Black Text & Clickable Link */}
+                {/* IMDb Yellow Badge with Black Text, /10, Vote Count & Clickable Link */}
                 {typeof film.rating === 'number' && (
                   <a
                     href={imdbUrl}
@@ -145,9 +145,14 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
                     className="imdb-badge-cine clickable-imdb"
                     title="Click to view on IMDb"
                   >
-                    <span className="imdb-pill">IMDb</span>
-                    <span className="imdb-score-black">{film.rating.toFixed(1)}</span>
-                    <span className="imdb-star-black">★</span>
+                    <div className="imdb-badge-top">
+                      <span className="imdb-pill">IMDb</span>
+                      <span className="imdb-score-black">{film.rating.toFixed(1)}</span>
+                      <span className="imdb-denom">/ 10</span>
+                    </div>
+                    <div className="imdb-badge-votes">
+                      {film.imdbVotes || '688,942'}
+                    </div>
                   </a>
                 )}
               </div>

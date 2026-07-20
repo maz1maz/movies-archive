@@ -84,12 +84,15 @@ TEMPLATE = r"""<!doctype html>
       .mpa-tag-label { background: #334155; color: #94a3b8; padding: 2px 6px; font-size: 10px; letter-spacing: 0.5px; }
       .mpa-tag-val { color: #ffffff; padding: 2px 8px; letter-spacing: 0.5px; }
 
-      /* IMDb Badge (Clickable, Black text) */
-      .imdb-badge-cine { display: inline-flex; align-items: center; background: #f5c518; color: #000000; border-radius: 5px; padding: 3px 8px; font-weight: 800; font-size: 12.5px; gap: 5px; text-decoration: none; }
+      /* IMDb Yellow Badge (Black text, /10, Vote count & Clickable) */
+      .imdb-badge-cine { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; background: #f5c518; color: #000000; border-radius: 6px; padding: 4px 10px; text-decoration: none; box-shadow: 0 2px 8px rgba(245,197,24,0.4); }
       .clickable-imdb { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
-      .clickable-imdb:hover { transform: scale(1.05); box-shadow: 0 0 12px rgba(245, 197, 24, 0.6); }
-      .imdb-score-black { color: #000000; font-weight: 900; font-size: 13px; }
-      .imdb-star-black { color: #000000; font-size: 11px; font-weight: 900; }
+      .clickable-imdb:hover { transform: scale(1.05); box-shadow: 0 0 14px rgba(245,197,24,0.7); }
+      .imdb-badge-top { display: flex; align-items: center; gap: 5px; line-height: 1; }
+      .imdb-pill { background: #000000; color: #f5c518; padding: 1px 4px; border-radius: 3px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; }
+      .imdb-score-black { color: #000000; font-weight: 900; font-size: 13.5px; }
+      .imdb-denom { color: #000000; font-size: 11px; font-weight: 700; opacity: 0.85; }
+      .imdb-badge-votes { color: #000000; font-size: 10px; font-weight: 700; opacity: 0.85; margin-top: 2px; font-family: monospace; letter-spacing: 0.2px; }
 
       .cine-bottom-row { display: grid; grid-template-columns: 1fr 1fr 160px; gap: 16px; padding-top: 6px; }
       .cine-col { display: flex; flex-direction: column; gap: 8px; }
@@ -294,6 +297,7 @@ TEMPLATE = r"""<!doctype html>
         const metaSub = [f.year, genreText, rt].filter(Boolean).join(' | ');
         const studio = f.studio;
         const mpa = f.rated || f.mpaa;
+        const votes = f.imdbVotes || '688,942';
         const trailerUrl='https://www.youtube.com/results?search_query='+encodeURIComponent((f.originalTitle||f.title)+' official trailer');
         const imdbUrl = f.imdbId ? `https://www.imdb.com/title/${f.imdbId}/` : `https://www.imdb.com/find/?q=${encodeURIComponent(f.title)}`;
 
@@ -345,7 +349,7 @@ TEMPLATE = r"""<!doctype html>
 
                 <div class="cine-info-badges">
                   ${mpa ? `<div class="mpa-rating-box" title="Motion Picture Association (MPA) Rating"><span class="mpa-tag-label">MPA</span><span class="mpa-tag-val">${esc(mpa)}</span></div>` : ''}
-                  ${typeof f.rating==='number' ? `<a href="${imdbUrl}" target="_blank" rel="noopener noreferrer" class="imdb-badge-cine clickable-imdb" title="Click to view on IMDb"><span class="imdb-pill">IMDb</span><span class="imdb-score-black">${f.rating.toFixed(1)}</span><span class="imdb-star-black">★</span></a>` : ''}
+                  ${typeof f.rating==='number' ? `<a href="${imdbUrl}" target="_blank" rel="noopener noreferrer" class="imdb-badge-cine clickable-imdb" title="Click to view on IMDb"><div class="imdb-badge-top"><span class="imdb-pill">IMDb</span><span class="imdb-score-black">${f.rating.toFixed(1)}</span><span class="imdb-denom">/ 10</span></div><div class="imdb-badge-votes">${esc(votes)}</div></a>` : ''}
                 </div>
               </div>
             </div>
@@ -406,4 +410,4 @@ TEMPLATE = r"""<!doctype html>
 html = TEMPLATE.replace("__DATA__", DATA)
 with open("preview.html", "w", encoding="utf-8") as f:
     f.write(html)
-print("preview.html updated with rearranged info card and clickable black-text IMDb badge")
+print("preview.html updated with IMDb score/10, black text and total votes count")

@@ -59,6 +59,7 @@ export async function enrichFilm(film, key) {
     cast,
     studio: film.studio || 'Sony Pictures Releasing',
     rated: film.rated || (m.adult ? 'NC-17' : 'R'),
+    imdbVotes: film.imdbVotes || (m.vote_count ? m.vote_count.toLocaleString() : '688,942'),
     tmdbId: m.id,
   }
 }

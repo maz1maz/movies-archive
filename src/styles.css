@@ -576,18 +576,18 @@ body.light {
   letter-spacing: 0.5px;
 }
 
-/* IMDb Yellow Badge (Black text & Clickable) */
+/* IMDb Yellow Badge (Black text, /10, Vote count & Clickable) */
 .imdb-badge-cine {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   background: #f5c518;
   color: #000000;
-  border-radius: 5px;
-  padding: 3px 8px;
-  font-weight: 800;
-  font-size: 12.5px;
-  gap: 5px;
+  border-radius: 6px;
+  padding: 4px 10px;
   text-decoration: none;
+  box-shadow: 0 2px 8px rgba(245, 197, 24, 0.4);
 }
 .clickable-imdb {
   cursor: pointer;
@@ -595,17 +595,42 @@ body.light {
 }
 .clickable-imdb:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 12px rgba(245, 197, 24, 0.6);
+  box-shadow: 0 0 14px rgba(245, 197, 24, 0.7);
+}
+.imdb-badge-top {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+}
+.imdb-pill {
+  background: #000000;
+  color: #f5c518;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
 }
 .imdb-score-black {
   color: #000000;
   font-weight: 900;
-  font-size: 13px;
+  font-size: 13.5px;
 }
-.imdb-star-black {
+.imdb-denom {
   color: #000000;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
+  opacity: 0.85;
+}
+.imdb-badge-votes {
+  color: #000000;
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.85;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.2px;
 }
 
 .cine-badges-top {
