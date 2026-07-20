@@ -6,8 +6,8 @@
     <title>Cinefilio Archive — Preview</title>
     <style>
       :root {
-        --bg: #121316; --surface: #1b1c20; --surface-2: #212227; --border: #2b2c32;
-        --border-strong: #3a3b42; --text: #ececed; --muted: #8d8f98; --accent: #38bdf8;
+        --bg: #0b0c10; --surface: #161821; --surface-2: #1e202d; --border: #282a3a;
+        --border-strong: #383b50; --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8;
         --radius: 10px; --shadow: 0 16px 36px rgba(0,0,0,0.35);
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
       }
@@ -27,7 +27,7 @@
       
       /* Alphabet bar matching 7.png */
       .alpha-bar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin: 14px auto 8px; }
-      .alpha-btn { border: 1px solid var(--border); background: #232631; color: #94a3b8; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; min-width: 34px; text-align: center; }
+      .alpha-btn { border: 1px solid var(--border); background: #1e202d; color: #94a3b8; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; min-width: 34px; text-align: center; }
       .alpha-btn:hover { border-color: #475569; color: #f1f5f9; }
       .alpha-btn.active { background: #eab308; color: #000000; font-weight: 800; border-color: #f5c518; box-shadow: 0 2px 8px rgba(234,179,8,0.35); }
 
@@ -44,7 +44,7 @@
       .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.78); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
       
       /* Exact Modal Cine from 7.png */
-      .modal-cine { position: relative; width: min(680px, 92vw); max-height: 90vh; overflow-y: auto; background: #232631; border: 1px solid #334155; border-radius: 16px; padding: 22px 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; gap: 16px; color: #f8fafc; }
+      .modal-cine { position: relative; width: min(680px, 92vw); max-height: 90vh; overflow-y: auto; background: #232631; border: 1px solid #383b50; border-radius: 16px; padding: 22px 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; gap: 16px; color: #f8fafc; }
       .cine-close { position: absolute; top: 16px; right: 16px; width: 28px; height: 28px; border-radius: 50%; border: none; background: transparent; color: #94a3b8; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
       .cine-close:hover { color: #f1f5f9; }
 
@@ -53,11 +53,11 @@
       .cine-subtitle { margin: 0; font-size: 13.5px; color: #94a3b8; }
 
       .cine-main-row { display: flex; gap: 16px; align-items: stretch; }
-      .cine-poster-box { position: relative; width: 155px; flex: 0 0 auto; aspect-ratio: 2 / 3; border-radius: 10px; overflow: hidden; background: #1e293b; border: 1px solid #334155; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+      .cine-poster-box { position: relative; width: 155px; flex: 0 0 auto; aspect-ratio: 2 / 3; border-radius: 10px; overflow: hidden; background: #1e293b; border: 1px solid #383b50; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
       .cine-poster-img { width: 100%; height: 100%; object-fit: cover; }
       .cine-poster-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; font-size: 12px; color: #94a3b8; }
 
-      .cine-info-card { flex: 1 1 auto; background: #2b2e3b; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
+      .cine-info-card { flex: 1 1 auto; background: #2b2e3b; border: 1px solid #383b50; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
 
       /* Top Row: Synopsis Left & Location Badge Top Right */
       .cine-info-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
@@ -79,15 +79,15 @@
       .mpa-tag-label { background: #334155; color: #94a3b8; padding: 2px 6px; font-size: 10px; letter-spacing: 0.5px; }
       .mpa-tag-val { color: #ffffff; padding: 2px 8px; letter-spacing: 0.5px; }
 
-      /* IMDb Yellow Badge (Black text, /10, Vote count & Clickable) */
-      .imdb-badge-cine { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; background: #f5c518; color: #000000; border-radius: 6px; padding: 4px 10px; text-decoration: none; box-shadow: 0 2px 8px rgba(245,197,24,0.4); }
+      /* IMDb Yellow Badge (All Black text, /10, K Votes & Clickable) */
+      .imdb-badge-cine { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #f5c518, #eab308); color: #000000 !important; border-radius: 6px; padding: 4px 10px; text-decoration: none; box-shadow: 0 2px 8px rgba(245,197,24,0.4); }
       .clickable-imdb { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
       .clickable-imdb:hover { transform: scale(1.05); box-shadow: 0 0 14px rgba(245,197,24,0.7); }
-      .imdb-badge-top { display: flex; align-items: center; gap: 5px; line-height: 1; }
+      .imdb-badge-top { display: flex; align-items: center; gap: 5px; line-height: 1; color: #000000 !important; }
       .imdb-pill { background: #000000; color: #f5c518; padding: 1px 4px; border-radius: 3px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; }
-      .imdb-score-black { color: #000000; font-weight: 900; font-size: 13.5px; }
-      .imdb-denom { color: #000000; font-size: 11px; font-weight: 700; opacity: 0.85; }
-      .imdb-badge-votes { color: #000000; font-size: 10px; font-weight: 700; opacity: 0.85; margin-top: 2px; font-family: monospace; letter-spacing: 0.2px; }
+      .imdb-score-black { color: #000000 !important; font-weight: 900; font-size: 13.5px; }
+      .imdb-denom { color: #000000 !important; font-size: 11px; font-weight: 800; opacity: 0.9; }
+      .imdb-badge-votes { color: #000000 !important; font-size: 10px; font-weight: 800; opacity: 0.9; margin-top: 2px; font-family: monospace; letter-spacing: 0.2px; text-transform: uppercase; }
 
       .cine-bottom-row { display: grid; grid-template-columns: 1fr 1fr 160px; gap: 16px; padding-top: 6px; }
       .cine-col { display: flex; flex-direction: column; gap: 8px; }
@@ -119,7 +119,7 @@
       .crew-val.clickable { cursor: pointer; color: #38bdf8; }
       .crew-val.clickable:hover { text-decoration: underline; color: #7dd3fc; }
 
-      .cine-trailer-card { display: block; text-decoration: none; border-radius: 10px; overflow: hidden; border: 1px solid #334155; transition: transform 0.15s; }
+      .cine-trailer-card { display: block; text-decoration: none; border-radius: 10px; overflow: hidden; border: 1px solid #383b50; transition: transform 0.15s; }
       .cine-trailer-card:hover { transform: scale(1.02); }
       .cine-trailer-media { position: relative; aspect-ratio: 16 / 9; background: #0f172a; display: flex; align-items: center; justify-content: center; }
       .cine-trailer-bg { width: 100%; height: 100%; object-fit: cover; opacity: 0.65; }
@@ -128,13 +128,13 @@
       .cine-hd-tag { position: absolute; bottom: 6px; left: 6px; background: rgba(0,0,0,0.85); color: #ea580c; font-size: 9.5px; font-weight: 800; padding: 1px 5px; border-radius: 3px; }
 
       /* Person Modal */
-      .modal-person { position: relative; width: min(720px, 94vw); max-height: 88vh; overflow-y: auto; background: #232631; border: 1px solid #334155; border-radius: 16px; padding: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.75); display: flex; flex-direction: column; gap: 20px; color: #f8fafc; }
-      .person-header { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #334155; padding-bottom: 16px; }
+      .modal-person { position: relative; width: min(720px, 94vw); max-height: 88vh; overflow-y: auto; background: #232631; border: 1px solid #383b50; border-radius: 16px; padding: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.75); display: flex; flex-direction: column; gap: 20px; color: #f8fafc; }
+      .person-header { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #383b50; padding-bottom: 16px; }
       .person-avatar-circle { width: 54px; height: 54px; border-radius: 50%; background: #2563eb; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; border: 2px solid #38bdf8; box-shadow: 0 4px 14px rgba(37,99,235,0.4); flex: 0 0 auto; }
       .person-title { margin: 0; font-size: 22px; font-weight: 700; color: #38bdf8; }
       .person-subtitle { margin: 4px 0 0; font-size: 13px; color: #94a3b8; }
       .person-films-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; }
-      .person-film-card { background: #2b2e3b; border: 1px solid #334155; border-radius: 12px; overflow: hidden; cursor: pointer; padding: 0; text-align: left; transition: transform .15s, border-color .15s; color: inherit; display: flex; flex-direction: column; }
+      .person-film-card { background: #2b2e3b; border: 1px solid #383b50; border-radius: 12px; overflow: hidden; cursor: pointer; padding: 0; text-align: left; transition: transform .15s, border-color .15s; color: inherit; display: flex; flex-direction: column; }
       .person-film-card:hover { transform: translateY(-4px); border-color: #38bdf8; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
       .person-film-poster { position: relative; aspect-ratio: 2 / 3; background: #1e293b; overflow: hidden; }
       .person-film-poster img { width: 100%; height: 100%; object-fit: cover; }
@@ -183,6 +183,21 @@
         if(!min) return '';
         const h = Math.floor(min/60); const m = min%60;
         return h > 0 ? `${h}h ${m}m` : `${m}m`;
+      }
+
+      function formatVotesK(votes){
+        if(!votes) return '688K';
+        const clean = String(votes).replace(/,/g,'').trim();
+        const num = parseInt(clean, 10);
+        if(isNaN(num)) return votes;
+        if(num >= 1000000){
+          const m = (num / 1000000).toFixed(1);
+          return (m.endsWith('.0') ? m.slice(0, -2) : m) + 'M';
+        }
+        if(num >= 1000){
+          return Math.round(num / 1000) + 'K';
+        }
+        return String(num);
       }
 
       function setAlpha(a){ alpha=a; renderAlphaBar(); render(); }
@@ -292,7 +307,7 @@
         const metaSub = [f.year, genreText, rt].filter(Boolean).join(' | ');
         const studio = f.studio;
         const mpa = f.rated || f.mpaa;
-        const votes = f.imdbVotes || '688,942';
+        const votesFormatted = formatVotesK(f.imdbVotes);
         const trailerUrl='https://www.youtube.com/results?search_query='+encodeURIComponent((f.originalTitle||f.title)+' official trailer');
         const imdbUrl = f.imdbId ? `https://www.imdb.com/title/${f.imdbId}/` : `https://www.imdb.com/find/?q=${encodeURIComponent(f.title)}`;
 
@@ -344,7 +359,7 @@
 
                 <div class="cine-info-badges">
                   ${mpa ? `<div class="mpa-rating-box" title="Motion Picture Association (MPA) Rating"><span class="mpa-tag-label">MPA</span><span class="mpa-tag-val">${esc(mpa)}</span></div>` : ''}
-                  ${typeof f.rating==='number' ? `<a href="${imdbUrl}" target="_blank" rel="noopener noreferrer" class="imdb-badge-cine clickable-imdb" title="Click to view on IMDb"><div class="imdb-badge-top"><span class="imdb-pill">IMDb</span><span class="imdb-score-black">${f.rating.toFixed(1)}</span><span class="imdb-denom">/ 10</span></div><div class="imdb-badge-votes">${esc(votes)}</div></a>` : ''}
+                  ${typeof f.rating==='number' ? `<a href="${imdbUrl}" target="_blank" rel="noopener noreferrer" class="imdb-badge-cine clickable-imdb" title="Click to view on IMDb"><div class="imdb-badge-top"><span class="imdb-pill">IMDb</span><span class="imdb-score-black">${f.rating.toFixed(1)}</span><span class="imdb-denom">/ 10</span></div><div class="imdb-badge-votes">${esc(votesFormatted)} votes</div></a>` : ''}
                 </div>
               </div>
             </div>

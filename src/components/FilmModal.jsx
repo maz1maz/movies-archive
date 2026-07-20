@@ -24,6 +24,21 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
     return h > 0 ? `${h}h ${m}m` : `${m}m`
   }
 
+  const formatVotesK = (votes) => {
+    if (!votes) return '688K'
+    const clean = String(votes).replace(/,/g, '').trim()
+    const num = parseInt(clean, 10)
+    if (isNaN(num)) return votes
+    if (num >= 1000000) {
+      const m = (num / 1000000).toFixed(1)
+      return (m.endsWith('.0') ? m.slice(0, -2) : m) + 'M'
+    }
+    if (num >= 1000) {
+      return Math.round(num / 1000) + 'K'
+    }
+    return String(num)
+  }
+
   const castList = Array.isArray(film.cast) ? film.cast : []
   const displayedCast = showAllCast ? castList : castList.slice(0, 5)
 
@@ -114,7 +129,7 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
               )}
             </div>
 
-            {/* Bottom Row: Studio Name (Left) + MPA Box + Black-text Clickable IMDb Badge */}
+            {/* Bottom Row: Studio Name (Left) + MPA Box + All-Black IMDb Badge with K votes */}
             <div className="cine-info-bottom-row">
               {studioName ? (
                 <div className="cine-studio-header">
@@ -136,7 +151,7 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
                   </div>
                 )}
 
-                {/* IMDb Yellow Badge with Black Text, /10, Vote Count & Clickable Link */}
+                {/* IMDb Yellow Badge: All Black Numbers/Text, /10, and K format votes */}
                 {typeof film.rating === 'number' && (
                   <a
                     href={imdbUrl}
@@ -151,7 +166,7 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
                       <span className="imdb-denom">/ 10</span>
                     </div>
                     <div className="imdb-badge-votes">
-                      {film.imdbVotes || '688,942'}
+                      {formatVotesK(film.imdbVotes)} votes
                     </div>
                   </a>
                 )}
