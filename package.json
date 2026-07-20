@@ -1,0 +1,26 @@
+{
+  "name": "film-archive",
+  "version": "1.0.0",
+  "description": "ارشیو فیزیکی فیلم‌ها - وب اپ با React و Node.js (ایمپورت از اکسل)",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "node --watch server/index.js",
+    "dev:client": "vite",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "template": "node server/make-template.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^2.2.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^8.2.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.8"
+  }
+}
