@@ -75,9 +75,15 @@ TEMPLATE = r"""<!doctype html>
 
       .cine-bottom-row { display: grid; grid-template-columns: 1fr 1fr 160px; gap: 16px; padding-top: 6px; }
       .cine-col { display: flex; flex-direction: column; gap: 8px; }
+      .cine-col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
       .cine-col-title { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #94a3b8; text-transform: uppercase; }
+      
+      .cine-accordion-btn { background: transparent; border: none; color: #38bdf8; font-size: 11px; font-weight: 600; cursor: pointer; padding: 0; }
+      .cine-accordion-btn:hover { opacity: 0.85; text-decoration: underline; }
 
-      .cine-cast-grid { display: flex; flex-wrap: wrap; gap: 10px 12px; }
+      .cine-cast-grid { display: flex; flex-wrap: wrap; gap: 10px 12px; max-height: 130px; overflow-y: hidden; transition: max-height 0.25s ease; }
+      .cine-cast-grid.expanded { max-height: 280px; overflow-y: auto; }
+      
       .cine-cast-item { display: flex; flex-direction: column; align-items: center; width: 52px; gap: 4px; }
       .cine-actor-avatar-wrap { position: relative; width: 42px; height: 42px; border-radius: 50%; overflow: hidden; background: #334155; border: 1.5px solid #475569; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.35); }
       .cine-actor-img { width: 100%; height: 100%; object-fit: cover; }
@@ -85,7 +91,8 @@ TEMPLATE = r"""<!doctype html>
       .cine-actor-name { font-size: 10.5px; font-weight: 600; color: #cbd5e1; text-align: center; line-height: 1.2; word-break: break-word; }
       .cine-actor-character { font-size: 9.5px; color: #94a3b8; text-align: center; line-height: 1.1; }
 
-      .cine-crew-table { display: flex; flex-direction: column; gap: 4px; }
+      .cine-crew-table { display: flex; flex-direction: column; gap: 4px; max-height: 130px; overflow-y: hidden; transition: max-height 0.25s ease; }
+      .cine-crew-table.expanded { max-height: 280px; overflow-y: auto; }
       .cine-crew-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; border-bottom: 1px solid #2d3241; }
       .crew-key { color: #94a3b8; }
       .crew-val { color: #f1f5f9; text-align: right; font-weight: 500; }
@@ -140,6 +147,14 @@ TEMPLATE = r"""<!doctype html>
 
       function setAlpha(a){ alpha=a; renderAlphaBar(); render(); }
 
+      function toggleAccordion(id, btnId, textExpanded, textCollapsed){
+        const el = document.getElementById(id);
+        const btn = document.getElementById(btnId);
+        if(!el || !btn) return;
+        const isExp = el.classList.toggle('expanded');
+        btn.textContent = isExp ? textExpanded : textCollapsed;
+      }
+
       function getList(){
         const q=search.value.trim().toLowerCase();
         const g=genreSel.value, dv=decadeSel.value, so=sortSel.value;
@@ -190,7 +205,7 @@ TEMPLATE = r"""<!doctype html>
         let castHtml = '';
         if(castList.length===0) castHtml='<div style="font-size:12px; color:#94a3b8">No cast listed</div>';
         else {
-          castList.slice(0,5).forEach(act=>{
+          castList.forEach(act=>{
             const name = typeof act === 'object' ? act.name : act;
             const photo = (typeof act === 'object' && act.photo) ? act.photo : ('https://ui-avatars.com/api/?name='+encodeURIComponent(name)+'&background=334155&color=ffffff&bold=true&rounded=true');
             const character = typeof act === 'object' ? act.character : null;
@@ -236,17 +251,24 @@ TEMPLATE = r"""<!doctype html>
 
           <div class="cine-bottom-row">
             <div class="cine-col">
-              <div class="cine-col-title">CAST</div>
-              <div class="cine-cast-grid">${castHtml}</div>
+              <div class="cine-col-header">
+                <span class="cine-col-title">CAST</span>
+                ${castList.length > 5 ? `<button type="button" id="castBtn" class="cine-accordion-btn" onclick="toggleAccordion('castGrid','castBtn','Show less ▴','View all (${castList.length}) ▾')">View all (${castList.length}) ▾</button>` : ''}
+              </div>
+              <div class="cine-cast-grid" id="castGrid">${castHtml}</div>
             </div>
 
             <div class="cine-col">
-              <div class="cine-col-title">CREW</div>
-              <div class="cine-crew-table">
+              <div class="cine-col-header">
+                <span class="cine-col-title">CREW</span>
+                <button type="button" id="crewBtn" class="cine-accordion-btn" onclick="toggleAccordion('crewTable','crewBtn','Show less ▴','View all ▾')">View all ▾</button>
+              </div>
+              <div class="cine-crew-table" id="crewTable">
                 ${f.director ? `<div class="cine-crew-row"><span class="crew-key">Director</span><span class="crew-val">${esc(f.director)}</span></div>` : ''}
                 <div class="cine-crew-row"><span class="crew-key">Writer</span><span class="crew-val">${esc(f.director||'—')}</span></div>
+                <div class="cine-crew-row"><span class="crew-key">Producer</span><span class="crew-val">${esc(f.producer||'Executive Producers')}</span></div>
                 <div class="cine-crew-row"><span class="crew-key">Country</span><span class="crew-val">${esc(f.country||'USA')}</span></div>
-                ${f.runtime ? `<div class="cine-crew-row"><span class="crew-key">Runtime</span><span class="crew-val">${f.runtime} mins</span></div>` : ''}
+                ${f.runtime ? `<div class="cine-crew-row"><span class="crew-key">Runtime</span><span class="crew-val">${f.runtime} mins (${rt})</span></div>` : ''}
               </div>
             </div>
 
@@ -282,4 +304,4 @@ TEMPLATE = r"""<!doctype html>
 html = TEMPLATE.replace("__DATA__", DATA)
 with open("preview.html", "w", encoding="utf-8") as f:
     f.write(html)
-print("preview.html updated with actor photos support")
+print("preview.html updated with accordion dropdowns for CAST and CREW")

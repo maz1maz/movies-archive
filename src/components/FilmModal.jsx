@@ -1,7 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { IconClose } from './icons.jsx'
 
 export default function FilmModal({ film, onClose }) {
+  const [showAllCast, setShowAllCast] = useState(false)
+  const [showAllCrew, setShowAllCrew] = useState(false)
+
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -22,6 +25,8 @@ export default function FilmModal({ film, onClose }) {
   }
 
   const castList = Array.isArray(film.cast) ? film.cast : []
+  const displayedCast = showAllCast ? castList : castList.slice(0, 5)
+
   const genreText = Array.isArray(film.genre) ? film.genre.slice(0, 3).join(', ') : film.genre || ''
   const runtimeText = formatRuntime(film.runtime)
   const metaSubParts = [film.year, genreText, runtimeText].filter(Boolean)
@@ -30,14 +35,24 @@ export default function FilmModal({ film, onClose }) {
     (film.originalTitle || film.title) + ' official trailer'
   )}`
 
-  // Helper to get actor photo URL or fallback avatar
   const getActorPhoto = (actorObj, name) => {
     if (typeof actorObj === 'object' && actorObj?.photo) return actorObj.photo
-    // Return high-definition profile avatar service or TMDB placeholder
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
       name
     )}&background=334155&color=ffffff&bold=true&rounded=true`
   }
+
+  const fullCrew = [
+    { label: 'Director', value: film.director },
+    { label: 'Writer', value: film.writer || film.director },
+    { label: 'Producer', value: film.producer },
+    { label: 'Musician', value: film.composer || film.musician },
+    { label: 'Cinematography', value: film.cinematographer },
+    { label: 'Country', value: film.country || 'USA' },
+    { label: 'Runtime', value: film.runtime ? `${film.runtime} mins (${runtimeText})` : null },
+  ].filter((item) => item.value)
+
+  const displayedCrew = showAllCrew ? fullCrew : fullCrew.slice(0, 4)
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -105,12 +120,23 @@ export default function FilmModal({ film, onClose }) {
         <div className="cine-bottom-row">
           {/* CAST */}
           <div className="cine-col cine-col-cast">
-            <div className="cine-col-title">CAST</div>
-            <div className="cine-cast-grid">
+            <div className="cine-col-header">
+              <span className="cine-col-title">CAST</span>
+              {castList.length > 5 && (
+                <button
+                  type="button"
+                  className="cine-accordion-btn"
+                  onClick={() => setShowAllCast(!showAllCast)}
+                >
+                  {showAllCast ? 'Show less ▴' : `View all (${castList.length}) ▾`}
+                </button>
+              )}
+            </div>
+            <div className={`cine-cast-grid ${showAllCast ? 'expanded' : ''}`}>
               {castList.length === 0 ? (
                 <div className="cine-empty">No cast listed</div>
               ) : (
-                castList.slice(0, 5).map((actor, idx) => {
+                displayedCast.map((actor, idx) => {
                   const name = typeof actor === 'object' ? actor.name : actor
                   const photoUrl = getActorPhoto(actor, name)
                   const character = typeof actor === 'object' ? actor.character : null
@@ -151,28 +177,25 @@ export default function FilmModal({ film, onClose }) {
 
           {/* CREW */}
           <div className="cine-col cine-col-crew">
-            <div className="cine-col-title">CREW</div>
-            <div className="cine-crew-table">
-              {film.director && (
-                <div className="cine-crew-row">
-                  <span className="crew-key">Director</span>
-                  <span className="crew-val">{film.director}</span>
-                </div>
+            <div className="cine-col-header">
+              <span className="cine-col-title">CREW</span>
+              {fullCrew.length > 4 && (
+                <button
+                  type="button"
+                  className="cine-accordion-btn"
+                  onClick={() => setShowAllCrew(!showAllCrew)}
+                >
+                  {showAllCrew ? 'Show less ▴' : `View all (${fullCrew.length}) ▾`}
+                </button>
               )}
-              <div className="cine-crew-row">
-                <span className="crew-key">Writer</span>
-                <span className="crew-val">{film.director || '—'}</span>
-              </div>
-              <div className="cine-crew-row">
-                <span className="crew-key">Country</span>
-                <span className="crew-val">{film.country || 'USA'}</span>
-              </div>
-              {film.runtime && (
-                <div className="cine-crew-row">
-                  <span className="crew-key">Runtime</span>
-                  <span className="crew-val">{film.runtime} mins</span>
+            </div>
+            <div className={`cine-crew-table ${showAllCrew ? 'expanded' : ''}`}>
+              {displayedCrew.map((item, idx) => (
+                <div key={idx} className="cine-crew-row">
+                  <span className="crew-key">{item.label}</span>
+                  <span className="crew-val">{item.value}</span>
                 </div>
-              )}
+              ))}
             </div>
           </div>
 
