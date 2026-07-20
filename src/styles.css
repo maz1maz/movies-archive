@@ -483,27 +483,72 @@ body.light {
   flex: 1 1 auto;
   background: #2b2e3b;
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-/* Studio Header */
+/* Top Row: Synopsis Left & Location Badge Right */
+.cine-info-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.cine-synopsis-box {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cine-shelf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+/* Bottom Row inside card: Studio Left & Badges Right */
+.cine-info-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: 1px solid #3d4253;
+  padding-top: 12px;
+  margin-top: auto;
+}
+
 .cine-studio-header {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13.5px;
   color: #f1f5f9;
-  border-bottom: 1px solid #3d4253;
-  padding-bottom: 8px;
 }
 .studio-icon {
   font-size: 15px;
 }
 .studio-text strong {
   color: #ffffff;
+}
+
+.cine-info-badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* MPA Rating Box */
@@ -529,6 +574,38 @@ body.light {
   color: #ffffff;
   padding: 2px 8px;
   letter-spacing: 0.5px;
+}
+
+/* IMDb Yellow Badge (Black text & Clickable) */
+.imdb-badge-cine {
+  display: inline-flex;
+  align-items: center;
+  background: #f5c518;
+  color: #000000;
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-weight: 800;
+  font-size: 12.5px;
+  gap: 5px;
+  text-decoration: none;
+}
+.clickable-imdb {
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.clickable-imdb:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(245, 197, 24, 0.6);
+}
+.imdb-score-black {
+  color: #000000;
+  font-weight: 900;
+  font-size: 13px;
+}
+.imdb-star-black {
+  color: #000000;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .cine-badges-top {

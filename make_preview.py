@@ -62,27 +62,34 @@ TEMPLATE = r"""<!doctype html>
       .cine-poster-img { width: 100%; height: 100%; object-fit: cover; }
       .cine-poster-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; font-size: 12px; color: #94a3b8; }
 
-      .cine-info-card { flex: 1 1 auto; background: #2b2e3b; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
-      
-      /* Studio Header */
-      .cine-studio-header { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #f1f5f9; border-bottom: 1px solid #3d4253; padding-bottom: 8px; }
+      .cine-info-card { flex: 1 1 auto; background: #2b2e3b; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
+
+      /* Top Row: Synopsis Left & Location Badge Top Right */
+      .cine-info-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+      .cine-synopsis-box { flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; }
+      .cine-section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #94a3b8; text-transform: uppercase; }
+      .cine-synopsis-text { margin: 0; font-size: 12.5px; line-height: 1.5; color: #e2e8f0; }
+      .cine-shelf-badge { display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; padding: 5px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600; white-space: nowrap; flex: 0 0 auto; }
+
+      /* Bottom Row: Studio Left & Badges Right */
+      .cine-info-bottom-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-top: 1px solid #3d4253; padding-top: 12px; margin-top: auto; }
+      .cine-studio-header { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #f1f5f9; }
       .studio-icon { font-size: 15px; }
       .studio-text strong { color: #ffffff; }
+
+      .cine-info-badges { display: flex; align-items: center; gap: 10px; }
 
       /* MPA Rating Box */
       .mpa-rating-box { display: inline-flex; align-items: center; border: 1.5px solid #64748b; border-radius: 5px; background: #0f172a; overflow: hidden; font-size: 12px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
       .mpa-tag-label { background: #334155; color: #94a3b8; padding: 2px 6px; font-size: 10px; letter-spacing: 0.5px; }
       .mpa-tag-val { color: #ffffff; padding: 2px 8px; letter-spacing: 0.5px; }
 
-      .cine-badges-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-
-      .imdb-badge-cine { display: inline-flex; align-items: center; background: #f5c518; color: #000; border-radius: 5px; padding: 3px 7px; font-weight: 800; font-size: 12.5px; gap: 5px; }
-      .imdb-pill { background: #000; color: #f5c518; padding: 1px 3px; border-radius: 3px; font-size: 10px; font-weight: 900; }
-      .cine-shelf-badge { display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; padding: 4px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600; }
-
-      .cine-synopsis-box { display: flex; flex-direction: column; gap: 4px; }
-      .cine-section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #94a3b8; text-transform: uppercase; }
-      .cine-synopsis-text { margin: 0; font-size: 12.5px; line-height: 1.5; color: #e2e8f0; }
+      /* IMDb Badge (Clickable, Black text) */
+      .imdb-badge-cine { display: inline-flex; align-items: center; background: #f5c518; color: #000000; border-radius: 5px; padding: 3px 8px; font-weight: 800; font-size: 12.5px; gap: 5px; text-decoration: none; }
+      .clickable-imdb { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+      .clickable-imdb:hover { transform: scale(1.05); box-shadow: 0 0 12px rgba(245, 197, 24, 0.6); }
+      .imdb-score-black { color: #000000; font-weight: 900; font-size: 13px; }
+      .imdb-star-black { color: #000000; font-size: 11px; font-weight: 900; }
 
       .cine-bottom-row { display: grid; grid-template-columns: 1fr 1fr 160px; gap: 16px; padding-top: 6px; }
       .cine-col { display: flex; flex-direction: column; gap: 8px; }
@@ -285,9 +292,10 @@ TEMPLATE = r"""<!doctype html>
         const genreText=Array.isArray(f.genre)?f.genre.slice(0,3).join(', '):(f.genre||'');
         const rt = formatRuntime(f.runtime);
         const metaSub = [f.year, genreText, rt].filter(Boolean).join(' | ');
-        const studio = f.studio || 'Sony Pictures Releasing';
-        const mpa = f.rated || f.mpaa || 'R';
+        const studio = f.studio;
+        const mpa = f.rated || f.mpaa;
         const trailerUrl='https://www.youtube.com/results?search_query='+encodeURIComponent((f.originalTitle||f.title)+' official trailer');
+        const imdbUrl = f.imdbId ? `https://www.imdb.com/title/${f.imdbId}/` : `https://www.imdb.com/find/?q=${encodeURIComponent(f.title)}`;
 
         let castHtml = '';
         if(castList.length===0) castHtml='<div style="font-size:12px; color:#94a3b8">No cast listed</div>';
@@ -324,24 +332,21 @@ TEMPLATE = r"""<!doctype html>
             </div>
 
             <div class="cine-info-card">
-              <div class="cine-studio-header">
-                <span class="studio-icon">🏢</span>
-                <span class="studio-text"><strong>${esc(studio)}</strong> ${f.year?`(${f.year})`:''}</span>
-              </div>
-
-              <div class="cine-badges-top">
-                <div class="mpa-rating-box" title="Motion Picture Association (MPA) Rating">
-                  <span class="mpa-tag-label">MPA</span>
-                  <span class="mpa-tag-val">${esc(mpa)}</span>
+              <div class="cine-info-top-row">
+                <div class="cine-synopsis-box">
+                  <div class="cine-section-label">SYNOPSIS</div>
+                  <p class="cine-synopsis-text">${esc(f.synopsis || (f.title + ' is a ' + (f.year||'') + ' film directed by ' + (f.director||'renowned filmmakers') + '.'))}</p>
                 </div>
-
-                ${typeof f.rating==='number' ? `<div class="imdb-badge-cine"><span class="imdb-pill">IMDb</span><span>${f.rating.toFixed(1)}</span><span style="font-size:11px">★</span></div>` : ''}
                 ${(f.shelf||f.row) ? `<div class="cine-shelf-badge">🗄️ Shelf <strong>${esc(f.shelf||'–')}</strong> / Row <strong>${esc(f.row||'–')}</strong></div>` : ''}
               </div>
 
-              <div class="cine-synopsis-box">
-                <div class="cine-section-label">SYNOPSIS</div>
-                <p class="cine-synopsis-text">${esc(f.synopsis || (f.title + ' is a ' + (f.year||'') + ' film directed by ' + (f.director||'renowned filmmakers') + '.'))}</p>
+              <div class="cine-info-bottom-row">
+                ${studio ? `<div class="cine-studio-header"><span class="studio-icon">🏢</span><span class="studio-text"><strong>${esc(studio)}</strong> ${f.year?`(${f.year})`:''}</span></div>` : '<div></div>'}
+
+                <div class="cine-info-badges">
+                  ${mpa ? `<div class="mpa-rating-box" title="Motion Picture Association (MPA) Rating"><span class="mpa-tag-label">MPA</span><span class="mpa-tag-val">${esc(mpa)}</span></div>` : ''}
+                  ${typeof f.rating==='number' ? `<a href="${imdbUrl}" target="_blank" rel="noopener noreferrer" class="imdb-badge-cine clickable-imdb" title="Click to view on IMDb"><span class="imdb-pill">IMDb</span><span class="imdb-score-black">${f.rating.toFixed(1)}</span><span class="imdb-star-black">★</span></a>` : ''}
+                </div>
               </div>
             </div>
           </div>
@@ -401,4 +406,4 @@ TEMPLATE = r"""<!doctype html>
 html = TEMPLATE.replace("__DATA__", DATA)
 with open("preview.html", "w", encoding="utf-8") as f:
     f.write(html)
-print("preview.html updated with Studio header and MPA Rating badge")
+print("preview.html updated with rearranged info card and clickable black-text IMDb badge")

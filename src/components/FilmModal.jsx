@@ -38,6 +38,10 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
     (film.originalTitle || film.title) + ' official trailer'
   )}`
 
+  const imdbUrl = film.imdbId
+    ? `https://www.imdb.com/title/${film.imdbId}/`
+    : `https://www.imdb.com/find/?q=${encodeURIComponent(film.title)}`
+
   const getActorPhoto = (actorObj, name) => {
     if (typeof actorObj === 'object' && actorObj?.photo) return actorObj.photo
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
@@ -72,7 +76,7 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
           )}
         </div>
 
-        {/* Main Body: Poster + Dark Gray Card */}
+        {/* Main Body: Poster + Rearranged Gray Info Card */}
         <div className="cine-main-row">
           <div className="cine-poster-box">
             <img
@@ -87,33 +91,17 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
           </div>
 
           <div className="cine-info-card">
-            {/* Primary Studio Line */}
-            {studioName && (
-              <div className="cine-studio-header">
-                <span className="studio-icon">🏢</span>
-                <span className="studio-text">
-                  <strong>{studioName}</strong> {film.year ? `(${film.year})` : ''}
-                </span>
+            {/* Top Row: Synopsis (Left) & Archive Location Badge (Top Right) */}
+            <div className="cine-info-top-row">
+              <div className="cine-synopsis-box">
+                <div className="cine-section-label">SYNOPSIS</div>
+                <p className="cine-synopsis-text">
+                  {film.synopsis ||
+                    `${film.title} is a ${film.year || ''} ${genreText} film directed by ${
+                      film.director || 'renowned filmmakers'
+                    }.`}
+                </p>
               </div>
-            )}
-
-            {/* Badges Row: MPA Rating + IMDb + Shelf Location */}
-            <div className="cine-badges-top">
-              {/* Motion Picture Association (MPA) Badge */}
-              {mpaRating && (
-                <div className="mpa-rating-box" title="Motion Picture Association (MPA) Rating">
-                  <span className="mpa-tag-label">MPA</span>
-                  <span className="mpa-tag-val">{mpaRating}</span>
-                </div>
-              )}
-
-              {typeof film.rating === 'number' && (
-                <div className="imdb-badge-cine">
-                  <span className="imdb-pill">IMDb</span>
-                  <span className="imdb-score">{film.rating.toFixed(1)}</span>
-                  <span className="imdb-star">★</span>
-                </div>
-              )}
 
               {(film.shelf || film.row) && (
                 <div className="cine-shelf-badge">
@@ -126,14 +114,43 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
               )}
             </div>
 
-            <div className="cine-synopsis-box">
-              <div className="cine-section-label">SYNOPSIS</div>
-              <p className="cine-synopsis-text">
-                {film.synopsis ||
-                  `${film.title} is a ${film.year || ''} ${genreText} film directed by ${
-                    film.director || 'renowned filmmakers'
-                  }.`}
-              </p>
+            {/* Bottom Row: Studio Name (Left) + MPA Box + Black-text Clickable IMDb Badge */}
+            <div className="cine-info-bottom-row">
+              {studioName ? (
+                <div className="cine-studio-header">
+                  <span className="studio-icon">🏢</span>
+                  <span className="studio-text">
+                    <strong>{studioName}</strong> {film.year ? `(${film.year})` : ''}
+                  </span>
+                </div>
+              ) : (
+                <div />
+              )}
+
+              <div className="cine-info-badges">
+                {/* Motion Picture Association (MPA) Badge */}
+                {mpaRating && (
+                  <div className="mpa-rating-box" title="Motion Picture Association (MPA) Rating">
+                    <span className="mpa-tag-label">MPA</span>
+                    <span className="mpa-tag-val">{mpaRating}</span>
+                  </div>
+                )}
+
+                {/* IMDb Yellow Badge with Black Text & Clickable Link */}
+                {typeof film.rating === 'number' && (
+                  <a
+                    href={imdbUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="imdb-badge-cine clickable-imdb"
+                    title="Click to view on IMDb"
+                  >
+                    <span className="imdb-pill">IMDb</span>
+                    <span className="imdb-score-black">{film.rating.toFixed(1)}</span>
+                    <span className="imdb-star-black">★</span>
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
