@@ -17,8 +17,6 @@
       .header { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--border); }
       .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0 12px; }
       .brand-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; text-align: center; color: #f8fafc; }
-      .actions { display: flex; gap: 10px; }
-      .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; }
       
       .controls { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 16px; align-items: center; }
       .search-box { position: relative; flex: 1 1 260px; }
@@ -75,9 +73,12 @@
       .cine-col-title { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #94a3b8; text-transform: uppercase; }
 
       .cine-cast-grid { display: flex; flex-wrap: wrap; gap: 10px 12px; }
-      .cine-cast-item { display: flex; flex-direction: column; align-items: center; width: 48px; gap: 4px; }
-      .cine-actor-avatar { width: 38px; height: 38px; border-radius: 50%; background: #334155; color: #f1f5f9; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; border: 1px solid #475569; }
-      .cine-actor-name { font-size: 11px; color: #cbd5e1; text-align: center; line-height: 1.2; word-break: break-word; }
+      .cine-cast-item { display: flex; flex-direction: column; align-items: center; width: 52px; gap: 4px; }
+      .cine-actor-avatar-wrap { position: relative; width: 42px; height: 42px; border-radius: 50%; overflow: hidden; background: #334155; border: 1.5px solid #475569; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.35); }
+      .cine-actor-img { width: 100%; height: 100%; object-fit: cover; }
+      .cine-actor-fallback { width: 100%; height: 100%; color: #f1f5f9; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; background: #334155; }
+      .cine-actor-name { font-size: 10.5px; font-weight: 600; color: #cbd5e1; text-align: center; line-height: 1.2; word-break: break-word; }
+      .cine-actor-character { font-size: 9.5px; color: #94a3b8; text-align: center; line-height: 1.1; }
 
       .cine-crew-table { display: flex; flex-direction: column; gap: 4px; }
       .cine-crew-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; border-bottom: 1px solid #2d3241; }
@@ -138,7 +139,7 @@
         const q=search.value.trim().toLowerCase();
         const g=genreSel.value, dv=decadeSel.value, so=sortSel.value;
         let list=FILMS.filter(f=>{
-          if(q && !((f.title||'').toLowerCase().includes(q)||(f.director||'').toLowerCase().includes(q)||(f.cast||[]).join(' ').toLowerCase().includes(q))) return false;
+          if(q && !((f.title||'').toLowerCase().includes(q)||(f.director||'').toLowerCase().includes(q)||(f.cast||[]).map(x=>typeof x==='object'?x.name:x).join(' ').toLowerCase().includes(q))) return false;
           if(g && !(f.genre||[]).includes(g)) return false;
           if(dv){ const d=parseInt(dv,10); if(!(typeof f.year==='number' && Math.floor(f.year/10)*10===d)) return false; }
           return true;
@@ -185,8 +186,19 @@
         if(castList.length===0) castHtml='<div style="font-size:12px; color:#94a3b8">No cast listed</div>';
         else {
           castList.slice(0,5).forEach(act=>{
-            const initials = act.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
-            castHtml += `<div class="cine-cast-item"><div class="cine-actor-avatar">${esc(initials)}</div><span class="cine-actor-name">${esc(act)}</span></div>`;
+            const name = typeof act === 'object' ? act.name : act;
+            const photo = (typeof act === 'object' && act.photo) ? act.photo : ('https://ui-avatars.com/api/?name='+encodeURIComponent(name)+'&background=334155&color=ffffff&bold=true&rounded=true');
+            const character = typeof act === 'object' ? act.character : null;
+            const initials = name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+
+            castHtml += `<div class="cine-cast-item">
+              <div class="cine-actor-avatar-wrap">
+                <img src="${esc(photo)}" alt="${esc(name)}" class="cine-actor-img" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex'">
+                <div class="cine-actor-fallback" style="display:none">${esc(initials)}</div>
+              </div>
+              <span class="cine-actor-name">${esc(name)}</span>
+              ${character ? `<span class="cine-actor-character">${esc(character)}</span>` : ''}
+            </div>`;
           });
         }
 

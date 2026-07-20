@@ -30,6 +30,15 @@ export default function FilmModal({ film, onClose }) {
     (film.originalTitle || film.title) + ' official trailer'
   )}`
 
+  // Helper to get actor photo URL or fallback avatar
+  const getActorPhoto = (actorObj, name) => {
+    if (typeof actorObj === 'object' && actorObj?.photo) return actorObj.photo
+    // Return high-definition profile avatar service or TMDB placeholder
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      name
+    )}&background=334155&color=ffffff&bold=true&rounded=true`
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-cine" onClick={(e) => e.stopPropagation()}>
@@ -102,16 +111,37 @@ export default function FilmModal({ film, onClose }) {
                 <div className="cine-empty">No cast listed</div>
               ) : (
                 castList.slice(0, 5).map((actor, idx) => {
-                  const initials = actor
+                  const name = typeof actor === 'object' ? actor.name : actor
+                  const photoUrl = getActorPhoto(actor, name)
+                  const character = typeof actor === 'object' ? actor.character : null
+                  const initials = name
                     .split(' ')
                     .map((n) => n[0])
                     .join('')
                     .substring(0, 2)
                     .toUpperCase()
+
                   return (
                     <div key={idx} className="cine-cast-item">
-                      <div className="cine-actor-avatar">{initials}</div>
-                      <span className="cine-actor-name">{actor}</span>
+                      <div className="cine-actor-avatar-wrap">
+                        <img
+                          src={photoUrl}
+                          alt={name}
+                          className="cine-actor-img"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                            const fallback = e.currentTarget.nextElementSibling
+                            if (fallback) fallback.style.display = 'flex'
+                          }}
+                        />
+                        <div className="cine-actor-fallback" style={{ display: 'none' }}>
+                          {initials}
+                        </div>
+                      </div>
+                      <span className="cine-actor-name">{name}</span>
+                      {character && (
+                        <span className="cine-actor-character">{character}</span>
+                      )}
                     </div>
                   )
                 })

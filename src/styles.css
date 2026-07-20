@@ -584,28 +584,52 @@ body.light {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 48px;
+  width: 52px;
   gap: 4px;
 }
-.cine-actor-avatar {
-  width: 38px;
-  height: 38px;
+.cine-actor-avatar-wrap {
+  position: relative;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
+  overflow: hidden;
   background: #334155;
+  border: 1.5px solid #475569;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.cine-actor-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cine-actor-fallback {
+  width: 100%;
+  height: 100%;
   color: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 12px;
-  border: 1px solid #475569;
+  background: #334155;
 }
 .cine-actor-name {
-  font-size: 11px;
+  font-size: 10.5px;
+  font-weight: 600;
   color: #cbd5e1;
   text-align: center;
   line-height: 1.2;
   word-break: break-word;
+}
+.cine-actor-character {
+  font-size: 9.5px;
+  color: #94a3b8;
+  text-align: center;
+  line-height: 1.1;
 }
 
 /* Crew Table */

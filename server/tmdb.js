@@ -25,7 +25,13 @@ export async function enrichFilm(film, key) {
         if (d) director = d.name
       }
       if (!cast || cast.length === 0) {
-        cast = (c.cast || []).slice(0, 8).map((x) => x.name)
+        cast = (c.cast || []).slice(0, 8).map((x) => ({
+          name: x.name,
+          character: x.character,
+          photo: x.profile_path
+            ? `https://image.tmdb.org/t/p/w185${x.profile_path}`
+            : null,
+        }))
       }
     }
   } catch {
