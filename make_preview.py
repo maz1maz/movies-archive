@@ -80,7 +80,7 @@ TEMPLATE = r"""<!doctype html>
       .cast-pill { background: var(--surface-2); border: 1px solid var(--border); padding: 5px 12px; border-radius: 999px; font-size: 13px; }
       .modal-synopsis { margin-top: 16px; line-height: 1.8; color: #d2d2de; font-size: 14px; }
       .preview-note { text-align: center; color: var(--muted); font-size: 12px; padding-bottom: 8px; }
-      .alpha-bar { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 6px; }
+      .alpha-bar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin: 18px auto 6px; }
       .alpha-btn { border: 1px solid var(--border); background: var(--surface); color: var(--muted); padding: 5px 0; border-radius: 8px; font-size: 13px; cursor: pointer; min-width: 34px; }
       .alpha-btn:hover { border-color: var(--accent); color: var(--text); }
       .alpha-btn.active { background: linear-gradient(135deg, var(--accent), #f0c25c); color: #1a1407; font-weight: 700; border-color: transparent; }

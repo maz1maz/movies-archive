@@ -552,8 +552,10 @@ body.light {
 .alpha-bar {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
   gap: 5px;
-  margin: 16px 0 4px;
+  margin: 16px auto 4px;
 }
 .alpha-btn {
   border: 1px solid var(--border);
