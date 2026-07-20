@@ -82,6 +82,25 @@ const HEADER_MAP = {
   عکس: 'poster',
   poster: 'poster',
   image: 'poster',
+  studio: 'studio',
+  کمپانی: 'studio',
+  استودیو: 'studio',
+  سازنده: 'studio',
+  publisher: 'studio',
+  rated: 'rated',
+  mpaa: 'rated',
+  'رده بندی سنی': 'rated',
+  'درجه سنی': 'rated',
+  'رده سنی': 'rated',
+  format: 'format',
+  فرمت: 'format',
+  نوع: 'format',
+  نسخه: 'format',
+  borrowedto: 'borrowedTo',
+  'امانت به': 'borrowedTo',
+  امانت: 'borrowedTo',
+  borroweddate: 'borrowedDate',
+  'تاریخ امانت': 'borrowedDate',
 }
 
 function parseCell(v) {
@@ -184,6 +203,11 @@ const EDITABLE = [
   'country',
   'synopsis',
   'poster',
+  'studio',
+  'rated',
+  'format',
+  'borrowedTo',
+  'borrowedDate',
 ]
 app.patch('/api/films/:id', (req, res) => {
   const films = readFilms()
@@ -276,6 +300,7 @@ app.get('/api/template', (req, res) => {
       'Title',
       'Shelf',
       'Row',
+      'Format',
       'Director',
       'Cast',
       'Year',
@@ -283,6 +308,8 @@ app.get('/api/template', (req, res) => {
       'Rating',
       'Runtime',
       'Country',
+      'Studio',
+      'MPA Rating',
       'Synopsis',
       'Poster URL',
       'Original Title',
@@ -291,6 +318,7 @@ app.get('/api/template', (req, res) => {
       'Example: The Godfather',
       'A',
       '3',
+      '4K UHD',
       'Francis Ford Coppola',
       'Marlon Brando, Al Pacino',
       '1972',
@@ -298,6 +326,8 @@ app.get('/api/template', (req, res) => {
       '9.2',
       '175',
       'USA',
+      'Paramount Pictures',
+      'R',
       'Story of the Corleone crime family',
       'https://example.com/poster.jpg',
       'The Godfather',
@@ -314,6 +344,46 @@ app.get('/api/template', (req, res) => {
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   )
+  res.send(buf)
+})
+
+// دانلود کامل بکاپ داده‌ها (JSON)
+app.get('/api/export/json', (req, res) => {
+  const films = readFilms()
+  res.setHeader('Content-Disposition', 'attachment; filename="films-backup.json"')
+  res.setHeader('Content-Type', 'application/json')
+  res.send(JSON.stringify(films, null, 2))
+})
+
+// دانلود کامل بکاپ اکسل
+app.get('/api/export/excel', (req, res) => {
+  const films = readFilms()
+  const rows = films.map(f => ({
+    'Title': f.title || '',
+    'Original Title': f.originalTitle || '',
+    'Shelf': f.shelf || '',
+    'Row': f.row || '',
+    'Format': f.format || '',
+    'Borrowed To': f.borrowedTo || '',
+    'Borrowed Date': f.borrowedDate || '',
+    'Director': f.director || '',
+    'Cast': Array.isArray(f.cast) ? f.cast.map(x => typeof x === 'object' ? x.name : x).join(', ') : (f.cast || ''),
+    'Year': f.year || '',
+    'Genre': Array.isArray(f.genre) ? f.genre.join(', ') : (f.genre || ''),
+    'Rating': f.rating || '',
+    'Runtime': f.runtime || '',
+    'Country': f.country || '',
+    'Studio': f.studio || '',
+    'MPA Rating': f.rated || '',
+    'Synopsis': f.synopsis || '',
+    'Poster URL': f.poster || '',
+  }))
+  const ws = XLSX.utils.json_to_sheet(rows)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'آرشیو فیلم‌ها')
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  res.setHeader('Content-Disposition', 'attachment; filename="movies-archive-export.xlsx"')
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.send(buf)
 })
 

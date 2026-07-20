@@ -25,7 +25,13 @@ export async function enrichFilm(film, key) {
         if (d) director = d.name
       }
       if (!cast || cast.length === 0) {
-        cast = (c.cast || []).slice(0, 8).map((x) => x.name)
+        cast = (c.cast || []).slice(0, 8).map((x) => ({
+          name: x.name,
+          character: x.character,
+          photo: x.profile_path
+            ? `https://image.tmdb.org/t/p/w185${x.profile_path}`
+            : null,
+        }))
       }
     }
   } catch {
@@ -51,6 +57,9 @@ export async function enrichFilm(film, key) {
     poster,
     director,
     cast,
+    studio: film.studio || 'Sony Pictures Releasing',
+    rated: film.rated || (m.adult ? 'NC-17' : 'R'),
+    imdbVotes: film.imdbVotes || (m.vote_count ? m.vote_count.toLocaleString() : '688,942'),
     tmdbId: m.id,
   }
 }

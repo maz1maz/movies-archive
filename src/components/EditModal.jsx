@@ -8,11 +8,15 @@ export default function EditModal({ film, onClose, onSave }) {
     row: film.row || '',
     year: film.year ?? '',
     director: film.director || '',
-    cast: (film.cast || []).join(', '),
+    cast: Array.isArray(film.cast)
+      ? film.cast.map((x) => (typeof x === 'object' ? x.name : x)).join(', ')
+      : film.cast || '',
     genre: (film.genre || []).join(', '),
     rating: film.rating ?? '',
     runtime: film.runtime || '',
     country: film.country || '',
+    studio: film.studio || '',
+    rated: film.rated || film.mpaa || '',
     poster: film.poster || '',
     synopsis: film.synopsis || '',
   }))
@@ -47,6 +51,8 @@ export default function EditModal({ film, onClose, onSave }) {
       rating: form.rating !== '' ? parseFloat(form.rating) : undefined,
       runtime: form.runtime !== '' ? parseInt(form.runtime, 10) : undefined,
       country: form.country || undefined,
+      studio: form.studio || undefined,
+      rated: form.rated || undefined,
       poster: form.poster || undefined,
       synopsis: form.synopsis || undefined,
     }
@@ -87,7 +93,7 @@ export default function EditModal({ film, onClose, onSave }) {
             />
           </label>
           <label className="edit-field">
-            <span>Rating</span>
+            <span>Rating (IMDb)</span>
             <input
               type="number"
               step="0.1"
@@ -95,6 +101,16 @@ export default function EditModal({ film, onClose, onSave }) {
               onChange={set('rating')}
             />
           </label>
+
+          <label className="edit-field">
+            <span>Studio / Distributor</span>
+            <input value={form.studio} onChange={set('studio')} placeholder="e.g. Paramount Pictures" />
+          </label>
+          <label className="edit-field">
+            <span>MPA Rating</span>
+            <input value={form.rated} onChange={set('rated')} placeholder="e.g. PG-13, R, PG" />
+          </label>
+
           <label className="edit-field">
             <span>Runtime (min)</span>
             <input
@@ -107,10 +123,12 @@ export default function EditModal({ film, onClose, onSave }) {
             <span>Country</span>
             <input value={form.country} onChange={set('country')} />
           </label>
+
           <label className="edit-field full">
             <span>Director</span>
             <input value={form.director} onChange={set('director')} />
           </label>
+
           <label className="edit-field full">
             <span>Cast (comma separated)</span>
             <input value={form.cast} onChange={set('cast')} />

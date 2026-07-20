@@ -24,6 +24,8 @@ export default function Header({
   setSort,
   total,
   onImport,
+  onOpenStats,
+  onOpenExport,
   view,
   setView,
   alpha,
@@ -36,7 +38,7 @@ export default function Header({
   const onFile = (e) => {
     const file = e.target.files?.[0]
     if (file) onImport(file)
-    e.target.value = '' // allow re-selecting the same file
+    e.target.value = ''
   }
 
   return (
@@ -47,12 +49,26 @@ export default function Header({
             <IconArchive width={19} height={19} />
           </span>
           <div>
-            <h1 className="brand-title">My Film Archive</h1>
-            <p className="brand-sub">{total} films</p>
+            <h1 className="brand-title">CINEFILIO ARCHIVE</h1>
+            <p className="brand-sub">{total} physical films</p>
           </div>
         </div>
 
         <div className="actions">
+          <button
+            className="btn btn-ghost"
+            onClick={onOpenStats}
+            title="View Collection Statistics & Analytics"
+          >
+            📊 Stats
+          </button>
+          <button
+            className="btn btn-ghost"
+            onClick={onOpenExport}
+            title="Export Catalog / PDF / Excel Backup"
+          >
+            📥 Export / Backup
+          </button>
           <button
             className="btn btn-primary"
             onClick={() => fileRef.current?.click()}
@@ -60,7 +76,7 @@ export default function Header({
             <IconUpload width={15} height={15} /> Import Excel
           </button>
           <a className="btn btn-ghost" href="/api/template">
-            <IconDownload width={15} height={15} /> Download Template
+            <IconDownload width={15} height={15} /> Template
           </a>
           <button
             className="btn btn-ghost theme-toggle"
@@ -147,6 +163,13 @@ export default function Header({
             title="List"
           >
             <IconList width={15} height={15} /> List
+          </button>
+          <button
+            className={view === 'bookshelf' ? 'active' : ''}
+            onClick={() => setView('bookshelf')}
+            title="Physical Bookshelf"
+          >
+            📚 Bookshelf
           </button>
         </div>
       </div>

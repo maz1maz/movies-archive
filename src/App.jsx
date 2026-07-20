@@ -2,8 +2,13 @@ import { useEffect, useState } from 'react'
 import Header from './components/Header.jsx'
 import FilmGrid from './components/FilmGrid.jsx'
 import FilmList from './components/FilmList.jsx'
+import BookshelfView from './components/BookshelfView.jsx'
 import FilmModal from './components/FilmModal.jsx'
 import EditModal from './components/EditModal.jsx'
+import PersonModal from './components/PersonModal.jsx'
+import StatsModal from './components/StatsModal.jsx'
+import ExportModal from './components/ExportModal.jsx'
+import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
 
 export default function App() {
@@ -22,6 +27,10 @@ export default function App() {
     () => localStorage.getItem('fa_theme') || 'dark'
   )
   const [selected, setSelected] = useState(null)
+  const [selectedPerson, setSelectedPerson] = useState(null)
+  const [showStats, setShowStats] = useState(false)
+  const [showExport, setShowExport] = useState(false)
+  const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState('')
@@ -116,11 +125,13 @@ export default function App() {
       if (!res.ok) throw new Error('save failed')
       const saved = await res.json()
       setFilms((prev) => prev.map((f) => (f.id === id ? saved : f)))
+      if (selected && selected.id === id) setSelected(saved)
       showToast('Saved')
     } catch (e) {
       showToast(e.message)
     }
     setEditing(null)
+    setLoanFilm(null)
   }
 
   return (
@@ -140,6 +151,8 @@ export default function App() {
         setSort={setSort}
         total={films.length}
         onImport={handleImport}
+        onOpenStats={() => setShowStats(true)}
+        onOpenExport={() => setShowExport(true)}
         view={view}
         setView={setView}
         alpha={alpha}
@@ -163,6 +176,8 @@ export default function App() {
           </div>
         ) : view === 'list' ? (
           <FilmList films={films} onSelect={setSelected} onEdit={setEditing} />
+        ) : view === 'bookshelf' ? (
+          <BookshelfView films={films} onSelect={setSelected} />
         ) : (
           <FilmGrid films={films} onSelect={setSelected} />
         )}
@@ -173,8 +188,47 @@ export default function App() {
       </footer>
 
       {selected && (
-        <FilmModal film={selected} onClose={() => setSelected(null)} />
+        <FilmModal
+          film={selected}
+          onSelectPerson={(name) => {
+            setSelected(null)
+            setSelectedPerson(name)
+          }}
+          onManageLoan={(film) => {
+            setLoanFilm(film)
+          }}
+          onClose={() => setSelected(null)}
+        />
       )}
+
+      {selectedPerson && (
+        <PersonModal
+          personName={selectedPerson}
+          allFilms={films}
+          onSelectFilm={(film) => {
+            setSelectedPerson(null)
+            setSelected(film)
+          }}
+          onClose={() => setSelectedPerson(null)}
+        />
+      )}
+
+      {showStats && (
+        <StatsModal films={films} onClose={() => setShowStats(false)} />
+      )}
+
+      {showExport && (
+        <ExportModal films={films} onClose={() => setShowExport(false)} />
+      )}
+
+      {loanFilm && (
+        <LoanModal
+          film={loanFilm}
+          onClose={() => setLoanFilm(null)}
+          onSaveLoan={(id, patch) => handleSaveFilm(id, patch)}
+        />
+      )}
+
       {editing && (
         <EditModal
           film={editing}

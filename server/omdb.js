@@ -29,6 +29,9 @@ export async function enrichFilm(film, key) {
   if (d.Country && d.Country !== 'N/A') out.country = d.Country
   if (d.Plot && d.Plot !== 'N/A') out.synopsis = d.Plot
   if (d.Poster && d.Poster !== 'N/A') out.poster = d.Poster
+  if (d.Rated && d.Rated !== 'N/A') out.rated = d.Rated
+  if (d.Production && d.Production !== 'N/A') out.studio = d.Production
+  if (d.imdbVotes && d.imdbVotes !== 'N/A') out.imdbVotes = d.imdbVotes
   out.imdbId = d.imdbID || undefined
   return out
 }

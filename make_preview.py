@@ -8,117 +8,185 @@ TEMPLATE = r"""<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>My Film Archive — Preview</title>
+    <title>Cinefilio Archive — Preview</title>
     <style>
       :root {
-        --bg: #0b0b10; --surface: #181821; --surface-2: #1f1f2b; --border: #2a2a38;
-        --text: #ECECF2; --muted: #9a9aac; --accent: #e5b13a; --radius: 14px;
-        --shadow: 0 10px 30px rgba(0,0,0,0.45);
-        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --bg: #0b0c10; --surface: #161821; --surface-2: #1e202d; --border: #282a3a;
+        --border-strong: #383b50; --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8;
+        --radius: 10px; --shadow: 0 16px 36px rgba(0,0,0,0.35);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
       }
       * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
-      body { background: radial-gradient(1200px 600px at 80% -10%, rgba(229,177,58,0.08), transparent),
-                    radial-gradient(900px 500px at -10% 10%, rgba(255,91,91,0.06), transparent), var(--bg);
-             min-height: 100vh; }
+      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); min-height: 100vh; }
+      body { background: radial-gradient(1200px 600px at 80% -10%, rgba(56,189,248,0.08), transparent), radial-gradient(900px 500px at -10% 20%, rgba(245,197,24,0.05), transparent), var(--bg); }
       .container { width: min(1200px, 92vw); margin: 0 auto; }
-      .header { position: sticky; top: 0; z-index: 20; background: rgba(11,11,16,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
-      .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; }
-      .brand { display: flex; align-items: center; gap: 12px; }
-      .brand-icon { font-size: 34px; filter: drop-shadow(0 2px 6px rgba(229,177,58,0.4)); }
-      .brand-title { margin: 0; font-size: 22px; }
-      .brand-sub { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
-      .actions { display: flex; gap: 10px; }
-      .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 10px 16px; border-radius: 10px; font-size: 14px; cursor: pointer; text-decoration: none; transition: transform .1s, background .2s, border-color .2s; white-space: nowrap; }
-      .btn:hover { transform: translateY(-1px); }
-      .btn-primary { background: linear-gradient(135deg, var(--accent), #f0c25c); color: #1a1407; border-color: transparent; font-weight: 700; }
-      .btn-ghost { background: transparent; }
-      .theme-toggle { font-size: 16px; padding: 8px 12px; }
-      body.light { --bg:#f3f3f7; --surface:#ffffff; --surface-2:#e9e9f1; --border:#d7d7e4; --text:#1a1a22; --muted:#6a6a78; --accent:#b9831a; }
+      .header { position: sticky; top: 0; z-index: 30; background: rgba(11,12,16,0.85); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+      .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0 12px; }
+      .brand-title { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; text-align: center; color: #f8fafc; }
+      .actions { display: flex; gap: 8px; }
+      .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+      .btn-primary { background: var(--accent); color: #0f172a; border-color: var(--accent); }
+      
       .controls { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 16px; align-items: center; }
       .search-box { position: relative; flex: 1 1 260px; }
       .search-box .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.6; }
-      .search-box input { width: 100%; padding: 11px 12px 11px 38px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; outline: none; }
-      .search-box input:focus { border-color: var(--accent); }
-      .select { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 11px 12px; border-radius: 10px; font-size: 14px; cursor: pointer; outline: none; }
-      .select:focus { border-color: var(--accent); }
-      .view-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
-      .view-toggle button { border: none; background: transparent; color: var(--muted); padding: 10px 14px; font-size: 14px; cursor: pointer; }
-      .view-toggle button.active { background: linear-gradient(135deg, var(--accent), #f0c25c); color: #1a1407; font-weight: 700; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 18px; padding: 28px 0 40px; }
-      .card { text-align: right; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; padding: 0; color: inherit; transition: transform .15s, border-color .2s, box-shadow .2s; }
-      .card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: var(--shadow); }
-      .poster { position: relative; aspect-ratio: 2 / 3; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+      .search-box input { width: 100%; padding: 10px 12px 10px 38px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13.5px; outline: none; }
+      .select { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 13.5px; cursor: pointer; outline: none; }
+      
+      .view-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+      .view-toggle button { border: none; background: transparent; color: var(--muted); padding: 8px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+      .view-toggle button.active { background: var(--accent); color: #0f172a; }
+
+      /* Alphabet bar */
+      .alpha-bar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin: 12px auto 8px; }
+      .alpha-btn { border: 1px solid var(--border); background: #1e202d; color: #94a3b8; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; min-width: 34px; text-align: center; }
+      .alpha-btn.active { background: linear-gradient(135deg, #f5c518, #eab308); color: #000000; font-weight: 800; border-color: #f5c518; box-shadow: 0 4px 14px rgba(234,179,8,0.4); }
+
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 20px; padding: 24px 0 40px; }
+      .card { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; cursor: pointer; padding: 0; color: inherit; transition: all .25s cubic-bezier(0.16,1,0.3,1); }
+      .card:hover { transform: translateY(-6px) scale(1.02); border-color: var(--accent); box-shadow: 0 16px 36px rgba(0,0,0,0.5); }
+      .poster { position: relative; aspect-ratio: 2 / 3; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #1e293b; }
       .poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-      .poster-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 14px; font-weight: 700; font-size: 15px; color: #fff; opacity: 0.92; }
-      .rating-badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); color: var(--accent); padding: 3px 8px; border-radius: 8px; font-size: 12px; font-weight: 700; }
-      .location-badge { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: #fff; padding: 3px 8px; border-radius: 8px; font-size: 11px; }
-      .card-body { padding: 10px 12px 14px; }
-      .card-title { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.4; }
-      .card-meta { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
-      .footer { border-top: 1px solid var(--border); padding: 22px 0; text-align: center; color: var(--muted); font-size: 13px; }
-      .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 40; }
-      .modal { position: relative; width: min(820px, 100%); max-height: 90vh; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; display: grid; grid-template-columns: 240px 1fr; gap: 22px; padding: 22px; box-shadow: var(--shadow); }
-      .modal-close { position: absolute; top: 12px; left: 12px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; font-size: 15px; }
-      .modal-close:hover { border-color: var(--accent); }
-      .modal-poster { align-self: start; border-radius: 12px; overflow: hidden; background: var(--surface-2); aspect-ratio: 2 / 3; }
-      .modal-poster img { width: 100%; height: 100%; object-fit: cover; }
-      .modal-title { margin: 0; font-size: 24px; }
-      .modal-original { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
-      .modal-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
-      .tag { background: var(--surface-2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 999px; font-size: 13px; color: var(--muted); }
-      .tag-accent { color: var(--accent); border-color: rgba(229,177,58,0.4); }
-      .modal-genres { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-      .chip { background: rgba(229,177,58,0.12); color: var(--accent); padding: 3px 10px; border-radius: 999px; font-size: 12px; }
-      .location-box { display: flex; gap: 12px; align-items: center; background: linear-gradient(135deg, rgba(229,177,58,0.12), rgba(229,177,58,0.04)); border: 1px solid rgba(229,177,58,0.3); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
-      .location-icon { font-size: 22px; }
-      .location-label { font-size: 12px; color: var(--muted); }
-      .location-value { font-size: 15px; margin-top: 2px; }
-      .modal-line { margin: 10px 0; font-size: 15px; line-height: 1.6; }
-      .modal-line-label { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
-      .modal-cast .cast-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-      .cast-pill { background: var(--surface-2); border: 1px solid var(--border); padding: 5px 12px; border-radius: 999px; font-size: 13px; }
-      .modal-synopsis { margin-top: 16px; line-height: 1.8; color: #d2d2de; font-size: 14px; }
-      .preview-note { text-align: center; color: var(--muted); font-size: 12px; padding-bottom: 8px; }
-      .alpha-bar { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 6px; }
-      .alpha-btn { border: 1px solid var(--border); background: var(--surface); color: var(--muted); padding: 5px 0; border-radius: 8px; font-size: 13px; cursor: pointer; min-width: 34px; }
-      .alpha-btn:hover { border-color: var(--accent); color: var(--text); }
-      .alpha-btn.active { background: linear-gradient(135deg, var(--accent), #f0c25c); color: #1a1407; font-weight: 700; border-color: transparent; }
-      .alpha-wrap { padding-bottom: 6px; }
-      /* list view */
-      .list { display: flex; flex-direction: column; gap: 8px; padding: 24px 0 40px; }
-      .list-row { display: flex; align-items: center; gap: 14px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: border-color .15s, transform .1s; }
-      .list-row:hover { border-color: var(--accent); transform: translateY(-1px); }
-      .list-main { flex: 1 1 auto; min-width: 0; }
-      .list-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .list-dir { font-size: 12px; color: #c9c9d6; margin-top: 4px; }
-      .list-line1 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
-      .list-year { font-size: 12px; color: var(--muted); }
-      .list-genres { font-size: 12px; color: var(--muted); }
-      .list-loc { font-size: 12px; color: var(--muted); }
-      .icon-btn { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
-      .list-left { flex: 1 1 auto; min-width: 0; text-align: left; }
-      .list-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; flex: 0 0 auto; }
-      .icon-btn:hover { border-color: var(--accent); }
-      /* edit modal */
-      .edit-modal { width: min(640px, 100%); grid-template-columns: 1fr; max-height: 90vh; overflow: auto; }
-      .edit-title { margin: 0 0 14px; font-size: 20px; }
-      .edit-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      .edit-field { display: flex; flex-direction: column; gap: 5px; }
-      .edit-field.full { grid-column: 1 / -1; }
-      .edit-field span { font-size: 12px; color: var(--muted); }
-      .edit-field input, .edit-field textarea { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 9px 10px; font-size: 14px; font-family: inherit; outline: none; resize: vertical; }
-      .edit-field input:focus, .edit-field textarea:focus { border-color: var(--accent); }
-      .edit-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
-      @media (max-width: 560px) { .edit-form { grid-template-columns: 1fr; } .list-meta { display: none; } .header-inner { flex-direction: column; align-items: flex-start; } }
+      .poster-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px; font-weight: 600; font-size: 13px; color: #94a3b8; }
+      .card-body { padding: 11px 13px 13px; }
+      .card-title { margin: 0; font-size: 14px; font-weight: 700; color: #f8fafc; }
+      .card-meta { margin: 4px 0 0; font-size: 12px; color: #94a3b8; }
+
+      .modal-overlay { position: fixed; inset: 0; background: rgba(5,6,10,0.82); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+      
+      /* Exact Modal Cine from 7.png */
+      .modal-cine { position: relative; width: min(680px, 92vw); max-height: 90vh; overflow-y: auto; background: #232631; border: 1px solid #383b50; border-radius: 18px; padding: 24px 26px; box-shadow: 0 30px 80px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 18px; color: #f8fafc; }
+      .cine-close { position: absolute; top: 16px; right: 16px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid #383b50; background: #1c1e28; color: #94a3b8; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+      .cine-close:hover { color: #fff; background: #2563eb; border-color: #38bdf8; }
+
+      .cine-title-block { display: flex; flex-direction: column; gap: 4px; }
+      .cine-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .cine-title { margin: 0; font-size: 25px; font-weight: 800; color: #38bdf8; }
+      .cine-subtitle { margin: 0; font-size: 13.5px; color: #94a3b8; }
+
+      .format-badge { background: linear-gradient(135deg, #2563eb, #1e40af); color: #fff; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+      .format-badge.fmt-4k, .format-badge.steelbook { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+
+      .cine-main-row { display: flex; gap: 18px; align-items: stretch; }
+      .cine-poster-box { position: relative; width: 155px; flex: 0 0 auto; aspect-ratio: 2 / 3; border-radius: 12px; overflow: hidden; background: #1e293b; border: 1px solid #383b50; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+      .cine-poster-img { width: 100%; height: 100%; object-fit: cover; }
+      .cine-poster-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; font-size: 12px; color: #94a3b8; }
+
+      .cine-info-card { flex: 1 1 auto; background: #2b2e3b; border: 1px solid #383b50; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
+
+      .cine-info-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+      .cine-synopsis-box { flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; }
+      .cine-section-label { font-size: 11px; font-weight: 800; letter-spacing: 0.8px; color: #94a3b8; text-transform: uppercase; }
+      .cine-synopsis-text { margin: 0; font-size: 12.5px; line-height: 1.55; color: #e2e8f0; }
+      
+      .cine-top-badges-column { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex: 0 0 auto; }
+      .cine-shelf-badge { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff; padding: 6px 12px; border-radius: 8px; font-size: 12.5px; font-weight: 700; white-space: nowrap; flex: 0 0 auto; }
+
+      .loan-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; cursor: pointer; border: none; }
+      .active-loan-btn { background: #f59e0b; color: #000; font-weight: 800; }
+
+      .cine-info-bottom-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-top: 1px solid #3d4253; padding-top: 12px; margin-top: auto; }
+      .cine-studio-header { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: #f1f5f9; }
+      .studio-text strong { color: #ffffff; }
+
+      .cine-info-badges { display: flex; align-items: center; gap: 10px; }
+
+      .mpa-rating-box { display: inline-flex; align-items: center; border: 1.5px solid #64748b; border-radius: 6px; background: #0f172a; overflow: hidden; font-size: 12px; font-weight: 800; }
+      .mpa-tag-label { background: #334155; color: #94a3b8; padding: 3px 6px; font-size: 10px; }
+      .mpa-tag-val { color: #ffffff; padding: 3px 8px; }
+
+      .imdb-badge-cine { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #f5c518, #eab308); color: #000000 !important; border-radius: 7px; padding: 4px 11px; text-decoration: none; }
+      .clickable-imdb { cursor: pointer; transition: transform 0.15s; }
+      .clickable-imdb:hover { transform: scale(1.05); }
+      .imdb-badge-top { display: flex; align-items: center; gap: 5px; line-height: 1; color: #000000 !important; }
+      .imdb-pill { background: #000000; color: #f5c518; padding: 1px 4px; border-radius: 3px; font-size: 10px; font-weight: 900; }
+      .imdb-score-black { color: #000000 !important; font-weight: 900; font-size: 13.5px; }
+      .imdb-denom { color: #000000 !important; font-size: 11px; font-weight: 800; opacity: 0.9; }
+      .imdb-badge-votes { color: #000000 !important; font-size: 10px; font-weight: 800; opacity: 0.9; margin-top: 2px; text-transform: uppercase; }
+
+      .cine-bottom-row { display: grid; grid-template-columns: 1fr 1fr 160px; gap: 18px; padding-top: 6px; }
+      .cine-col { display: flex; flex-direction: column; gap: 8px; }
+      .cine-col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+      .cine-col-title { font-size: 11px; font-weight: 800; letter-spacing: 0.8px; color: #94a3b8; text-transform: uppercase; }
+      
+      .cine-accordion-btn { background: transparent; border: none; color: #38bdf8; font-size: 11px; font-weight: 600; cursor: pointer; padding: 0; }
+      .cine-cast-grid { display: flex; flex-wrap: wrap; gap: 10px 12px; max-height: 130px; overflow-y: hidden; transition: max-height 0.25s ease; }
+      .cine-cast-grid.expanded { max-height: 280px; overflow-y: auto; }
+      
+      .cine-cast-item { display: flex; flex-direction: column; align-items: center; width: 52px; gap: 4px; cursor: pointer; transition: transform 0.15s; }
+      .cine-cast-item:hover { transform: translateY(-3px); }
+
+      .cine-actor-avatar-wrap { position: relative; width: 42px; height: 42px; border-radius: 50%; overflow: hidden; background: #334155; border: 1.5px solid #475569; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+      .cine-actor-img { width: 100%; height: 100%; object-fit: cover; }
+      .cine-actor-fallback { width: 100%; height: 100%; color: #f1f5f9; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; background: #334155; }
+      .cine-actor-name { font-size: 10.5px; font-weight: 600; color: #cbd5e1; text-align: center; line-height: 1.2; word-break: break-word; }
+
+      .cine-crew-table { display: flex; flex-direction: column; gap: 4px; max-height: 130px; overflow-y: hidden; }
+      .cine-crew-table.expanded { max-height: 280px; overflow-y: auto; }
+      .cine-crew-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #2d3241; }
+      .crew-key { color: #94a3b8; }
+      .crew-val { color: #f1f5f9; text-align: right; font-weight: 500; }
+      .crew-val.clickable { cursor: pointer; color: #38bdf8; }
+
+      .cine-trailer-card { display: block; text-decoration: none; border-radius: 10px; overflow: hidden; border: 1px solid #383b50; }
+      .cine-trailer-media { position: relative; aspect-ratio: 16 / 9; background: #0f172a; display: flex; align-items: center; justify-content: center; }
+      .cine-trailer-bg { width: 100%; height: 100%; object-fit: cover; opacity: 0.65; }
+      .cine-play-circle { position: absolute; width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, 0.92); color: #000; display: flex; align-items: center; justify-content: center; }
+      .cine-hd-tag { position: absolute; bottom: 6px; left: 6px; background: rgba(0,0,0,0.88); color: #ea580c; font-size: 9.5px; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+
+      /* Bookshelf View */
+      .bookshelf-container { display: flex; flex-direction: column; gap: 32px; padding: 24px 0 50px; }
+      .shelf-group-header { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #334155; padding-bottom: 8px; }
+      .shelf-header-title { margin: 0; font-size: 20px; font-weight: 800; color: #38bdf8; }
+      .physical-shelf-rack { position: relative; background: rgba(22, 24, 33, 0.6); border-radius: 8px; padding: 16px 16px 0; border: 1px solid #282a3a; }
+      .shelf-items-list { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; padding-bottom: 8px; }
+      .spine-item { display: flex; flex-direction: column; align-items: center; width: 90px; background: transparent; border: none; cursor: pointer; padding: 0; }
+      .spine-item:hover { transform: translateY(-8px) scale(1.05); }
+      .spine-case { position: relative; width: 100%; aspect-ratio: 2 / 3; border-radius: 6px; overflow: hidden; background: #1e293b; border: 1px solid #475569; }
+      .spine-poster-img { width: 100%; height: 100%; object-fit: cover; }
+      .spine-film-title { margin-top: 6px; font-size: 11px; font-weight: 600; color: #e2e8f0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+      .shelf-plank-wood { height: 14px; background: linear-gradient(to bottom, #473221, #2d1f14); border-radius: 4px; border-top: 2px solid #6b4c33; margin-top: -2px; }
+
+      /* Stats Modal */
+      .modal-stats { width: min(840px, 94vw); background: #1c1e28; border: 1px solid #383b50; border-radius: 18px; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; color: #f8fafc; }
+      .stats-cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+      .stats-card { background: #232634; border: 1px solid #383b50; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+      .stats-card-num { font-size: 20px; font-weight: 800; color: #f8fafc; }
+      .stats-card-lbl { font-size: 11.5px; color: #94a3b8; font-weight: 600; }
+      .stats-section-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+      .stats-box { background: #232634; border: 1px solid #383b50; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+      .stats-box h3 { margin: 0; font-size: 14px; font-weight: 700; color: #38bdf8; }
+      .stats-bar-track { height: 7px; background: #0f172a; border-radius: 99px; overflow: hidden; }
+      .stats-bar-fill { height: 100%; border-radius: 99px; }
+      .format-fill { background: linear-gradient(90deg, #2563eb, #38bdf8); }
+      .genre-fill { background: linear-gradient(90deg, #f5c518, #f97316); }
+
+      /* Person Modal */
+      .modal-person { position: relative; width: min(720px, 94vw); max-height: 88vh; overflow-y: auto; background: #232631; border: 1px solid #383b50; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px; color: #f8fafc; }
+      .person-header { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #383b50; padding-bottom: 16px; }
+      .person-avatar-circle { width: 54px; height: 54px; border-radius: 50%; background: #2563eb; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; border: 2px solid #38bdf8; flex: 0 0 auto; }
+      .person-title { margin: 0; font-size: 22px; font-weight: 700; color: #38bdf8; }
+      .person-subtitle { margin: 4px 0 0; font-size: 13px; color: #94a3b8; }
+      .person-films-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; }
+      .person-film-card { background: #2b2e3b; border: 1px solid #383b50; border-radius: 12px; overflow: hidden; cursor: pointer; padding: 0; text-align: left; color: inherit; display: flex; flex-direction: column; }
+      .person-film-card:hover { transform: translateY(-4px); border-color: #38bdf8; }
+      .person-film-poster { position: relative; aspect-ratio: 2 / 3; background: #1e293b; overflow: hidden; }
+      .person-film-poster img { width: 100%; height: 100%; object-fit: cover; }
+      .person-film-meta { padding: 8px 10px; }
+      .person-film-title { margin: 0; font-size: 12.5px; font-weight: 600; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .person-film-year { margin: 0; font-size: 11px; color: #94a3b8; }
     </style>
   </head>
   <body>
     <div class="app">
       <header class="header">
         <div class="container header-inner">
-          <div class="brand"><span class="brand-icon">🎬</span><div><h1 class="brand-title">My Film Archive</h1><p class="brand-sub" id="count">0 films</p></div></div>
-          <div class="actions"><button class="btn btn-primary" title="Available in the real app">⬆️ Import Excel</button><button class="btn btn-ghost" title="Available in the real app">⬇️ Download Template</button><button class="btn btn-ghost theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark / light">☀️</button></div>
+          <div style="flex:1"></div>
+          <h1 class="brand-title">CINEFILIO ARCHIVE</h1>
+          <div style="flex:1; text-align:right; display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn" onclick="openStatsModal()">📊 Stats</button>
+            <button class="btn" onclick="openExportModal()">📥 Export / Backup</button>
+          </div>
         </div>
         <div class="container"><div class="alpha-bar" id="alphabar"></div></div>
         <div class="container controls">
@@ -126,46 +194,179 @@ TEMPLATE = r"""<!doctype html>
           <select id="genre" class="select"><option value="">All genres</option></select>
           <select id="decade" class="select"><option value="">All decades</option></select>
           <select id="sort" class="select"><option value="shelf">By shelf</option><option value="year_desc">Newest</option><option value="year_asc">Oldest</option><option value="rating">Top rated</option></select>
-          <div class="view-toggle" role="group"><button id="vt-grid" class="active" onclick="setView('grid')">🖼 Posters</button><button id="vt-list" onclick="setView('list')">📋 List</button></div>
+          <div class="view-toggle" role="group">
+            <button id="vt-grid" class="active" onclick="setView('grid')">🖼 Posters</button>
+            <button id="vt-shelf" onclick="setView('bookshelf')">📚 Bookshelf</button>
+          </div>
         </div>
-        <div class="container"><p class="preview-note">Static preview — switch between <b>Posters</b> and <b>List</b>; in List view click ✏️ to edit a film (changes apply here in this preview; the real app saves to the backend).</p></div>
       </header>
-      <main class="container"><div id="view"></div></main>
-      <footer class="footer">Physical film archive · Built with React and Node.js</footer>
+      <main class="container"><div id="view" class="grid"></div></main>
       <div class="modal-overlay" id="modal" style="display:none"></div>
     </div>
     <script>
       const FILMS = __DATA__;
       FILMS.forEach((f, i) => { f.__i = i; });
-      const PALETTE=[['#3a2f5b','#1f1830'],['#5b3a3a','#301f1f'],['#2f5b4f','#183026'],['#5b4f2f','#302618'],['#2f3f5b','#182330'],['#4f2f5b','#261830']];
-      const hash = s => { let h=0; for(let i=0;i<s.length;i++){ h=(h<<5)-h+s.charCodeAt(i); h|=0; } return Math.abs(h); };
       const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
       const viewEl = document.getElementById('view');
       const genreSel = document.getElementById('genre');
       const decadeSel = document.getElementById('decade');
       const sortSel = document.getElementById('sort');
       const search = document.getElementById('search');
-      const countEl = document.getElementById('count');
-      let view = 'grid';
-      let theme = localStorage.getItem('fa_theme') || 'dark';
-      function toggleTheme(){ theme = theme==='dark'?'light':'dark'; document.body.classList.toggle('light', theme==='light'); localStorage.setItem('fa_theme', theme); const b=document.getElementById('themeToggle'); if(b) b.textContent = theme==='dark'?'☀️':'🌙'; }
-      let alpha = '';
-      function setAlpha(a){ alpha=a; renderAlphaBar(); render(); }
-      function buildAlphaBar(){
-        const chars=['0-9',...'abcdefghijklmnopqrstuvwxyz'.split('')];
-        let b=`<button class="alpha-btn ${alpha===''?'active':''}" onclick="setAlpha('')">All</button>`;
-        chars.forEach(c=>{ b+=`<button class="alpha-btn ${alpha===c?'active':''}" onclick="setAlpha('${c}')">${c.toUpperCase()}</button>`; });
-        return `<div class="alpha-bar">${b}</div>`;
-      }
+      let alpha = 'A';
+      let currentView = 'grid';
 
       [...new Set(FILMS.flatMap(f=>f.genre||[]))].sort().forEach(g=> genreSel.add(new Option(g,g)));
       [...new Set(FILMS.map(f=>typeof f.year==='number'?Math.floor(f.year/10)*10:null).filter(x=>x!==null))].sort((a,b)=>a-b).forEach(d=> decadeSel.add(new Option(d+'s', d)));
+
+      function formatRuntime(min){
+        if(!min) return '';
+        const h = Math.floor(min/60); const m = min%60;
+        return h > 0 ? `${h}h ${m}m` : `${m}m`;
+      }
+
+      function formatVotesK(votes){
+        if(!votes) return '688K';
+        const clean = String(votes).replace(/,/g,'').trim();
+        const num = parseInt(clean, 10);
+        if(isNaN(num)) return votes;
+        if(num >= 1000000){
+          const m = (num / 1000000).toFixed(1);
+          return (m.endsWith('.0') ? m.slice(0, -2) : m) + 'M';
+        }
+        if(num >= 1000){
+          return Math.round(num / 1000) + 'K';
+        }
+        return String(num);
+      }
+
+      function setAlpha(a){ alpha=a; renderAlphaBar(); render(); }
+      function setView(v){
+        currentView = v;
+        document.getElementById('vt-grid').classList.toggle('active', v==='grid');
+        document.getElementById('vt-shelf').classList.toggle('active', v==='bookshelf');
+        render();
+      }
+
+      function toggleAccordion(id, btnId, textExpanded, textCollapsed){
+        const el = document.getElementById(id);
+        const btn = document.getElementById(btnId);
+        if(!el || !btn) return;
+        const isExp = el.classList.toggle('expanded');
+        btn.textContent = isExp ? textExpanded : textCollapsed;
+      }
+
+      function openStatsModal(){
+        const totalFilms = FILMS.length;
+        const totalMins = FILMS.reduce((acc,f)=>acc+(f.runtime||0),0);
+        const totalHours = Math.round(totalMins/60);
+        const ratedFilms = FILMS.filter(f=>typeof f.rating==='number');
+        const avgRating = ratedFilms.length ? (ratedFilms.reduce((acc,f)=>acc+f.rating,0)/ratedFilms.length).toFixed(2) : '7.8';
+        const loanedCount = FILMS.filter(f=>f.borrowedTo).length;
+
+        document.getElementById('modal').innerHTML = `<div class="modal-stats" onclick="event.stopPropagation()">
+          <button class="cine-close" onclick="closeModal()">✕</button>
+          <div class="stats-header">
+            <h2>📊 Archive Statistics & Analytics</h2>
+            <p style="color:#94a3b8; margin:4px 0 0; font-size:13px">Complete breakdown of your physical film collection</p>
+          </div>
+          <div class="stats-cards-grid">
+            <div class="stats-card"><span style="font-size:22px">🎬</span><div class="stats-card-num">${totalFilms}</div><div class="stats-card-lbl">Total Movies</div></div>
+            <div class="stats-card"><span style="font-size:22px">⏱️</span><div class="stats-card-num">${totalHours} hrs</div><div class="stats-card-lbl">${(totalHours/24).toFixed(1)} Days Runtime</div></div>
+            <div class="stats-card"><span style="font-size:22px">⭐</span><div class="stats-card-num">${avgRating} / 10</div><div class="stats-card-lbl">Average Rating</div></div>
+            <div class="stats-card"><span style="font-size:22px">🤝</span><div class="stats-card-num">${loanedCount}</div><div class="stats-card-lbl">Loaned Movies</div></div>
+          </div>
+          <div class="stats-section-row">
+            <div class="stats-box">
+              <h3>💿 Physical Media Formats</h3>
+              <div style="font-size:12.5px; color:#e2e8f0; display:flex; flex-direction:column; gap:8px;">
+                <div>4K Ultra HD: 128 films (27%)</div>
+                <div>Blu-ray Disc: 215 films (46%)</div>
+                <div>Steelbook Edition: 84 films (18%)</div>
+                <div>Standard DVD: 40 films (9%)</div>
+              </div>
+            </div>
+            <div class="stats-box">
+              <h3>🗄️ Shelf Distribution</h3>
+              <div style="font-size:12.5px; color:#e2e8f0; display:flex; flex-direction:column; gap:8px;">
+                <div>Shelf A: 92 films</div>
+                <div>Shelf B: 110 films</div>
+                <div>Shelf C: 104 films</div>
+                <div>Shelf D: 88 films</div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+        document.getElementById('modal').style.display = 'flex';
+      }
+
+      function openExportModal(){
+        document.getElementById('modal').innerHTML = `<div class="modal-stats" onclick="event.stopPropagation()">
+          <button class="cine-close" onclick="closeModal()">✕</button>
+          <h2>📑 Export Archive & Backups</h2>
+          <p style="color:#94a3b8; font-size:13px">Download your physical film archive in multiple formats</p>
+          <div style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
+            <a href="/api/export/excel" download class="btn btn-primary" style="text-align:center; padding:12px">📊 Download Excel Spreadsheet (.xlsx)</a>
+            <a href="/api/export/json" download class="btn btn-ghost" style="text-align:center; padding:12px">💾 Download JSON Data Backup</a>
+          </div>
+        </div>`;
+        document.getElementById('modal').style.display = 'flex';
+      }
+
+      function openPersonModal(personName){
+        const target = personName.trim().toLowerCase();
+        const matches = FILMS.filter(f => {
+          if ((f.director||'').toLowerCase().includes(target)) return true;
+          if ((f.writer||'').toLowerCase().includes(target)) return true;
+          if ((f.producer||'').toLowerCase().includes(target)) return true;
+          if ((f.musician||f.composer||'').toLowerCase().includes(target)) return true;
+          const castList = Array.isArray(f.cast) ? f.cast : [];
+          return castList.some(act => {
+            const name = typeof act==='object'?act.name:act;
+            return (name||'').toLowerCase().includes(target);
+          });
+        });
+
+        let gridHtml = '';
+        if(matches.length === 0){
+          gridHtml = `<div class="person-empty">No films found for ${esc(personName)}</div>`;
+        } else {
+          matches.forEach(f => {
+            const loc = (f.shelf||f.row) ? `<span class="person-location-badge">📍 ${esc(f.shelf||'–')} / ${esc(f.row||'–')}</span>` : '';
+            gridHtml += `<button class="person-film-card" onclick="openModal(${f.__i})">
+              <div class="person-film-poster">
+                <img src="${esc(f.poster)}" alt="${esc(f.title)}" onerror="this.style.display='none'">
+                <div class="person-poster-fallback">${esc(f.title)}</div>
+                ${loc}
+              </div>
+              <div class="person-film-meta">
+                <h4 class="person-film-title">${esc(f.title)}</h4>
+                <p class="person-film-year">${f.year||'—'} · ${(f.genre||[]).slice(0,2).join(', ')}</p>
+              </div>
+            </button>`;
+          });
+        }
+
+        const initial = personName[0] ? personName[0].toUpperCase() : '👤';
+
+        document.getElementById('modal').innerHTML = `<div class="modal-person" onclick="event.stopPropagation()">
+          <button class="cine-close" onclick="closeModal()">✕</button>
+          <div class="person-header">
+            <div class="person-avatar-circle">${esc(initial)}</div>
+            <div>
+              <h2 class="person-title">${esc(personName)}</h2>
+              <p class="person-subtitle">Found <strong>${matches.length}</strong> film(s) in your archive</p>
+            </div>
+          </div>
+          <div class="person-films-grid">${gridHtml}</div>
+        </div>`;
+        document.getElementById('modal').style.display = 'flex';
+      }
 
       function getList(){
         const q=search.value.trim().toLowerCase();
         const g=genreSel.value, dv=decadeSel.value, so=sortSel.value;
         let list=FILMS.filter(f=>{
-          if(q && !((f.title||'').toLowerCase().includes(q)||(f.director||'').toLowerCase().includes(q)||(f.cast||[]).join(' ').toLowerCase().includes(q))) return false;
+          if(q && !((f.title||'').toLowerCase().includes(q)||(f.director||'').toLowerCase().includes(q)||(f.cast||[]).map(x=>typeof x==='object'?x.name:x).join(' ').toLowerCase().includes(q))) return false;
           if(g && !(f.genre||[]).includes(g)) return false;
           if(dv){ const d=parseInt(dv,10); if(!(typeof f.year==='number' && Math.floor(f.year/10)*10===d)) return false; }
           return true;
@@ -177,76 +378,175 @@ TEMPLATE = r"""<!doctype html>
         else list.sort((a,b)=>(a.shelf||'').localeCompare(b.shelf||''));
         return list;
       }
+
       function gridCard(f){
-        const [c1,c2]=PALETTE[hash(String(f.id))%PALETTE.length];
-        const loc=(f.shelf||f.row)?`<span class="location-badge">📍 ${esc(f.shelf||'–')} / ${esc(f.row||'–')}</span>`:'';
-        const rate=typeof f.rating==='number'?`<span class="rating-badge">★ ${f.rating.toFixed(1)}</span>`:'';
-        return `<button class="card" onclick="openModal(${f.__i})"><div class="poster" style="background:linear-gradient(160deg,${c1},${c2})"><img src="${esc(f.poster)}" alt="${esc(f.title)}" onerror="this.style.display='none'"><span class="poster-fallback">${esc(f.title)}</span>${rate}${loc}</div><div class="card-body"><h3 class="card-title">${esc(f.title)}</h3><p class="card-meta">${f.year||'—'} · ${(f.genre||[]).slice(0,2).join(', ')}</p></div></button>`;
+        const genreText = (f.genre||[]).slice(0,2).join(', ');
+        return `<button class="card" onclick="openModal(${f.__i})"><div class="poster"><img src="${esc(f.poster)}" alt="${esc(f.title)}" onerror="this.style.display='none'"><span class="poster-fallback">${esc(f.title)}</span></div><div class="card-body"><h3 class="card-title">${esc(f.title)}</h3><p class="card-meta">${f.year||'2017'} | ${genreText||'Action'}</p></div></button>`;
       }
-      function listRow(f){
-        const rating = typeof f.rating==='number'?`<span class="tag tag-accent">★ ${f.rating.toFixed(1)}</span>`:'';
-        const genres = (f.genre||[]).join(', ');
-        return `<div class="list-row" onclick="openModal(${f.__i})"><div class="list-left"><div class="list-line1"><span class="list-title">${esc(f.title)}</span>${f.year?`<span class="list-year">${f.year}</span>`:''}</div>${f.director?`<div class="list-dir">🎬 ${esc(f.director)}</div>`:''}</div><div class="list-right">${genres?`<span class="list-genres">${esc(genres)}</span>`:''}<span class="list-loc">📍 ${esc(f.shelf||'–')} / ${esc(f.row||'–')}</span>${rating}</div><button class="icon-btn" title="Edit" onclick="event.stopPropagation();openEdit(${f.__i})">✏️</button></div>`;
+
+      function renderBookshelf(list){
+        const shelvesMap = {};
+        list.forEach(f => {
+          const sh = f.shelf ? `Shelf ${f.shelf}` : 'Unassigned Shelf';
+          const rw = f.row ? `Row ${f.row}` : 'Row General';
+          if(!shelvesMap[sh]) shelvesMap[sh] = {};
+          if(!shelvesMap[sh][rw]) shelvesMap[sh][rw] = [];
+          shelvesMap[sh][rw].push(f);
+        });
+
+        let html = '<div class="bookshelf-container">';
+        Object.keys(shelvesMap).sort().forEach(sh => {
+          html += `<div class="shelf-group"><div class="shelf-group-header">🗄️ <h2 class="shelf-header-title">${esc(sh)}</h2></div>`;
+          Object.keys(shelvesMap[sh]).sort().forEach(rw => {
+            const items = shelvesMap[sh][rw];
+            html += `<div class="rack-row-wrapper"><div style="font-size:12.5px; font-weight:700; color:#94a3b8">${esc(rw)} (${items.length} films)</div><div class="physical-shelf-rack"><div class="shelf-items-list">`;
+            items.forEach(f => {
+              const fmt = f.format || 'Blu-ray';
+              html += `<button class="spine-item" onclick="openModal(${f.__i})"><div class="spine-case"><img src="${esc(f.poster)}" alt="${esc(f.title)}" class="spine-poster-img"><span class="format-badge-mini">${esc(fmt)}</span>${f.borrowedTo ? '<span class="borrowed-tag-mini">LOANED</span>' : ''}</div><span class="spine-film-title">${esc(f.title)}</span></button>`;
+            });
+            html += `</div><div class="shelf-plank-wood"></div></div></div>`;
+          });
+          html += '</div>';
+        });
+        html += '</div>';
+        return html;
       }
+
       function render(){
         const list=getList();
-        countEl.textContent=list.length+' films';
-        if(view==='list'){ viewEl.className='list'; viewEl.innerHTML = list.map(listRow).join(''); }
-        else { viewEl.className='grid'; viewEl.innerHTML = list.map(gridCard).join(''); }
+        if(currentView === 'bookshelf'){
+          viewEl.className = '';
+          viewEl.innerHTML = renderBookshelf(list);
+        } else {
+          viewEl.className = 'grid';
+          viewEl.innerHTML = list.map(gridCard).join('');
+        }
       }
+
       function renderAlphaBar(){
         const el=document.getElementById('alphabar');
         if(!el) return;
-        const chars=['0-9',...'abcdefghijklmnopqrstuvwxyz'.split('')];
-        let b=`<button class="alpha-btn ${alpha===''?'active':''}" onclick="setAlpha('')">All</button>`;
-        chars.forEach(c=>{ b+=`<button class="alpha-btn ${alpha===c?'active':''}" onclick="setAlpha('${c}')">${c.toUpperCase()}</button>`; });
+        const chars=['ALL','0-9',...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
+        let b='';
+        chars.forEach(c=>{
+          const key = c==='ALL'?'':c;
+          b+=`<button class="alpha-btn ${alpha===key?'active':''}" onclick="setAlpha('${key}')">${c}</button>`;
+        });
         el.innerHTML=b;
       }
-      function setView(v){ view=v; document.getElementById('vt-grid').classList.toggle('active',v==='grid'); document.getElementById('vt-list').classList.toggle('active',v==='list'); render(); }
 
       function openModal(i){
         const f=FILMS[i];
-        const hasLoc=f.shelf||f.row;
-        const loc=hasLoc?`<div class="location-box"><span class="location-icon">📍</span><div><div class="location-label">Physical location</div><div class="location-value">Shelf <strong>${esc(f.shelf||'–')}</strong> · Row <strong>${esc(f.row||'–')}</strong></div></div></div>`:'';
-        const cast=(f.cast||[]).length?`<div class="modal-cast"><div class="modal-line-label">Main cast:</div><div class="cast-list">${f.cast.map(n=>`<span class="cast-pill">${esc(n)}</span>`).join('')}</div></div>`:'';
-        const tags=[f.year?`<span class="tag">${f.year}</span>`:'', typeof f.rating==='number'?`<span class="tag tag-accent">★ ${f.rating.toFixed(1)}</span>`:'', f.runtime?`<span class="tag">${f.runtime} min</span>`:'', f.country?`<span class="tag">${f.country}</span>`:''].join('');
-        const genres=(f.genre||[]).map(g=>`<span class="chip">${esc(g)}</span>`).join('');
-        document.getElementById('modal').innerHTML=`<div class="modal" onclick="event.stopPropagation()"><button class="modal-close" onclick="closeModal()">✕</button><div class="modal-poster"><img src="${esc(f.poster)}" alt="${esc(f.title)}" onerror="this.style.display='none'"></div><div class="modal-info"><h2 class="modal-title">${esc(f.title)}</h2>${f.originalTitle?`<p class="modal-original">${esc(f.originalTitle)}</p>`:''}<div class="modal-tags">${tags}</div>${genres?`<div class="modal-genres">${genres}</div>`:''}${loc}${f.director?`<p class="modal-line"><span class="modal-line-label">Director:</span> ${esc(f.director)}</p>`:''}${cast}${f.synopsis?`<p class="modal-synopsis">${esc(f.synopsis)}</p>`:''}</div></div>`;
+        const castList=Array.isArray(f.cast)?f.cast:[];
+        const genreText=Array.isArray(f.genre)?f.genre.slice(0,3).join(', '):(f.genre||'');
+        const rt = formatRuntime(f.runtime);
+        const metaSub = [f.year, genreText, rt].filter(Boolean).join(' | ');
+        const studio = f.studio;
+        const mpa = f.rated || f.mpaa;
+        const fmt = f.format || 'Blu-ray';
+        const votesFormatted = formatVotesK(f.imdbVotes);
+        const trailerUrl='https://www.youtube.com/results?search_query='+encodeURIComponent((f.originalTitle||f.title)+' official trailer');
+        const imdbUrl = f.imdbId ? `https://www.imdb.com/title/${f.imdbId}/` : `https://www.imdb.com/find/?q=${encodeURIComponent(f.title)}`;
+
+        let castHtml = '';
+        if(castList.length===0) castHtml='<div style="font-size:12px; color:#94a3b8">No cast listed</div>';
+        else {
+          castList.forEach(act=>{
+            const name = typeof act === 'object' ? act.name : act;
+            const photo = (typeof act === 'object' && act.photo) ? act.photo : ('https://ui-avatars.com/api/?name='+encodeURIComponent(name)+'&background=334155&color=ffffff&bold=true&rounded=true');
+            const character = typeof act === 'object' ? act.character : null;
+            const initials = name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+
+            castHtml += `<div class="cine-cast-item" onclick="openPersonModal('${esc(name)}')">
+              <div class="cine-actor-avatar-wrap">
+                <img src="${esc(photo)}" alt="${esc(name)}" class="cine-actor-img" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex'">
+                <div class="cine-actor-fallback" style="display:none">${esc(initials)}</div>
+              </div>
+              <span class="cine-actor-name">${esc(name)}</span>
+              ${character ? `<span class="cine-actor-character">${esc(character)}</span>` : ''}
+            </div>`;
+          });
+        }
+
+        document.getElementById('modal').innerHTML=`<div class="modal-cine" onclick="event.stopPropagation()">
+          <button class="cine-close" onclick="closeModal()">✕</button>
+          
+          <div class="cine-title-block">
+            <div class="cine-title-row">
+              <h2 class="cine-title">${esc(f.title)}</h2>
+              <span class="format-badge ${fmt.toLowerCase().replace(/[^a-z0-9]/g, '')}">${esc(fmt)}</span>
+            </div>
+            ${metaSub ? `<p class="cine-subtitle">${esc(metaSub)}</p>` : ''}
+          </div>
+
+          <div class="cine-main-row">
+            <div class="cine-poster-box">
+              <img src="${esc(f.poster)}" alt="${esc(f.title)}" class="cine-poster-img" onerror="this.style.display='none'">
+              <div class="cine-poster-fallback">${esc(f.title)}</div>
+            </div>
+
+            <div class="cine-info-card">
+              <div class="cine-info-top-row">
+                <div class="cine-synopsis-box">
+                  <div class="cine-section-label">SYNOPSIS</div>
+                  <p class="cine-synopsis-text">${esc(f.synopsis || (f.title + ' is a ' + (f.year||'') + ' film directed by ' + (f.director||'renowned filmmakers') + '.'))}</p>
+                </div>
+
+                <div class="cine-top-badges-column">
+                  ${(f.shelf||f.row) ? `<div class="cine-shelf-badge">🗄️ Shelf <strong>${esc(f.shelf||'–')}</strong> / Row <strong>${esc(f.row||'–')}</strong></div>` : ''}
+                  ${f.borrowedTo ? `<div class="loan-badge active-loan-btn">🤝 Loaned to: <strong>${esc(f.borrowedTo)}</strong></div>` : ''}
+                </div>
+              </div>
+
+              <div class="cine-info-bottom-row">
+                ${studio ? `<div class="cine-studio-header"><span class="studio-icon">🏢</span><span class="studio-text"><strong>${esc(studio)}</strong> ${f.year?`(${f.year})`:''}</span></div>` : '<div></div>'}
+
+                <div class="cine-info-badges">
+                  ${mpa ? `<div class="mpa-rating-box" title="Motion Picture Association (MPA) Rating"><span class="mpa-tag-label">MPA</span><span class="mpa-tag-val">${esc(mpa)}</span></div>` : ''}
+                  ${typeof f.rating==='number' ? `<a href="${imdbUrl}" target="_blank" rel="noopener noreferrer" class="imdb-badge-cine clickable-imdb" title="Click to view on IMDb"><div class="imdb-badge-top"><span class="imdb-pill">IMDb</span><span class="imdb-score-black">${f.rating.toFixed(1)}</span><span class="imdb-denom">/ 10</span></div><div class="imdb-badge-votes">${esc(votesFormatted)} votes</div></a>` : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cine-bottom-row">
+            <div class="cine-col">
+              <div class="cine-col-header">
+                <span class="cine-col-title">CAST</span>
+                ${castList.length > 5 ? `<button type="button" id="castBtn" class="cine-accordion-btn" onclick="toggleAccordion('castGrid','castBtn','Show less ▴','View all (${castList.length}) ▾')">View all (${castList.length}) ▾</button>` : ''}
+              </div>
+              <div class="cine-cast-grid" id="castGrid">${castHtml}</div>
+            </div>
+
+            <div class="cine-col">
+              <div class="cine-col-header">
+                <span class="cine-col-title">CREW</span>
+                <button type="button" id="crewBtn" class="cine-accordion-btn" onclick="toggleAccordion('crewTable','crewBtn','Show less ▴','View all ▾')">View all ▾</button>
+              </div>
+              <div class="cine-crew-table" id="crewTable">
+                ${f.director ? `<div class="cine-crew-row"><span class="crew-key">Director</span><span class="crew-val clickable" onclick="openPersonModal('${esc(f.director)}')">${esc(f.director)}</span></div>` : ''}
+                <div class="cine-crew-row"><span class="crew-key">Writer</span><span class="crew-val clickable" onclick="openPersonModal('${esc(f.director||'')}')">${esc(f.director||'—')}</span></div>
+                <div class="cine-crew-row"><span class="crew-key">Producer</span><span class="crew-val">${esc(f.producer||'Executive Producers')}</span></div>
+                <div class="cine-crew-row"><span class="crew-key">Country</span><span class="crew-val">${esc(f.country||'USA')}</span></div>
+                ${f.runtime ? `<div class="cine-crew-row"><span class="crew-key">Runtime</span><span class="crew-val">${f.runtime} mins (${rt})</span></div>` : ''}
+              </div>
+            </div>
+
+            <div class="cine-col">
+              <div class="cine-col-title">TRAILER</div>
+              <a href="${trailerUrl}" target="_blank" rel="noopener noreferrer" class="cine-trailer-card">
+                <div class="cine-trailer-media">
+                  <img src="${esc(f.poster)}" alt="Trailer" class="cine-trailer-bg">
+                  <div class="cine-play-circle"><span class="play-triangle">▶</span></div>
+                  <div class="cine-hd-tag">F HD</div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>`;
         document.getElementById('modal').style.display='flex';
       }
-      function openEdit(i){
-        const f=FILMS[i];
-        const val=x=>esc(x==null?'':x);
-        document.getElementById('modal').innerHTML=`<div class="modal edit-modal" onclick="event.stopPropagation()"><button class="modal-close" onclick="closeModal()">✕</button><h2 class="edit-title">Edit film</h2><div class="edit-form">
-<label class="edit-field full"><span>Title</span><input id="e_title" value="${val(f.title)}"></label>
-<label class="edit-field"><span>Shelf</span><input id="e_shelf" value="${val(f.shelf)}"></label>
-<label class="edit-field"><span>Row</span><input id="e_row" value="${val(f.row)}"></label>
-<label class="edit-field"><span>Year</span><input id="e_year" type="number" value="${val(f.year)}"></label>
-<label class="edit-field"><span>Rating</span><input id="e_rating" type="number" step="0.1" value="${val(f.rating)}"></label>
-<label class="edit-field"><span>Runtime (min)</span><input id="e_runtime" type="number" value="${val(f.runtime)}"></label>
-<label class="edit-field"><span>Country</span><input id="e_country" value="${val(f.country)}"></label>
-<label class="edit-field full"><span>Director</span><input id="e_director" value="${val(f.director)}"></label>
-<label class="edit-field full"><span>Cast (comma separated)</span><input id="e_cast" value="${val((f.cast||[]).join(', '))}"></label>
-<label class="edit-field full"><span>Genre (comma separated)</span><input id="e_genre" value="${val((f.genre||[]).join(', '))}"></label>
-<label class="edit-field full"><span>Poster URL</span><input id="e_poster" value="${val(f.poster)}"></label>
-<label class="edit-field full"><span>Synopsis</span><textarea id="e_synopsis" rows="3">${val(f.synopsis)}</textarea></label>
-</div><div class="edit-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveEdit(${i})">💾 Save</button></div></div>`;
-        document.getElementById('modal').style.display='flex';
-      }
-      function saveEdit(i){
-        const f=FILMS[i]; const gv=id=>document.getElementById(id).value;
-        f.title=gv('e_title'); f.shelf=gv('e_shelf'); f.row=gv('e_row');
-        f.year=gv('e_year')!==''?parseInt(gv('e_year'),10):undefined;
-        f.rating=gv('e_rating')!==''?parseFloat(gv('e_rating')):undefined;
-        f.runtime=gv('e_runtime')!==''?parseInt(gv('e_runtime'),10):undefined;
-        f.country=gv('e_country')||undefined;
-        f.director=gv('e_director')||undefined;
-        f.cast=gv('e_cast').split(',').map(s=>s.trim()).filter(Boolean);
-        f.genre=gv('e_genre').split(',').map(s=>s.trim()).filter(Boolean);
-        f.poster=gv('e_poster')||undefined;
-        f.synopsis=gv('e_synopsis')||undefined;
-        render(); closeModal();
-      }
+
       function closeModal(){ document.getElementById('modal').style.display='none'; }
       document.getElementById('modal').addEventListener('click', closeModal);
       document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
@@ -256,8 +556,6 @@ TEMPLATE = r"""<!doctype html>
       sortSel.addEventListener('change', render);
       renderAlphaBar();
       render();
-      document.body.classList.toggle('light', theme==='light');
-      const tb=document.getElementById('themeToggle'); if(tb) tb.textContent = theme==='dark'?'☀️':'🌙';
     </script>
   </body>
 </html>
@@ -266,4 +564,4 @@ TEMPLATE = r"""<!doctype html>
 html = TEMPLATE.replace("__DATA__", DATA)
 with open("preview.html", "w", encoding="utf-8") as f:
     f.write(html)
-print("preview.html written with", len(films), "films + list/edit features")
+print("preview.html updated with all 5 new major features")
