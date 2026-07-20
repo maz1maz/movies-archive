@@ -82,6 +82,16 @@ const HEADER_MAP = {
   عکس: 'poster',
   poster: 'poster',
   image: 'poster',
+  studio: 'studio',
+  کمپانی: 'studio',
+  استودیو: 'studio',
+  سازنده: 'studio',
+  publisher: 'studio',
+  rated: 'rated',
+  mpaa: 'rated',
+  'رده بندی سنی': 'rated',
+  'درجه سنی': 'rated',
+  'رده سنی': 'rated',
 }
 
 function parseCell(v) {
@@ -184,6 +194,8 @@ const EDITABLE = [
   'country',
   'synopsis',
   'poster',
+  'studio',
+  'rated',
 ]
 app.patch('/api/films/:id', (req, res) => {
   const films = readFilms()

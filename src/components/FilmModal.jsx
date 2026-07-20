@@ -31,8 +31,8 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
   const runtimeText = formatRuntime(film.runtime)
   const metaSubParts = [film.year, genreText, runtimeText].filter(Boolean)
 
-  const studioName = film.studio || 'Sony Pictures Releasing'
-  const mpaRating = film.rated || film.mpaa || 'R'
+  const studioName = film.studio
+  const mpaRating = film.rated || film.mpaa
 
   const trailerSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
     (film.originalTitle || film.title) + ' official trailer'
@@ -88,20 +88,24 @@ export default function FilmModal({ film, onSelectPerson, onClose }) {
 
           <div className="cine-info-card">
             {/* Primary Studio Line */}
-            <div className="cine-studio-header">
-              <span className="studio-icon">🏢</span>
-              <span className="studio-text">
-                <strong>{studioName}</strong> {film.year ? `(${film.year})` : ''}
-              </span>
-            </div>
+            {studioName && (
+              <div className="cine-studio-header">
+                <span className="studio-icon">🏢</span>
+                <span className="studio-text">
+                  <strong>{studioName}</strong> {film.year ? `(${film.year})` : ''}
+                </span>
+              </div>
+            )}
 
             {/* Badges Row: MPA Rating + IMDb + Shelf Location */}
             <div className="cine-badges-top">
               {/* Motion Picture Association (MPA) Badge */}
-              <div className="mpa-rating-box" title="Motion Picture Association (MPA) Rating">
-                <span className="mpa-tag-label">MPA</span>
-                <span className="mpa-tag-val">{mpaRating}</span>
-              </div>
+              {mpaRating && (
+                <div className="mpa-rating-box" title="Motion Picture Association (MPA) Rating">
+                  <span className="mpa-tag-label">MPA</span>
+                  <span className="mpa-tag-val">{mpaRating}</span>
+                </div>
+              )}
 
               {typeof film.rating === 'number' && (
                 <div className="imdb-badge-cine">
