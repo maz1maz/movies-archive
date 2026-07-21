@@ -148,19 +148,6 @@ TEMPLATE = r"""<!doctype html>
       .cine-play-circle { position: absolute; width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, 0.92); color: #000; display: flex; align-items: center; justify-content: center; }
       .cine-hd-tag { position: absolute; bottom: 6px; left: 6px; background: rgba(0,0,0,0.88); color: #c2660a; font-size: 9.5px; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
 
-      /* Bookshelf View */
-      .bookshelf-container { display: flex; flex-direction: column; gap: 32px; padding: 24px 0 50px; }
-      .shelf-group-header { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #3a3b42; padding-bottom: 8px; }
-      .shelf-header-title { margin: 0; font-size: 20px; font-weight: 800; color: #6d8fdb; }
-      .physical-shelf-rack { position: relative; background: rgba(22, 24, 33, 0.6); border-radius: 8px; padding: 16px 16px 0; border: 1px solid #2b2c32; }
-      .shelf-items-list { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; padding-bottom: 8px; }
-      .spine-item { display: flex; flex-direction: column; align-items: center; width: 90px; background: transparent; border: none; cursor: pointer; padding: 0; }
-      .spine-item:hover { transform: translateY(-8px) scale(1.05); }
-      .spine-case { position: relative; width: 100%; aspect-ratio: 2 / 3; border-radius: 6px; overflow: hidden; background: #212227; border: 1px solid #3a3b42; }
-      .spine-poster-img { width: 100%; height: 100%; object-fit: cover; }
-      .spine-film-title { margin-top: 6px; font-size: 11px; font-weight: 600; color: #ececed; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
-      .shelf-plank-wood { height: 14px; background: linear-gradient(to bottom, #473221, #2d1f14); border-radius: 4px; border-top: 2px solid #6b4c33; margin-top: -2px; }
-
       /* Stats Modal */
       .modal-stats { width: min(840px, 94vw); background: #212227; border: 1px solid #3a3b42; border-radius: 18px; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; color: #ececed; }
       .modal-add { position: relative; width: min(560px, 94vw); background: #212227; border: 1px solid #3a3b42; border-radius: 18px; padding: 24px; color: #ececed; }
@@ -223,7 +210,6 @@ TEMPLATE = r"""<!doctype html>
           <div class="view-toggle" role="group" aria-label="View mode">
             <button id="vt-grid" onclick="setView('grid')">🖼 Thumbnails</button>
             <button id="vt-list" class="active" onclick="setView('list')">☷ List</button>
-            <button id="vt-shelf" onclick="setView('bookshelf')">📚 Bookshelf</button>
           </div>
         </div>
       </header>
@@ -282,7 +268,6 @@ TEMPLATE = r"""<!doctype html>
         currentView = v;
         document.getElementById('vt-grid').classList.toggle('active', v==='grid');
         document.getElementById('vt-list').classList.toggle('active', v==='list');
-        document.getElementById('vt-shelf').classList.toggle('active', v==='bookshelf');
         render();
       }
 
@@ -506,40 +491,9 @@ TEMPLATE = r"""<!doctype html>
         }).join('')}</div>`;
       }
 
-      function renderBookshelf(list){
-        const shelvesMap = {};
-        list.forEach(f => {
-          const sh = f.shelf ? `Shelf ${f.shelf}` : 'Unassigned Shelf';
-          const rw = f.row ? `Row ${f.row}` : 'Row General';
-          if(!shelvesMap[sh]) shelvesMap[sh] = {};
-          if(!shelvesMap[sh][rw]) shelvesMap[sh][rw] = [];
-          shelvesMap[sh][rw].push(f);
-        });
-
-        let html = '<div class="bookshelf-container">';
-        Object.keys(shelvesMap).sort().forEach(sh => {
-          html += `<div class="shelf-group"><div class="shelf-group-header">🗄️ <h2 class="shelf-header-title">${esc(sh)}</h2></div>`;
-          Object.keys(shelvesMap[sh]).sort().forEach(rw => {
-            const items = shelvesMap[sh][rw];
-            html += `<div class="rack-row-wrapper"><div style="font-size:12.5px; font-weight:700; color:#8d8f98">${esc(rw)} (${items.length} films)</div><div class="physical-shelf-rack"><div class="shelf-items-list">`;
-            items.forEach(f => {
-              const fmt = f.format || 'Blu-ray';
-              html += `<button class="spine-item" onclick="openModal(${f.__i})"><div class="spine-case"><img src="${esc(f.poster)}" alt="${esc(f.title)}" class="spine-poster-img"><span class="format-badge-mini">${esc(fmt)}</span>${f.borrowedTo ? '<span class="borrowed-tag-mini">LOANED</span>' : ''}</div><span class="spine-film-title">${esc(f.title)}</span></button>`;
-            });
-            html += `</div><div class="shelf-plank-wood"></div></div></div>`;
-          });
-          html += '</div>';
-        });
-        html += '</div>';
-        return html;
-      }
-
       function render(){
         const list=getList();
-        if(currentView === 'bookshelf'){
-          viewEl.className = '';
-          viewEl.innerHTML = renderBookshelf(list);
-        } else if(currentView === 'list') {
+        if(currentView === 'list') {
           viewEl.className = '';
           viewEl.innerHTML = renderList(list);
         } else {

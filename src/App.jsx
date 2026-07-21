@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import Header from './components/Header.jsx'
 import FilmGrid from './components/FilmGrid.jsx'
 import FilmList from './components/FilmList.jsx'
-import BookshelfView from './components/BookshelfView.jsx'
 import FilmModal from './components/FilmModal.jsx'
 import EditModal from './components/EditModal.jsx'
 import PersonModal from './components/PersonModal.jsx'
@@ -25,9 +24,10 @@ export default function App() {
   const [alpha, setAlpha] = useState('')
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 48
-  const [view, setView] = useState(
-    () => localStorage.getItem('fa_view') || 'list'
-  )
+  const [view, setView] = useState(() => {
+    const storedView = localStorage.getItem('fa_view')
+    return storedView === 'grid' || storedView === 'list' ? storedView : 'list'
+  })
   const [theme, setTheme] = useState(
     () => localStorage.getItem('fa_theme') || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
   )
@@ -248,8 +248,6 @@ export default function App() {
           </div>
         ) : view === 'list' ? (
           <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} />
-        ) : view === 'bookshelf' ? (
-          <BookshelfView films={visibleFilms} onSelect={setSelected} />
         ) : (
           <FilmGrid films={visibleFilms} onSelect={setSelected} />
         )}

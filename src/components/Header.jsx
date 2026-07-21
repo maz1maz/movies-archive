@@ -10,7 +10,6 @@ import {
   IconGrid,
   IconList,
   IconBarChart,
-  IconBookshelf,
 } from './icons.jsx'
 
 export default function Header({
@@ -202,14 +201,6 @@ export default function Header({
             title="List"
           >
             <IconList width={15} height={15} /> List
-          </button>
-          <button
-            type="button"
-            className={view === 'bookshelf' ? 'active' : ''}
-            onClick={() => setView('bookshelf')}
-            title="Physical Bookshelf"
-          >
-            <IconBookshelf width={15} height={15} /> Bookshelf
           </button>
         </div>
       </div>
