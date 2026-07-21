@@ -23,6 +23,8 @@ export default function App() {
   const [decade, setDecade] = useState('')
   const [sort, setSort] = useState('shelf')
   const [alpha, setAlpha] = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 48
   const [view, setView] = useState(
     () => localStorage.getItem('fa_view') || 'grid'
   )
@@ -74,6 +76,7 @@ export default function App() {
   }
 
   useEffect(() => {
+    setPage(1)
     loadFilms()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, genre, loanedOnly, watched, minRating, decade, sort, alpha])
@@ -159,6 +162,9 @@ export default function App() {
     setLoanFilm(null)
   }
 
+  const pageCount = Math.max(1, Math.ceil(films.length / PAGE_SIZE))
+  const visibleFilms = films.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
   return (
     <div className="app">
       {toast && <div className="toast">{toast}</div>}
@@ -208,11 +214,18 @@ export default function App() {
             </p>
           </div>
         ) : view === 'list' ? (
-          <FilmList films={films} onSelect={setSelected} onEdit={setEditing} />
+          <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} />
         ) : view === 'bookshelf' ? (
-          <BookshelfView films={films} onSelect={setSelected} />
+          <BookshelfView films={visibleFilms} onSelect={setSelected} />
         ) : (
-          <FilmGrid films={films} onSelect={setSelected} />
+          <FilmGrid films={visibleFilms} onSelect={setSelected} />
+        )}
+        {pageCount > 1 && !loading && (
+          <div className="pagination">
+            <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← قبلی</button>
+            <span>صفحه {page} از {pageCount}</span>
+            <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>بعدی →</button>
+          </div>
         )}
       </main>
 
