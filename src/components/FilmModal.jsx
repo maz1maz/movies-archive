@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react'
 import { IconClose } from './icons.jsx'
 
-export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose }) {
+export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onClose }) {
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
 
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose()
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose()
+      if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && films.length && onNavigate) {
+        const i = films.findIndex((f) => f.id === film.id)
+        const next = e.key === 'ArrowRight' ? (i + 1) % films.length : (i - 1 + films.length) % films.length
+        onNavigate(films[next])
+      }
+    }
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
@@ -213,7 +220,13 @@ export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose 
                 <button
                   type="button"
                   className="cine-accordion-btn"
-                  onClick={() => setShowAllCast(!showAllCast)}
+                  onClick={(e) => {
+                    // Keep the accordion action isolated from the modal/card click
+                    // handlers. This is especially important after expanding the
+                    // list, when clicking an actor should open their filmography.
+                    e.stopPropagation()
+                    setShowAllCast((open) => !open)
+                  }}
                 >
                   {showAllCast ? 'Show less ▴' : `View all (${castList.length}) ▾`}
                 </button>
@@ -275,7 +288,12 @@ export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose 
                 <button
                   type="button"
                   className="cine-accordion-btn"
-                  onClick={() => setShowAllCrew(!showAllCrew)}
+                  onClick={(e) => {
+                    // Do not let expanding/collapsing the crew list trigger
+                    // any parent click handler.
+                    e.stopPropagation()
+                    setShowAllCrew((open) => !open)
+                  }}
                 >
                   {showAllCrew ? 'Show less ▴' : `View all (${fullCrew.length}) ▾`}
                 </button>

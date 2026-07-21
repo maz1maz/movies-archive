@@ -24,7 +24,14 @@ export default function FilmCard({ film, onSelect }) {
   const hasLocation = film.shelf || film.row
 
   return (
-    <button className="card" onClick={() => onSelect(film)}>
+    <button
+      type="button"
+      className="card"
+      onClick={(e) => {
+        e.stopPropagation()
+        onSelect(film)
+      }}
+    >
       <div
         className="poster"
         style={{ background: `linear-gradient(160deg, ${c1}, ${c2})` }}

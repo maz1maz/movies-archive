@@ -17,6 +17,9 @@ export default function Header({
   genre,
   setGenre,
   genres,
+  loanedOnly,
+  setLoanedOnly,
+  onRandomFilm,
   decade,
   setDecade,
   decades,
@@ -24,6 +27,7 @@ export default function Header({
   setSort,
   total,
   onImport,
+  onAddFilm,
   onOpenStats,
   onOpenExport,
   view,
@@ -55,7 +59,18 @@ export default function Header({
         </div>
 
         <div className="actions">
+          <button type="button" className="btn btn-ghost" onClick={onRandomFilm}>
+            🎲 امشب چی ببینم؟
+          </button>
           <button
+            type="button"
+            className="btn btn-primary"
+            onClick={onAddFilm}
+          >
+            + Add Film
+          </button>
+          <button
+            type="button"
             className="btn btn-ghost"
             onClick={onOpenStats}
             title="View Collection Statistics & Analytics"
@@ -125,6 +140,11 @@ export default function Header({
           ))}
         </select>
 
+        <label className="loan-filter">
+          <input type="checkbox" checked={loanedOnly} onChange={(e) => setLoanedOnly(e.target.checked)} />
+          فقط امانت‌داده‌شده‌ها
+        </label>
+
         <select
           className="select"
           value={decade}
@@ -150,7 +170,8 @@ export default function Header({
         </select>
 
         <div className="view-toggle" role="group" aria-label="View mode">
-          <button
+            <button
+            type="button"
             className={view === 'grid' ? 'active' : ''}
             onClick={() => setView('grid')}
             title="Poster grid"
@@ -158,6 +179,7 @@ export default function Header({
             <IconGrid width={15} height={15} /> Posters
           </button>
           <button
+            type="button"
             className={view === 'list' ? 'active' : ''}
             onClick={() => setView('list')}
             title="List"
@@ -165,6 +187,7 @@ export default function Header({
             <IconList width={15} height={15} /> List
           </button>
           <button
+            type="button"
             className={view === 'bookshelf' ? 'active' : ''}
             onClick={() => setView('bookshelf')}
             title="Physical Bookshelf"

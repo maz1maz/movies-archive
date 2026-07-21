@@ -138,8 +138,9 @@ function rowToFilm(row, index) {
 
 // ---------- مسیرهای API ----------
 app.get('/api/films', (req, res) => {
-  const { q, genre, shelf, sort, alpha, decade } = req.query
+  const { q, genre, shelf, sort, alpha, decade, loaned } = req.query
   let films = readFilms()
+  if (loaned === '1') films = films.filter((f) => f.borrowedTo)
   if (q) {
     const s = q.toString().toLowerCase()
     films = films.filter(
@@ -209,6 +210,25 @@ const EDITABLE = [
   'borrowedTo',
   'borrowedDate',
 ]
+app.post('/api/films', (req, res) => {
+  const films = readFilms()
+  const body = req.body || {}
+  if (!String(body.title || '').trim()) {
+    return res.status(400).json({ error: 'title is required' })
+  }
+  const film = {
+    id: `f${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    title: String(body.title).trim(),
+    shelf: body.shelf || '',
+    row: body.row || '',
+    ...body,
+  }
+  film.id = film.id
+  films.push(film)
+  writeFilms(films)
+  res.status(201).json(film)
+})
+
 app.patch('/api/films/:id', (req, res) => {
   const films = readFilms()
   const i = films.findIndex((f) => f.id === req.params.id)

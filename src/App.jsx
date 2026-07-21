@@ -17,6 +17,7 @@ export default function App() {
   const [decades, setDecades] = useState([])
   const [query, setQuery] = useState('')
   const [genre, setGenre] = useState('')
+  const [loanedOnly, setLoanedOnly] = useState(false)
   const [decade, setDecade] = useState('')
   const [sort, setSort] = useState('shelf')
   const [alpha, setAlpha] = useState('')
@@ -24,7 +25,7 @@ export default function App() {
     () => localStorage.getItem('fa_view') || 'grid'
   )
   const [theme, setTheme] = useState(
-    () => localStorage.getItem('fa_theme') || 'dark'
+    () => localStorage.getItem('fa_theme') || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
   )
   const [selected, setSelected] = useState(null)
   const [selectedPerson, setSelectedPerson] = useState(null)
@@ -32,6 +33,7 @@ export default function App() {
   const [showExport, setShowExport] = useState(false)
   const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
+  const [adding, setAdding] = useState(false)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState('')
 
@@ -54,6 +56,7 @@ export default function App() {
     const params = new URLSearchParams()
     if (query.trim()) params.set('q', query.trim())
     if (genre) params.set('genre', genre)
+    if (loanedOnly) params.set('loaned', '1')
     if (decade) params.set('decade', decade)
     if (sort) params.set('sort', sort)
     if (alpha) params.set('alpha', alpha)
@@ -69,7 +72,7 @@ export default function App() {
   useEffect(() => {
     loadFilms()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, genre, decade, sort, alpha])
+  }, [query, genre, loanedOnly, decade, sort, alpha])
 
   useEffect(() => {
     fetch('/api/genres')
@@ -115,6 +118,24 @@ export default function App() {
     }
   }
 
+  const handleAddFilm = async (patch) => {
+    try {
+      const res = await fetch('/api/films', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'add failed')
+      setAdding(false)
+      showToast('Film added')
+      loadFilms()
+      refreshMeta()
+    } catch (e) {
+      showToast(e.message)
+    }
+  }
+
   const handleSaveFilm = async (id, patch) => {
     try {
       const res = await fetch('/api/films/' + id, {
@@ -143,6 +164,9 @@ export default function App() {
         setQuery={setQuery}
         genre={genre}
         setGenre={setGenre}
+        loanedOnly={loanedOnly}
+        setLoanedOnly={setLoanedOnly}
+        onRandomFilm={() => films.length && setSelected(films[Math.floor(Math.random() * films.length)])}
         genres={genres}
         decade={decade}
         setDecade={setDecade}
@@ -151,6 +175,7 @@ export default function App() {
         setSort={setSort}
         total={films.length}
         onImport={handleImport}
+        onAddFilm={() => setAdding(true)}
         onOpenStats={() => setShowStats(true)}
         onOpenExport={() => setShowExport(true)}
         view={view}
@@ -190,6 +215,8 @@ export default function App() {
       {selected && (
         <FilmModal
           film={selected}
+          films={films}
+          onNavigate={(film) => setSelected(film)}
           onSelectPerson={(name) => {
             setSelected(null)
             setSelectedPerson(name)
@@ -226,6 +253,14 @@ export default function App() {
           film={loanFilm}
           onClose={() => setLoanFilm(null)}
           onSaveLoan={(id, patch) => handleSaveFilm(id, patch)}
+        />
+      )}
+
+      {adding && (
+        <EditModal
+          film={{}}
+          onClose={() => setAdding(false)}
+          onSave={handleAddFilm}
         />
       )}
 
