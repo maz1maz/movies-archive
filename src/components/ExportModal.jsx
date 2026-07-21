@@ -12,6 +12,27 @@ export default function ExportModal({ films, onClose }) {
     }
   }, [onClose])
 
+  const handleLetterboxdExport = () => {
+    const esc = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
+    const header = ['Name', 'Year', 'Directors', 'Rating10', 'Watched', 'Tags']
+    const rows = films.map((f) => [
+      f.title,
+      f.year || '',
+      f.director || '',
+      f.rating ?? '',
+      f.watched ? 'Yes' : 'No',
+      Array.isArray(f.genre) ? f.genre.join(', ') : f.genre || '',
+    ])
+    const csv = [header, ...rows].map((row) => row.map(esc).join(',')).join('\\r\\n')
+    const blob = new Blob([`\\ufeff${csv}`], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'letterboxd-film-archive.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   const handlePrintPDF = () => {
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
@@ -110,6 +131,15 @@ export default function ExportModal({ films, onClose }) {
             <a href="/api/export/excel" download className="btn btn-ghost">
               ⬇️ Download Excel Export
             </a>
+          </div>
+
+          <div className="export-card">
+            <span className="export-icon">🎞️</span>
+            <h3>Letterboxd CSV</h3>
+            <p>Download a CSV with titles, years, directors, ratings, watched status and genre tags.</p>
+            <button className="btn btn-primary" onClick={handleLetterboxdExport}>
+              ⬇️ Download Letterboxd CSV
+            </button>
           </div>
 
           {/* JSON Backup */}
