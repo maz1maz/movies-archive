@@ -17,14 +17,19 @@ export default function App() {
   const [decades, setDecades] = useState([])
   const [query, setQuery] = useState('')
   const [genre, setGenre] = useState('')
+  const [loanedOnly, setLoanedOnly] = useState(false)
+  const [watched, setWatched] = useState('')
+  const [minRating, setMinRating] = useState('')
   const [decade, setDecade] = useState('')
   const [sort, setSort] = useState('shelf')
   const [alpha, setAlpha] = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 48
   const [view, setView] = useState(
     () => localStorage.getItem('fa_view') || 'grid'
   )
   const [theme, setTheme] = useState(
-    () => localStorage.getItem('fa_theme') || 'dark'
+    () => localStorage.getItem('fa_theme') || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
   )
   const [selected, setSelected] = useState(null)
   const [selectedPerson, setSelectedPerson] = useState(null)
@@ -32,6 +37,7 @@ export default function App() {
   const [showExport, setShowExport] = useState(false)
   const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
+  const [adding, setAdding] = useState(false)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState('')
 
@@ -54,6 +60,9 @@ export default function App() {
     const params = new URLSearchParams()
     if (query.trim()) params.set('q', query.trim())
     if (genre) params.set('genre', genre)
+    if (loanedOnly) params.set('loaned', '1')
+    if (watched) params.set('watched', watched)
+    if (minRating) params.set('minRating', minRating)
     if (decade) params.set('decade', decade)
     if (sort) params.set('sort', sort)
     if (alpha) params.set('alpha', alpha)
@@ -67,9 +76,10 @@ export default function App() {
   }
 
   useEffect(() => {
+    setPage(1)
     loadFilms()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, genre, decade, sort, alpha])
+  }, [query, genre, loanedOnly, watched, minRating, decade, sort, alpha])
 
   useEffect(() => {
     fetch('/api/genres')
@@ -115,6 +125,24 @@ export default function App() {
     }
   }
 
+  const handleAddFilm = async (patch) => {
+    try {
+      const res = await fetch('/api/films', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'add failed')
+      setAdding(false)
+      showToast('Film added')
+      loadFilms()
+      refreshMeta()
+    } catch (e) {
+      showToast(e.message)
+    }
+  }
+
   const handleSaveFilm = async (id, patch) => {
     try {
       const res = await fetch('/api/films/' + id, {
@@ -134,6 +162,9 @@ export default function App() {
     setLoanFilm(null)
   }
 
+  const pageCount = Math.max(1, Math.ceil(films.length / PAGE_SIZE))
+  const visibleFilms = films.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
   return (
     <div className="app">
       {toast && <div className="toast">{toast}</div>}
@@ -143,6 +174,13 @@ export default function App() {
         setQuery={setQuery}
         genre={genre}
         setGenre={setGenre}
+        loanedOnly={loanedOnly}
+        setLoanedOnly={setLoanedOnly}
+        onRandomFilm={() => films.length && setSelected(films[Math.floor(Math.random() * films.length)])}
+        watched={watched}
+        setWatched={setWatched}
+        minRating={minRating}
+        setMinRating={setMinRating}
         genres={genres}
         decade={decade}
         setDecade={setDecade}
@@ -151,6 +189,7 @@ export default function App() {
         setSort={setSort}
         total={films.length}
         onImport={handleImport}
+        onAddFilm={() => setAdding(true)}
         onOpenStats={() => setShowStats(true)}
         onOpenExport={() => setShowExport(true)}
         view={view}
@@ -175,11 +214,18 @@ export default function App() {
             </p>
           </div>
         ) : view === 'list' ? (
-          <FilmList films={films} onSelect={setSelected} onEdit={setEditing} />
+          <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} />
         ) : view === 'bookshelf' ? (
-          <BookshelfView films={films} onSelect={setSelected} />
+          <BookshelfView films={visibleFilms} onSelect={setSelected} />
         ) : (
-          <FilmGrid films={films} onSelect={setSelected} />
+          <FilmGrid films={visibleFilms} onSelect={setSelected} />
+        )}
+        {pageCount > 1 && !loading && (
+          <div className="pagination">
+            <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← قبلی</button>
+            <span>صفحه {page} از {pageCount}</span>
+            <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>بعدی →</button>
+          </div>
         )}
       </main>
 
@@ -190,6 +236,8 @@ export default function App() {
       {selected && (
         <FilmModal
           film={selected}
+          films={films}
+          onNavigate={(film) => setSelected(film)}
           onSelectPerson={(name) => {
             setSelected(null)
             setSelectedPerson(name)
@@ -226,6 +274,14 @@ export default function App() {
           film={loanFilm}
           onClose={() => setLoanFilm(null)}
           onSaveLoan={(id, patch) => handleSaveFilm(id, patch)}
+        />
+      )}
+
+      {adding && (
+        <EditModal
+          film={{}}
+          onClose={() => setAdding(false)}
+          onSave={handleAddFilm}
         />
       )}
 

@@ -35,6 +35,15 @@ function readFilms() {
 }
 function writeFilms(films) {
   ensureData()
+  // Keep a rolling backup before every write so imports and edits are recoverable.
+  const backupDir = path.join(DATA_DIR, 'backups')
+  fs.mkdirSync(backupDir, { recursive: true })
+  if (fs.existsSync(DATA_FILE)) {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    fs.copyFileSync(DATA_FILE, path.join(backupDir, `films-${stamp}.json`))
+    const backups = fs.readdirSync(backupDir).sort()
+    for (const old of backups.slice(0, -30)) fs.unlinkSync(path.join(backupDir, old))
+  }
   fs.writeFileSync(DATA_FILE, JSON.stringify(films, null, 2), 'utf-8')
 }
 
@@ -138,8 +147,12 @@ function rowToFilm(row, index) {
 
 // ---------- مسیرهای API ----------
 app.get('/api/films', (req, res) => {
-  const { q, genre, shelf, sort, alpha, decade } = req.query
+  const { q, genre, shelf, sort, alpha, decade, loaned, watched, minRating } = req.query
   let films = readFilms()
+  if (loaned === '1') films = films.filter((f) => f.borrowedTo)
+  if (watched === '1') films = films.filter((f) => f.watched === true)
+  if (watched === '0') films = films.filter((f) => f.watched !== true)
+  if (minRating) films = films.filter((f) => Number(f.rating || 0) >= Number(minRating))
   if (q) {
     const s = q.toString().toLowerCase()
     films = films.filter(
@@ -208,7 +221,27 @@ const EDITABLE = [
   'format',
   'borrowedTo',
   'borrowedDate',
+  'watched',
 ]
+app.post('/api/films', (req, res) => {
+  const films = readFilms()
+  const body = req.body || {}
+  if (!String(body.title || '').trim()) {
+    return res.status(400).json({ error: 'title is required' })
+  }
+  const film = {
+    id: `f${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    title: String(body.title).trim(),
+    shelf: body.shelf || '',
+    row: body.row || '',
+    ...body,
+  }
+  film.id = film.id
+  films.push(film)
+  writeFilms(films)
+  res.status(201).json(film)
+})
+
 app.patch('/api/films/:id', (req, res) => {
   const films = readFilms()
   const i = films.findIndex((f) => f.id === req.params.id)

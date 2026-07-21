@@ -19,6 +19,7 @@ export default function EditModal({ film, onClose, onSave }) {
     rated: film.rated || film.mpaa || '',
     poster: film.poster || '',
     synopsis: film.synopsis || '',
+    watched: film.watched === true,
   }))
 
   useEffect(() => {
@@ -55,6 +56,7 @@ export default function EditModal({ film, onClose, onSave }) {
       rated: form.rated || undefined,
       poster: form.poster || undefined,
       synopsis: form.synopsis || undefined,
+      watched: form.watched,
     }
     onSave(patch)
   }
@@ -141,6 +143,14 @@ export default function EditModal({ film, onClose, onSave }) {
             <span>Poster URL</span>
             <input value={form.poster} onChange={set('poster')} />
           </label>
+          <label className="edit-field">
+            <span>وضعیت تماشا</span>
+            <select value={form.watched ? 'yes' : 'no'} onChange={(e) => setForm((p) => ({ ...p, watched: e.target.value === 'yes' }))}>
+              <option value="no">دیده‌نشده</option>
+              <option value="yes">تماشا شده</option>
+            </select>
+          </label>
+
           <label className="edit-field full">
             <span>Synopsis</span>
             <textarea

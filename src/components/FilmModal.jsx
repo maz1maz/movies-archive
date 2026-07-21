@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react'
 import { IconClose } from './icons.jsx'
 
-export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose }) {
+export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onClose }) {
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
 
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose()
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose()
+      if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && films.length && onNavigate) {
+        const i = films.findIndex((f) => f.id === film.id)
+        const next = e.key === 'ArrowRight' ? (i + 1) % films.length : (i - 1 + films.length) % films.length
+        onNavigate(films[next])
+      }
+    }
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
@@ -76,6 +83,12 @@ export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose 
   ].filter((item) => item.value)
 
   const displayedCrew = showAllCrew ? fullCrew : fullCrew.slice(0, 4)
+  const relatedFilms = films.filter((other) => {
+    if (other.id === film.id) return false
+    const a = Array.isArray(film.genre) ? film.genre : []
+    const b = Array.isArray(other.genre) ? other.genre : []
+    return (film.director && other.director === film.director) || a.some((g) => b.includes(g))
+  }).slice(0, 6)
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -203,6 +216,20 @@ export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose 
           </div>
         </div>
 
+        {relatedFilms.length > 0 && (
+          <div className="similar-films">
+            <div className="cine-col-title">SIMILAR IN YOUR ARCHIVE</div>
+            <div className="similar-films-grid">
+              {relatedFilms.map((other) => (
+                <button type="button" key={other.id} onClick={() => onNavigate && onNavigate(other)}>
+                  <img src={other.poster} alt="" />
+                  <span>{other.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Bottom 3 Columns: CAST | CREW | TRAILER */}
         <div className="cine-bottom-row">
           {/* CAST */}
@@ -213,7 +240,13 @@ export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose 
                 <button
                   type="button"
                   className="cine-accordion-btn"
-                  onClick={() => setShowAllCast(!showAllCast)}
+                  onClick={(e) => {
+                    // Keep the accordion action isolated from the modal/card click
+                    // handlers. This is especially important after expanding the
+                    // list, when clicking an actor should open their filmography.
+                    e.stopPropagation()
+                    setShowAllCast((open) => !open)
+                  }}
                 >
                   {showAllCast ? 'Show less ▴' : `View all (${castList.length}) ▾`}
                 </button>
@@ -275,7 +308,12 @@ export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose 
                 <button
                   type="button"
                   className="cine-accordion-btn"
-                  onClick={() => setShowAllCrew(!showAllCrew)}
+                  onClick={(e) => {
+                    // Do not let expanding/collapsing the crew list trigger
+                    // any parent click handler.
+                    e.stopPropagation()
+                    setShowAllCrew((open) => !open)
+                  }}
                 >
                   {showAllCrew ? 'Show less ▴' : `View all (${fullCrew.length}) ▾`}
                 </button>

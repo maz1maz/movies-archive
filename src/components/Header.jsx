@@ -17,6 +17,13 @@ export default function Header({
   genre,
   setGenre,
   genres,
+  loanedOnly,
+  setLoanedOnly,
+  onRandomFilm,
+  watched,
+  setWatched,
+  minRating,
+  setMinRating,
   decade,
   setDecade,
   decades,
@@ -24,6 +31,7 @@ export default function Header({
   setSort,
   total,
   onImport,
+  onAddFilm,
   onOpenStats,
   onOpenExport,
   view,
@@ -55,7 +63,18 @@ export default function Header({
         </div>
 
         <div className="actions">
+          <button type="button" className="btn btn-ghost" onClick={onRandomFilm}>
+            🎲 امشب چی ببینم؟
+          </button>
           <button
+            type="button"
+            className="btn btn-primary"
+            onClick={onAddFilm}
+          >
+            + Add Film
+          </button>
+          <button
+            type="button"
             className="btn btn-ghost"
             onClick={onOpenStats}
             title="View Collection Statistics & Analytics"
@@ -125,6 +144,22 @@ export default function Header({
           ))}
         </select>
 
+        <label className="loan-filter">
+          <input type="checkbox" checked={loanedOnly} onChange={(e) => setLoanedOnly(e.target.checked)} />
+          فقط امانت‌داده‌شده‌ها
+        </label>
+
+        <select className="select" value={watched} onChange={(e) => setWatched(e.target.value)}>
+          <option value="">همه وضعیت تماشا</option>
+          <option value="0">دیده‌نشده</option>
+          <option value="1">تماشا شده</option>
+        </select>
+        <select className="select" value={minRating} onChange={(e) => setMinRating(e.target.value)}>
+          <option value="">هر امتیازی</option>
+          <option value="7">امتیاز ۷ به بالا</option>
+          <option value="8">امتیاز ۸ به بالا</option>
+          <option value="9">امتیاز ۹ به بالا</option>
+        </select>
         <select
           className="select"
           value={decade}
@@ -150,7 +185,8 @@ export default function Header({
         </select>
 
         <div className="view-toggle" role="group" aria-label="View mode">
-          <button
+            <button
+            type="button"
             className={view === 'grid' ? 'active' : ''}
             onClick={() => setView('grid')}
             title="Poster grid"
@@ -158,6 +194,7 @@ export default function Header({
             <IconGrid width={15} height={15} /> Posters
           </button>
           <button
+            type="button"
             className={view === 'list' ? 'active' : ''}
             onClick={() => setView('list')}
             title="List"
@@ -165,6 +202,7 @@ export default function Header({
             <IconList width={15} height={15} /> List
           </button>
           <button
+            type="button"
             className={view === 'bookshelf' ? 'active' : ''}
             onClick={() => setView('bookshelf')}
             title="Physical Bookshelf"
