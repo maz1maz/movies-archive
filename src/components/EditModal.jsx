@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { IconClose, IconSave } from './icons.jsx'
 
 export default function EditModal({ film, onClose, onSave }) {
+  const isNew = !film.id
   const [form, setForm] = useState(() => ({
     title: film.title || '',
     shelf: film.shelf || '',
@@ -70,7 +71,7 @@ export default function EditModal({ film, onClose, onSave }) {
         <button className="modal-close" onClick={onClose} aria-label="Close">
           <IconClose width={15} height={15} />
         </button>
-        <h2 className="edit-title">Edit film</h2>
+        <h2 className="edit-title">{isNew ? 'Add Film' : 'Edit Film'}</h2>
 
         <div className="edit-form">
           <label className="edit-field full">
@@ -144,10 +145,10 @@ export default function EditModal({ film, onClose, onSave }) {
             <input value={form.poster} onChange={set('poster')} />
           </label>
           <label className="edit-field">
-            <span>وضعیت تماشا</span>
+            <span>Watch status</span>
             <select value={form.watched ? 'yes' : 'no'} onChange={(e) => setForm((p) => ({ ...p, watched: e.target.value === 'yes' }))}>
-              <option value="no">دیده‌نشده</option>
-              <option value="yes">تماشا شده</option>
+              <option value="no">Unwatched</option>
+              <option value="yes">Watched</option>
             </select>
           </label>
 
@@ -166,7 +167,7 @@ export default function EditModal({ film, onClose, onSave }) {
             Cancel
           </button>
           <button className="btn btn-primary" onClick={save}>
-            <IconSave width={14} height={14} /> Save
+            <IconSave width={14} height={14} /> {isNew ? 'Add Film' : 'Save'}
           </button>
         </div>
       </div>

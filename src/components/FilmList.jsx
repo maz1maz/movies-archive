@@ -57,6 +57,9 @@ export default function FilmList({ films, onSelect, onEdit }) {
                 <IconStar width={11} height={11} /> {f.rating.toFixed(1)}
               </span>
             )}
+            <span className={`tag ${f.watched ? 'tag-watched' : 'tag-unwatched'}`}>
+              {f.watched ? '✓ Watched' : 'Unwatched'}
+            </span>
           </div>
 
           <button

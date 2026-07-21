@@ -26,7 +26,7 @@ export default function App() {
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 48
   const [view, setView] = useState(
-    () => localStorage.getItem('fa_view') || 'grid'
+    () => localStorage.getItem('fa_view') || 'list'
   )
   const [theme, setTheme] = useState(
     () => localStorage.getItem('fa_theme') || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
@@ -222,9 +222,9 @@ export default function App() {
         )}
         {pageCount > 1 && !loading && (
           <div className="pagination">
-            <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← قبلی</button>
-            <span>صفحه {page} از {pageCount}</span>
-            <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>بعدی →</button>
+            <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Previous</button>
+            <span>Page {page} of {pageCount}</span>
+            <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next →</button>
           </div>
         )}
       </main>

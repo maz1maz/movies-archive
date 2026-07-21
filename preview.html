@@ -49,7 +49,19 @@
       .watched-badge { position: absolute; top: 8px; right: 8px; z-index: 1; border-radius: 999px; padding: 4px 7px; font-size: 10px; font-weight: 800; background: rgba(20, 35, 28, 0.94); color: #a7f3d0; border: 1px solid rgba(167, 243, 208, 0.35); }
       .watched-badge.unwatched { background: rgba(24, 25, 31, 0.92); color: #d1d5db; border-color: rgba(255, 255, 255, 0.2); }
 
-      .modal-overlay { position: fixed; inset: 0; background: rgba(5,6,10,0.82); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+      .list { display: flex; flex-direction: column; gap: 10px; padding: 24px 0 40px; }
+      .list-row { display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center; gap: 14px; width: 100%; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); padding: 8px 12px; cursor: pointer; text-align: left; }
+      .list-row:hover { border-color: var(--accent); }
+      .list-thumb { width: 48px; height: 64px; overflow: hidden; border-radius: 5px; background: var(--surface-2); }
+      .list-thumb img { width: 100%; height: 100%; object-fit: cover; }
+      .list-main { min-width: 0; }
+      .list-title { overflow: hidden; margin: 0; color: var(--text); font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+      .list-meta { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+      .list-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+      .list-tag { border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--muted); padding: 4px 7px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+      .list-tag.watched { border-color: rgba(167,243,208,.35); color: #a7f3d0; }
+
+      .modal-overlay {  position: fixed; inset: 0; background: rgba(5,6,10,0.82); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
       
       /* Exact Modal Cine from 7.png */
       .modal-cine { position: relative; width: min(680px, 92vw); max-height: 90vh; overflow-y: auto; background: #1b1c20; border: 1px solid #3a3b42; border-radius: 18px; padding: 24px 26px; box-shadow: 0 30px 80px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 18px; color: #ececed; }
@@ -146,6 +158,14 @@
 
       /* Stats Modal */
       .modal-stats { width: min(840px, 94vw); background: #212227; border: 1px solid #3a3b42; border-radius: 18px; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; color: #ececed; }
+      .modal-add { position: relative; width: min(560px, 94vw); background: #212227; border: 1px solid #3a3b42; border-radius: 18px; padding: 24px; color: #ececed; }
+      .modal-add h2 { margin: 0 32px 18px 0; color: #6d8fdb; font-size: 21px; }
+      .add-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .add-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; color: #8d8f98; font-size: 12px; font-weight: 700; }
+      .add-field.full { grid-column: 1 / -1; }
+      .add-field input, .add-field select { width: 100%; border: 1px solid #3a3b42; border-radius: 8px; outline: none; background: #1b1c20; color: #ececed; padding: 9px 10px; font: inherit; font-size: 13px; }
+      .add-field input:focus, .add-field select:focus { border-color: #6d8fdb; }
+      .add-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
       .stats-cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
       .stats-card { background: #1b1c20; border: 1px solid #3a3b42; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; }
       .stats-card-num { font-size: 20px; font-weight: 800; color: #ececed; }
@@ -180,7 +200,8 @@
         <div class="container header-inner">
           <div style="flex:1"></div>
           <h1 class="brand-title">CINEFILIO ARCHIVE</h1>
-          <div style="flex:1; text-align:right; display:flex; gap:8px; justify-content:flex-end;">
+          <div style="flex:1; text-align:right; display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-primary" onclick="openAddFilmModal()">+ Add Film</button>
             <button class="btn" onclick="openStatsModal()">📊 Stats</button>
             <button class="btn" onclick="openExportModal()">📥 Export / Backup</button>
           </div>
@@ -189,11 +210,12 @@
         <div class="container controls">
           <div class="search-box"><span class="search-icon">🔍</span><input id="search" type="search" placeholder="Search title, director or actor…" /></div>
           <select id="genre" class="select"><option value="">All genres</option></select>
-          <select id="watched" class="select"><option value="">همه وضعیت تماشا</option><option value="0">دیده‌نشده</option><option value="1">تماشا شده</option></select>
+          <select id="watched" class="select"><option value="">All watch statuses</option><option value="0">Unwatched</option><option value="1">Watched</option></select>
           <select id="decade" class="select"><option value="">All decades</option></select>
           <select id="sort" class="select"><option value="shelf">By shelf</option><option value="year_desc">Newest</option><option value="year_asc">Oldest</option><option value="rating">Top rated</option></select>
-          <div class="view-toggle" role="group">
-            <button id="vt-grid" class="active" onclick="setView('grid')">🖼 Posters</button>
+          <div class="view-toggle" role="group" aria-label="View mode">
+            <button id="vt-grid" onclick="setView('grid')">🖼 Thumbnails</button>
+            <button id="vt-list" class="active" onclick="setView('list')">☷ List</button>
             <button id="vt-shelf" onclick="setView('bookshelf')">📚 Bookshelf</button>
           </div>
         </div>
@@ -212,7 +234,7 @@
       const sortSel = document.getElementById('sort');
       const search = document.getElementById('search');
       let alpha = 'A';
-      let currentView = 'grid';
+      let currentView = 'list';
 
       [...new Set(FILMS.flatMap(f=>f.genre||[]))].sort().forEach(g=> genreSel.add(new Option(g,g)));
       [...new Set(FILMS.map(f=>typeof f.year==='number'?Math.floor(f.year/10)*10:null).filter(x=>x!==null))].sort((a,b)=>a-b).forEach(d=> decadeSel.add(new Option(d+'s', d)));
@@ -242,6 +264,7 @@
       function setView(v){
         currentView = v;
         document.getElementById('vt-grid').classList.toggle('active', v==='grid');
+        document.getElementById('vt-list').classList.toggle('active', v==='list');
         document.getElementById('vt-shelf').classList.toggle('active', v==='bookshelf');
         render();
       }
@@ -309,6 +332,51 @@
           </div>
         </div>`;
         document.getElementById('modal').style.display = 'flex';
+      }
+
+      function openAddFilmModal(){
+        document.getElementById('modal').innerHTML = `<div class="modal-add" onclick="event.stopPropagation()">
+          <button class="cine-close" onclick="closeModal()">✕</button>
+          <h2>Add Film</h2>
+          <form id="addFilmForm">
+            <div class="add-form">
+              <label class="add-field full">Title<input name="title" required autofocus placeholder="e.g. The Godfather"></label>
+              <label class="add-field">Year<input name="year" type="number" min="1888" max="2100" placeholder="1972"></label>
+              <label class="add-field">Watch status<select name="watched"><option value="0">Unwatched</option><option value="1">Watched</option></select></label>
+              <label class="add-field">Shelf<input name="shelf" placeholder="A"></label>
+              <label class="add-field">Row<input name="row" placeholder="3"></label>
+              <label class="add-field full">Director<input name="director" placeholder="Francis Ford Coppola"></label>
+              <label class="add-field full">Genre (comma separated)<input name="genre" placeholder="Crime, Drama"></label>
+              <label class="add-field full">Poster URL<input name="poster" type="url" placeholder="https://example.com/poster.jpg"></label>
+            </div>
+            <div class="add-actions"><button type="button" class="btn" onclick="closeModal()">Cancel</button><button type="submit" class="btn btn-primary">Add Film</button></div>
+          </form>
+        </div>`;
+        document.getElementById('modal').style.display = 'flex';
+        document.getElementById('addFilmForm').addEventListener('submit', (event) => {
+          event.preventDefault();
+          const values = new FormData(event.currentTarget);
+          const genre = String(values.get('genre') || '').split(',').map((item) => item.trim()).filter(Boolean);
+          const year = parseInt(values.get('year'), 10);
+          const film = {
+            id: `preview_${Date.now()}`,
+            title: String(values.get('title') || '').trim(),
+            year: Number.isNaN(year) ? undefined : year,
+            shelf: String(values.get('shelf') || '').trim(),
+            row: String(values.get('row') || '').trim(),
+            director: String(values.get('director') || '').trim(),
+            genre,
+            poster: String(values.get('poster') || '').trim(),
+            watched: values.get('watched') === '1',
+          };
+          film.__i = FILMS.length;
+          FILMS.push(film);
+          genre.forEach((item) => {
+            if (![...genreSel.options].some((option) => option.value === item)) genreSel.add(new Option(item, item));
+          });
+          closeModal();
+          render();
+        });
       }
 
       function openPersonModal(personName){
@@ -389,6 +457,19 @@
         return `<button class="card" onclick="openModal(${f.__i})"><div class="poster"><img src="${esc(f.poster)}" alt="${esc(f.title)}" onerror="this.style.display='none'"><span class="poster-fallback">${esc(f.title)}</span>${watchedBadge}</div><div class="card-body"><h3 class="card-title">${esc(f.title)}</h3><p class="card-meta">${f.year||'2017'} | ${genreText||'Action'}</p></div></button>`;
       }
 
+      function renderList(list){
+        if(list.length === 0) return '<div style="padding:40px 0; color:#8d8f98; text-align:center">No films match the selected filters.</div>';
+        return `<div class="list">${list.map((f) => {
+          const watched = f.watched === true;
+          const meta = [f.year, f.director, (f.genre || []).slice(0, 2).join(', ')].filter(Boolean).join(' · ');
+          return `<button class="list-row" onclick="openModal(${f.__i})">
+            <div class="list-thumb"><img src="${esc(f.poster)}" alt="" onerror="this.style.display='none'"></div>
+            <div class="list-main"><h3 class="list-title">${esc(f.title)}</h3><p class="list-meta">${esc(meta || 'No details available')}</p></div>
+            <div class="list-tags"><span class="list-tag ${watched ? 'watched' : ''}">${watched ? '✓ Watched' : 'Unwatched'}</span>${(f.shelf || f.row) ? `<span class="list-tag">${esc(f.shelf || '–')}-${esc(f.row || '–')}</span>` : ''}</div>
+          </button>`;
+        }).join('')}</div>`;
+      }
+
       function renderBookshelf(list){
         const shelvesMap = {};
         list.forEach(f => {
@@ -422,6 +503,9 @@
         if(currentView === 'bookshelf'){
           viewEl.className = '';
           viewEl.innerHTML = renderBookshelf(list);
+        } else if(currentView === 'list') {
+          viewEl.className = '';
+          viewEl.innerHTML = renderList(list);
         } else {
           viewEl.className = 'grid';
           viewEl.innerHTML = list.map(gridCard).join('');
