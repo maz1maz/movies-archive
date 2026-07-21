@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { IconClose } from './icons.jsx'
+import { IconClose, IconDocument, IconPrinter, IconBarChart, IconDownload, IconSave } from './icons.jsx'
 
 export default function ExportModal({ films, onClose }) {
   useEffect(() => {
@@ -87,38 +87,46 @@ export default function ExportModal({ films, onClose }) {
         </button>
 
         <div className="export-header">
-          <h2>📑 Export Archive & Backups</h2>
+          <h2>
+            <IconDocument width={18} height={18} /> Export Archive &amp; Backups
+          </h2>
           <p className="export-sub">Download your physical movie collection in multiple formats</p>
         </div>
 
         <div className="export-options-grid">
           {/* Printable PDF Catalog */}
           <div className="export-card">
-            <span className="export-icon">📄</span>
+            <span className="export-icon">
+              <IconDocument width={22} height={22} />
+            </span>
             <h3>Printable PDF Catalog</h3>
             <p>Generate a complete formatted physical inventory list suitable for printing or saving as PDF.</p>
             <button className="btn btn-primary" onClick={handlePrintPDF}>
-              🖨️ Generate PDF Catalog
+              <IconPrinter width={14} height={14} /> Generate PDF Catalog
             </button>
           </div>
 
           {/* Excel Export */}
           <div className="export-card">
-            <span className="export-icon">📊</span>
+            <span className="export-icon">
+              <IconBarChart width={22} height={22} />
+            </span>
             <h3>Excel Spreadsheet (.xlsx)</h3>
             <p>Export all 467 films into an Excel spreadsheet with all columns and shelf details.</p>
             <a href="/api/export/excel" download className="btn btn-ghost">
-              ⬇️ Download Excel Export
+              <IconDownload width={14} height={14} /> Download Excel Export
             </a>
           </div>
 
           {/* JSON Backup */}
           <div className="export-card">
-            <span className="export-icon">💾</span>
+            <span className="export-icon">
+              <IconSave width={22} height={22} />
+            </span>
             <h3>JSON Data Backup</h3>
             <p>Download raw database file (`films-backup.json`) for complete backup and restoration.</p>
             <a href="/api/export/json" download className="btn btn-ghost">
-              💾 Download JSON Backup
+              <IconSave width={14} height={14} /> Download JSON Backup
             </a>
           </div>
         </div>

@@ -1,3 +1,5 @@
+import { IconBookshelf } from './icons.jsx'
+
 export default function BookshelfView({ films, onSelect }) {
   // Group films by Shelf -> Row
   const shelvesMap = {}
@@ -25,7 +27,9 @@ export default function BookshelfView({ films, onSelect }) {
       {sortedShelfKeys.map((shelfName) => (
         <div key={shelfName} className="shelf-group">
           <div className="shelf-group-header">
-            <span className="shelf-header-icon">🗄️</span>
+            <span className="shelf-header-icon">
+              <IconBookshelf width={16} height={16} />
+            </span>
             <h2 className="shelf-header-title">{shelfName}</h2>
           </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IconClose } from './icons.jsx'
+import { IconClose, IconPin, IconHandshake, IconBuilding } from './icons.jsx'
 
 export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose }) {
   const [showAllCast, setShowAllCast] = useState(false)
@@ -128,7 +128,9 @@ export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose 
               <div className="cine-top-badges-column">
                 {(film.shelf || film.row) && (
                   <div className="cine-shelf-badge">
-                    <span className="shelf-icon">🗄️</span>
+                    <span className="shelf-icon">
+                      <IconPin width={13} height={13} />
+                    </span>
                     <span>
                       Shelf <strong>{film.shelf || '—'}</strong> / Row{' '}
                       <strong>{film.row || '—'}</strong>
@@ -143,7 +145,7 @@ export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose 
                     onClick={() => onManageLoan && onManageLoan(film)}
                     title="Click to manage loan status"
                   >
-                    🤝 Loaned to: <strong>{film.borrowedTo}</strong>
+                    <IconHandshake width={13} height={13} /> Loaned to: <strong>{film.borrowedTo}</strong>
                   </button>
                 ) : (
                   <button
@@ -151,7 +153,7 @@ export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose 
                     onClick={() => onManageLoan && onManageLoan(film)}
                     title="Mark film as borrowed by someone"
                   >
-                    🤝 Lend Film
+                    <IconHandshake width={13} height={13} /> Lend Film
                   </button>
                 )}
               </div>
@@ -161,7 +163,9 @@ export default function FilmModal({ film, onSelectPerson, onManageLoan, onClose 
             <div className="cine-info-bottom-row">
               {studioName ? (
                 <div className="cine-studio-header">
-                  <span className="studio-icon">🏢</span>
+                  <span className="studio-icon">
+                    <IconBuilding width={14} height={14} />
+                  </span>
                   <span className="studio-text">
                     <strong>{studioName}</strong> {film.year ? `(${film.year})` : ''}
                   </span>

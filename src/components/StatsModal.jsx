@@ -1,5 +1,15 @@
 import { useEffect } from 'react'
-import { IconClose } from './icons.jsx'
+import {
+  IconClose,
+  IconBarChart,
+  IconClock,
+  IconStar,
+  IconHandshake,
+  IconDisc,
+  IconMasks,
+  IconBookshelf,
+  IconClapper,
+} from './icons.jsx'
 
 export default function StatsModal({ films, onClose }) {
   useEffect(() => {
@@ -74,32 +84,32 @@ export default function StatsModal({ films, onClose }) {
         </button>
 
         <div className="stats-header">
-          <h2>📊 Archive Statistics & Analytics</h2>
+          <h2><IconBarChart width={18} height={18} /> Archive Statistics &amp; Analytics</h2>
           <p className="stats-sub">Complete breakdown of your physical film collection</p>
         </div>
 
         {/* Top Metric Cards */}
         <div className="stats-cards-grid">
           <div className="stats-card">
-            <span className="stats-card-icon">🎬</span>
+            <span className="stats-card-icon"><IconClapper width={20} height={20} /></span>
             <div className="stats-card-num">{totalFilms}</div>
             <div className="stats-card-lbl">Total Movies</div>
           </div>
 
           <div className="stats-card">
-            <span className="stats-card-icon">⏱️</span>
+            <span className="stats-card-icon"><IconClock width={20} height={20} /></span>
             <div className="stats-card-num">{totalHours} hrs</div>
             <div className="stats-card-lbl">{totalDays} Days Runtime</div>
           </div>
 
           <div className="stats-card">
-            <span className="stats-card-icon">⭐</span>
+            <span className="stats-card-icon"><IconStar width={20} height={20} /></span>
             <div className="stats-card-num">{avgRating} / 10</div>
             <div className="stats-card-lbl">Average Rating</div>
           </div>
 
           <div className="stats-card">
-            <span className="stats-card-icon">🤝</span>
+            <span className="stats-card-icon"><IconHandshake width={20} height={20} /></span>
             <div className="stats-card-num">{loanedFilms.length}</div>
             <div className="stats-card-lbl">Loaned Movies</div>
           </div>
@@ -109,7 +119,7 @@ export default function StatsModal({ films, onClose }) {
         <div className="stats-section-row">
           {/* Formats */}
           <div className="stats-box">
-            <h3>💿 Physical Media Formats</h3>
+            <h3><IconDisc width={15} height={15} /> Physical Media Formats</h3>
             <div className="stats-bars">
               {Object.entries(formatCounts).map(([fmt, count]) => {
                 const pct = Math.round((count / totalFilms) * 100)
@@ -135,7 +145,7 @@ export default function StatsModal({ films, onClose }) {
 
           {/* Top Genres */}
           <div className="stats-box">
-            <h3>🎭 Top Genres</h3>
+            <h3><IconMasks width={15} height={15} /> Top Genres</h3>
             <div className="stats-bars">
               {topGenres.map(([g, count]) => {
                 const maxG = topGenres[0][1]
@@ -162,7 +172,7 @@ export default function StatsModal({ films, onClose }) {
         {/* Shelves Distribution & Top Directors */}
         <div className="stats-section-row">
           <div className="stats-box">
-            <h3>🗄️ Shelf Storage Breakdown</h3>
+            <h3><IconBookshelf width={15} height={15} /> Shelf Storage Breakdown</h3>
             <div className="stats-shelf-pills">
               {topShelves.map(([sh, count]) => (
                 <div key={sh} className="shelf-stat-pill">
@@ -174,7 +184,7 @@ export default function StatsModal({ films, onClose }) {
           </div>
 
           <div className="stats-box">
-            <h3>🎥 Top Directors in Collection</h3>
+            <h3><IconClapper width={15} height={15} /> Top Directors in Collection</h3>
             <div className="stats-directors-list">
               {topDirectors.map(([dir, count], idx) => (
                 <div key={dir} className="dir-stat-row">

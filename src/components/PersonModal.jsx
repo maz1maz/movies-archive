@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { IconClose } from './icons.jsx'
+import { IconClose, IconUser, IconPin } from './icons.jsx'
 
 export default function PersonModal({ personName, allFilms, onSelectFilm, onClose }) {
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
 
         <div className="person-header">
           <div className="person-avatar-circle">
-            {personName[0]?.toUpperCase() || '👤'}
+            {personName[0]?.toUpperCase() || <IconUser width={22} height={22} />}
           </div>
           <div>
             <h2 className="person-title">{personName}</h2>
@@ -72,7 +72,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
                   <div className="person-poster-fallback">{film.title}</div>
                   {(film.shelf || film.row) && (
                     <span className="person-location-badge">
-                      📍 {film.shelf || '—'} / {film.row || '—'}
+                      <IconPin width={11} height={11} /> {film.shelf || '—'} / {film.row || '—'}
                     </span>
                   )}
                 </div>
