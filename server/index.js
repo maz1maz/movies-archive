@@ -157,6 +157,45 @@ function normalizeTitle(t) {
   return (t || '').toString().trim().toLowerCase()
 }
 
+const ENRICHABLE_FIELDS = [
+  'originalTitle',
+  'year',
+  'director',
+  'cast',
+  'genre',
+  'rating',
+  'runtime',
+  'country',
+  'synopsis',
+  'poster',
+  'rated',
+  'studio',
+  'imdbVotes',
+  'imdbId',
+]
+
+function isEmptyMetadata(value) {
+  if (Array.isArray(value)) return value.length === 0
+  return value == null || String(value).trim() === ''
+}
+
+// Keep enrichment failure non-fatal: a film must still be saved when OMDb is
+// temporarily unavailable or has no match for its title.
+async function enrichMissingMetadata(film) {
+  const key = process.env.OMDB_API_KEY
+  if (!key) return { film, enabled: false, fields: [] }
+
+  try {
+    const enriched = await enrichFilm(film, key)
+    const fields = ENRICHABLE_FIELDS.filter(
+      (field) => isEmptyMetadata(film[field]) && !isEmptyMetadata(enriched[field])
+    )
+    return { film: enriched, enabled: true, fields }
+  } catch {
+    return { film, enabled: true, fields: [] }
+  }
+}
+
 function rowToFilm(row, index) {
   const film = { id: `f${Date.now()}_${index}` }
   for (const [key, val] of Object.entries(row)) {
@@ -253,23 +292,49 @@ const EDITABLE = [
   'borrowedDate',
   'watched',
 ]
-app.post('/api/films', (req, res) => {
+app.post('/api/films', async (req, res) => {
   const films = readFilms()
   const body = req.body || {}
   if (!String(body.title || '').trim()) {
     return res.status(400).json({ error: 'title is required' })
   }
+
   const film = {
+    ...body,
     id: `f${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     title: String(body.title).trim(),
     shelf: body.shelf || '',
     row: body.row || '',
-    ...body,
   }
-  film.id = film.id
-  films.push(film)
+  const enrichment = await enrichMissingMetadata(film)
+  films.push(enrichment.film)
   writeFilms(films)
-  res.status(201).json(film)
+  res.status(201).json({
+    ...enrichment.film,
+    _enrichment: {
+      enabled: enrichment.enabled,
+      fields: enrichment.fields,
+    },
+  })
+})
+
+// Fill only missing public metadata for an existing film. This is useful for
+// items that were added before automatic enrichment was enabled.
+app.post('/api/films/:id', async (req, res) => {
+  const films = readFilms()
+  const i = films.findIndex((film) => film.id === req.params.id)
+  if (i < 0) return res.status(404).json({ error: 'not found' })
+
+  const enrichment = await enrichMissingMetadata(films[i])
+  films[i] = enrichment.film
+  writeFilms(films)
+  res.json({
+    ...enrichment.film,
+    _enrichment: {
+      enabled: enrichment.enabled,
+      fields: enrichment.fields,
+    },
+  })
 })
 
 app.patch('/api/films/:id', (req, res) => {

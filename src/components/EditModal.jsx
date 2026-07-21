@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { IconClose, IconSave } from './icons.jsx'
 
-export default function EditModal({ film, onClose, onSave }) {
-  const isNew = !film.id
-  const [form, setForm] = useState(() => ({
+function toForm(film) {
+  return {
     title: film.title || '',
     shelf: film.shelf || '',
     row: film.row || '',
@@ -21,7 +20,13 @@ export default function EditModal({ film, onClose, onSave }) {
     poster: film.poster || '',
     synopsis: film.synopsis || '',
     watched: film.watched === true,
-  }))
+  }
+}
+
+export default function EditModal({ film, onClose, onSave, onAutofill }) {
+  const isNew = !film.id
+  const [form, setForm] = useState(() => toForm(film))
+  const [autofilling, setAutofilling] = useState(false)
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -33,7 +38,9 @@ export default function EditModal({ film, onClose, onSave }) {
     }
   }, [onClose])
 
-  const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }))
+  const set = (key) => (event) => {
+    setForm((previous) => ({ ...previous, [key]: event.target.value }))
+  }
 
   const save = () => {
     const patch = {
@@ -44,11 +51,11 @@ export default function EditModal({ film, onClose, onSave }) {
       director: form.director || undefined,
       cast: form.cast
         .split(',')
-        .map((s) => s.trim())
+        .map((name) => name.trim())
         .filter(Boolean),
       genre: form.genre
         .split(',')
-        .map((s) => s.trim())
+        .map((genre) => genre.trim())
         .filter(Boolean),
       rating: form.rating !== '' ? parseFloat(form.rating) : undefined,
       runtime: form.runtime !== '' ? parseInt(form.runtime, 10) : undefined,
@@ -62,12 +69,20 @@ export default function EditModal({ film, onClose, onSave }) {
     onSave(patch)
   }
 
+  const autofill = async () => {
+    if (!onAutofill || isNew) return
+    setAutofilling(true)
+    try {
+      const enriched = await onAutofill()
+      if (enriched) setForm(toForm(enriched))
+    } finally {
+      setAutofilling(false)
+    }
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal edit-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="modal edit-modal" onClick={(event) => event.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Close">
           <IconClose width={15} height={15} />
         </button>
@@ -89,20 +104,11 @@ export default function EditModal({ film, onClose, onSave }) {
           </label>
           <label className="edit-field">
             <span>Year</span>
-            <input
-              type="number"
-              value={form.year}
-              onChange={set('year')}
-            />
+            <input type="number" value={form.year} onChange={set('year')} />
           </label>
           <label className="edit-field">
             <span>Rating (IMDb)</span>
-            <input
-              type="number"
-              step="0.1"
-              value={form.rating}
-              onChange={set('rating')}
-            />
+            <input type="number" step="0.1" value={form.rating} onChange={set('rating')} />
           </label>
 
           <label className="edit-field">
@@ -116,11 +122,7 @@ export default function EditModal({ film, onClose, onSave }) {
 
           <label className="edit-field">
             <span>Runtime (min)</span>
-            <input
-              type="number"
-              value={form.runtime}
-              onChange={set('runtime')}
-            />
+            <input type="number" value={form.runtime} onChange={set('runtime')} />
           </label>
           <label className="edit-field">
             <span>Country</span>
@@ -131,7 +133,6 @@ export default function EditModal({ film, onClose, onSave }) {
             <span>Director</span>
             <input value={form.director} onChange={set('director')} />
           </label>
-
           <label className="edit-field full">
             <span>Cast (comma separated)</span>
             <input value={form.cast} onChange={set('cast')} />
@@ -146,29 +147,34 @@ export default function EditModal({ film, onClose, onSave }) {
           </label>
           <label className="edit-field">
             <span>Watch status</span>
-            <select value={form.watched ? 'yes' : 'no'} onChange={(e) => setForm((p) => ({ ...p, watched: e.target.value === 'yes' }))}>
+            <select
+              value={form.watched ? 'yes' : 'no'}
+              onChange={(event) => {
+                setForm((previous) => ({ ...previous, watched: event.target.value === 'yes' }))
+              }}
+            >
               <option value="no">Unwatched</option>
               <option value="yes">Watched</option>
             </select>
           </label>
-
           <label className="edit-field full">
             <span>Synopsis</span>
-            <textarea
-              rows="3"
-              value={form.synopsis}
-              onChange={set('synopsis')}
-            />
+            <textarea rows="3" value={form.synopsis} onChange={set('synopsis')} />
           </label>
         </div>
 
         <div className="edit-actions">
-          <button className="btn btn-ghost" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn btn-primary" onClick={save}>
-            <IconSave width={14} height={14} /> {isNew ? 'Add Film' : 'Save'}
-          </button>
+          {!isNew && onAutofill ? (
+            <button className="btn btn-ghost" onClick={autofill} disabled={autofilling}>
+              {autofilling ? 'Auto-filling…' : 'Auto-fill missing details'}
+            </button>
+          ) : <span />}
+          <div className="edit-primary-actions">
+            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button className="btn btn-primary" onClick={save}>
+              <IconSave width={14} height={14} /> {isNew ? 'Add Film' : 'Save'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

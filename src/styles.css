@@ -593,9 +593,15 @@ body.light .header {
 }
 .edit-actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
   margin-top: 20px;
+}
+.edit-primary-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 /* ---------- Modal Cine (Exact Match to 7.png) ---------- */

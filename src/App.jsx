@@ -135,7 +135,14 @@ export default function App() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'add failed')
       setAdding(false)
-      showToast('Film added')
+      const filledFields = data._enrichment?.fields || []
+      if (filledFields.length) {
+        showToast(`Film added · auto-filled ${filledFields.length} missing detail${filledFields.length === 1 ? '' : 's'}`)
+      } else if (data._enrichment?.enabled === false) {
+        showToast('Film added · set OMDB_API_KEY to enable automatic metadata')
+      } else {
+        showToast('Film added')
+      }
       loadFilms()
       refreshMeta()
     } catch (e) {
@@ -160,6 +167,32 @@ export default function App() {
     }
     setEditing(null)
     setLoanFilm(null)
+  }
+
+  const handleAutofillFilm = async (id) => {
+    try {
+      const res = await fetch(`/api/films/${id}`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'auto-fill failed')
+
+      const { _enrichment, ...saved } = data
+      setFilms((prev) => prev.map((film) => (film.id === id ? saved : film)))
+      if (selected?.id === id) setSelected(saved)
+      setEditing(saved)
+      refreshMeta()
+
+      if (_enrichment?.fields?.length) {
+        showToast(`Auto-filled ${_enrichment.fields.length} missing detail${_enrichment.fields.length === 1 ? '' : 's'}`)
+      } else if (_enrichment?.enabled === false) {
+        showToast('Set OMDB_API_KEY to enable automatic metadata')
+      } else {
+        showToast('No additional metadata found')
+      }
+      return saved
+    } catch (e) {
+      showToast(e.message)
+      return null
+    }
   }
 
   const pageCount = Math.max(1, Math.ceil(films.length / PAGE_SIZE))
@@ -290,6 +323,7 @@ export default function App() {
           film={editing}
           onClose={() => setEditing(null)}
           onSave={(patch) => handleSaveFilm(editing.id, patch)}
+          onAutofill={() => handleAutofillFilm(editing.id)}
         />
       )}
     </div>

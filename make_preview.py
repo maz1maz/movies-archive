@@ -171,6 +171,8 @@ TEMPLATE = r"""<!doctype html>
       .add-field input, .add-field select { width: 100%; border: 1px solid #3a3b42; border-radius: 8px; outline: none; background: #1b1c20; color: #ececed; padding: 9px 10px; font: inherit; font-size: 13px; }
       .add-field input:focus, .add-field select:focus { border-color: #6d8fdb; }
       .add-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+      .preview-toast { position: fixed; right: 20px; bottom: 20px; z-index: 80; max-width: min(420px, calc(100vw - 40px)); border: 1px solid #3a3b42; border-radius: 10px; background: #1b1c20; color: #ececed; padding: 11px 14px; font-size: 13px; box-shadow: 0 12px 30px rgba(0,0,0,.4); opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity .2s, transform .2s; }
+      .preview-toast.visible { opacity: 1; transform: translateY(0); }
       .stats-cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
       .stats-card { background: #1b1c20; border: 1px solid #3a3b42; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; }
       .stats-card-num { font-size: 20px; font-weight: 800; color: #ececed; }
@@ -227,6 +229,7 @@ TEMPLATE = r"""<!doctype html>
       </header>
       <main class="container"><div id="view" class="grid"></div></main>
       <div class="modal-overlay" id="modal" style="display:none"></div>
+      <div class="preview-toast" id="preview-toast" role="status"></div>
     </div>
     <script>
       const FILMS = __DATA__;
@@ -240,6 +243,15 @@ TEMPLATE = r"""<!doctype html>
       const search = document.getElementById('search');
       let alpha = 'A';
       let currentView = 'list';
+      let previewToastTimer;
+
+      function showPreviewToast(message){
+        const toast = document.getElementById('preview-toast');
+        toast.textContent = message;
+        toast.classList.add('visible');
+        clearTimeout(previewToastTimer);
+        previewToastTimer = setTimeout(() => toast.classList.remove('visible'), 5000);
+      }
 
       [...new Set(FILMS.flatMap(f=>f.genre||[]))].sort().forEach(g=> genreSel.add(new Option(g,g)));
       [...new Set(FILMS.map(f=>typeof f.year==='number'?Math.floor(f.year/10)*10:null).filter(x=>x!==null))].sort((a,b)=>a-b).forEach(d=> decadeSel.add(new Option(d+'s', d)));
@@ -358,13 +370,12 @@ TEMPLATE = r"""<!doctype html>
           </form>
         </div>`;
         document.getElementById('modal').style.display = 'flex';
-        document.getElementById('addFilmForm').addEventListener('submit', (event) => {
+        document.getElementById('addFilmForm').addEventListener('submit', async (event) => {
           event.preventDefault();
           const values = new FormData(event.currentTarget);
           const genre = String(values.get('genre') || '').split(',').map((item) => item.trim()).filter(Boolean);
           const year = parseInt(values.get('year'), 10);
-          const film = {
-            id: `preview_${Date.now()}`,
+          const draft = {
             title: String(values.get('title') || '').trim(),
             year: Number.isNaN(year) ? undefined : year,
             shelf: String(values.get('shelf') || '').trim(),
@@ -374,6 +385,25 @@ TEMPLATE = r"""<!doctype html>
             poster: String(values.get('poster') || '').trim(),
             watched: values.get('watched') === '1',
           };
+          let film = { ...draft, id: `preview_${Date.now()}` };
+          let message = 'Preview mode: the film was added only to this page.';
+          try {
+            const response = await fetch('/api/films', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(draft),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Could not save the film');
+            const { _enrichment, ...saved } = data;
+            film = saved;
+            message = _enrichment?.fields?.length
+              ? `Film saved · auto-filled ${_enrichment.fields.length} missing details.`
+              : 'Film saved.';
+          } catch {
+            // A standalone preview has no API. Keep it interactive but clearly
+            // indicate that the fallback entry is not persistent.
+          }
           film.__i = FILMS.length;
           FILMS.push(film);
           genre.forEach((item) => {
@@ -381,6 +411,7 @@ TEMPLATE = r"""<!doctype html>
           });
           closeModal();
           render();
+          showPreviewToast(message);
         });
       }
 
