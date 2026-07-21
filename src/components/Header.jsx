@@ -20,6 +20,10 @@ export default function Header({
   loanedOnly,
   setLoanedOnly,
   onRandomFilm,
+  watched,
+  setWatched,
+  minRating,
+  setMinRating,
   decade,
   setDecade,
   decades,
@@ -145,6 +149,17 @@ export default function Header({
           فقط امانت‌داده‌شده‌ها
         </label>
 
+        <select className="select" value={watched} onChange={(e) => setWatched(e.target.value)}>
+          <option value="">همه وضعیت تماشا</option>
+          <option value="0">دیده‌نشده</option>
+          <option value="1">تماشا شده</option>
+        </select>
+        <select className="select" value={minRating} onChange={(e) => setMinRating(e.target.value)}>
+          <option value="">هر امتیازی</option>
+          <option value="7">امتیاز ۷ به بالا</option>
+          <option value="8">امتیاز ۸ به بالا</option>
+          <option value="9">امتیاز ۹ به بالا</option>
+        </select>
         <select
           className="select"
           value={decade}

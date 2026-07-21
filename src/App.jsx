@@ -18,6 +18,8 @@ export default function App() {
   const [query, setQuery] = useState('')
   const [genre, setGenre] = useState('')
   const [loanedOnly, setLoanedOnly] = useState(false)
+  const [watched, setWatched] = useState('')
+  const [minRating, setMinRating] = useState('')
   const [decade, setDecade] = useState('')
   const [sort, setSort] = useState('shelf')
   const [alpha, setAlpha] = useState('')
@@ -57,6 +59,8 @@ export default function App() {
     if (query.trim()) params.set('q', query.trim())
     if (genre) params.set('genre', genre)
     if (loanedOnly) params.set('loaned', '1')
+    if (watched) params.set('watched', watched)
+    if (minRating) params.set('minRating', minRating)
     if (decade) params.set('decade', decade)
     if (sort) params.set('sort', sort)
     if (alpha) params.set('alpha', alpha)
@@ -72,7 +76,7 @@ export default function App() {
   useEffect(() => {
     loadFilms()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, genre, loanedOnly, decade, sort, alpha])
+  }, [query, genre, loanedOnly, watched, minRating, decade, sort, alpha])
 
   useEffect(() => {
     fetch('/api/genres')
@@ -167,6 +171,10 @@ export default function App() {
         loanedOnly={loanedOnly}
         setLoanedOnly={setLoanedOnly}
         onRandomFilm={() => films.length && setSelected(films[Math.floor(Math.random() * films.length)])}
+        watched={watched}
+        setWatched={setWatched}
+        minRating={minRating}
+        setMinRating={setMinRating}
         genres={genres}
         decade={decade}
         setDecade={setDecade}

@@ -83,6 +83,12 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   ].filter((item) => item.value)
 
   const displayedCrew = showAllCrew ? fullCrew : fullCrew.slice(0, 4)
+  const relatedFilms = films.filter((other) => {
+    if (other.id === film.id) return false
+    const a = Array.isArray(film.genre) ? film.genre : []
+    const b = Array.isArray(other.genre) ? other.genre : []
+    return (film.director && other.director === film.director) || a.some((g) => b.includes(g))
+  }).slice(0, 6)
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -209,6 +215,20 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             </div>
           </div>
         </div>
+
+        {relatedFilms.length > 0 && (
+          <div className="similar-films">
+            <div className="cine-col-title">SIMILAR IN YOUR ARCHIVE</div>
+            <div className="similar-films-grid">
+              {relatedFilms.map((other) => (
+                <button type="button" key={other.id} onClick={() => onNavigate && onNavigate(other)}>
+                  <img src={other.poster} alt="" />
+                  <span>{other.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Bottom 3 Columns: CAST | CREW | TRAILER */}
         <div className="cine-bottom-row">

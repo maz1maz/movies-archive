@@ -138,9 +138,12 @@ function rowToFilm(row, index) {
 
 // ---------- مسیرهای API ----------
 app.get('/api/films', (req, res) => {
-  const { q, genre, shelf, sort, alpha, decade, loaned } = req.query
+  const { q, genre, shelf, sort, alpha, decade, loaned, watched, minRating } = req.query
   let films = readFilms()
   if (loaned === '1') films = films.filter((f) => f.borrowedTo)
+  if (watched === '1') films = films.filter((f) => f.watched === true)
+  if (watched === '0') films = films.filter((f) => f.watched !== true)
+  if (minRating) films = films.filter((f) => Number(f.rating || 0) >= Number(minRating))
   if (q) {
     const s = q.toString().toLowerCase()
     films = films.filter(
@@ -209,6 +212,7 @@ const EDITABLE = [
   'format',
   'borrowedTo',
   'borrowedDate',
+  'watched',
 ]
 app.post('/api/films', (req, res) => {
   const films = readFilms()
