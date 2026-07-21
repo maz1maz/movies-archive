@@ -39,6 +39,7 @@ export default function App() {
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [enrichingCatalog, setEnrichingCatalog] = useState(false)
   const [toast, setToast] = useState('')
 
   const showToast = (m) => {
@@ -195,6 +196,31 @@ export default function App() {
     }
   }
 
+  const handleEnrichCatalog = async () => {
+    setEnrichingCatalog(true)
+    let processed = 0
+    let updated = 0
+
+    try {
+      for (let batch = 0; batch < 100; batch++) {
+        const res = await fetch('/api/films/enrich?limit=10', { method: 'POST' })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'metadata enrichment failed')
+
+        processed += data.processed
+        updated += data.updated
+        if (data.remaining === 0 || data.processed === 0) break
+      }
+      showToast(`Metadata complete · updated ${updated} of ${processed} films`)
+      loadFilms()
+      refreshMeta()
+    } catch (e) {
+      showToast(e.message)
+    } finally {
+      setEnrichingCatalog(false)
+    }
+  }
+
   const pageCount = Math.max(1, Math.ceil(films.length / PAGE_SIZE))
   const visibleFilms = films.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
@@ -223,6 +249,8 @@ export default function App() {
         total={films.length}
         onImport={handleImport}
         onAddFilm={() => setAdding(true)}
+        onEnrichCatalog={handleEnrichCatalog}
+        enrichingCatalog={enrichingCatalog}
         onOpenStats={() => setShowStats(true)}
         onOpenExport={() => setShowExport(true)}
         view={view}

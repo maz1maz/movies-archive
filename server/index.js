@@ -292,6 +292,45 @@ const EDITABLE = [
   'borrowedDate',
   'watched',
 ]
+// Process a bounded batch so a large imported catalogue can be completed
+// without holding one request open for hundreds of external lookups.
+app.post('/api/films/enrich', async (req, res) => {
+  if (!process.env.OMDB_API_KEY) {
+    return res.status(400).json({ error: 'OMDB_API_KEY is not configured' })
+  }
+
+  const requestedLimit = parseInt(req.query.limit, 10)
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(Math.max(requestedLimit, 1), 15)
+    : 10
+  const films = readFilms()
+  const candidates = films
+    .map((film, index) => ({ film, index }))
+    .filter(({ film }) =>
+      ENRICHABLE_FIELDS.some((field) => isEmptyMetadata(film[field])) &&
+      !film.metadataEnrichmentAttemptedAt
+    )
+    .slice(0, limit)
+
+  let updated = 0
+  for (const { film, index } of candidates) {
+    const enrichment = await enrichMissingMetadata(film)
+    if (enrichment.fields.length) updated++
+    films[index] = {
+      ...enrichment.film,
+      metadataEnrichmentAttemptedAt: new Date().toISOString(),
+    }
+  }
+
+  if (candidates.length) writeFilms(films)
+  const remaining = films.filter(
+    (film) =>
+      ENRICHABLE_FIELDS.some((field) => isEmptyMetadata(film[field])) &&
+      !film.metadataEnrichmentAttemptedAt
+  ).length
+  res.json({ processed: candidates.length, updated, remaining })
+})
+
 app.post('/api/films', async (req, res) => {
   const films = readFilms()
   const body = req.body || {}

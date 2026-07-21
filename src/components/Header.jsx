@@ -33,6 +33,8 @@ export default function Header({
   total,
   onImport,
   onAddFilm,
+  onEnrichCatalog,
+  enrichingCatalog,
   onOpenStats,
   onOpenExport,
   view,
@@ -70,6 +72,15 @@ export default function Header({
             onClick={onAddFilm}
           >
             + Add Film
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={onEnrichCatalog}
+            disabled={enrichingCatalog}
+            title="Fill missing posters, cast, genres, and other public metadata"
+          >
+            {enrichingCatalog ? 'Completing metadata…' : '✨ Fill missing details'}
           </button>
           <button type="button" className="btn btn-ghost" onClick={onRandomFilm}>
             🎲 Pick for tonight

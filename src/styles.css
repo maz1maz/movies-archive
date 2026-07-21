@@ -134,6 +134,11 @@ body.light .header {
   border-color: var(--border-strong);
   transform: translateY(-1px);
 }
+.btn:disabled {
+  cursor: wait;
+  opacity: 0.6;
+  transform: none;
+}
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);

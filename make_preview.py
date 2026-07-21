@@ -26,6 +26,7 @@ TEMPLATE = r"""<!doctype html>
       .actions { display: flex; gap: 8px; }
       .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
       .btn-primary { background: var(--accent); color: #17181c; border-color: var(--accent); }
+      .btn:disabled { cursor: wait; opacity: .6; }
       
       .controls { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 16px; align-items: center; }
       .search-box { position: relative; flex: 1 1 260px; }
@@ -196,6 +197,7 @@ TEMPLATE = r"""<!doctype html>
           <h1 class="brand-title">CINEFILIO ARCHIVE</h1>
           <div style="flex:1; text-align:right; display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end;">
             <button class="btn btn-primary" onclick="openAddFilmModal()">+ Add Film</button>
+            <button class="btn" id="enrichPreviewBtn" onclick="enrichPreviewCatalog()">✨ Fill missing details</button>
             <button class="btn" onclick="openStatsModal()">📊 Stats</button>
             <button class="btn" onclick="openExportModal()">📥 Export / Backup</button>
           </div>
@@ -219,7 +221,8 @@ TEMPLATE = r"""<!doctype html>
     </div>
     <script>
       const FILMS = __DATA__;
-      FILMS.forEach((f, i) => { f.__i = i; });
+      const indexFilms = () => FILMS.forEach((f, i) => { f.__i = i; });
+      indexFilms();
       const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
       const viewEl = document.getElementById('view');
       const genreSel = document.getElementById('genre');
@@ -277,6 +280,36 @@ TEMPLATE = r"""<!doctype html>
         if(!el || !btn) return;
         const isExp = el.classList.toggle('expanded');
         btn.textContent = isExp ? textExpanded : textCollapsed;
+      }
+
+      async function enrichPreviewCatalog(){
+        const button = document.getElementById('enrichPreviewBtn');
+        button.disabled = true;
+        button.textContent = 'Completing metadata…';
+        let processed = 0;
+        let updated = 0;
+        try {
+          for(let batch = 0; batch < 100; batch++){
+            const response = await fetch('/api/films/enrich?limit=10', { method: 'POST' });
+            const data = await response.json();
+            if(!response.ok) throw new Error(data.error || 'Metadata enrichment failed');
+            processed += data.processed;
+            updated += data.updated;
+            if(data.remaining === 0 || data.processed === 0) break;
+          }
+          const response = await fetch('/api/films');
+          const refreshed = await response.json();
+          if(!response.ok) throw new Error('Could not refresh the archive');
+          FILMS.splice(0, FILMS.length, ...refreshed);
+          indexFilms();
+          render();
+          showPreviewToast(`Metadata complete · updated ${updated} of ${processed} films.`);
+        } catch(error) {
+          showPreviewToast(error.message || 'The preview needs an available server API.');
+        } finally {
+          button.disabled = false;
+          button.textContent = '✨ Fill missing details';
+        }
       }
 
       function openStatsModal(){
