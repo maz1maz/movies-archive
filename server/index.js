@@ -110,6 +110,35 @@ const HEADER_MAP = {
   امانت: 'borrowedTo',
   borroweddate: 'borrowedDate',
   'تاریخ امانت': 'borrowedDate',
+  watched: 'watched',
+  'watch status': 'watched',
+  watchstatus: 'watched',
+  seen: 'watched',
+  'وضعیت تماشا': 'watched',
+  'وضعیت مشاهده': 'watched',
+  'دیده شده': 'watched',
+  'دیده‌شده': 'watched',
+  'تماشا شده': 'watched',
+  'تماشا‌شده': 'watched',
+}
+
+// Empty or unrecognised values are left untouched during an import. This makes
+// it safe to update an existing archive from a spreadsheet without resetting
+// its saved watch status accidentally.
+function parseWatched(value) {
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[‌‍]/g, ' ')
+    .replace(/\s+/g, ' ')
+
+  if (['1', 'true', 'yes', 'y', 'watched', 'seen', '✓', '✔', 'بله', 'بلی', 'آره', 'اری', 'آری', 'دیده شده', 'تماشا شده'].includes(normalized)) {
+    return true
+  }
+  if (['0', 'false', 'no', 'n', 'unwatched', 'not watched', '✗', '×', 'نه', 'خیر', 'دیده نشده', 'تماشا نشده'].includes(normalized)) {
+    return false
+  }
+  return undefined
 }
 
 function parseCell(v) {
@@ -138,6 +167,7 @@ function rowToFilm(row, index) {
     if (field === 'rating') v = v ? parseFloat(v) : undefined
     if (field === 'year' || field === 'runtime')
       v = v ? parseInt(v, 10) : undefined
+    if (field === 'watched') v = parseWatched(v)
     if (v === '' || v === undefined) continue
     film[field] = v
   }
@@ -334,6 +364,7 @@ app.get('/api/template', (req, res) => {
       'Shelf',
       'Row',
       'Format',
+      'Watched',
       'Director',
       'Cast',
       'Year',
@@ -352,6 +383,7 @@ app.get('/api/template', (req, res) => {
       'A',
       '3',
       '4K UHD',
+      'No',
       'Francis Ford Coppola',
       'Marlon Brando, Al Pacino',
       '1972',
@@ -397,6 +429,7 @@ app.get('/api/export/excel', (req, res) => {
     'Shelf': f.shelf || '',
     'Row': f.row || '',
     'Format': f.format || '',
+    'Watched': f.watched === true ? 'Yes' : 'No',
     'Borrowed To': f.borrowedTo || '',
     'Borrowed Date': f.borrowedDate || '',
     'Director': f.director || '',

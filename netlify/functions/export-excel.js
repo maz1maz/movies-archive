@@ -10,6 +10,7 @@ export default async () => {
     Shelf: f.shelf || "",
     Row: f.row || "",
     Format: f.format || "",
+    Watched: f.watched === true ? "Yes" : "No",
     "Borrowed To": f.borrowedTo || "",
     "Borrowed Date": f.borrowedDate || "",
     Director: f.director || "",

@@ -9,8 +9,16 @@ export default async (req) => {
   const sort = url.searchParams.get("sort");
   const alpha = url.searchParams.get("alpha");
   const decade = url.searchParams.get("decade");
+  const loaned = url.searchParams.get("loaned");
+  const watched = url.searchParams.get("watched");
+  const minRating = url.searchParams.get("minRating");
 
   let films = await readFilms();
+
+  if (loaned === "1") films = films.filter((f) => f.borrowedTo);
+  if (watched === "1") films = films.filter((f) => f.watched === true);
+  if (watched === "0") films = films.filter((f) => f.watched !== true);
+  if (minRating) films = films.filter((f) => Number(f.rating || 0) >= Number(minRating));
 
   if (q) {
     const s = q.toLowerCase();

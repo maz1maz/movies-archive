@@ -48,7 +48,25 @@ const HEADER_MAP = {
   format: "format", فرمت: "format", نوع: "format", نسخه: "format",
   borrowedto: "borrowedTo", "امانت به": "borrowedTo", امانت: "borrowedTo",
   borroweddate: "borrowedDate", "تاریخ امانت": "borrowedDate",
+  watched: "watched", "watch status": "watched", watchstatus: "watched", seen: "watched",
+  "وضعیت تماشا": "watched", "وضعیت مشاهده": "watched",
+  "دیده شده": "watched", "دیده‌شده": "watched",
+  "تماشا شده": "watched", "تماشا‌شده": "watched",
 };
+
+// Do not overwrite an existing watch status when the spreadsheet cell is
+// blank or has an unsupported value.
+function parseWatched(value) {
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[‌‍]/g, " ")
+    .replace(/\s+/g, " ");
+
+  if (["1", "true", "yes", "y", "watched", "seen", "✓", "✔", "بله", "بلی", "آره", "اری", "آری", "دیده شده", "تماشا شده"].includes(normalized)) return true;
+  if (["0", "false", "no", "n", "unwatched", "not watched", "✗", "×", "نه", "خیر", "دیده نشده", "تماشا نشده"].includes(normalized)) return false;
+  return undefined;
+}
 
 function parseCell(v) {
   if (v == null) return "";
@@ -74,6 +92,7 @@ function rowToFilm(row, index) {
     if (field === "cast" || field === "genre") v = toList(v);
     if (field === "rating") v = v ? parseFloat(v) : undefined;
     if (field === "year" || field === "runtime") v = v ? parseInt(v, 10) : undefined;
+    if (field === "watched") v = parseWatched(v);
     if (v === "" || v === undefined) continue;
     film[field] = v;
   }
@@ -87,6 +106,7 @@ export const EDITABLE = [
   "title", "originalTitle", "shelf", "row", "director", "cast",
   "year", "genre", "rating", "runtime", "country", "synopsis",
   "poster", "studio", "rated", "format", "borrowedTo", "borrowedDate",
+  "watched",
 ];
 
 export function jsonResponse(data, status = 200) {
