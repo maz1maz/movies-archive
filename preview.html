@@ -46,6 +46,8 @@
       .card-body { padding: 11px 13px 13px; }
       .card-title { margin: 0; font-size: 14px; font-weight: 700; color: #ececed; }
       .card-meta { margin: 4px 0 0; font-size: 12px; color: #8d8f98; }
+      .watched-badge { position: absolute; top: 8px; right: 8px; z-index: 1; border-radius: 999px; padding: 4px 7px; font-size: 10px; font-weight: 800; background: rgba(20, 35, 28, 0.94); color: #a7f3d0; border: 1px solid rgba(167, 243, 208, 0.35); }
+      .watched-badge.unwatched { background: rgba(24, 25, 31, 0.92); color: #d1d5db; border-color: rgba(255, 255, 255, 0.2); }
 
       .modal-overlay { position: fixed; inset: 0; background: rgba(5,6,10,0.82); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
       
@@ -187,6 +189,7 @@
         <div class="container controls">
           <div class="search-box"><span class="search-icon">🔍</span><input id="search" type="search" placeholder="Search title, director or actor…" /></div>
           <select id="genre" class="select"><option value="">All genres</option></select>
+          <select id="watched" class="select"><option value="">همه وضعیت تماشا</option><option value="0">دیده‌نشده</option><option value="1">تماشا شده</option></select>
           <select id="decade" class="select"><option value="">All decades</option></select>
           <select id="sort" class="select"><option value="shelf">By shelf</option><option value="year_desc">Newest</option><option value="year_asc">Oldest</option><option value="rating">Top rated</option></select>
           <div class="view-toggle" role="group">
@@ -204,6 +207,7 @@
       const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
       const viewEl = document.getElementById('view');
       const genreSel = document.getElementById('genre');
+      const watchedSel = document.getElementById('watched');
       const decadeSel = document.getElementById('decade');
       const sortSel = document.getElementById('sort');
       const search = document.getElementById('search');
@@ -359,10 +363,12 @@
 
       function getList(){
         const q=search.value.trim().toLowerCase();
-        const g=genreSel.value, dv=decadeSel.value, so=sortSel.value;
+        const g=genreSel.value, wv=watchedSel.value, dv=decadeSel.value, so=sortSel.value;
         let list=FILMS.filter(f=>{
           if(q && !((f.title||'').toLowerCase().includes(q)||(f.director||'').toLowerCase().includes(q)||(f.cast||[]).map(x=>typeof x==='object'?x.name:x).join(' ').toLowerCase().includes(q))) return false;
           if(g && !(f.genre||[]).includes(g)) return false;
+          if(wv==='1' && f.watched !== true) return false;
+          if(wv==='0' && f.watched === true) return false;
           if(dv){ const d=parseInt(dv,10); if(!(typeof f.year==='number' && Math.floor(f.year/10)*10===d)) return false; }
           return true;
         });
@@ -376,7 +382,11 @@
 
       function gridCard(f){
         const genreText = (f.genre||[]).slice(0,2).join(', ');
-        return `<button class="card" onclick="openModal(${f.__i})"><div class="poster"><img src="${esc(f.poster)}" alt="${esc(f.title)}" onerror="this.style.display='none'"><span class="poster-fallback">${esc(f.title)}</span></div><div class="card-body"><h3 class="card-title">${esc(f.title)}</h3><p class="card-meta">${f.year||'2017'} | ${genreText||'Action'}</p></div></button>`;
+        const watched = f.watched === true;
+        const watchedBadge = watched
+          ? '<span class="watched-badge">✓ Watched</span>'
+          : '<span class="watched-badge unwatched">Unwatched</span>';
+        return `<button class="card" onclick="openModal(${f.__i})"><div class="poster"><img src="${esc(f.poster)}" alt="${esc(f.title)}" onerror="this.style.display='none'"><span class="poster-fallback">${esc(f.title)}</span>${watchedBadge}</div><div class="card-body"><h3 class="card-title">${esc(f.title)}</h3><p class="card-meta">${f.year||'2017'} | ${genreText||'Action'}</p></div></button>`;
       }
 
       function renderBookshelf(list){
@@ -547,6 +557,7 @@
       document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
       search.addEventListener('input', render);
       genreSel.addEventListener('change', render);
+      watchedSel.addEventListener('change', render);
       decadeSel.addEventListener('change', render);
       sortSel.addEventListener('change', render);
       renderAlphaBar();
