@@ -35,6 +35,15 @@ function readFilms() {
 }
 function writeFilms(films) {
   ensureData()
+  // Keep a rolling backup before every write so imports and edits are recoverable.
+  const backupDir = path.join(DATA_DIR, 'backups')
+  fs.mkdirSync(backupDir, { recursive: true })
+  if (fs.existsSync(DATA_FILE)) {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    fs.copyFileSync(DATA_FILE, path.join(backupDir, `films-${stamp}.json`))
+    const backups = fs.readdirSync(backupDir).sort()
+    for (const old of backups.slice(0, -30)) fs.unlinkSync(path.join(backupDir, old))
+  }
   fs.writeFileSync(DATA_FILE, JSON.stringify(films, null, 2), 'utf-8')
 }
 
