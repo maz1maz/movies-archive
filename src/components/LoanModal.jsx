@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IconClose } from './icons.jsx'
+import { IconClose, IconHandshake, IconCheck, IconSave } from './icons.jsx'
 
 export default function LoanModal({ film, onClose, onSaveLoan }) {
   const [borrowedTo, setBorrowedTo] = useState(film.borrowedTo || '')
@@ -39,7 +39,7 @@ export default function LoanModal({ film, onClose, onSaveLoan }) {
         </button>
 
         <div className="loan-header">
-          <h2>🤝 Loan Tracker: {film.title}</h2>
+          <h2><IconHandshake width={17} height={17} /> Loan Tracker: {film.title}</h2>
           <p className="loan-sub">Track physical copy loans to friends & family</p>
         </div>
 
@@ -51,7 +51,7 @@ export default function LoanModal({ film, onClose, onSaveLoan }) {
               <strong>{film.borrowedDate || 'recently'}</strong>
             </div>
             <button className="btn btn-primary btn-return" onClick={handleReturn}>
-              ✅ Mark Film as Returned to Archive
+              <IconCheck width={14} height={14} /> Mark Film as Returned to Archive
             </button>
           </div>
         ) : (
@@ -85,7 +85,7 @@ export default function LoanModal({ film, onClose, onSaveLoan }) {
               Cancel
             </button>
             <button className="btn btn-primary" onClick={handleSave}>
-              💾 Save Loan Info
+              <IconSave width={14} height={14} /> Save Loan Info
             </button>
           </div>
         </div>

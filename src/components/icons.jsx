@@ -107,3 +107,90 @@ export const IconArchive = (props) => (
     <path d="M10 13h4" />
   </svg>
 )
+
+export const IconClock = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3.5 2" />
+  </svg>
+)
+
+export const IconBarChart = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 20V10M10 20V4M16 20v-7M20 20H4" />
+  </svg>
+)
+
+export const IconBookshelf = (props) => (
+  <svg {...base} {...props}>
+    <path d="M3 4v16M21 4v16M3 4h18M7 4v16M11 4v16M15 4v16" />
+  </svg>
+)
+
+export const IconHandshake = (props) => (
+  <svg {...base} {...props}>
+    <path d="M8 12l3 3 5-5" />
+    <path d="M2 11l4.5-4.5a2 2 0 0 1 2.8 0L11 8" />
+    <path d="M22 11l-4.5-4.5a2 2 0 0 0-2.8 0L13 8" />
+    <path d="M2 11v3a2 2 0 0 0 2 2h1M22 11v3a2 2 0 0 1-2 2h-1" />
+  </svg>
+)
+
+export const IconUser = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="8" r="3.6" />
+    <path d="M5 20c1-4 4.5-6 7-6s6 2 7 6" />
+  </svg>
+)
+
+export const IconBuilding = (props) => (
+  <svg {...base} {...props}>
+    <rect x="5" y="3" width="14" height="18" rx="1" />
+    <path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1" />
+  </svg>
+)
+
+export const IconCheck = (props) => (
+  <svg {...base} {...props}>
+    <path d="M20 6L9 17l-5-5" />
+  </svg>
+)
+
+export const IconPrinter = (props) => (
+  <svg {...base} {...props}>
+    <path d="M6 9V3h12v6" />
+    <rect x="4" y="9" width="16" height="8" rx="1.2" />
+    <path d="M6 17v4h12v-4" />
+  </svg>
+)
+
+export const IconDocument = (props) => (
+  <svg {...base} {...props}>
+    <path d="M7 3h7l4 4v14H7z" />
+    <path d="M14 3v4h4M9 12h6M9 16h6" />
+  </svg>
+)
+
+export const IconDisc = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="2.4" />
+  </svg>
+)
+
+export const IconMasks = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 9c0-3 2.5-5 5.5-5S14 6 14 8c0 2.5-1.5 3.5-3.5 3.5S8 10.2 8 9" />
+    <path d="M20 9c0-3-2.5-5-5.5-5" />
+    <circle cx="7.2" cy="8.2" r="0.6" fill="currentColor" />
+    <path d="M6 15c0 3 2.5 5 5.5 5S17 18 17 16c0-2.5-1.5-3.5-3.5-3.5S10 12.8 10 14" />
+  </svg>
+)
+
+export const IconClapper = (props) => (
+  <svg {...base} {...props}>
+    <path d="M3 10.5L4.5 6h15L21 10.5z" />
+    <rect x="3" y="10.5" width="18" height="9.5" rx="1" />
+    <path d="M6 6l2 4.5M11 6l2 4.5M16 6l2 4.5" />
+  </svg>
+)

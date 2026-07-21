@@ -9,6 +9,8 @@ import {
   IconMoon,
   IconGrid,
   IconList,
+  IconBarChart,
+  IconBookshelf,
 } from './icons.jsx'
 
 export default function Header({
@@ -79,14 +81,14 @@ export default function Header({
             onClick={onOpenStats}
             title="View Collection Statistics & Analytics"
           >
-            📊 Stats
+            <IconBarChart width={15} height={15} /> Stats
           </button>
           <button
             className="btn btn-ghost"
             onClick={onOpenExport}
             title="Export Catalog / PDF / Excel Backup"
           >
-            📥 Export / Backup
+            <IconDownload width={15} height={15} /> Export / Backup
           </button>
           <button
             className="btn btn-primary"
@@ -207,7 +209,7 @@ export default function Header({
             onClick={() => setView('bookshelf')}
             title="Physical Bookshelf"
           >
-            📚 Bookshelf
+            <IconBookshelf width={15} height={15} /> Bookshelf
           </button>
         </div>
       </div>
