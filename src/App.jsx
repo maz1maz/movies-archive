@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import Header from './components/Header.jsx'
 import FilmGrid from './components/FilmGrid.jsx'
 import FilmList from './components/FilmList.jsx'
-import BookshelfView from './components/BookshelfView.jsx'
 import FilmModal from './components/FilmModal.jsx'
 import EditModal from './components/EditModal.jsx'
 import PersonModal from './components/PersonModal.jsx'
@@ -25,9 +24,10 @@ export default function App() {
   const [alpha, setAlpha] = useState('')
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 48
-  const [view, setView] = useState(
-    () => localStorage.getItem('fa_view') || 'grid'
-  )
+  const [view, setView] = useState(() => {
+    const storedView = localStorage.getItem('fa_view')
+    return storedView === 'grid' || storedView === 'list' ? storedView : 'list'
+  })
   const [theme, setTheme] = useState(
     () => localStorage.getItem('fa_theme') || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
   )
@@ -39,6 +39,7 @@ export default function App() {
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [enrichingCatalog, setEnrichingCatalog] = useState(false)
   const [toast, setToast] = useState('')
 
   const showToast = (m) => {
@@ -135,7 +136,14 @@ export default function App() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'add failed')
       setAdding(false)
-      showToast('Film added')
+      const filledFields = data._enrichment?.fields || []
+      if (filledFields.length) {
+        showToast(`Film added · auto-filled ${filledFields.length} missing detail${filledFields.length === 1 ? '' : 's'}`)
+      } else if (data._enrichment?.enabled === false) {
+        showToast('Film added · set OMDB_API_KEY to enable automatic metadata')
+      } else {
+        showToast('Film added')
+      }
       loadFilms()
       refreshMeta()
     } catch (e) {
@@ -160,6 +168,57 @@ export default function App() {
     }
     setEditing(null)
     setLoanFilm(null)
+  }
+
+  const handleAutofillFilm = async (id) => {
+    try {
+      const res = await fetch(`/api/films/${id}`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'auto-fill failed')
+
+      const { _enrichment, ...saved } = data
+      setFilms((prev) => prev.map((film) => (film.id === id ? saved : film)))
+      if (selected?.id === id) setSelected(saved)
+      setEditing(saved)
+      refreshMeta()
+
+      if (_enrichment?.fields?.length) {
+        showToast(`Auto-filled ${_enrichment.fields.length} missing detail${_enrichment.fields.length === 1 ? '' : 's'}`)
+      } else if (_enrichment?.enabled === false) {
+        showToast('Set OMDB_API_KEY to enable automatic metadata')
+      } else {
+        showToast('No additional metadata found')
+      }
+      return saved
+    } catch (e) {
+      showToast(e.message)
+      return null
+    }
+  }
+
+  const handleEnrichCatalog = async () => {
+    setEnrichingCatalog(true)
+    let processed = 0
+    let updated = 0
+
+    try {
+      for (let batch = 0; batch < 100; batch++) {
+        const res = await fetch('/api/films/enrich?limit=10', { method: 'POST' })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'metadata enrichment failed')
+
+        processed += data.processed
+        updated += data.updated
+        if (data.remaining === 0 || data.processed === 0) break
+      }
+      showToast(`Metadata complete · updated ${updated} of ${processed} films`)
+      loadFilms()
+      refreshMeta()
+    } catch (e) {
+      showToast(e.message)
+    } finally {
+      setEnrichingCatalog(false)
+    }
   }
 
   const pageCount = Math.max(1, Math.ceil(films.length / PAGE_SIZE))
@@ -190,6 +249,8 @@ export default function App() {
         total={films.length}
         onImport={handleImport}
         onAddFilm={() => setAdding(true)}
+        onEnrichCatalog={handleEnrichCatalog}
+        enrichingCatalog={enrichingCatalog}
         onOpenStats={() => setShowStats(true)}
         onOpenExport={() => setShowExport(true)}
         view={view}
@@ -215,16 +276,14 @@ export default function App() {
           </div>
         ) : view === 'list' ? (
           <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} />
-        ) : view === 'bookshelf' ? (
-          <BookshelfView films={visibleFilms} onSelect={setSelected} />
         ) : (
           <FilmGrid films={visibleFilms} onSelect={setSelected} />
         )}
         {pageCount > 1 && !loading && (
           <div className="pagination">
-            <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← قبلی</button>
-            <span>صفحه {page} از {pageCount}</span>
-            <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>بعدی →</button>
+            <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Previous</button>
+            <span>Page {page} of {pageCount}</span>
+            <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next →</button>
           </div>
         )}
       </main>
@@ -290,6 +349,7 @@ export default function App() {
           film={editing}
           onClose={() => setEditing(null)}
           onSave={(patch) => handleSaveFilm(editing.id, patch)}
+          onAutofill={() => handleAutofillFilm(editing.id)}
         />
       )}
     </div>

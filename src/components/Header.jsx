@@ -10,7 +10,6 @@ import {
   IconGrid,
   IconList,
   IconBarChart,
-  IconBookshelf,
 } from './icons.jsx'
 
 export default function Header({
@@ -34,6 +33,8 @@ export default function Header({
   total,
   onImport,
   onAddFilm,
+  onEnrichCatalog,
+  enrichingCatalog,
   onOpenStats,
   onOpenExport,
   view,
@@ -65,15 +66,24 @@ export default function Header({
         </div>
 
         <div className="actions">
-          <button type="button" className="btn btn-ghost" onClick={onRandomFilm}>
-            🎲 امشب چی ببینم؟
-          </button>
           <button
             type="button"
             className="btn btn-primary"
             onClick={onAddFilm}
           >
             + Add Film
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={onEnrichCatalog}
+            disabled={enrichingCatalog}
+            title="Fill missing posters, cast, genres, and other public metadata"
+          >
+            {enrichingCatalog ? 'Completing metadata…' : '✨ Fill missing details'}
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={onRandomFilm}>
+            🎲 Pick for tonight
           </button>
           <button
             type="button"
@@ -148,19 +158,19 @@ export default function Header({
 
         <label className="loan-filter">
           <input type="checkbox" checked={loanedOnly} onChange={(e) => setLoanedOnly(e.target.checked)} />
-          فقط امانت‌داده‌شده‌ها
+          Loaned only
         </label>
 
         <select className="select" value={watched} onChange={(e) => setWatched(e.target.value)}>
-          <option value="">همه وضعیت تماشا</option>
-          <option value="0">دیده‌نشده</option>
-          <option value="1">تماشا شده</option>
+          <option value="">All watch statuses</option>
+          <option value="0">Unwatched</option>
+          <option value="1">Watched</option>
         </select>
         <select className="select" value={minRating} onChange={(e) => setMinRating(e.target.value)}>
-          <option value="">هر امتیازی</option>
-          <option value="7">امتیاز ۷ به بالا</option>
-          <option value="8">امتیاز ۸ به بالا</option>
-          <option value="9">امتیاز ۹ به بالا</option>
+          <option value="">Any rating</option>
+          <option value="7">Rating 7+</option>
+          <option value="8">Rating 8+</option>
+          <option value="9">Rating 9+</option>
         </select>
         <select
           className="select"
@@ -193,7 +203,7 @@ export default function Header({
             onClick={() => setView('grid')}
             title="Poster grid"
           >
-            <IconGrid width={15} height={15} /> Posters
+            <IconGrid width={15} height={15} /> Thumbnails
           </button>
           <button
             type="button"
@@ -202,14 +212,6 @@ export default function Header({
             title="List"
           >
             <IconList width={15} height={15} /> List
-          </button>
-          <button
-            type="button"
-            className={view === 'bookshelf' ? 'active' : ''}
-            onClick={() => setView('bookshelf')}
-            title="Physical Bookshelf"
-          >
-            <IconBookshelf width={15} height={15} /> Bookshelf
           </button>
         </div>
       </div>

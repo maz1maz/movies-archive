@@ -110,6 +110,35 @@ const HEADER_MAP = {
   امانت: 'borrowedTo',
   borroweddate: 'borrowedDate',
   'تاریخ امانت': 'borrowedDate',
+  watched: 'watched',
+  'watch status': 'watched',
+  watchstatus: 'watched',
+  seen: 'watched',
+  'وضعیت تماشا': 'watched',
+  'وضعیت مشاهده': 'watched',
+  'دیده شده': 'watched',
+  'دیده‌شده': 'watched',
+  'تماشا شده': 'watched',
+  'تماشا‌شده': 'watched',
+}
+
+// Empty or unrecognised values are left untouched during an import. This makes
+// it safe to update an existing archive from a spreadsheet without resetting
+// its saved watch status accidentally.
+function parseWatched(value) {
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[‌‍]/g, ' ')
+    .replace(/\s+/g, ' ')
+
+  if (['1', 'true', 'yes', 'y', 'watched', 'seen', '✓', '✔', 'بله', 'بلی', 'آره', 'اری', 'آری', 'دیده شده', 'تماشا شده'].includes(normalized)) {
+    return true
+  }
+  if (['0', 'false', 'no', 'n', 'unwatched', 'not watched', '✗', '×', 'نه', 'خیر', 'دیده نشده', 'تماشا نشده'].includes(normalized)) {
+    return false
+  }
+  return undefined
 }
 
 function parseCell(v) {
@@ -128,6 +157,45 @@ function normalizeTitle(t) {
   return (t || '').toString().trim().toLowerCase()
 }
 
+const ENRICHABLE_FIELDS = [
+  'originalTitle',
+  'year',
+  'director',
+  'cast',
+  'genre',
+  'rating',
+  'runtime',
+  'country',
+  'synopsis',
+  'poster',
+  'rated',
+  'studio',
+  'imdbVotes',
+  'imdbId',
+]
+
+function isEmptyMetadata(value) {
+  if (Array.isArray(value)) return value.length === 0
+  return value == null || String(value).trim() === ''
+}
+
+// Keep enrichment failure non-fatal: a film must still be saved when OMDb is
+// temporarily unavailable or has no match for its title.
+async function enrichMissingMetadata(film) {
+  const key = process.env.OMDB_API_KEY
+  if (!key) return { film, enabled: false, fields: [] }
+
+  try {
+    const enriched = await enrichFilm(film, key)
+    const fields = ENRICHABLE_FIELDS.filter(
+      (field) => isEmptyMetadata(film[field]) && !isEmptyMetadata(enriched[field])
+    )
+    return { film: enriched, enabled: true, fields }
+  } catch {
+    return { film, enabled: true, fields: [] }
+  }
+}
+
 function rowToFilm(row, index) {
   const film = { id: `f${Date.now()}_${index}` }
   for (const [key, val] of Object.entries(row)) {
@@ -138,6 +206,7 @@ function rowToFilm(row, index) {
     if (field === 'rating') v = v ? parseFloat(v) : undefined
     if (field === 'year' || field === 'runtime')
       v = v ? parseInt(v, 10) : undefined
+    if (field === 'watched') v = parseWatched(v)
     if (v === '' || v === undefined) continue
     film[field] = v
   }
@@ -223,23 +292,88 @@ const EDITABLE = [
   'borrowedDate',
   'watched',
 ]
-app.post('/api/films', (req, res) => {
+// Process a bounded batch so a large imported catalogue can be completed
+// without holding one request open for hundreds of external lookups.
+app.post('/api/films/enrich', async (req, res) => {
+  if (!process.env.OMDB_API_KEY) {
+    return res.status(400).json({ error: 'OMDB_API_KEY is not configured' })
+  }
+
+  const requestedLimit = parseInt(req.query.limit, 10)
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(Math.max(requestedLimit, 1), 15)
+    : 10
+  const films = readFilms()
+  const candidates = films
+    .map((film, index) => ({ film, index }))
+    .filter(({ film }) =>
+      ENRICHABLE_FIELDS.some((field) => isEmptyMetadata(film[field])) &&
+      !film.metadataEnrichmentAttemptedAt
+    )
+    .slice(0, limit)
+
+  let updated = 0
+  for (const { film, index } of candidates) {
+    const enrichment = await enrichMissingMetadata(film)
+    if (enrichment.fields.length) updated++
+    films[index] = {
+      ...enrichment.film,
+      metadataEnrichmentAttemptedAt: new Date().toISOString(),
+    }
+  }
+
+  if (candidates.length) writeFilms(films)
+  const remaining = films.filter(
+    (film) =>
+      ENRICHABLE_FIELDS.some((field) => isEmptyMetadata(film[field])) &&
+      !film.metadataEnrichmentAttemptedAt
+  ).length
+  res.json({ processed: candidates.length, updated, remaining })
+})
+
+app.post('/api/films', async (req, res) => {
   const films = readFilms()
   const body = req.body || {}
   if (!String(body.title || '').trim()) {
     return res.status(400).json({ error: 'title is required' })
   }
+
   const film = {
+    ...body,
     id: `f${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     title: String(body.title).trim(),
     shelf: body.shelf || '',
     row: body.row || '',
-    ...body,
   }
-  film.id = film.id
-  films.push(film)
+  const enrichment = await enrichMissingMetadata(film)
+  films.push(enrichment.film)
   writeFilms(films)
-  res.status(201).json(film)
+  res.status(201).json({
+    ...enrichment.film,
+    _enrichment: {
+      enabled: enrichment.enabled,
+      fields: enrichment.fields,
+    },
+  })
+})
+
+// Fill only missing public metadata for an existing film. This is useful for
+// items that were added before automatic enrichment was enabled.
+app.post('/api/films/:id', async (req, res) => {
+  const films = readFilms()
+  const i = films.findIndex((film) => film.id === req.params.id)
+  if (i < 0) return res.status(404).json({ error: 'not found' })
+
+  const enrichment = await enrichMissingMetadata(films[i])
+  films[i] = enrichment.film
+  writeFilms(films)
+  res.json({
+    ...enrichment.film,
+    _enrichment: {
+      enabled: enrichment.enabled,
+      fields: enrichment.fields,
+    },
+  })
 })
 
 app.patch('/api/films/:id', (req, res) => {
@@ -334,6 +468,7 @@ app.get('/api/template', (req, res) => {
       'Shelf',
       'Row',
       'Format',
+      'Watched',
       'Director',
       'Cast',
       'Year',
@@ -352,6 +487,7 @@ app.get('/api/template', (req, res) => {
       'A',
       '3',
       '4K UHD',
+      'No',
       'Francis Ford Coppola',
       'Marlon Brando, Al Pacino',
       '1972',
@@ -397,6 +533,7 @@ app.get('/api/export/excel', (req, res) => {
     'Shelf': f.shelf || '',
     'Row': f.row || '',
     'Format': f.format || '',
+    'Watched': f.watched === true ? 'Yes' : 'No',
     'Borrowed To': f.borrowedTo || '',
     'Borrowed Date': f.borrowedDate || '',
     'Director': f.director || '',

@@ -50,7 +50,9 @@ export default function FilmCard({ film, onSelect }) {
             <IconStar width={11} height={11} /> {film.rating.toFixed(1)}
           </span>
         )}
-        <span className="watched-badge">{film.watched ? '✓ Watched' : 'Unwatched'}</span>
+        <span className={`watched-badge ${film.watched ? '' : 'unwatched'}`}>
+          {film.watched ? '✓ Watched' : 'Unwatched'}
+        </span>
         {hasLocation && (
           <span className="location-badge">
             <IconPin width={11} height={11} /> {film.shelf || '–'}-{film.row || '–'}
@@ -60,7 +62,7 @@ export default function FilmCard({ film, onSelect }) {
       <div className="card-body">
         <h3 className="card-title">{film.title}</h3>
         <p className="card-meta">
-          {film.year || '—'} · {(film.genre || []).slice(0, 2).join('، ')}
+          {film.year || '—'} · {(film.genre || []).slice(0, 2).join(', ')}
         </p>
       </div>
     </button>
