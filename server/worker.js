@@ -2,6 +2,7 @@
 // Handles all /api/* routes using D1 for persistent storage.
 import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMetadata } from './helpers.js'
 import { enrichFilm } from './omdb.js'
+import * as XLSX from 'xlsx'
 
 export default {
   async fetch(request, env) {
@@ -175,11 +176,93 @@ export default {
         return json((result.results || []).map((r) => r.decade), 200, corsHeaders)
       }
 
+      // ---- GET /api/omdb-lookup (single-title search for the "Add Film" autofill) ----
+      if (method === 'GET' && pathname === '/api/omdb-lookup') {
+        const key = env.OMDB_API_KEY
+        if (!key) return json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار از IMDb وجود نداره' }, 400, corsHeaders)
+        const title = (url.searchParams.get('title') || '').trim()
+        if (!title) return json({ error: 'عنوان فیلم رو وارد کن' }, 400, corsHeaders)
+        const yearParam = url.searchParams.get('year')
+        const before = { title, year: yearParam ? parseInt(yearParam, 10) : undefined }
+        try {
+          const found = await enrichFilm(before, key)
+          const gotNewData = Object.keys(found).some((k) => !(k in before) || found[k] !== before[k])
+          if (!gotNewData) return json({ error: 'فیلمی با این عنوان توی IMDb پیدا نشد' }, 404, corsHeaders)
+          return json(found, 200, corsHeaders)
+        } catch (e) {
+          return json({ error: 'خطا در ارتباط با OMDb' }, 502, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/template (downloadable Excel template) ----
+      if (method === 'GET' && pathname === '/api/template') {
+        const ws = XLSX.utils.aoa_to_sheet([
+          ['Title', 'Shelf', 'Row', 'Director', 'Cast', 'Year', 'Genre', 'Rating', 'Runtime', 'Country', 'Synopsis', 'Poster URL', 'Original Title'],
+          ['Example: The Godfather', 'A', '3', 'Francis Ford Coppola', 'Marlon Brando, Al Pacino', '1972', 'Crime, Drama', '9.2', '175', 'USA', 'Story of the Corleone crime family', 'https://example.com/poster.jpg', 'The Godfather'],
+        ])
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'Films')
+        const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' })
+        return new Response(buf, {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition': 'attachment; filename="film-archive-template.xlsx"',
+          },
+        })
+      }
+
       // ---- POST /api/import (Excel import) ----
       if (method === 'POST' && pathname === '/api/import') {
-        // Note: For large Excel parsing in Workers, consider offloading to a
-        // separate service or using a WebAssembly-based XLSX parser.
-        return json({ error: 'Excel import requires a binding or external service; use the Express server for now' }, 501, corsHeaders)
+        const form = await request.formData()
+        const file = form.get('file')
+        if (!file || typeof file.arrayBuffer !== 'function') {
+          return json({ error: 'فایل ارسال نشد' }, 400, corsHeaders)
+        }
+        const buffer = await file.arrayBuffer()
+        if (!buffer || buffer.byteLength === 0) {
+          return json({ error: 'فایل ارسال نشد' }, 400, corsHeaders)
+        }
+
+        const wb = XLSX.read(buffer, { type: 'array' })
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' })
+        if (!rows.length) return json({ error: 'فایل خالیه' }, 400, corsHeaders)
+
+        let imported = rows.map((r, i) => rowToFilm(r, i))
+
+        const key = env.OMDB_API_KEY
+        if (key) {
+          imported = await Promise.all(
+            imported.map(async (f) => {
+              try {
+                return await enrichFilm(f, key)
+              } catch {
+                return f
+              }
+            })
+          )
+        }
+
+        let added = 0
+        let updated = 0
+        for (const f of imported) {
+          const existing = await db
+            .prepare('SELECT * FROM films WHERE LOWER(title) = ?')
+            .bind(normalizeTitle(f.title))
+            .first()
+          if (existing) {
+            const merged = { ...parseFilmRow(existing), ...f, id: existing.id }
+            await updateFilm(db, merged)
+            updated++
+          } else {
+            await insertFilm(db, f)
+            added++
+          }
+        }
+
+        return json({ count: imported.length, added, updated }, 200, corsHeaders)
       }
 
       // ---- GET /api/export/json ----

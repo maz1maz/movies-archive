@@ -242,6 +242,31 @@ app.get('/api/decades', (req, res) => {
   res.json([...set].sort((a, b) => a - b))
 })
 
+// جستجوی تکی اطلاعات فیلم از OMDb (برای پرشدن خودکار فرم افزودن فیلم)
+app.get('/api/omdb-lookup', async (req, res) => {
+  const key = process.env.OMDB_API_KEY
+  if (!key) {
+    return res.status(400).json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار از IMDb وجود نداره' })
+  }
+  const title = (req.query.title || '').toString().trim()
+  if (!title) return res.status(400).json({ error: 'عنوان فیلم رو وارد کن' })
+  const year = (req.query.year || '').toString().trim()
+
+  try {
+    const before = { title, year: year ? parseInt(year, 10) : undefined }
+    const found = await enrichFilm(before, key)
+    const gotNewData = Object.keys(found).some(
+      (k) => !(k in before) || found[k] !== before[k]
+    )
+    if (!gotNewData) {
+      return res.status(404).json({ error: 'فیلمی با این عنوان توی IMDb پیدا نشد' })
+    }
+    res.json(found)
+  } catch (e) {
+    res.status(502).json({ error: 'خطا در ارتباط با OMDb' })
+  }
+})
+
 // ایمپورت اکسل (ادغام با داده‌های قبلی بر اساس نام فیلم)
 app.post('/api/import', upload.single('file'), async (req, res) => {
   try {

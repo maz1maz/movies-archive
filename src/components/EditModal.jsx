@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IconClose, IconSave } from './icons.jsx'
+import { IconClose, IconSave, IconSearch } from './icons.jsx'
 
 function toForm(film) {
   return {
@@ -27,6 +27,20 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
   const isNew = !film.id
   const [form, setForm] = useState(() => toForm(film))
   const [autofilling, setAutofilling] = useState(false)
+  const [lookupError, setLookupError] = useState('')
+
+  const lookupNewFilmFromImdb = async () => {
+    if (!form.title.trim()) {
+      setLookupError('اول عنوان فیلم رو بنویس')
+      return null
+    }
+    const qs = new URLSearchParams({ title: form.title.trim() })
+    if (form.year) qs.set('year', form.year)
+    const res = await fetch(`/api/omdb-lookup?${qs.toString()}`)
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'یافت نشد')
+    return data
+  }
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -70,11 +84,26 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
   }
 
   const autofill = async () => {
-    if (!onAutofill || isNew) return
+    setLookupError('')
     setAutofilling(true)
     try {
-      const enriched = await onAutofill()
-      if (enriched) setForm(toForm(enriched))
+      if (isNew) {
+        const data = await lookupNewFilmFromImdb()
+        if (data) {
+          setForm((prev) => ({
+            ...toForm(data),
+            shelf: prev.shelf,
+            row: prev.row,
+            title: data.title || prev.title,
+          }))
+        }
+      } else {
+        if (!onAutofill) return
+        const enriched = await onAutofill()
+        if (enriched) setForm(toForm(enriched))
+      }
+    } catch (e) {
+      setLookupError(e.message)
     } finally {
       setAutofilling(false)
     }
@@ -164,11 +193,19 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
         </div>
 
         <div className="edit-actions">
-          {!isNew && onAutofill ? (
-            <button className="btn btn-ghost" onClick={autofill} disabled={autofilling}>
-              {autofilling ? 'Auto-filling…' : 'Auto-fill missing details'}
-            </button>
-          ) : <span />}
+          <div className="edit-actions-left">
+            {isNew || onAutofill ? (
+              <button className="btn btn-ghost" onClick={autofill} disabled={autofilling}>
+                <IconSearch width={13} height={13} />{' '}
+                {autofilling
+                  ? 'Auto-filling…'
+                  : isNew
+                  ? 'Auto-fill from IMDb'
+                  : 'Auto-fill missing details'}
+              </button>
+            ) : <span />}
+            {lookupError && <span className="edit-lookup-error">{lookupError}</span>}
+          </div>
           <div className="edit-primary-actions">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button className="btn btn-primary" onClick={save}>

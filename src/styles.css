@@ -603,6 +603,16 @@ body.light .header {
   gap: 8px;
   margin-top: 20px;
 }
+.edit-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.edit-lookup-error {
+  color: var(--danger);
+  font-size: 12px;
+}
 .edit-primary-actions {
   display: flex;
   justify-content: flex-end;
