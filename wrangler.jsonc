@@ -5,10 +5,22 @@
   // automatically configured... update Vite to at least 6.0.0").
   "name": "movies-archive",
   "compatibility_date": "2026-07-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "server/worker.js",
   "assets": {
     "directory": "./dist",
     // Same behavior as the SPA fallback redirect in netlify.toml:
     // unknown paths serve /index.html with a 200 status.
     "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "movies-archive",
+      "database_id": "movies-archive"
+    }
+  ],
+  "vars": {
+    "OMDB_API_KEY": ""
   }
 }
