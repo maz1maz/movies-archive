@@ -5,6 +5,7 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import XLSX from 'xlsx'
 import { enrichFilm } from './omdb.js'
+import { ENRICHABLE_FIELDS, EDITABLE, rowToFilm, normalizeTitle, isEmptyMetadata } from './helpers.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -47,138 +48,6 @@ function writeFilms(films) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(films, null, 2), 'utf-8')
 }
 
-// ---------- نگاشت ستون‌های اکسل به فیلدها ----------
-// هم اسم فارسی هم انگلیسی رو قبول می‌کنیم
-const HEADER_MAP = {
-  'نام فیلم': 'title',
-  عنوان: 'title',
-  فیلم: 'title',
-  title: 'title',
-  'نام اصلی': 'originalTitle',
-  'نام لاتین': 'originalTitle',
-  originaltitle: 'originalTitle',
-  original_title: 'originalTitle',
-  قفسه: 'shelf',
-  shelf: 'shelf',
-  ردیف: 'row',
-  'ردیف محل': 'row',
-  'محل قرارگیری': 'row',
-  row: 'row',
-  کارگردان: 'director',
-  director: 'director',
-  بازیگران: 'cast',
-  بازیگر: 'cast',
-  cast: 'cast',
-  actors: 'cast',
-  سال: 'year',
-  year: 'year',
-  ژانر: 'genre',
-  genre: 'genre',
-  امتیاز: 'rating',
-  نمره: 'rating',
-  rating: 'rating',
-  زمان: 'runtime',
-  مدت: 'runtime',
-  دقیقه: 'runtime',
-  runtime: 'runtime',
-  کشور: 'country',
-  country: 'country',
-  خلاصه: 'synopsis',
-  داستان: 'synopsis',
-  synopsis: 'synopsis',
-  'لینک پوستر': 'poster',
-  پوستر: 'poster',
-  عکس: 'poster',
-  poster: 'poster',
-  image: 'poster',
-  studio: 'studio',
-  کمپانی: 'studio',
-  استودیو: 'studio',
-  سازنده: 'studio',
-  publisher: 'studio',
-  rated: 'rated',
-  mpaa: 'rated',
-  'رده بندی سنی': 'rated',
-  'درجه سنی': 'rated',
-  'رده سنی': 'rated',
-  format: 'format',
-  فرمت: 'format',
-  نوع: 'format',
-  نسخه: 'format',
-  borrowedto: 'borrowedTo',
-  'امانت به': 'borrowedTo',
-  امانت: 'borrowedTo',
-  borroweddate: 'borrowedDate',
-  'تاریخ امانت': 'borrowedDate',
-  watched: 'watched',
-  'watch status': 'watched',
-  watchstatus: 'watched',
-  seen: 'watched',
-  'وضعیت تماشا': 'watched',
-  'وضعیت مشاهده': 'watched',
-  'دیده شده': 'watched',
-  'دیده‌شده': 'watched',
-  'تماشا شده': 'watched',
-  'تماشا‌شده': 'watched',
-}
-
-// Empty or unrecognised values are left untouched during an import. This makes
-// it safe to update an existing archive from a spreadsheet without resetting
-// its saved watch status accidentally.
-function parseWatched(value) {
-  const normalized = String(value)
-    .trim()
-    .toLowerCase()
-    .replace(/[‌‍]/g, ' ')
-    .replace(/\s+/g, ' ')
-
-  if (['1', 'true', 'yes', 'y', 'watched', 'seen', '✓', '✔', 'بله', 'بلی', 'آره', 'اری', 'آری', 'دیده شده', 'تماشا شده'].includes(normalized)) {
-    return true
-  }
-  if (['0', 'false', 'no', 'n', 'unwatched', 'not watched', '✗', '×', 'نه', 'خیر', 'دیده نشده', 'تماشا نشده'].includes(normalized)) {
-    return false
-  }
-  return undefined
-}
-
-function parseCell(v) {
-  if (v == null) return ''
-  if (typeof v === 'number') return String(v)
-  return String(v).trim()
-}
-function toList(str) {
-  if (!str) return []
-  return str
-    .split(/[،,|]/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-function normalizeTitle(t) {
-  return (t || '').toString().trim().toLowerCase()
-}
-
-const ENRICHABLE_FIELDS = [
-  'originalTitle',
-  'year',
-  'director',
-  'cast',
-  'genre',
-  'rating',
-  'runtime',
-  'country',
-  'synopsis',
-  'poster',
-  'rated',
-  'studio',
-  'imdbVotes',
-  'imdbId',
-]
-
-function isEmptyMetadata(value) {
-  if (Array.isArray(value)) return value.length === 0
-  return value == null || String(value).trim() === ''
-}
-
 // Keep enrichment failure non-fatal: a film must still be saved when OMDb is
 // temporarily unavailable or has no match for its title.
 async function enrichMissingMetadata(film) {
@@ -194,24 +63,6 @@ async function enrichMissingMetadata(film) {
   } catch {
     return { film, enabled: true, fields: [] }
   }
-}
-
-function rowToFilm(row, index) {
-  const film = { id: `f${Date.now()}_${index}` }
-  for (const [key, val] of Object.entries(row)) {
-    const field = HEADER_MAP[key.trim().toLowerCase()]
-    if (!field) continue
-    let v = parseCell(val)
-    if (field === 'cast' || field === 'genre') v = toList(v)
-    if (field === 'rating') v = v ? parseFloat(v) : undefined
-    if (field === 'year' || field === 'runtime')
-      v = v ? parseInt(v, 10) : undefined
-    if (field === 'watched') v = parseWatched(v)
-    if (v === '' || v === undefined) continue
-    film[field] = v
-  }
-  if (!film.title) film.title = 'بدون نام'
-  return film
 }
 
 // ---------- مسیرهای API ----------
@@ -270,28 +121,6 @@ app.get('/api/films/:id', (req, res) => {
   res.json(film)
 })
 
-// ویرایش یک فیلم (ذخیره توی films.json)
-const EDITABLE = [
-  'title',
-  'originalTitle',
-  'shelf',
-  'row',
-  'director',
-  'cast',
-  'year',
-  'genre',
-  'rating',
-  'runtime',
-  'country',
-  'synopsis',
-  'poster',
-  'studio',
-  'rated',
-  'format',
-  'borrowedTo',
-  'borrowedDate',
-  'watched',
-]
 // Process a bounded batch so a large imported catalogue can be completed
 // without holding one request open for hundreds of external lookups.
 app.post('/api/films/enrich', async (req, res) => {
