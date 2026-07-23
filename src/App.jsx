@@ -5,7 +5,7 @@ import FilmList from './components/FilmList.jsx'
 import FilmModal from './components/FilmModal.jsx'
 import EditModal from './components/EditModal.jsx'
 import PersonModal from './components/PersonModal.jsx'
-import CollectionsView from './components/CollectionsView.jsx'
+import FolderNav from './components/FolderNav.jsx'
 import StatsModal from './components/StatsModal.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import LoanModal from './components/LoanModal.jsx'
@@ -38,6 +38,12 @@ export default function App() {
     () => localStorage.getItem('fa_theme') || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
   )
   const [selected, setSelected] = useState(null)
+  const [section, setSection] = useState(() => localStorage.getItem('fa_section') || null)
+
+  useEffect(() => {
+    if (section) localStorage.setItem('fa_section', section)
+    else localStorage.removeItem('fa_section')
+  }, [section])
   const [isWide, setIsWide] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches
   )
@@ -279,15 +285,59 @@ export default function App() {
     }
   }
 
-  const pageCount = Math.max(1, Math.ceil(films.length / PAGE_SIZE))
-  const visibleFilms = films.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // فیلم‌های همین صفحه بسته به این‌که کدوم بخش (فیزیکی/دیجیتال-فیلم/
+  // دیجیتال-سریال) رو انتخاب کرده باشیم، محدود می‌شن
+  const sectionFilms = films.filter((f) => {
+    if (section === 'physical') return f.mediaType !== 'digital'
+    if (section === 'digital-movie') return f.mediaType === 'digital' && f.itemType !== 'series'
+    if (section === 'digital-series') return f.mediaType === 'digital' && f.itemType === 'series'
+    return true
+  })
+  const pageCount = Math.max(1, Math.ceil(sectionFilms.length / PAGE_SIZE))
+  const visibleFilms = sectionFilms.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   // نمای تقسیم‌شده (پنل جزئیات + گرید) فقط توی حالت Thumbnails و روی صفحه‌ی
   // عریض (دسکتاپ/تبلت)؛ توی موبایل و حالت List همون مودال قبلی می‌مونه.
   const useSplitView = view === 'grid' && isWide
 
+  const folderCounts = {
+    physical: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital').length,
+    digital: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital').length,
+    digitalMovies: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType !== 'series').length,
+    digitalSeries: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType === 'series').length,
+  }
+
   return (
     <div className="app">
       {toast && <div className="toast">{toast}</div>}
+
+      {!section ? (
+        <FolderNav
+          mode="home"
+          counts={folderCounts}
+          onSelectPhysical={() => setSection('physical')}
+          onSelectDigital={() => setSection('digital-pending')}
+        />
+      ) : section === 'digital-pending' ? (
+        <FolderNav
+          mode="digital"
+          counts={folderCounts}
+          onBack={() => setSection(null)}
+          onSelectDigitalType={(type) => setSection(type === 'series' ? 'digital-series' : 'digital-movie')}
+        />
+      ) : (
+        <>
+      <div className="section-breadcrumb">
+        <button className="btn btn-ghost" onClick={() => setSection(null)}>
+          ← کتابخانه
+        </button>
+        <span className="section-breadcrumb-path">
+          {section === 'physical'
+            ? 'Physical Collection'
+            : section === 'digital-movie'
+            ? 'Digital Library / فیلم'
+            : 'Digital Library / سریال'}
+        </span>
+      </div>
 
       <Header
         query={query}
@@ -296,7 +346,7 @@ export default function App() {
         setGenre={setGenre}
         loanedOnly={loanedOnly}
         setLoanedOnly={setLoanedOnly}
-        onRandomFilm={() => films.length && setSelected(films[Math.floor(Math.random() * films.length)])}
+        onRandomFilm={() => sectionFilms.length && setSelected(sectionFilms[Math.floor(Math.random() * sectionFilms.length)])}
         watched={watched}
         setWatched={setWatched}
         minRating={minRating}
@@ -307,7 +357,7 @@ export default function App() {
         decades={decades}
         sort={sort}
         setSort={setSort}
-        total={films.length}
+        total={sectionFilms.length}
         onImport={handleImport}
         onAddFilm={() => setAdding(true)}
         onEnrichCatalog={handleEnrichCatalog}
@@ -325,7 +375,7 @@ export default function App() {
       <main className="container">
         {loading ? (
           <div className="status">Loading films…</div>
-        ) : films.length === 0 ? (
+        ) : sectionFilms.length === 0 ? (
           <div className="status empty-state">
             <span className="empty-icon">
               <IconArchive width={22} height={22} />
@@ -337,10 +387,6 @@ export default function App() {
           </div>
         ) : view === 'list' ? (
           <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} />
-        ) : view === 'digital' ? (
-          <FilmGrid films={films.filter((f) => f.mediaType === 'digital')} onSelect={setSelected} />
-        ) : view === 'collections' ? (
-          <CollectionsView films={allFilmsUnfiltered} onSelect={setSelected} />
         ) : useSplitView && selected ? (
           <div className="grid-split">
             <div className="grid-split-grid">
@@ -423,7 +469,10 @@ export default function App() {
 
       {adding && (
         <EditModal
-          film={{}}
+          film={{
+            mediaType: section === 'physical' ? 'physical' : 'digital',
+            itemType: section === 'digital-series' ? 'series' : 'movie',
+          }}
           onClose={() => setAdding(false)}
           onSave={handleAddFilm}
         />
@@ -436,6 +485,8 @@ export default function App() {
           onSave={(patch) => handleSaveFilm(editing.id, patch)}
           onAutofill={() => handleAutofillFilm(editing.id)}
         />
+      )}
+        </>
       )}
     </div>
   )

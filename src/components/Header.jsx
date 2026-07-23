@@ -9,8 +9,6 @@ import {
   IconMoon,
   IconGrid,
   IconList,
-  IconDisc,
-  IconBookshelf,
   IconBarChart,
 } from './icons.jsx'
 
@@ -232,22 +230,6 @@ export default function Header({
             title="List"
           >
             <IconList width={15} height={15} /> <span className="view-toggle-label">List</span>
-          </button>
-          <button
-            type="button"
-            className={view === 'digital' ? 'active' : ''}
-            onClick={() => setView('digital')}
-            title="Digital copies"
-          >
-            <IconDisc width={15} height={15} /> <span className="view-toggle-label">Digital</span>
-          </button>
-          <button
-            type="button"
-            className={view === 'collections' ? 'active' : ''}
-            onClick={() => setView('collections')}
-            title="Collections (by hard drive)"
-          >
-            <IconBookshelf width={15} height={15} /> <span className="view-toggle-label">Collections</span>
           </button>
         </div>
 
