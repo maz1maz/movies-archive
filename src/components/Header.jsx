@@ -90,6 +90,7 @@ export default function Header({
           </span>
           <div>
             <h1 className="brand-title">CINEFILIO ARCHIVE</h1>
+            <p className="brand-owner">Alireza Mazlaghani</p>
             <p className="brand-sub">{total} physical films</p>
           </div>
         </div>
