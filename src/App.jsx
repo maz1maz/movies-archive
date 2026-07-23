@@ -70,6 +70,16 @@ export default function App() {
     fetch('/api/films?' + params.toString())
       .then((r) => r.json())
       .then((data) => {
+        if (!Array.isArray(data)) {
+          // پاسخ خطا (مثل مشکل دیتابیس) به‌جای آرایه‌ی فیلم‌ها — اگه اینجا
+          // بدون این چک films رو ست کنیم، films.length/films.slice بعداً
+          // throw می‌کنه و کل صفحه‌ی React سیاه/خالی می‌شه.
+          console.error('Unexpected /api/films response:', data)
+          setFilms([])
+          setLoading(false)
+          showToast((data && data.error) || 'خطا در بارگذاری فیلم‌ها')
+          return
+        }
         setFilms(data)
         setLoading(false)
       })
@@ -85,22 +95,22 @@ export default function App() {
   useEffect(() => {
     fetch('/api/genres')
       .then((r) => r.json())
-      .then(setGenres)
+      .then((data) => setGenres(Array.isArray(data) ? data : []))
       .catch(() => {})
     fetch('/api/decades')
       .then((r) => r.json())
-      .then(setDecades)
+      .then((data) => setDecades(Array.isArray(data) ? data : []))
       .catch(() => {})
   }, [])
 
   const refreshMeta = () => {
     fetch('/api/decades')
       .then((r) => r.json())
-      .then(setDecades)
+      .then((data) => setDecades(Array.isArray(data) ? data : []))
       .catch(() => {})
     fetch('/api/genres')
       .then((r) => r.json())
-      .then(setGenres)
+      .then((data) => setGenres(Array.isArray(data) ? data : []))
       .catch(() => {})
   }
 
