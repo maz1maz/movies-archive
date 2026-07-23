@@ -57,14 +57,25 @@ export default function App() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  // بعد از انتخاب فیلم توی نمای split، گرید به ۳ ستون reflow می‌شه؛ باید صبر
-  // کنیم رندر جدید کامل بشه و بعد کارت انتخاب‌شده رو (توی موقعیت تازه‌ش) به
-  // بالا اسکرول کنیم — وگرنه پنل جزئیات سمت راست ممکنه پایین‌تر از دید باشه.
+  // پنل جزئیات (سمت راست توی نمای split) با position:sticky همیشه زیر هدر
+  // چسبیده می‌مونه، حتی وقتی گرید سمت چپ رو اسکرول کنی — چون ارتفاع هدر با
+  // تغییر عرض صفحه عوض می‌شه، این ارتفاع رو اندازه می‌گیریم و به‌عنوان یه
+  // CSS variable می‌ذاریم تا استایل بتونه ازش برای offset استفاده کنه.
   useEffect(() => {
-    if (view !== 'grid' || !isWide || !selected) return
-    const el = document.querySelector(`.grid-split-grid [data-film-id="${selected.id}"]`)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [selected, view, isWide])
+    const headerEl = document.querySelector('.header')
+    if (!headerEl) return
+    const update = () => {
+      document.documentElement.style.setProperty('--header-h', `${headerEl.offsetHeight}px`)
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(headerEl)
+    window.addEventListener('resize', update)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', update)
+    }
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('fa_view', view)

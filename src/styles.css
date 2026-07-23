@@ -1799,6 +1799,10 @@ body.light .header {
 .grid-split-detail {
   flex: 0 0 min(620px, 54%);
   min-width: 0;
+  position: sticky;
+  top: calc(var(--header-h, 260px) + 14px);
+  max-height: calc(100vh - var(--header-h, 260px) - 28px);
+  overflow-y: auto;
 }
 .grid-split-grid {
   flex: 1 1 auto;
