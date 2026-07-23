@@ -301,6 +301,9 @@ export default function App() {
           <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} />
         ) : useSplitView && selected ? (
           <div className="grid-split">
+            <div className="grid-split-grid">
+              <FilmGrid films={visibleFilms} onSelect={setSelected} />
+            </div>
             <div className="grid-split-detail">
               <FilmModal
                 panel
@@ -314,9 +317,6 @@ export default function App() {
                 onManageLoan={(film) => setLoanFilm(film)}
                 onClose={() => setSelected(null)}
               />
-            </div>
-            <div className="grid-split-grid">
-              <FilmGrid films={visibleFilms} onSelect={setSelected} />
             </div>
           </div>
         ) : (
