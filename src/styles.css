@@ -2024,6 +2024,7 @@ body.light .header {
 
 /* ---------- Folder navigation (Physical / Digital > Movie / Series) ---------- */
 .folder-nav {
+  position: relative;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -2031,6 +2032,50 @@ body.light .header {
   justify-content: center;
   padding: 40px 20px;
   text-align: center;
+  overflow: hidden;
+  background: var(--bg);
+}
+.folder-nav-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* کلاژ پس‌زمینه: چندتا پوستر تصادفی از آرشیو، محو و تیره‌شده */
+.folder-collage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.folder-collage-grid {
+  position: absolute;
+  inset: -20px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+.folder-collage-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  aspect-ratio: 2 / 3;
+  filter: blur(1.5px) saturate(0.9);
+  opacity: 0.55;
+}
+.folder-collage-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      circle at 50% 45%,
+      rgba(0, 0, 0, 0.15) 0%,
+      var(--bg) 72%
+    );
+  backdrop-filter: blur(2px);
+}
+body.light .folder-collage-grid img {
+  opacity: 0.4;
 }
 .folder-nav-title {
   margin: 0 0 6px;

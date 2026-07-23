@@ -305,6 +305,13 @@ export default function App() {
     digitalMovies: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType !== 'series').length,
     digitalSeries: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType === 'series').length,
   }
+  // برای کلاژ پس‌زمینه‌ی صفحات پوشه‌ای: صفحه‌ی اصلی از کل آرشیو، صفحه‌ی
+  // دیجیتال فقط از پوسترهای آیتم‌های دیجیتال
+  const homePosters = allFilmsUnfiltered.map((f) => f.poster).filter(Boolean)
+  const digitalPosters = allFilmsUnfiltered
+    .filter((f) => f.mediaType === 'digital')
+    .map((f) => f.poster)
+    .filter(Boolean)
 
   return (
     <div className="app">
@@ -314,6 +321,7 @@ export default function App() {
         <FolderNav
           mode="home"
           counts={folderCounts}
+          posters={homePosters}
           onSelectPhysical={() => setSection('physical')}
           onSelectDigital={() => setSection('digital-pending')}
         />
@@ -321,6 +329,7 @@ export default function App() {
         <FolderNav
           mode="digital"
           counts={folderCounts}
+          posters={digitalPosters}
           onBack={() => setSection(null)}
           onSelectDigitalType={(type) => setSection(type === 'series' ? 'digital-series' : 'digital-movie')}
         />
