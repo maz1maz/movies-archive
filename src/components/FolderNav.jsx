@@ -5,7 +5,7 @@ import { IconArchive, IconDisc, IconClapper, IconBookshelf } from './icons.jsx'
 // posters اولش خالیه (چون allFilmsUnfiltered با تأخیر از سرور میاد)، پس
 // نمی‌شه با useState(() => ...) یه‌بار برای همیشه محاسبه‌ش کرد — باید صبر
 // کنیم داده واقعاً برسه، بعد فقط همون یه‌بار انتخاب تصادفی رو قفل کنیم.
-function usePosterSample(posters, count = 18) {
+function usePosterSample(posters, count = 14) {
   const [sample, setSample] = useState([])
   useEffect(() => {
     if (sample.length > 0) return
@@ -18,6 +18,10 @@ function usePosterSample(posters, count = 18) {
   return sample
 }
 
+// زاویه‌های ثابت و متنوع برای هر کارت پوستر — نه کاملاً شلخته و تصادفی،
+// نه یه شبکه‌ی صاف و بی‌روح؛ حس یه دیوار پر از پوستر واقعی رو می‌ده.
+const TILT_ANGLES = [-7, 4, -3, 6, -5, 3, -8, 5, -4, 7, -6, 2, -2, 8]
+
 function PosterCollage({ posters }) {
   const sample = usePosterSample(posters)
   if (sample.length === 0) return null
@@ -25,7 +29,13 @@ function PosterCollage({ posters }) {
     <div className="folder-collage" aria-hidden="true">
       <div className="folder-collage-grid">
         {sample.map((src, i) => (
-          <img key={i} src={src} alt="" loading="lazy" />
+          <div
+            className="folder-collage-tile"
+            key={i}
+            style={{ '--tilt': `${TILT_ANGLES[i % TILT_ANGLES.length]}deg` }}
+          >
+            <img src={src} alt="" loading="lazy" />
+          </div>
         ))}
       </div>
       <div className="folder-collage-overlay" />
@@ -53,18 +63,17 @@ export default function FolderNav({
             ← بازگشت
           </button>
           <h1 className="folder-nav-title">آرشیو دیجیتال</h1>
-          <p className="folder-nav-subtitle">چی می‌خوای ببینی؟</p>
           <div className="folder-grid">
             <button className="folder-card" onClick={() => onSelectDigitalType('movie')}>
               <span className="folder-icon">
-                <IconClapper width={34} height={34} />
+                <IconClapper width={32} height={32} />
               </span>
               <h2>فیلم</h2>
               <p>{counts.digitalMovies} مورد</p>
             </button>
             <button className="folder-card" onClick={() => onSelectDigitalType('series')}>
               <span className="folder-icon">
-                <IconBookshelf width={34} height={34} />
+                <IconBookshelf width={32} height={32} />
               </span>
               <h2>سریال</h2>
               <p>{counts.digitalSeries} مورد</p>
@@ -80,18 +89,17 @@ export default function FolderNav({
       <PosterCollage posters={posters} />
       <div className="folder-nav-content">
         <h1 className="folder-nav-title">CINEFILIO ARCHIVE</h1>
-        <p className="folder-nav-subtitle">کدوم بخش رو می‌خوای مرور کنی؟</p>
         <div className="folder-grid">
           <button className="folder-card" onClick={onSelectPhysical}>
             <span className="folder-icon">
-              <IconArchive width={34} height={34} />
+              <IconArchive width={32} height={32} />
             </span>
             <h2>Physical Collection</h2>
             <p>بلوری‌ها · {counts.physical} مورد</p>
           </button>
           <button className="folder-card" onClick={onSelectDigital}>
             <span className="folder-icon">
-              <IconDisc width={34} height={34} />
+              <IconDisc width={32} height={32} />
             </span>
             <h2>Digital Library</h2>
             <p>هارد · {counts.digital} مورد</p>

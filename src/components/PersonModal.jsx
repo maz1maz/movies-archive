@@ -4,6 +4,7 @@ import { IconClose, IconUser, IconPin } from './icons.jsx'
 export default function PersonModal({ personName, allFilms, onSelectFilm, onClose }) {
   const [photo, setPhoto] = useState(null)
   const [bio, setBio] = useState(null)
+  const [facts, setFacts] = useState({ age: null, height: null, spouse: null, children: null })
   const [bioLoading, setBioLoading] = useState(false)
 
   useEffect(() => {
@@ -19,6 +20,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   useEffect(() => {
     setPhoto(null)
     setBio(null)
+    setFacts({ age: null, height: null, spouse: null, children: null })
     if (!personName) return
     setBioLoading(true)
     let cancelled = false
@@ -28,6 +30,12 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
         if (!cancelled) {
           setPhoto(data.photo || null)
           setBio(data.bio || null)
+          setFacts({
+            age: data.age ?? null,
+            height: data.height || null,
+            spouse: data.spouse || null,
+            children: data.children || null,
+          })
         }
       })
       .catch(() => {})
@@ -77,6 +85,30 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
             <p className="person-subtitle">
               Found <strong>{matchingFilms.length}</strong> film(s) in your archive
             </p>
+            {(facts.age || facts.height || facts.spouse || facts.children) && (
+              <div className="person-facts-row">
+                {facts.age && (
+                  <span className="person-fact-chip">
+                    <b>سن</b> {facts.age}
+                  </span>
+                )}
+                {facts.height && (
+                  <span className="person-fact-chip">
+                    <b>قد</b> {facts.height}
+                  </span>
+                )}
+                {facts.spouse && (
+                  <span className="person-fact-chip">
+                    <b>همسر</b> {facts.spouse}
+                  </span>
+                )}
+                {facts.children && (
+                  <span className="person-fact-chip">
+                    <b>فرزندان</b> {facts.children}
+                  </span>
+                )}
+              </div>
+            )}
             {bioLoading ? (
               <p className="person-bio person-bio-loading">در حال بارگذاری بیوگرافی…</p>
             ) : bio ? (

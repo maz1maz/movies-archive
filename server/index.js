@@ -270,32 +270,115 @@ app.get('/api/omdb-lookup', async (req, res) => {
 // کش ساده‌ی حافظه‌ای برای عکس بازیگرها (فقط برای اجرای لوکال؛ نسخه‌ی
 // Cloudflare Worker از جدول D1 برای کش دائمی استفاده می‌کنه)
 const actorPhotoCache = new Map()
-app.get('/api/actor-photo', async (req, res) => {
-  const name = (req.query.name || '').toString().trim()
-  if (!name) return res.json({ photo: null, bio: null })
-  const cacheKey = name.toLowerCase()
-  if (actorPhotoCache.has(cacheKey)) {
-    return res.json(actorPhotoCache.get(cacheKey))
-  }
+
+function ageFromBirthDate(birthDate) {
+  if (!birthDate) return null
+  const m = String(birthDate).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!m) return null
+  const [, y, mo, d] = m
+  const birth = new Date(Date.UTC(+y, +mo - 1, +d))
+  const now = new Date()
+  let age = now.getUTCFullYear() - birth.getUTCFullYear()
+  const hadBirthdayThisYear =
+    now.getUTCMonth() > birth.getUTCMonth() ||
+    (now.getUTCMonth() === birth.getUTCMonth() && now.getUTCDate() >= birth.getUTCDate())
+  if (!hadBirthdayThisYear) age--
+  return age >= 0 && age < 130 ? age : null
+}
+
+async function fetchWikidataFacts(qid) {
+  const empty = { birthDate: null, height: null, spouseIds: [], childrenIds: [] }
   try {
-    const wikiRes = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages%7Cextracts&piprop=thumbnail&pithumbsize=200&exintro=1&explaintext=1&exsentences=3&titles=${encodeURIComponent(name)}`,
+    const res = await fetch(
+      `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qid}&props=claims&format=json`,
       { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
     )
-    let photo = null
-    let bio = null
+    if (!res.ok) return empty
+    const data = await res.json()
+    const claims = data?.entities?.[qid]?.claims || {}
+
+    let birthDate = null
+    const birthTime = claims.P569?.[0]?.mainsnak?.datavalue?.value?.time
+    const bm = birthTime && birthTime.match(/^\+(\d{4})-(\d{2})-(\d{2})/)
+    if (bm) birthDate = `${bm[1]}-${bm[2]}-${bm[3]}`
+
+    let height = null
+    const heightVal = claims.P2048?.[0]?.mainsnak?.datavalue?.value
+    if (heightVal?.amount) {
+      const metres = parseFloat(heightVal.amount)
+      if (!isNaN(metres)) height = `${Math.round(metres * 100)} cm`
+    }
+
+    const spouseIds = (claims.P26 || [])
+      .map((c) => c.mainsnak?.datavalue?.value?.id)
+      .filter(Boolean)
+      .slice(0, 2)
+    const childrenIds = (claims.P40 || [])
+      .map((c) => c.mainsnak?.datavalue?.value?.id)
+      .filter(Boolean)
+      .slice(0, 6)
+
+    return { birthDate, height, spouseIds, childrenIds }
+  } catch {
+    return empty
+  }
+}
+
+async function resolveWikidataLabels(ids) {
+  if (!ids.length) return {}
+  try {
+    const res = await fetch(
+      `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids.join('|')}&props=labels&languages=en&format=json`,
+      { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
+    )
+    if (!res.ok) return {}
+    const data = await res.json()
+    const out = {}
+    for (const id of ids) {
+      out[id] = data?.entities?.[id]?.labels?.en?.value || null
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+app.get('/api/actor-photo', async (req, res) => {
+  const name = (req.query.name || '').toString().trim()
+  if (!name) return res.json({ photo: null, bio: null, birthDate: null, height: null, spouse: null, children: null, age: null })
+  const cacheKey = name.toLowerCase()
+  if (actorPhotoCache.has(cacheKey)) {
+    const cached = actorPhotoCache.get(cacheKey)
+    return res.json({ ...cached, age: ageFromBirthDate(cached.birthDate) })
+  }
+  const info = { photo: null, bio: null, birthDate: null, height: null, spouse: null, children: null }
+  try {
+    const wikiRes = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages%7Cextracts%7Cpageprops&piprop=thumbnail&pithumbsize=200&exintro=1&explaintext=1&exsentences=3&titles=${encodeURIComponent(name)}`,
+      { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
+    )
     if (wikiRes.ok) {
       const data = await wikiRes.json()
       const pages = data?.query?.pages || {}
       const page = Object.values(pages)[0]
-      if (page && page.thumbnail?.source) photo = page.thumbnail.source
-      if (page && page.extract) bio = page.extract.trim()
+      if (page && page.thumbnail?.source) info.photo = page.thumbnail.source
+      if (page && page.extract) info.bio = page.extract.trim()
+
+      const wikidataId = page?.pageprops?.wikibase_item
+      if (wikidataId) {
+        const wd = await fetchWikidataFacts(wikidataId)
+        info.birthDate = wd.birthDate
+        info.height = wd.height
+        const idsToResolve = [...wd.spouseIds, ...wd.childrenIds]
+        const labels = idsToResolve.length ? await resolveWikidataLabels(idsToResolve) : {}
+        if (wd.spouseIds.length) info.spouse = wd.spouseIds.map((id) => labels[id]).filter(Boolean).join('، ') || null
+        if (wd.childrenIds.length) info.children = wd.childrenIds.map((id) => labels[id]).filter(Boolean).join('، ') || null
+      }
     }
-    const result = { photo, bio }
-    actorPhotoCache.set(cacheKey, result)
-    res.json(result)
+    actorPhotoCache.set(cacheKey, info)
+    res.json({ ...info, age: ageFromBirthDate(info.birthDate) })
   } catch (e) {
-    res.json({ photo: null, bio: null })
+    res.json({ photo: null, bio: null, birthDate: null, height: null, spouse: null, children: null, age: null })
   }
 })
 
