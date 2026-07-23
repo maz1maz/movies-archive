@@ -221,20 +221,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
           </div>
         </div>
 
-        {relatedFilms.length > 0 && (
-          <div className="similar-films">
-            <div className="cine-col-title">SIMILAR IN YOUR ARCHIVE</div>
-            <div className="similar-films-grid">
-              {relatedFilms.map((other) => (
-                <button type="button" key={other.id} onClick={() => onNavigate && onNavigate(other)}>
-                  <img src={other.poster} alt="" />
-                  <span>{other.title}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Bottom 3 Columns: CAST | CREW | TRAILER */}
         <div className="cine-bottom-row">
           {/* CAST */}
@@ -366,6 +352,20 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             </a>
           </div>
         </div>
+
+        {relatedFilms.length > 0 && (
+          <div className="similar-films">
+            <div className="cine-col-title">SIMILAR IN YOUR ARCHIVE</div>
+            <div className="similar-films-grid">
+              {relatedFilms.map((other) => (
+                <button type="button" key={other.id} onClick={() => onNavigate && onNavigate(other)}>
+                  <img src={other.poster} alt="" />
+                  <span>{other.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
   )
 
