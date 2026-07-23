@@ -6,6 +6,7 @@ import FilmModal from './components/FilmModal.jsx'
 import EditModal from './components/EditModal.jsx'
 import PersonModal from './components/PersonModal.jsx'
 import FolderNav from './components/FolderNav.jsx'
+import PosterCollage from './components/PosterCollage.jsx'
 import StatsModal from './components/StatsModal.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import LoanModal from './components/LoanModal.jsx'
@@ -312,6 +313,25 @@ export default function App() {
     .filter((f) => f.mediaType === 'digital')
     .map((f) => f.poster)
     .filter(Boolean)
+  // برای پس‌زمینه‌ی صفحات محتوا (بعد از انتخاب بخش)، فقط از پوسترهای همون بخش
+  const physicalPosters = allFilmsUnfiltered
+    .filter((f) => f.mediaType !== 'digital')
+    .map((f) => f.poster)
+    .filter(Boolean)
+  const digitalMoviePosters = allFilmsUnfiltered
+    .filter((f) => f.mediaType === 'digital' && f.itemType !== 'series')
+    .map((f) => f.poster)
+    .filter(Boolean)
+  const digitalSeriesPosters = allFilmsUnfiltered
+    .filter((f) => f.mediaType === 'digital' && f.itemType === 'series')
+    .map((f) => f.poster)
+    .filter(Boolean)
+  const sectionPosters =
+    section === 'physical'
+      ? physicalPosters
+      : section === 'digital-movie'
+      ? digitalMoviePosters
+      : digitalSeriesPosters
 
   return (
     <div className="app">
@@ -335,16 +355,17 @@ export default function App() {
         />
       ) : (
         <>
+      <PosterCollage posters={sectionPosters} count={16} fixed />
       <div className="section-breadcrumb">
         <button className="btn btn-ghost" onClick={() => setSection(null)}>
-          ← کتابخانه
+          ← Library
         </button>
         <span className="section-breadcrumb-path">
           {section === 'physical'
             ? 'Physical Collection'
             : section === 'digital-movie'
-            ? 'Digital Library / فیلم'
-            : 'Digital Library / سریال'}
+            ? 'Digital Library / Movies'
+            : 'Digital Library / Series'}
         </span>
       </div>
 

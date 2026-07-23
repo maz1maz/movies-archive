@@ -2079,6 +2079,11 @@ body.light .header {
   inset: 0;
   z-index: 0;
 }
+/* روی صفحات محتوا (آرشیو فیزیکی/دیجیتال)، کلاژ باید پشت هدر و گرید ثابت
+   بمونه و با اسکرول صفحه جابه‌جا نشه */
+.folder-collage.page-collage {
+  position: fixed;
+}
 .folder-collage-grid {
   position: absolute;
   inset: -60px;
@@ -2099,9 +2104,21 @@ body.light .header {
   object-fit: cover;
   filter: saturate(1.05) contrast(1.05);
 }
+/* روی صفحات پوشه: فید سبک، چون پشتش فقط دوتا کارت بزرگه و خودِ پوسترها
+   باید واضح دیده بشن */
 .folder-collage-overlay {
   position: absolute;
   inset: 0;
+  background: radial-gradient(
+      ellipse 65% 55% at 50% 42%,
+      rgba(11, 12, 15, 0.32) 0%,
+      rgba(11, 12, 15, 0.55) 60%,
+      #0b0c0f 100%
+    );
+}
+/* روی صفحات محتوا: فید سنگین‌تر (همون سطح قبلی)، چون پشتش هدر/گرید/متن
+   زیادی هست که باید کاملاً خوانا بمونه */
+.page-collage-overlay {
   background: radial-gradient(
       ellipse 60% 50% at 50% 42%,
       rgba(11, 12, 15, 0.78) 0%,
@@ -2113,6 +2130,14 @@ body.light .folder-nav {
   background: #f1efe9;
 }
 body.light .folder-collage-overlay {
+  background: radial-gradient(
+      ellipse 65% 55% at 50% 42%,
+      rgba(241, 239, 233, 0.3) 0%,
+      rgba(241, 239, 233, 0.55) 60%,
+      #f1efe9 100%
+    );
+}
+body.light .page-collage-overlay {
   background: radial-gradient(
       ellipse 60% 50% at 50% 42%,
       rgba(241, 239, 233, 0.75) 0%,
@@ -2203,11 +2228,24 @@ body.light .folder-back {
 }
 
 .section-breadcrumb {
+  position: relative;
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px max(16px, calc((100vw - 1200px) / 2 + 16px));
   border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.footer {
+  position: relative;
+  z-index: 5;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 22px 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12.5px;
 }
 .section-breadcrumb-path {
   font-size: 13px;
