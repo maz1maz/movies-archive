@@ -32,6 +32,9 @@ export default function App() {
     () => localStorage.getItem('fa_theme') || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
   )
   const [selected, setSelected] = useState(null)
+  const [isWide, setIsWide] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches
+  )
   const [selectedPerson, setSelectedPerson] = useState(null)
   const [showStats, setShowStats] = useState(false)
   const [showExport, setShowExport] = useState(false)
@@ -46,6 +49,13 @@ export default function App() {
     setToast(m)
     setTimeout(() => setToast(''), 4000)
   }
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 900px)')
+    const handler = (e) => setIsWide(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('fa_view', view)
@@ -233,6 +243,9 @@ export default function App() {
 
   const pageCount = Math.max(1, Math.ceil(films.length / PAGE_SIZE))
   const visibleFilms = films.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // نمای تقسیم‌شده (پنل جزئیات + گرید) فقط توی حالت Thumbnails و روی صفحه‌ی
+  // عریض (دسکتاپ/تبلت)؛ توی موبایل و حالت List همون مودال قبلی می‌مونه.
+  const useSplitView = view === 'grid' && isWide
 
   return (
     <div className="app">
@@ -286,6 +299,26 @@ export default function App() {
           </div>
         ) : view === 'list' ? (
           <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} />
+        ) : useSplitView && selected ? (
+          <div className="grid-split">
+            <div className="grid-split-detail">
+              <FilmModal
+                panel
+                film={selected}
+                films={visibleFilms}
+                onNavigate={(film) => setSelected(film)}
+                onSelectPerson={(name) => {
+                  setSelected(null)
+                  setSelectedPerson(name)
+                }}
+                onManageLoan={(film) => setLoanFilm(film)}
+                onClose={() => setSelected(null)}
+              />
+            </div>
+            <div className="grid-split-grid">
+              <FilmGrid films={visibleFilms} onSelect={setSelected} />
+            </div>
+          </div>
         ) : (
           <FilmGrid films={visibleFilms} onSelect={setSelected} />
         )}
@@ -302,7 +335,7 @@ export default function App() {
         Physical film archive · Built with React and Node.js
       </footer>
 
-      {selected && (
+      {selected && !useSplitView && (
         <FilmModal
           film={selected}
           films={films}

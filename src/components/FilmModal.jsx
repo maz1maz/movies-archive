@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { IconClose, IconPin, IconHandshake, IconBuilding } from './icons.jsx'
 
-export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onClose }) {
+export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onClose, panel = false }) {
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
 
@@ -15,12 +15,14 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       }
     }
     window.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
+    // توی حالت panel (نمای split کنار گرید)، مودال جزئی از جریان عادی صفحه‌ست
+    // و پس‌زمینه‌ی سمت راست (گرید) باید عادی و قابل‌اسکرول بمونه.
+    if (!panel) document.body.style.overflow = 'hidden'
     return () => {
       window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      if (!panel) document.body.style.overflow = ''
     }
-  }, [onClose])
+  }, [onClose, panel])
 
   if (!film) return null
 
@@ -90,10 +92,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     return (film.director && other.director === film.director) || a.some((g) => b.includes(g))
   }).slice(0, 6)
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-cine" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
+  const inner = (
+    <div className={panel ? 'modal modal-cine cine-panel' : 'modal modal-cine'} onClick={(e) => e.stopPropagation()}>
+      <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
           <IconClose width={14} height={14} />
         </button>
 
@@ -366,6 +367,13 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
           </div>
         </div>
       </div>
+  )
+
+  if (panel) return inner
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      {inner}
     </div>
   )
 }

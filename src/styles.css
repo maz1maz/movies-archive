@@ -1781,3 +1781,37 @@ body.light .header {
     grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
   }
 }
+
+/* ---------- Grid split-view (Thumbnails mode, wide screens): a details
+   panel on the left, the grid keeps scrolling normally on the right,
+   instead of a dimmed modal covering the whole page ---------- */
+.grid-split {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+.grid-split-detail {
+  flex: 0 0 min(460px, 44%);
+  min-width: 0;
+}
+.grid-split-grid {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cine-panel {
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 899px) {
+  .grid-split {
+    flex-direction: column;
+  }
+  .grid-split-detail {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
