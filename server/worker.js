@@ -37,7 +37,7 @@ export default {
         if (genre) { sql += ' AND genre LIKE ?'; params.push(`%"${genre}"%`) }
         if (q) {
           const s = `%${q.toLowerCase()}%`
-          sql += ' AND (LOWER(title) LIKE ? OR LOWER(originalTitle) LIKE ? OR LOWER(director) LIKE ? OR LOWER(cast) LIKE ?)'
+          sql += ' AND (LOWER(title) LIKE ? OR LOWER(originalTitle) LIKE ? OR LOWER(director) LIKE ? OR LOWER("cast") LIKE ?)'
           params.push(s, s, s, s)
         }
         if (alpha) {
