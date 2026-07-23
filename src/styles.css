@@ -1791,12 +1791,18 @@ body.light .header {
   gap: 20px;
 }
 .grid-split-detail {
-  flex: 0 0 min(460px, 44%);
+  flex: 0 0 min(620px, 54%);
   min-width: 0;
 }
 .grid-split-grid {
   flex: 1 1 auto;
   min-width: 0;
+}
+.grid-split-grid .grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+.grid-split-grid .card {
+  scroll-margin-top: 290px;
 }
 .cine-panel {
   width: 100%;

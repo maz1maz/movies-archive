@@ -27,6 +27,7 @@ export default function FilmCard({ film, onSelect }) {
     <button
       type="button"
       className="card"
+      data-film-id={film.id}
       onClick={(e) => {
         e.stopPropagation()
         onSelect(film)
