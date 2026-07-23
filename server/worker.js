@@ -298,14 +298,15 @@ function parseFilmRow(row) {
     try { film.genre = JSON.parse(film.genre) } catch { film.genre = [] }
   }
   if (film.watched != null) film.watched = Boolean(film.watched)
+  if (film.criterion != null) film.criterion = Boolean(film.criterion)
   return film
 }
 
 async function insertFilm(db, film) {
-  const { id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt } = film
+  const { id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion } = film
   await db.prepare(
-    `INSERT INTO films (id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO films (id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, title || null, originalTitle || null, shelf || null, row || null,
     director || null, cast ? JSON.stringify(cast) : null,
@@ -314,14 +315,14 @@ async function insertFilm(db, film) {
     synopsis || null, poster || null, studio || null, rated || null,
     format || null, borrowedTo || null, borrowedDate || null,
     watched ? 1 : 0, imdbId || null, imdbVotes || null,
-    metadataEnrichmentAttemptedAt || null
+    metadataEnrichmentAttemptedAt || null, myRating || 0, criterion ? 1 : 0
   ).run()
 }
 
 async function updateFilm(db, film) {
-  const { id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt } = film
+  const { id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion } = film
   await db.prepare(
-    `UPDATE films SET title=?, originalTitle=?, shelf=?, row=?, director=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=? WHERE id=?`
+    `UPDATE films SET title=?, originalTitle=?, shelf=?, row=?, director=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=? WHERE id=?`
   ).bind(
     title || null, originalTitle || null, shelf || null, row || null,
     director || null, cast && Array.isArray(cast) ? JSON.stringify(cast) : cast || null,
@@ -330,6 +331,6 @@ async function updateFilm(db, film) {
     synopsis || null, poster || null, studio || null, rated || null,
     format || null, borrowedTo || null, borrowedDate || null,
     watched ? 1 : 0, imdbId || null, imdbVotes || null,
-    metadataEnrichmentAttemptedAt || null, id
+    metadataEnrichmentAttemptedAt || null, myRating || 0, criterion ? 1 : 0, id
   ).run()
 }

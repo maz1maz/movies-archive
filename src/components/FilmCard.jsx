@@ -1,4 +1,5 @@
 import { IconStar, IconPin } from './icons.jsx'
+import StarRating from './StarRating.jsx'
 
 // پالت رنگی برای کارت‌هایی که پوستر ندارن
 const PALETTE = [
@@ -26,7 +27,7 @@ export default function FilmCard({ film, onSelect }) {
   return (
     <button
       type="button"
-      className="card"
+      className={film.criterion ? 'card card-criterion' : 'card'}
       data-film-id={film.id}
       onClick={(e) => {
         e.stopPropagation()
@@ -59,12 +60,14 @@ export default function FilmCard({ film, onSelect }) {
             <IconPin width={11} height={11} /> {film.shelf || '–'}-{film.row || '–'}
           </span>
         )}
+        {film.criterion && <span className="criterion-badge">CRITERION</span>}
       </div>
       <div className="card-body">
         <h3 className="card-title">{film.title}</h3>
         <p className="card-meta">
           {film.year || '—'} · {(film.genre || []).slice(0, 2).join(', ')}
         </p>
+        {film.myRating > 0 && <StarRating value={film.myRating} size={13} />}
       </div>
     </button>
   )

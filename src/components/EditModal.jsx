@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { IconClose, IconSave, IconSearch } from './icons.jsx'
+import StarRating from './StarRating.jsx'
 
 function toForm(film) {
   return {
@@ -20,6 +21,8 @@ function toForm(film) {
     poster: film.poster || '',
     synopsis: film.synopsis || '',
     watched: film.watched === true,
+    myRating: film.myRating || 0,
+    criterion: film.criterion === true,
   }
 }
 
@@ -79,6 +82,8 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
       poster: form.poster || undefined,
       synopsis: form.synopsis || undefined,
       watched: form.watched,
+      myRating: form.myRating,
+      criterion: form.criterion,
     }
     onSave(patch)
   }
@@ -139,6 +144,14 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
             <span>Rating (IMDb)</span>
             <input type="number" step="0.1" value={form.rating} onChange={set('rating')} />
           </label>
+          <label className="edit-field">
+            <span>My Rating</span>
+            <StarRating
+              value={form.myRating}
+              onChange={(n) => setForm((prev) => ({ ...prev, myRating: n }))}
+              size={19}
+            />
+          </label>
 
           <label className="edit-field">
             <span>Studio / Distributor</span>
@@ -185,6 +198,19 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
               <option value="no">Unwatched</option>
               <option value="yes">Watched</option>
             </select>
+          </label>
+          <label className="edit-field edit-checkbox-field">
+            <span>Edition</span>
+            <span className="edit-checkbox-row">
+              <input
+                type="checkbox"
+                checked={form.criterion}
+                onChange={(event) =>
+                  setForm((previous) => ({ ...previous, criterion: event.target.checked }))
+                }
+              />
+              Criterion Collection
+            </span>
           </label>
           <label className="edit-field full">
             <span>Synopsis</span>

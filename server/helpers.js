@@ -26,6 +26,8 @@ export const HEADER_MAP = {
   "وضعیت تماشا": "watched", "وضعیت مشاهده": "watched",
   "دیده شده": "watched", "دیده‌شده": "watched",
   "تماشا شده": "watched", "تماشا‌شده": "watched",
+  myrating: "myRating", "my rating": "myRating", "امتیاز من": "myRating", "نمره من": "myRating",
+  criterion: "criterion", "کرایتریون": "criterion", "نسخه کرایتریون": "criterion",
 }
 
 // Empty or unrecognised values are left untouched during an import. This makes
@@ -69,8 +71,9 @@ export function rowToFilm(row, index) {
     let v = parseCell(val)
     if (field === "cast" || field === "genre") v = toList(v)
     if (field === "rating") v = v ? parseFloat(v) : undefined
+    if (field === "myRating") v = v ? Math.max(0, Math.min(5, parseInt(v, 10))) : undefined
     if (field === "year" || field === "runtime") v = v ? parseInt(v, 10) : undefined
-    if (field === "watched") v = parseWatched(v)
+    if (field === "watched" || field === "criterion") v = parseWatched(v)
     if (v === "" || v === undefined) continue
     film[field] = v
   }
@@ -82,7 +85,7 @@ export const EDITABLE = [
   "title", "originalTitle", "shelf", "row", "director", "cast",
   "year", "genre", "rating", "runtime", "country", "synopsis",
   "poster", "studio", "rated", "format", "borrowedTo", "borrowedDate",
-  "watched",
+  "watched", "myRating", "criterion",
 ]
 
 export const ENRICHABLE_FIELDS = [

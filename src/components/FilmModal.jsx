@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { IconClose, IconPin, IconHandshake, IconBuilding } from './icons.jsx'
+import StarRating from './StarRating.jsx'
 
 export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onClose, panel = false }) {
   const [showAllCast, setShowAllCast] = useState(false)
@@ -116,6 +117,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             <span className={`format-badge ${mediaFormat.toLowerCase().includes('4k') ? 'fmt-4k' : mediaFormat.toLowerCase().replace(/[^a-z0-9]/g, '')}`}>
               {mediaFormat}
             </span>
+            {film.criterion && <span className="criterion-badge criterion-badge-modal">CRITERION</span>}
           </div>
           {metaSubParts.length > 0 && (
             <p className="cine-subtitle">{metaSubParts.join(' | ')}</p>
@@ -225,6 +227,13 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       {formatVotesK(film.imdbVotes)} votes
                     </div>
                   </a>
+                )}
+
+                {film.myRating > 0 && (
+                  <div className="my-rating-box" title="My rating">
+                    <span className="my-rating-label">MY RATING</span>
+                    <StarRating value={film.myRating} size={15} />
+                  </div>
                 )}
               </div>
             </div>
