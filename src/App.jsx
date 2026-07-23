@@ -12,6 +12,11 @@ import { IconArchive } from './components/icons.jsx'
 
 export default function App() {
   const [films, setFilms] = useState([])
+  // نسخه‌ی فیلترنشده و کامل آرشیو - فقط برای جستجوی «این بازیگر/کارگردان
+  // چندتا فیلم داره» توی PersonModal، چون films (بالا) بسته به فیلترهای
+  // فعلی کاربر (دهه، حرف الفبا، ژانر و...) محدود می‌شه و فیلموگرافی ناقص
+  // نشون می‌ده.
+  const [allFilmsUnfiltered, setAllFilmsUnfiltered] = useState([])
   const [genres, setGenres] = useState([])
   const [decades, setDecades] = useState([])
   const [query, setQuery] = useState('')
@@ -131,6 +136,7 @@ export default function App() {
       .then((r) => r.json())
       .then((data) => setDecades(Array.isArray(data) ? data : []))
       .catch(() => {})
+    loadAllFilmsUnfiltered()
   }, [])
 
   const refreshMeta = () => {
@@ -141,6 +147,13 @@ export default function App() {
     fetch('/api/genres')
       .then((r) => r.json())
       .then((data) => setGenres(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }
+
+  const loadAllFilmsUnfiltered = () => {
+    fetch('/api/films')
+      .then((r) => r.json())
+      .then((data) => setAllFilmsUnfiltered(Array.isArray(data) ? data : []))
       .catch(() => {})
   }
 
@@ -161,6 +174,7 @@ export default function App() {
       setAlpha('')
       loadFilms()
       refreshMeta()
+      loadAllFilmsUnfiltered()
     } catch (e) {
       showToast(e.message)
     }
@@ -186,6 +200,7 @@ export default function App() {
       }
       loadFilms()
       refreshMeta()
+      loadAllFilmsUnfiltered()
     } catch (e) {
       showToast(e.message)
     }
@@ -221,6 +236,7 @@ export default function App() {
       if (selected?.id === id) setSelected(saved)
       setEditing(saved)
       refreshMeta()
+      loadAllFilmsUnfiltered()
 
       if (_enrichment?.fields?.length) {
         showToast(`Auto-filled ${_enrichment.fields.length} missing detail${_enrichment.fields.length === 1 ? '' : 's'}`)
@@ -254,6 +270,7 @@ export default function App() {
       showToast(`Metadata complete · updated ${updated} of ${processed} films`)
       loadFilms()
       refreshMeta()
+      loadAllFilmsUnfiltered()
     } catch (e) {
       showToast(e.message)
     } finally {
@@ -374,7 +391,7 @@ export default function App() {
       {selectedPerson && (
         <PersonModal
           personName={selectedPerson}
-          allFilms={films}
+          allFilms={allFilmsUnfiltered}
           onSelectFilm={(film) => {
             setSelectedPerson(null)
             setSelected(film)
