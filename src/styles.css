@@ -1289,9 +1289,9 @@ body.light .header {
 
 .cine-actor-avatar-wrap {
   position: relative;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
+  width: 46px;
+  height: 46px;
+  border-radius: 9px;
   overflow: hidden;
   background: var(--border-strong);
   border: 1.5px solid var(--border-strong);
@@ -1446,10 +1446,27 @@ body.light .header {
 }
 .person-header {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  align-items: flex-start;
+  gap: 20px;
   border-bottom: 1px solid var(--border-strong);
   padding-bottom: 16px;
+}
+.person-avatar-circle.person-avatar-large {
+  width: 96px;
+  height: 96px;
+  font-size: 38px;
+}
+.person-bio {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  opacity: 0.85;
+  max-width: 62ch;
+}
+.person-bio-loading {
+  color: var(--muted);
+  font-style: italic;
 }
 .person-avatar-circle {
   width: 54px;

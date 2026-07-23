@@ -194,23 +194,24 @@ export default {
         }
       }
 
-      // ---- GET /api/actor-photo (real headshot from Wikipedia, cached in D1) ----
+      // ---- GET /api/actor-photo (real headshot + short bio from Wikipedia, cached in D1) ----
       if (method === 'GET' && pathname === '/api/actor-photo') {
         const name = (url.searchParams.get('name') || '').trim()
-        if (!name) return json({ photo: null }, 200, corsHeaders)
+        if (!name) return json({ photo: null, bio: null }, 200, corsHeaders)
         const cacheKey = name.toLowerCase()
 
         try {
           const cached = await db
-            .prepare('SELECT photo FROM people_photos WHERE name = ?')
+            .prepare('SELECT photo, bio FROM people_photos WHERE name = ?')
             .bind(cacheKey)
             .first()
-          if (cached) return json({ photo: cached.photo || null }, 200, corsHeaders)
+          if (cached) return json({ photo: cached.photo || null, bio: cached.bio || null }, 200, corsHeaders)
 
           let photo = null
+          let bio = null
           try {
             const wikiRes = await fetch(
-              `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=200&titles=${encodeURIComponent(name)}`,
+              `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages%7Cextracts&piprop=thumbnail&pithumbsize=200&exintro=1&explaintext=1&exsentences=3&titles=${encodeURIComponent(name)}`,
               { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
             )
             if (wikiRes.ok) {
@@ -218,19 +219,20 @@ export default {
               const pages = data?.query?.pages || {}
               const page = Object.values(pages)[0]
               if (page && page.thumbnail?.source) photo = page.thumbnail.source
+              if (page && page.extract) bio = page.extract.trim()
             }
           } catch {
-            // شبکه/ویکی‌پدیا در دسترس نبود؛ عکس رو null نگه می‌داریم (نه کش)
-            return json({ photo: null }, 200, corsHeaders)
+            // شبکه/ویکی‌پدیا در دسترس نبود؛ چیزی رو کش نمی‌کنیم
+            return json({ photo: null, bio: null }, 200, corsHeaders)
           }
 
           await db
-            .prepare('INSERT OR REPLACE INTO people_photos (name, photo) VALUES (?, ?)')
-            .bind(cacheKey, photo)
+            .prepare('INSERT OR REPLACE INTO people_photos (name, photo, bio) VALUES (?, ?, ?)')
+            .bind(cacheKey, photo, bio)
             .run()
-          return json({ photo }, 200, corsHeaders)
+          return json({ photo, bio }, 200, corsHeaders)
         } catch (e) {
-          return json({ photo: null }, 200, corsHeaders)
+          return json({ photo: null, bio: null }, 200, corsHeaders)
         }
       }
 

@@ -272,27 +272,30 @@ app.get('/api/omdb-lookup', async (req, res) => {
 const actorPhotoCache = new Map()
 app.get('/api/actor-photo', async (req, res) => {
   const name = (req.query.name || '').toString().trim()
-  if (!name) return res.json({ photo: null })
+  if (!name) return res.json({ photo: null, bio: null })
   const cacheKey = name.toLowerCase()
   if (actorPhotoCache.has(cacheKey)) {
-    return res.json({ photo: actorPhotoCache.get(cacheKey) })
+    return res.json(actorPhotoCache.get(cacheKey))
   }
   try {
     const wikiRes = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=200&titles=${encodeURIComponent(name)}`,
+      `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages%7Cextracts&piprop=thumbnail&pithumbsize=200&exintro=1&explaintext=1&exsentences=3&titles=${encodeURIComponent(name)}`,
       { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
     )
     let photo = null
+    let bio = null
     if (wikiRes.ok) {
       const data = await wikiRes.json()
       const pages = data?.query?.pages || {}
       const page = Object.values(pages)[0]
       if (page && page.thumbnail?.source) photo = page.thumbnail.source
+      if (page && page.extract) bio = page.extract.trim()
     }
-    actorPhotoCache.set(cacheKey, photo)
-    res.json({ photo })
+    const result = { photo, bio }
+    actorPhotoCache.set(cacheKey, result)
+    res.json(result)
   } catch (e) {
-    res.json({ photo: null })
+    res.json({ photo: null, bio: null })
   }
 })
 

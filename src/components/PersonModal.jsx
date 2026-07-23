@@ -3,6 +3,8 @@ import { IconClose, IconUser, IconPin } from './icons.jsx'
 
 export default function PersonModal({ personName, allFilms, onSelectFilm, onClose }) {
   const [photo, setPhoto] = useState(null)
+  const [bio, setBio] = useState(null)
+  const [bioLoading, setBioLoading] = useState(false)
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -16,14 +18,22 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
 
   useEffect(() => {
     setPhoto(null)
+    setBio(null)
     if (!personName) return
+    setBioLoading(true)
     let cancelled = false
     fetch(`/api/actor-photo?name=${encodeURIComponent(personName)}`)
       .then((r) => r.json())
       .then((data) => {
-        if (!cancelled) setPhoto(data.photo || null)
+        if (!cancelled) {
+          setPhoto(data.photo || null)
+          setBio(data.bio || null)
+        }
       })
       .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setBioLoading(false)
+      })
     return () => {
       cancelled = true
     }
@@ -55,11 +65,11 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
         </button>
 
         <div className="person-header">
-          <div className="person-avatar-circle">
+          <div className="person-avatar-circle person-avatar-large">
             {photo ? (
               <img src={photo} alt={personName} className="person-avatar-photo" />
             ) : (
-              personName[0]?.toUpperCase() || <IconUser width={22} height={22} />
+              personName[0]?.toUpperCase() || <IconUser width={36} height={36} />
             )}
           </div>
           <div>
@@ -67,6 +77,11 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
             <p className="person-subtitle">
               Found <strong>{matchingFilms.length}</strong> film(s) in your archive
             </p>
+            {bioLoading ? (
+              <p className="person-bio person-bio-loading">در حال بارگذاری بیوگرافی…</p>
+            ) : bio ? (
+              <p className="person-bio">{bio}</p>
+            ) : null}
           </div>
         </div>
 
