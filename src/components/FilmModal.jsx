@@ -152,7 +152,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
 
               <div className="cine-top-badges-column">
-                {(film.shelf || film.row) && (
+                {(film.shelf || film.row) && film.mediaType !== 'digital' && (
                   <div className="cine-shelf-badge">
                     <span className="shelf-icon">
                       <IconPin width={13} height={13} />
@@ -161,6 +161,23 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       Shelf <strong>{film.shelf || '—'}</strong> / Row{' '}
                       <strong>{film.row || '—'}</strong>
                     </span>
+                  </div>
+                )}
+
+                {film.mediaType === 'digital' && (
+                  <div className="cine-shelf-badge cine-drive-badge">
+                    <span className="shelf-icon">
+                      <IconPin width={13} height={13} />
+                    </span>
+                    <span>
+                      Drive <strong>{film.driveNumber || '—'}</strong>
+                    </span>
+                  </div>
+                )}
+
+                {film.itemType === 'series' && film.seasonsEpisodes && (
+                  <div className="cine-shelf-badge cine-series-badge">
+                    {film.seasonsEpisodes}
                   </div>
                 )}
 
@@ -233,6 +250,13 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                   <div className="my-rating-box" title="My rating">
                     <span className="my-rating-label">MY RATING</span>
                     <StarRating value={film.myRating} size={15} />
+                  </div>
+                )}
+
+                {film.copies > 1 && (
+                  <div className="copies-box" title={`You own ${film.copies} copies of this title`}>
+                    <span className="copies-number">{film.copies}</span>
+                    <span className="copies-label">COPIES</span>
                   </div>
                 )}
               </div>

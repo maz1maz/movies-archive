@@ -5,6 +5,7 @@ import FilmList from './components/FilmList.jsx'
 import FilmModal from './components/FilmModal.jsx'
 import EditModal from './components/EditModal.jsx'
 import PersonModal from './components/PersonModal.jsx'
+import CollectionsView from './components/CollectionsView.jsx'
 import StatsModal from './components/StatsModal.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import LoanModal from './components/LoanModal.jsx'
@@ -336,6 +337,10 @@ export default function App() {
           </div>
         ) : view === 'list' ? (
           <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} />
+        ) : view === 'digital' ? (
+          <FilmGrid films={films.filter((f) => f.mediaType === 'digital')} onSelect={setSelected} />
+        ) : view === 'collections' ? (
+          <CollectionsView films={allFilmsUnfiltered} onSelect={setSelected} />
         ) : useSplitView && selected ? (
           <div className="grid-split">
             <div className="grid-split-grid">

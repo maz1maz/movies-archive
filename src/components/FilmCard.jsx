@@ -22,7 +22,8 @@ function hashCode(str) {
 
 export default function FilmCard({ film, onSelect }) {
   const [c1, c2] = PALETTE[hashCode(String(film.id)) % PALETTE.length]
-  const hasLocation = film.shelf || film.row
+  const isDigital = film.mediaType === 'digital'
+  const hasLocation = isDigital ? film.driveNumber : film.shelf || film.row
 
   return (
     <button
@@ -57,13 +58,17 @@ export default function FilmCard({ film, onSelect }) {
         </span>
         {hasLocation && (
           <span className="location-badge">
-            <IconPin width={11} height={11} /> {film.shelf || '–'}-{film.row || '–'}
+            <IconPin width={11} height={11} />{' '}
+            {isDigital ? film.driveNumber : `${film.shelf || '–'}-${film.row || '–'}`}
           </span>
         )}
         {film.criterion && <span className="criterion-badge">CRITERION</span>}
       </div>
       <div className="card-body">
-        <h3 className="card-title">{film.title}</h3>
+        <h3 className="card-title">
+          {film.title}
+          {film.copies > 1 && <span className="copies-badge">×{film.copies}</span>}
+        </h3>
         <p className="card-meta">
           {film.year || '—'} · {(film.genre || []).slice(0, 2).join(', ')}
         </p>

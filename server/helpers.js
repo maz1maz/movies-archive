@@ -28,6 +28,11 @@ export const HEADER_MAP = {
   "تماشا شده": "watched", "تماشا‌شده": "watched",
   myrating: "myRating", "my rating": "myRating", "امتیاز من": "myRating", "نمره من": "myRating",
   criterion: "criterion", "کرایتریون": "criterion", "نسخه کرایتریون": "criterion",
+  copies: "copies", "تعداد نسخه": "copies", "نسخه ها": "copies", "تعداد": "copies",
+  mediatype: "mediaType", "نوع رسانه": "mediaType", digital: "mediaType",
+  drivenumber: "driveNumber", "شماره هارد": "driveNumber", "هارد": "driveNumber", drive: "driveNumber",
+  itemtype: "itemType", "نوع محتوا": "itemType", "فیلم یا سریال": "itemType", type: "itemType",
+  seasonsepisodes: "seasonsEpisodes", "فصل و قسمت": "seasonsEpisodes", seasons: "seasonsEpisodes",
 }
 
 // Empty or unrecognised values are left untouched during an import. This makes
@@ -72,6 +77,9 @@ export function rowToFilm(row, index) {
     if (field === "cast" || field === "genre") v = toList(v)
     if (field === "rating") v = v ? parseFloat(v) : undefined
     if (field === "myRating") v = v ? Math.max(0, Math.min(5, parseInt(v, 10))) : undefined
+    if (field === "copies") v = v ? Math.max(1, parseInt(v, 10)) : undefined
+    if (field === "mediaType") v = /digital|دیجیتال/i.test(v) ? "digital" : "physical"
+    if (field === "itemType") v = /series|show|سریال/i.test(v) ? "series" : "movie"
     if (field === "year" || field === "runtime") v = v ? parseInt(v, 10) : undefined
     if (field === "watched" || field === "criterion") v = parseWatched(v)
     if (v === "" || v === undefined) continue
@@ -86,6 +94,7 @@ export const EDITABLE = [
   "year", "genre", "rating", "runtime", "country", "synopsis",
   "poster", "studio", "rated", "format", "borrowedTo", "borrowedDate",
   "watched", "myRating", "criterion",
+  "copies", "mediaType", "driveNumber", "itemType", "seasonsEpisodes",
 ]
 
 export const ENRICHABLE_FIELDS = [

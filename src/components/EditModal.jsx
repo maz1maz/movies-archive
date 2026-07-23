@@ -23,6 +23,11 @@ function toForm(film) {
     watched: film.watched === true,
     myRating: film.myRating || 0,
     criterion: film.criterion === true,
+    copies: film.copies || 1,
+    mediaType: film.mediaType === 'digital' ? 'digital' : 'physical',
+    driveNumber: film.driveNumber || '',
+    itemType: film.itemType === 'series' ? 'series' : 'movie',
+    seasonsEpisodes: film.seasonsEpisodes || '',
   }
 }
 
@@ -84,6 +89,11 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
       watched: form.watched,
       myRating: form.myRating,
       criterion: form.criterion,
+      copies: form.copies ? parseInt(form.copies, 10) : 1,
+      mediaType: form.mediaType,
+      driveNumber: form.mediaType === 'digital' ? form.driveNumber || undefined : undefined,
+      itemType: form.itemType,
+      seasonsEpisodes: form.itemType === 'series' ? form.seasonsEpisodes || undefined : undefined,
     }
     onSave(patch)
   }
@@ -129,13 +139,74 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
           </label>
 
           <label className="edit-field">
-            <span>Shelf</span>
-            <input value={form.shelf} onChange={set('shelf')} />
+            <span>Media Type</span>
+            <select
+              value={form.mediaType}
+              onChange={(event) =>
+                setForm((previous) => ({ ...previous, mediaType: event.target.value }))
+              }
+            >
+              <option value="physical">Physical</option>
+              <option value="digital">Digital</option>
+            </select>
           </label>
           <label className="edit-field">
-            <span>Row</span>
-            <input value={form.row} onChange={set('row')} />
+            <span>Content Type</span>
+            <select
+              value={form.itemType}
+              onChange={(event) =>
+                setForm((previous) => ({ ...previous, itemType: event.target.value }))
+              }
+            >
+              <option value="movie">Movie</option>
+              <option value="series">Series</option>
+            </select>
           </label>
+
+          {form.mediaType === 'digital' ? (
+            <label className="edit-field">
+              <span>Drive Number</span>
+              <input
+                value={form.driveNumber}
+                onChange={set('driveNumber')}
+                placeholder="e.g. Drive 1, Drive 2"
+              />
+            </label>
+          ) : (
+            <>
+              <label className="edit-field">
+                <span>Shelf</span>
+                <input value={form.shelf} onChange={set('shelf')} />
+              </label>
+              <label className="edit-field">
+                <span>Row</span>
+                <input value={form.row} onChange={set('row')} />
+              </label>
+            </>
+          )}
+
+          {form.itemType === 'series' && (
+            <label className="edit-field">
+              <span>Seasons / Episodes</span>
+              <input
+                value={form.seasonsEpisodes}
+                onChange={set('seasonsEpisodes')}
+                placeholder="e.g. 3 seasons, 24 episodes"
+              />
+            </label>
+          )}
+          <label className="edit-field">
+            <span>Copies owned</span>
+            <input
+              type="number"
+              min="1"
+              value={form.copies}
+              onChange={(event) =>
+                setForm((previous) => ({ ...previous, copies: event.target.value }))
+              }
+            />
+          </label>
+
           <label className="edit-field">
             <span>Year</span>
             <input type="number" value={form.year} onChange={set('year')} />
