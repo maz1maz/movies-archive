@@ -267,6 +267,35 @@ app.get('/api/omdb-lookup', async (req, res) => {
   }
 })
 
+// کش ساده‌ی حافظه‌ای برای عکس بازیگرها (فقط برای اجرای لوکال؛ نسخه‌ی
+// Cloudflare Worker از جدول D1 برای کش دائمی استفاده می‌کنه)
+const actorPhotoCache = new Map()
+app.get('/api/actor-photo', async (req, res) => {
+  const name = (req.query.name || '').toString().trim()
+  if (!name) return res.json({ photo: null })
+  const cacheKey = name.toLowerCase()
+  if (actorPhotoCache.has(cacheKey)) {
+    return res.json({ photo: actorPhotoCache.get(cacheKey) })
+  }
+  try {
+    const wikiRes = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=200&titles=${encodeURIComponent(name)}`,
+      { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
+    )
+    let photo = null
+    if (wikiRes.ok) {
+      const data = await wikiRes.json()
+      const pages = data?.query?.pages || {}
+      const page = Object.values(pages)[0]
+      if (page && page.thumbnail?.source) photo = page.thumbnail.source
+    }
+    actorPhotoCache.set(cacheKey, photo)
+    res.json({ photo })
+  } catch (e) {
+    res.json({ photo: null })
+  }
+})
+
 // ایمپورت اکسل (ادغام با داده‌های قبلی بر اساس نام فیلم)
 app.post('/api/import', upload.single('file'), async (req, res) => {
   try {

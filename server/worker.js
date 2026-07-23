@@ -194,6 +194,46 @@ export default {
         }
       }
 
+      // ---- GET /api/actor-photo (real headshot from Wikipedia, cached in D1) ----
+      if (method === 'GET' && pathname === '/api/actor-photo') {
+        const name = (url.searchParams.get('name') || '').trim()
+        if (!name) return json({ photo: null }, 200, corsHeaders)
+        const cacheKey = name.toLowerCase()
+
+        try {
+          const cached = await db
+            .prepare('SELECT photo FROM people_photos WHERE name = ?')
+            .bind(cacheKey)
+            .first()
+          if (cached) return json({ photo: cached.photo || null }, 200, corsHeaders)
+
+          let photo = null
+          try {
+            const wikiRes = await fetch(
+              `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=200&titles=${encodeURIComponent(name)}`,
+              { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
+            )
+            if (wikiRes.ok) {
+              const data = await wikiRes.json()
+              const pages = data?.query?.pages || {}
+              const page = Object.values(pages)[0]
+              if (page && page.thumbnail?.source) photo = page.thumbnail.source
+            }
+          } catch {
+            // شبکه/ویکی‌پدیا در دسترس نبود؛ عکس رو null نگه می‌داریم (نه کش)
+            return json({ photo: null }, 200, corsHeaders)
+          }
+
+          await db
+            .prepare('INSERT OR REPLACE INTO people_photos (name, photo) VALUES (?, ?)')
+            .bind(cacheKey, photo)
+            .run()
+          return json({ photo }, 200, corsHeaders)
+        } catch (e) {
+          return json({ photo: null }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/template (downloadable Excel template) ----
       if (method === 'GET' && pathname === '/api/template') {
         const ws = XLSX.utils.aoa_to_sheet([

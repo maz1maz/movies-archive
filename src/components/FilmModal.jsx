@@ -5,6 +5,7 @@ import StarRating from './StarRating.jsx'
 export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onClose, panel = false }) {
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
+  const [actorPhotos, setActorPhotos] = useState({})
 
   useEffect(() => {
     const onKey = (e) => {
@@ -34,6 +35,32 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     const scrollParent = document.querySelector('.grid-split-detail')
     if (scrollParent) scrollParent.scrollTop = 0
   }, [film.id, panel])
+
+  // عکس واقعی بازیگرها رو از ویکی‌پدیا می‌گیریم (کلید API لازم نداره).
+  // نتیجه سمت سرور هم کش می‌شه، پس دفعات بعد سریع برمی‌گرده.
+  useEffect(() => {
+    const names = Array.isArray(film?.cast)
+      ? film.cast.map((a) => (typeof a === 'object' ? a.name : a)).filter(Boolean)
+      : []
+    const toFetch = names.filter((n) => !(n in actorPhotos))
+    if (toFetch.length === 0) return
+    let cancelled = false
+    toFetch.forEach(async (name) => {
+      try {
+        const res = await fetch(`/api/actor-photo?name=${encodeURIComponent(name)}`)
+        const data = await res.json()
+        if (!cancelled) {
+          setActorPhotos((prev) => ({ ...prev, [name]: data.photo || null }))
+        }
+      } catch {
+        if (!cancelled) setActorPhotos((prev) => ({ ...prev, [name]: null }))
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [film?.id])
 
   if (!film) return null
 
@@ -80,6 +107,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
   const getActorPhoto = (actorObj, name) => {
     if (typeof actorObj === 'object' && actorObj?.photo) return actorObj.photo
+    if (actorPhotos[name]) return actorPhotos[name]
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
       name
     )}&background=334155&color=ffffff&bold=true&rounded=true`

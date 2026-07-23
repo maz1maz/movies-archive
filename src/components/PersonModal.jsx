@@ -1,7 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { IconClose, IconUser, IconPin } from './icons.jsx'
 
 export default function PersonModal({ personName, allFilms, onSelectFilm, onClose }) {
+  const [photo, setPhoto] = useState(null)
+
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -11,6 +13,21 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
       document.body.style.overflow = ''
     }
   }, [onClose])
+
+  useEffect(() => {
+    setPhoto(null)
+    if (!personName) return
+    let cancelled = false
+    fetch(`/api/actor-photo?name=${encodeURIComponent(personName)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) setPhoto(data.photo || null)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [personName])
 
   if (!personName) return null
 
@@ -39,7 +56,11 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
 
         <div className="person-header">
           <div className="person-avatar-circle">
-            {personName[0]?.toUpperCase() || <IconUser width={22} height={22} />}
+            {photo ? (
+              <img src={photo} alt={personName} className="person-avatar-photo" />
+            ) : (
+              personName[0]?.toUpperCase() || <IconUser width={22} height={22} />
+            )}
           </div>
           <div>
             <h2 className="person-title">{personName}</h2>
