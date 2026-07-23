@@ -202,12 +202,12 @@ export default {
 
         try {
           const cached = await db
-            .prepare('SELECT photo, bio, birthDate, height, spouse, children FROM people_photos WHERE name = ?')
+            .prepare('SELECT photo, bio, birthDate, deathDate, height, spouse, children FROM people_photos WHERE name = ?')
             .bind(cacheKey)
             .first()
           if (cached) {
             return json(
-              { ...cached, age: ageFromBirthDate(cached.birthDate) },
+              { ...cached, age: cached.deathDate ? null : ageFromBirthDate(cached.birthDate) },
               200,
               corsHeaders
             )
@@ -230,14 +230,15 @@ export default {
               if (wikidataId) {
                 const wd = await fetchWikidataFacts(wikidataId)
                 info.birthDate = wd.birthDate
+                info.deathDate = wd.deathDate
                 info.height = wd.height
                 const idsToResolve = [...wd.spouseIds, ...wd.childrenIds]
                 const labels = idsToResolve.length ? await resolveWikidataLabels(idsToResolve) : {}
                 if (wd.spouseIds.length) {
-                  info.spouse = wd.spouseIds.map((id) => labels[id]).filter(Boolean).join('، ') || null
+                  info.spouse = wd.spouseIds.map((id) => labels[id]).filter(Boolean).join(', ') || null
                 }
                 if (wd.childrenIds.length) {
-                  info.children = wd.childrenIds.map((id) => labels[id]).filter(Boolean).join('، ') || null
+                  info.children = wd.childrenIds.map((id) => labels[id]).filter(Boolean).join(', ') || null
                 }
               }
             }
@@ -248,11 +249,15 @@ export default {
 
           await db
             .prepare(
-              'INSERT OR REPLACE INTO people_photos (name, photo, bio, birthDate, height, spouse, children) VALUES (?, ?, ?, ?, ?, ?, ?)'
+              'INSERT OR REPLACE INTO people_photos (name, photo, bio, birthDate, deathDate, height, spouse, children) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
             )
-            .bind(cacheKey, info.photo, info.bio, info.birthDate, info.height, info.spouse, info.children)
+            .bind(cacheKey, info.photo, info.bio, info.birthDate, info.deathDate, info.height, info.spouse, info.children)
             .run()
-          return json({ ...info, age: ageFromBirthDate(info.birthDate) }, 200, corsHeaders)
+          return json(
+            { ...info, age: info.deathDate ? null : ageFromBirthDate(info.birthDate) },
+            200,
+            corsHeaders
+          )
         } catch (e) {
           return json(emptyPersonInfo(), 200, corsHeaders)
         }
@@ -353,7 +358,15 @@ export default {
 // ---------- Helpers ----------
 
 function emptyPersonInfo() {
-  return { photo: null, bio: null, birthDate: null, height: null, spouse: null, children: null }
+  return {
+    photo: null,
+    bio: null,
+    birthDate: null,
+    deathDate: null,
+    height: null,
+    spouse: null,
+    children: null,
+  }
 }
 
 function ageFromBirthDate(birthDate) {
@@ -376,7 +389,7 @@ function ageFromBirthDate(birthDate) {
 // فقط متن آزاد. همسر/فرزندان اینجا هنوز فقط شناسه (Q-id) هستن، اسم واقعی‌شون
 // رو resolveWikidataLabels جداگانه می‌گیره.
 async function fetchWikidataFacts(qid) {
-  const empty = { birthDate: null, height: null, spouseIds: [], childrenIds: [] }
+  const empty = { birthDate: null, deathDate: null, height: null, spouseIds: [], childrenIds: [] }
   try {
     const res = await fetch(
       `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qid}&props=claims&format=json`,
@@ -391,11 +404,23 @@ async function fetchWikidataFacts(qid) {
     const bm = birthTime && birthTime.match(/^\+(\d{4})-(\d{2})-(\d{2})/)
     if (bm) birthDate = `${bm[1]}-${bm[2]}-${bm[3]}`
 
+    let deathDate = null
+    const deathTime = claims.P570?.[0]?.mainsnak?.datavalue?.value?.time
+    const dm = deathTime && deathTime.match(/^\+(\d{4})-(\d{2})-(\d{2})/)
+    if (dm) deathDate = `${dm[1]}-${dm[2]}-${dm[3]}`
+
+    // قد روی Wikidata گاهی به متر ذخیره می‌شه (Q11573) و گاهی مستقیم به
+    // سانتی‌متر (Q174728) — قبلاً همیشه فرض می‌شد متره و ضربدر ۱۰۰ می‌شد،
+    // که برای مقادیری که از قبل سانتی‌متر بودن یه عدد مسخره مثل ۱۷۰۰۰ می‌داد.
     let height = null
     const heightVal = claims.P2048?.[0]?.mainsnak?.datavalue?.value
     if (heightVal?.amount) {
-      const metres = parseFloat(heightVal.amount)
-      if (!isNaN(metres)) height = `${Math.round(metres * 100)} cm`
+      const num = parseFloat(heightVal.amount)
+      const unit = String(heightVal.unit || '')
+      if (!isNaN(num)) {
+        if (unit.endsWith('Q174728')) height = `${Math.round(num)} cm` // واحد از قبل سانتی‌متره
+        else height = `${Math.round(num * 100)} cm` // واحد پیش‌فرض/معمول: متر (Q11573)
+      }
     }
 
     const spouseIds = (claims.P26 || [])
@@ -407,7 +432,7 @@ async function fetchWikidataFacts(qid) {
       .filter(Boolean)
       .slice(0, 6)
 
-    return { birthDate, height, spouseIds, childrenIds }
+    return { birthDate, deathDate, height, spouseIds, childrenIds }
   } catch {
     return empty
   }

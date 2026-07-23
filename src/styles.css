@@ -1490,6 +1490,13 @@ body.light .header {
   font-weight: 700;
   margin-inline-end: 5px;
 }
+.person-fact-chip-deceased {
+  background: var(--surface-3, var(--surface-2));
+  border-color: var(--border-strong);
+}
+.person-avatar-deceased .person-avatar-photo {
+  filter: grayscale(1) contrast(1.05);
+}
 .person-avatar-circle {
   width: 54px;
   height: 54px;

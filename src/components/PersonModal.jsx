@@ -4,7 +4,14 @@ import { IconClose, IconUser, IconPin } from './icons.jsx'
 export default function PersonModal({ personName, allFilms, onSelectFilm, onClose }) {
   const [photo, setPhoto] = useState(null)
   const [bio, setBio] = useState(null)
-  const [facts, setFacts] = useState({ age: null, height: null, spouse: null, children: null })
+  const [facts, setFacts] = useState({
+    age: null,
+    birthDate: null,
+    deathDate: null,
+    height: null,
+    spouse: null,
+    children: null,
+  })
   const [bioLoading, setBioLoading] = useState(false)
 
   useEffect(() => {
@@ -20,7 +27,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   useEffect(() => {
     setPhoto(null)
     setBio(null)
-    setFacts({ age: null, height: null, spouse: null, children: null })
+    setFacts({ age: null, birthDate: null, deathDate: null, height: null, spouse: null, children: null })
     if (!personName) return
     setBioLoading(true)
     let cancelled = false
@@ -32,6 +39,8 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
           setBio(data.bio || null)
           setFacts({
             age: data.age ?? null,
+            birthDate: data.birthDate || null,
+            deathDate: data.deathDate || null,
             height: data.height || null,
             spouse: data.spouse || null,
             children: data.children || null,
@@ -48,6 +57,10 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   }, [personName])
 
   if (!personName) return null
+
+  const isDeceased = Boolean(facts.deathDate)
+  const birthYear = facts.birthDate ? facts.birthDate.slice(0, 4) : null
+  const deathYear = facts.deathDate ? facts.deathDate.slice(0, 4) : null
 
   const target = personName.trim().toLowerCase()
 
@@ -73,7 +86,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
         </button>
 
         <div className="person-header">
-          <div className="person-avatar-circle person-avatar-large">
+          <div className={isDeceased ? 'person-avatar-circle person-avatar-large person-avatar-deceased' : 'person-avatar-circle person-avatar-large'}>
             {photo ? (
               <img src={photo} alt={personName} className="person-avatar-photo" />
             ) : (
@@ -85,32 +98,38 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
             <p className="person-subtitle">
               Found <strong>{matchingFilms.length}</strong> film(s) in your archive
             </p>
-            {(facts.age || facts.height || facts.spouse || facts.children) && (
+            {(facts.age || isDeceased || facts.height || facts.spouse || facts.children) && (
               <div className="person-facts-row">
-                {facts.age && (
-                  <span className="person-fact-chip">
-                    <b>سن</b> {facts.age}
+                {isDeceased ? (
+                  <span className="person-fact-chip person-fact-chip-deceased">
+                    <b>Deceased</b> {birthYear && deathYear ? `${birthYear}–${deathYear}` : deathYear}
                   </span>
+                ) : (
+                  facts.age && (
+                    <span className="person-fact-chip">
+                      <b>Age</b> {facts.age}
+                    </span>
+                  )
                 )}
                 {facts.height && (
                   <span className="person-fact-chip">
-                    <b>قد</b> {facts.height}
+                    <b>Height</b> {facts.height}
                   </span>
                 )}
                 {facts.spouse && (
                   <span className="person-fact-chip">
-                    <b>همسر</b> {facts.spouse}
+                    <b>Spouse</b> {facts.spouse}
                   </span>
                 )}
                 {facts.children && (
                   <span className="person-fact-chip">
-                    <b>فرزندان</b> {facts.children}
+                    <b>Children</b> {facts.children}
                   </span>
                 )}
               </div>
             )}
             {bioLoading ? (
-              <p className="person-bio person-bio-loading">در حال بارگذاری بیوگرافی…</p>
+              <p className="person-bio person-bio-loading">Loading biography…</p>
             ) : bio ? (
               <p className="person-bio">{bio}</p>
             ) : null}

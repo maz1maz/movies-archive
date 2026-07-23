@@ -287,7 +287,7 @@ function ageFromBirthDate(birthDate) {
 }
 
 async function fetchWikidataFacts(qid) {
-  const empty = { birthDate: null, height: null, spouseIds: [], childrenIds: [] }
+  const empty = { birthDate: null, deathDate: null, height: null, spouseIds: [], childrenIds: [] }
   try {
     const res = await fetch(
       `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qid}&props=claims&format=json`,
@@ -302,11 +302,23 @@ async function fetchWikidataFacts(qid) {
     const bm = birthTime && birthTime.match(/^\+(\d{4})-(\d{2})-(\d{2})/)
     if (bm) birthDate = `${bm[1]}-${bm[2]}-${bm[3]}`
 
+    let deathDate = null
+    const deathTime = claims.P570?.[0]?.mainsnak?.datavalue?.value?.time
+    const dm = deathTime && deathTime.match(/^\+(\d{4})-(\d{2})-(\d{2})/)
+    if (dm) deathDate = `${dm[1]}-${dm[2]}-${dm[3]}`
+
+    // قد روی Wikidata گاهی به متر ذخیره می‌شه (Q11573) و گاهی مستقیم به
+    // سانتی‌متر (Q174728) — قبلاً همیشه فرض می‌شد متره که برای مقادیر
+    // سانتی‌متری یه عدد مسخره مثل ۱۷۰۰۰ می‌داد.
     let height = null
     const heightVal = claims.P2048?.[0]?.mainsnak?.datavalue?.value
     if (heightVal?.amount) {
-      const metres = parseFloat(heightVal.amount)
-      if (!isNaN(metres)) height = `${Math.round(metres * 100)} cm`
+      const num = parseFloat(heightVal.amount)
+      const unit = String(heightVal.unit || '')
+      if (!isNaN(num)) {
+        if (unit.endsWith('Q174728')) height = `${Math.round(num)} cm`
+        else height = `${Math.round(num * 100)} cm`
+      }
     }
 
     const spouseIds = (claims.P26 || [])
@@ -318,7 +330,7 @@ async function fetchWikidataFacts(qid) {
       .filter(Boolean)
       .slice(0, 6)
 
-    return { birthDate, height, spouseIds, childrenIds }
+    return { birthDate, deathDate, height, spouseIds, childrenIds }
   } catch {
     return empty
   }
@@ -345,13 +357,14 @@ async function resolveWikidataLabels(ids) {
 
 app.get('/api/actor-photo', async (req, res) => {
   const name = (req.query.name || '').toString().trim()
-  if (!name) return res.json({ photo: null, bio: null, birthDate: null, height: null, spouse: null, children: null, age: null })
+  const empty = { photo: null, bio: null, birthDate: null, deathDate: null, height: null, spouse: null, children: null, age: null }
+  if (!name) return res.json(empty)
   const cacheKey = name.toLowerCase()
   if (actorPhotoCache.has(cacheKey)) {
     const cached = actorPhotoCache.get(cacheKey)
-    return res.json({ ...cached, age: ageFromBirthDate(cached.birthDate) })
+    return res.json({ ...cached, age: cached.deathDate ? null : ageFromBirthDate(cached.birthDate) })
   }
-  const info = { photo: null, bio: null, birthDate: null, height: null, spouse: null, children: null }
+  const info = { photo: null, bio: null, birthDate: null, deathDate: null, height: null, spouse: null, children: null }
   try {
     const wikiRes = await fetch(
       `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages%7Cextracts%7Cpageprops&piprop=thumbnail&pithumbsize=200&exintro=1&explaintext=1&exsentences=3&titles=${encodeURIComponent(name)}`,
@@ -368,17 +381,18 @@ app.get('/api/actor-photo', async (req, res) => {
       if (wikidataId) {
         const wd = await fetchWikidataFacts(wikidataId)
         info.birthDate = wd.birthDate
+        info.deathDate = wd.deathDate
         info.height = wd.height
         const idsToResolve = [...wd.spouseIds, ...wd.childrenIds]
         const labels = idsToResolve.length ? await resolveWikidataLabels(idsToResolve) : {}
-        if (wd.spouseIds.length) info.spouse = wd.spouseIds.map((id) => labels[id]).filter(Boolean).join('، ') || null
-        if (wd.childrenIds.length) info.children = wd.childrenIds.map((id) => labels[id]).filter(Boolean).join('، ') || null
+        if (wd.spouseIds.length) info.spouse = wd.spouseIds.map((id) => labels[id]).filter(Boolean).join(', ') || null
+        if (wd.childrenIds.length) info.children = wd.childrenIds.map((id) => labels[id]).filter(Boolean).join(', ') || null
       }
     }
     actorPhotoCache.set(cacheKey, info)
-    res.json({ ...info, age: ageFromBirthDate(info.birthDate) })
+    res.json({ ...info, age: info.deathDate ? null : ageFromBirthDate(info.birthDate) })
   } catch (e) {
-    res.json({ photo: null, bio: null, birthDate: null, height: null, spouse: null, children: null, age: null })
+    res.json(empty)
   }
 })
 
