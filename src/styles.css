@@ -1728,3 +1728,56 @@ body.light .header {
     display: none;
   }
 }
+
+/* ---------- Similar films (was completely unstyled — posters rendered at
+   full natural image size, which is why they looked huge) ---------- */
+.similar-films {
+  margin: 18px 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.similar-films-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.similar-films-grid button {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+}
+.similar-films-grid img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  transition: border-color 0.15s;
+}
+.similar-films-grid button:hover img {
+  border-color: var(--border-strong);
+}
+.similar-films-grid span {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 430px) {
+  .similar-films-grid {
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  }
+}
