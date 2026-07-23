@@ -24,6 +24,16 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     }
   }, [onClose, panel])
 
+  // وقتی فیلم انتخاب‌شده عوض می‌شه (مثلاً با کلیک روی یکی از «فیلم‌های
+  // مشابه» که خودش پایین پنل قرار داره)، اگه کاربر توی پنل اسکرول کرده
+  // بود، اسکرول قدیمی می‌موند و فیلم جدید از وسط/پایین نشون داده می‌شد.
+  // برای همین با هر تغییر فیلم، پنل رو به بالا برمی‌گردونیم.
+  useEffect(() => {
+    if (!panel) return
+    const scrollParent = document.querySelector('.grid-split-detail')
+    if (scrollParent) scrollParent.scrollTop = 0
+  }, [film.id, panel])
+
   if (!film) return null
 
   const formatRuntime = (min) => {
