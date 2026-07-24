@@ -1691,8 +1691,8 @@ body.light .header {
   margin-top: 8px;
 }
 
-/* ---------- Mobile: overflow menu for secondary header actions ---------- */
-.actions-more-wrap {
+/* ---------- Header: hamburger menu (always collapsed, all screen sizes) ---------- */
+.header-menu-wrap {
   position: relative;
   z-index: 56;
 }
@@ -1702,89 +1702,136 @@ body.light .header {
   z-index: 55;
   background: transparent;
 }
-.menu-toggle {
+.header-menu-panel {
   display: none;
 }
-.actions-extra {
-  display: contents;
+.header-menu-panel.open {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 8px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  z-index: 60;
+  min-width: 240px;
 }
+.header-menu-section-title {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+  padding: 0 4px;
+}
+.header-menu-section {
+  display: flex;
+  flex-direction: column;
+}
+.header-menu-section + .header-menu-section {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.header-menu-panel button,
+.header-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--text);
+  text-decoration: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.header-menu-panel button:hover,
+.header-menu-link:hover {
+  background: var(--surface-2);
+}
+.header-menu-panel button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ---------- Header: A-Z popover (compact, not a permanent full row) ---------- */
+.az-popover-wrap {
+  position: relative;
+}
+.az-popover {
+  display: none;
+}
+.az-popover.open {
+  display: block;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(360px, 90vw);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  box-shadow: var(--shadow);
+  z-index: 60;
+}
+.az-popover .alpha-bar {
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* ---------- Header: filters, always collapsed behind a toggle ---------- */
 .filters-toggle {
-  display: none;
   position: relative;
   z-index: 56;
 }
 .controls-filters {
-  display: contents;
+  display: none;
 }
-.view-toggle-label {
-  display: inline;
+.controls-filters.open {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  gap: 8px;
+  margin-top: 4px;
 }
-
-@media (max-width: 780px) {
-  .menu-toggle {
-    display: inline-flex;
-    padding: 9px 11px;
-  }
-  .actions-extra {
-    display: none;
-  }
-  .actions-extra.open {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    inset-inline-end: 0;
-    top: calc(100% + 6px);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 8px;
-    box-shadow: var(--shadow);
-    z-index: 60;
-    min-width: 230px;
-  }
-  .actions-extra .btn {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .filters-toggle {
-    display: inline-flex;
-  }
-  .controls-filters {
-    display: none;
-  }
-  .controls-filters.open {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    width: 100%;
-    gap: 8px;
-    margin-top: 4px;
-  }
-  .controls-filters .select {
-    width: 100%;
-  }
-
-  .alpha-bar {
-    flex-wrap: nowrap !important;
-    justify-content: flex-start !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-  }
-  .alpha-bar::-webkit-scrollbar {
-    display: none;
-  }
-  .alpha-btn {
-    flex: 0 0 auto !important;
-  }
+.controls-filters .select {
+  width: 100%;
 }
 
 @media (max-width: 430px) {
   .view-toggle-label {
     display: none;
   }
+}
+
+/* ---------- Header: condenses on scroll ---------- */
+.header-condensed .brand-owner,
+.header-condensed .brand-sub {
+  display: none;
+}
+.header-condensed .header-inner {
+  padding: 10px 0;
+}
+.header-condensed .brand-icon {
+  width: 28px;
+  height: 28px;
+}
+.header-condensed .brand-title {
+  font-size: 15px;
+}
+.header {
+  transition: padding 0.15s ease;
 }
 
 /* ---------- Similar films (was completely unstyled — posters rendered at
