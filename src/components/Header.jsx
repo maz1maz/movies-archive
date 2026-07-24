@@ -46,6 +46,7 @@ export default function Header({
   sort,
   setSort,
   total,
+  section,
   onImport,
   onAddFilm,
   onEnrichCatalog,
@@ -97,7 +98,9 @@ export default function Header({
           <div className="brand-text">
             <h1 className="brand-title">CINEFILM ARCHIVE</h1>
             <p className="brand-owner">Alireza Mazlaghani</p>
-            <p className="brand-sub">{total} physical films</p>
+            <p className="brand-sub">
+              {total} {section === 'digital-movie' ? 'digital movies' : section === 'digital-series' ? 'digital series' : 'physical films'}
+            </p>
           </div>
         </button>
 

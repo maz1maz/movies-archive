@@ -380,6 +380,7 @@ export default function App() {
         sort={sort}
         setSort={setSort}
         total={sectionFilms.length}
+        section={section}
         onImport={handleImport}
         onAddFilm={() => setAdding(true)}
         onEnrichCatalog={handleEnrichCatalog}
