@@ -11,6 +11,10 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
   useEffect(() => {
     const onKey = (e) => {
+      // اگه لایت‌باکس بازه، Escape/جهت‌نماها فقط باید خودِ لایت‌باکس رو
+      // ببنده یا نادیده گرفته بشه — نباید همزمان کل مودال فیلم رو هم ببنده
+      // یا فیلم رو عوض کنه در حالی که کاربر داره پوستر رو زوم می‌کنه.
+      if (lightboxSrc) return
       if (e.key === 'Escape') onClose()
       if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && films.length && onNavigate) {
         const i = films.findIndex((f) => f.id === film.id)
@@ -26,7 +30,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       window.removeEventListener('keydown', onKey)
       if (!panel) document.body.style.overflow = ''
     }
-  }, [onClose, panel])
+  }, [onClose, panel, lightboxSrc, films, film.id, onNavigate])
 
   // وقتی فیلم انتخاب‌شده عوض می‌شه (مثلاً با کلیک روی یکی از «فیلم‌های
   // مشابه» که خودش پایین پنل قرار داره)، اگه کاربر توی پنل اسکرول کرده

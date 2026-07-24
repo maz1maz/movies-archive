@@ -10,9 +10,20 @@ export default function ImageLightbox({ src, alt, onClose, grayscale = false }) 
   const [scale, setScale] = useState(1)
 
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      onClose()
+    }
+    // با فاز capture ثبت می‌شه تا قبل از هر keydown-listener دیگه‌ای
+    // (مثلاً مودال زیرینِ فیلم/بازیگر) اجرا بشه و جلوی بسته‌شدن هردوشون
+    // با یه Escape رو بگیره.
+    window.addEventListener('keydown', onKey, true)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      document.body.style.overflow = ''
+    }
   }, [onClose])
 
   // با هر عکس تازه (یا فیلم/بازیگر جدید)، زوم از اول شروع بشه

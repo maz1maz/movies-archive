@@ -17,14 +17,17 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose()
+    const onKey = (e) => {
+      if (lightboxOpen) return
+      if (e.key === 'Escape') onClose()
+    }
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
       window.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
     }
-  }, [onClose])
+  }, [onClose, lightboxOpen])
 
   useEffect(() => {
     setPhoto(null)
@@ -82,7 +85,8 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   })
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <>
+      <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-person" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
           <IconClose width={14} height={14} />
@@ -185,6 +189,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
           )}
         </div>
       </div>
+      </div>
 
       {lightboxOpen && (
         <ImageLightbox
@@ -194,6 +199,6 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
           onClose={() => setLightboxOpen(false)}
         />
       )}
-    </div>
+    </>
   )
 }
