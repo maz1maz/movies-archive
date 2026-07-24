@@ -1,16 +1,34 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { IconClose } from './icons.jsx'
 
+const MIN_SCALE = 1
+const MAX_SCALE = 4
+
 // نمایش یه عکس (پوستر فیلم یا عکس بازیگر) به‌صورت بزرگ و وسط صفحه.
-// کلیک روی پس‌زمینه یا زدن Escape می‌بندتش.
+// چرخوندن دکمه‌ی موس روی عکس زوم می‌کنه، کلیک روی پس‌زمینه یا Escape می‌بندتش.
 export default function ImageLightbox({ src, alt, onClose, grayscale = false }) {
+  const [scale, setScale] = useState(1)
+
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  // با هر عکس تازه (یا فیلم/بازیگر جدید)، زوم از اول شروع بشه
+  useEffect(() => {
+    setScale(1)
+  }, [src])
+
   if (!src) return null
+
+  const handleWheel = (e) => {
+    e.preventDefault()
+    setScale((prev) => {
+      const next = prev - e.deltaY * 0.0015
+      return Math.min(MAX_SCALE, Math.max(MIN_SCALE, next))
+    })
+  }
 
   return (
     <div className="lightbox-overlay" onClick={onClose}>
@@ -21,7 +39,13 @@ export default function ImageLightbox({ src, alt, onClose, grayscale = false }) 
         src={src}
         alt={alt || ''}
         className={grayscale ? 'lightbox-img lightbox-img-gray' : 'lightbox-img'}
-        onClick={(e) => e.stopPropagation()}
+        style={{ transform: `scale(${scale})`, cursor: scale > 1 ? 'zoom-out' : 'zoom-in' }}
+        onClick={(e) => {
+          e.stopPropagation()
+          setScale((prev) => (prev > 1 ? 1 : 2))
+        }}
+        onWheel={handleWheel}
+        draggable={false}
       />
     </div>
   )

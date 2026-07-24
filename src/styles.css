@@ -2383,14 +2383,17 @@ body.light .folder-back {
   justify-content: center;
   padding: 40px;
   cursor: zoom-out;
+  overflow: hidden;
   animation: fadeIn 0.15s ease;
 }
 .lightbox-img {
-  max-width: min(560px, 88vw);
-  max-height: 86vh;
+  max-width: min(720px, 90vw);
+  max-height: 88vh;
   border-radius: 10px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
-  cursor: default;
+  transition: transform 0.08s ease-out;
+  transform-origin: center center;
+  user-select: none;
 }
 .lightbox-img-gray {
   filter: grayscale(1) contrast(1.05);
