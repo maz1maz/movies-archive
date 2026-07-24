@@ -46,7 +46,8 @@ export default function FolderNav({
     <div className="folder-nav">
       <PosterCollage posters={posters} />
       <div className="folder-nav-content">
-        <h1 className="folder-nav-title">CINEFILIO ARCHIVE</h1>
+        <img src="/logo.png" alt="Cinefilm Archive" className="folder-nav-logo" />
+        <h1 className="folder-nav-title">CINEFILM ARCHIVE</h1>
         <div className="folder-grid">
           <button className="folder-card" onClick={onSelectPhysical}>
             <span className="folder-icon">

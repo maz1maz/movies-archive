@@ -81,6 +81,24 @@ body.light .header {
   align-items: center;
   gap: 12px;
 }
+.brand-clickable {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.brand-logo {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+.header-condensed .brand-logo {
+  width: 28px;
+  height: 28px;
+}
 .brand-title {
   margin: 0;
   font-size: 21px;
@@ -2203,6 +2221,12 @@ body.light .page-collage-overlay {
     );
 }
 
+.folder-nav-logo {
+  width: 96px;
+  height: auto;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.4));
+}
 .folder-nav-title {
   margin: 0 0 34px;
   font-size: 30px;

@@ -356,18 +356,6 @@ export default function App() {
       ) : (
         <>
       <PosterCollage posters={sectionPosters} count={16} fixed />
-      <div className="section-breadcrumb">
-        <button className="btn btn-ghost" onClick={() => setSection(null)}>
-          ← Library
-        </button>
-        <span className="section-breadcrumb-path">
-          {section === 'physical'
-            ? 'Physical Collection'
-            : section === 'digital-movie'
-            ? 'Digital Library / Movies'
-            : 'Digital Library / Series'}
-        </span>
-      </div>
 
       <Header
         query={query}
@@ -400,6 +388,7 @@ export default function App() {
         setAlpha={setAlpha}
         theme={theme}
         setTheme={setTheme}
+        onGoToLibrary={() => setSection(null)}
       />
 
       <main className="container">

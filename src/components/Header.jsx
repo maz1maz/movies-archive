@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import AlphabetBar from './AlphabetBar.jsx'
 import {
-  IconArchive,
   IconSearch,
   IconUpload,
   IconDownload,
@@ -57,6 +56,7 @@ export default function Header({
   setAlpha,
   theme,
   setTheme,
+  onGoToLibrary,
 }) {
   const fileRef = useRef(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -90,16 +90,14 @@ export default function Header({
       {anyPopoverOpen && <div className="menu-backdrop" onClick={closeAllPopovers} />}
 
       <div className="container header-inner">
-        <div className="brand">
-          <span className="brand-icon">
-            <IconArchive width={19} height={19} />
-          </span>
+        <button type="button" className="brand brand-clickable" onClick={onGoToLibrary} title="Back to Library">
+          <img src="/logo.png" alt="Cinefilm Archive" className="brand-logo" />
           <div className="brand-text">
-            <h1 className="brand-title">CINEFILIO ARCHIVE</h1>
+            <h1 className="brand-title">CINEFILM ARCHIVE</h1>
             <p className="brand-owner">Alireza Mazlaghani</p>
             <p className="brand-sub">{total} physical films</p>
           </div>
-        </div>
+        </button>
 
         <div className="actions">
           <button
