@@ -321,13 +321,25 @@ body.light .header {
   border-color: var(--accent);
 }
 
-.pagination { display: flex; justify-content: center; align-items: center; gap: 18px; padding: 0 0 32px; color: var(--muted); }
+.pagination {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  padding: 0 0 32px;
+  color: var(--muted);
+}
 .pagination button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
 .pagination button:disabled { opacity: .4; cursor: not-allowed; }
 .pagination-top {
+  position: relative;
+  z-index: 2;
   padding: 18px 0 6px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 6px;
+  background: var(--bg);
 }
 
 /* ---------- Grid ---------- */
