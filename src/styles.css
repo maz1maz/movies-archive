@@ -2078,6 +2078,7 @@ body.light .header {
   position: absolute;
   inset: 0;
   z-index: 0;
+  pointer-events: none;
 }
 /* روی صفحات محتوا (آرشیو فیزیکی/دیجیتال)، کلاژ باید پشت هدر و گرید ثابت
    بمونه و با اسکرول صفحه جابه‌جا نشه */
@@ -2369,4 +2370,52 @@ body.light .folder-back {
   .stats-facts-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---------- Image lightbox (poster / actor photo, big & centered) ---------- */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(5, 6, 10, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  cursor: zoom-out;
+  animation: fadeIn 0.15s ease;
+}
+.lightbox-img {
+  max-width: min(560px, 88vw);
+  max-height: 86vh;
+  border-radius: 10px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  cursor: default;
+}
+.lightbox-img-gray {
+  filter: grayscale(1) contrast(1.05);
+}
+.lightbox-close {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* پوستر/عکس‌های قابل‌کلیک برای باز کردن لایت‌باکس */
+.cine-poster-box.clickable-poster,
+.person-avatar-circle.clickable-avatar {
+  cursor: zoom-in;
 }

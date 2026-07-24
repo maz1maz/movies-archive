@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { IconClose, IconUser, IconPin } from './icons.jsx'
+import ImageLightbox from './ImageLightbox.jsx'
 
 export default function PersonModal({ personName, allFilms, onSelectFilm, onClose }) {
   const [photo, setPhoto] = useState(null)
@@ -13,6 +14,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
     children: null,
   })
   const [bioLoading, setBioLoading] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -28,6 +30,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
     setPhoto(null)
     setBio(null)
     setFacts({ age: null, birthDate: null, deathDate: null, height: null, spouse: null, children: null })
+    setLightboxOpen(false)
     if (!personName) return
     setBioLoading(true)
     let cancelled = false
@@ -86,7 +89,15 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
         </button>
 
         <div className="person-header">
-          <div className={isDeceased ? 'person-avatar-circle person-avatar-large person-avatar-deceased' : 'person-avatar-circle person-avatar-large'}>
+          <div
+            className={
+              isDeceased
+                ? 'person-avatar-circle person-avatar-large person-avatar-deceased clickable-avatar'
+                : 'person-avatar-circle person-avatar-large clickable-avatar'
+            }
+            onClick={() => photo && setLightboxOpen(true)}
+            title={photo ? 'Click to view full photo' : undefined}
+          >
             {photo ? (
               <img src={photo} alt={personName} className="person-avatar-photo" />
             ) : (
@@ -174,6 +185,15 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
           )}
         </div>
       </div>
+
+      {lightboxOpen && (
+        <ImageLightbox
+          src={photo}
+          alt={personName}
+          grayscale={isDeceased}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </div>
   )
 }

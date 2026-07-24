@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { IconClose, IconPin, IconHandshake, IconBuilding } from './icons.jsx'
 import StarRating from './StarRating.jsx'
+import ImageLightbox from './ImageLightbox.jsx'
 
-export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onClose, panel = false }) {
+export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onClose, onRateFilm, panel = false }) {
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
   const [actorPhotos, setActorPhotos] = useState({})
+  const [lightboxSrc, setLightboxSrc] = useState(null)
 
   useEffect(() => {
     const onKey = (e) => {
@@ -35,6 +37,10 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     const scrollParent = document.querySelector('.grid-split-detail')
     if (scrollParent) scrollParent.scrollTop = 0
   }, [film.id, panel])
+
+  useEffect(() => {
+    setLightboxSrc(null)
+  }, [film.id])
 
   // عکس واقعی بازیگرها رو از ویکی‌پدیا می‌گیریم (کلید API لازم نداره).
   // نتیجه سمت سرور هم کش می‌شه، پس دفعات بعد سریع برمی‌گرده.
@@ -154,7 +160,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
         {/* Main Body: Poster + Rearranged Gray Info Card */}
         <div className="cine-main-row">
-          <div className="cine-poster-box">
+          <div
+            className="cine-poster-box clickable-poster"
+            onClick={() => film.poster && setLightboxSrc(film.poster)}
+            title="Click to view full poster"
+          >
             <img
               src={film.poster}
               alt={film.title}
@@ -274,10 +284,14 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                   </a>
                 )}
 
-                {film.myRating > 0 && (
+                {(film.myRating > 0 || onRateFilm) && (
                   <div className="my-rating-box" title="My rating">
                     <span className="my-rating-label">MY RATING</span>
-                    <StarRating value={film.myRating} size={15} />
+                    <StarRating
+                      value={film.myRating || 0}
+                      size={15}
+                      onChange={onRateFilm ? (n) => onRateFilm(film, n) : undefined}
+                    />
                   </div>
                 )}
 
@@ -440,11 +454,24 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       </div>
   )
 
-  if (panel) return inner
+  if (panel)
+    return (
+      <>
+        {inner}
+        {lightboxSrc && (
+          <ImageLightbox src={lightboxSrc} alt={film.title} onClose={() => setLightboxSrc(null)} />
+        )}
+      </>
+    )
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      {inner}
-    </div>
+    <>
+      <div className="modal-overlay" onClick={onClose}>
+        {inner}
+      </div>
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} alt={film.title} onClose={() => setLightboxSrc(null)} />
+      )}
+    </>
   )
 }
