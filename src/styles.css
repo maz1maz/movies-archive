@@ -689,6 +689,8 @@ body.light .header {
   gap: 18px;
   color: var(--text);
   animation: scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  container-type: inline-size;
+  container-name: cine-modal;
 }
 @keyframes scaleUp {
   from { opacity: 0; transform: scale(0.96) translateY(10px); }
@@ -1274,6 +1276,16 @@ body.light .header {
   padding-top: 6px;
 }
 
+/* عرض این ردیف به عرض واقعی مودال/پنل بستگی داره، نه کل صفحه — توی حالت
+   split-view پنل جزئیات می‌تونه خیلی باریک‌تر از viewport باشه، برای
+   همین media query معمولی (که فقط viewport رو چک می‌کنه) کافی نبود؛
+   container query عرض واقعی خودِ .modal-cine رو در نظر می‌گیره. */
+@container cine-modal (max-width: 560px) {
+  .cine-bottom-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .cine-col {
   display: flex;
   flex-direction: column;
@@ -1338,6 +1350,13 @@ body.light .header {
   color: var(--accent);
 }
 
+.cine-actor-avatar-wrap.avatar-loading {
+  animation: avatarPulse 1.3s ease-in-out infinite;
+}
+@keyframes avatarPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
 .cine-actor-avatar-wrap {
   position: relative;
   width: 46px;

@@ -82,7 +82,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   }
 
   const formatVotesK = (votes) => {
-    if (!votes) return '688K'
+    if (!votes) return null
     const clean = String(votes).replace(/,/g, '').trim()
     const num = parseInt(clean, 10)
     if (isNaN(num)) return votes
@@ -105,7 +105,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
   const studioName = film.studio
   const mpaRating = film.rated || film.mpaa
-  const mediaFormat = film.format || 'Blu-ray'
+  const mediaFormat = film.format || (film.mediaType === 'digital' ? 'Digital' : 'Blu-ray')
 
   const trailerSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
     (film.originalTitle || film.title) + ' official trailer'
@@ -129,7 +129,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     { label: 'Producer', value: film.producer },
     { label: 'Musician', value: film.composer || film.musician },
     { label: 'Cinematography', value: film.cinematographer },
-    { label: 'Country', value: film.country || 'USA' },
+    { label: 'Country', value: film.country },
     { label: 'Runtime', value: film.runtime ? `${film.runtime} mins (${runtimeText})` : null },
   ].filter((item) => item.value)
 
@@ -282,9 +282,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       <span className="imdb-score-black">{film.rating.toFixed(1)}</span>
                       <span className="imdb-denom">/ 10</span>
                     </div>
-                    <div className="imdb-badge-votes">
-                      {formatVotesK(film.imdbVotes)} votes
-                    </div>
+                    {formatVotesK(film.imdbVotes) && (
+                      <div className="imdb-badge-votes">
+                        {formatVotesK(film.imdbVotes)} votes
+                      </div>
+                    )}
                   </a>
                 )}
 
@@ -354,7 +356,13 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       onClick={() => onSelectPerson && onSelectPerson(name)}
                       title={`See all films featuring ${name}`}
                     >
-                      <div className="cine-actor-avatar-wrap">
+                      <div
+                        className={
+                          name in actorPhotos
+                            ? 'cine-actor-avatar-wrap'
+                            : 'cine-actor-avatar-wrap avatar-loading'
+                        }
+                      >
                         <img
                           src={photoUrl}
                           alt={name}

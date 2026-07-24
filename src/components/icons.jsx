@@ -156,6 +156,23 @@ export const IconCheck = (props) => (
   </svg>
 )
 
+export const IconSparkles = (props) => (
+  <svg {...base} {...props}>
+    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18" />
+  </svg>
+)
+
+export const IconDice = (props) => (
+  <svg {...base} {...props}>
+    <rect x="3" y="3" width="18" height="18" rx="3" />
+    <circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none" />
+    <circle cx="16" cy="8" r="1.2" fill="currentColor" stroke="none" />
+    <circle cx="8" cy="16" r="1.2" fill="currentColor" stroke="none" />
+    <circle cx="16" cy="16" r="1.2" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+  </svg>
+)
+
 export const IconPrinter = (props) => (
   <svg {...base} {...props}>
     <path d="M6 9V3h12v6" />

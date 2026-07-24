@@ -7,6 +7,8 @@ import {
   IconSun,
   IconMoon,
   IconBarChart,
+  IconSparkles,
+  IconDice,
 } from './icons.jsx'
 
 function IconHamburger(props) {
@@ -147,7 +149,7 @@ export default function Header({
                   disabled={enrichingCatalog}
                   title="Fill missing posters, cast, genres, and other public metadata"
                 >
-                  ✨ {enrichingCatalog ? 'Completing metadata…' : 'Fill missing details'}
+                  <IconSparkles width={15} height={15} /> {enrichingCatalog ? 'Completing metadata…' : 'Fill missing details'}
                 </button>
                 <button
                   type="button"
@@ -156,7 +158,7 @@ export default function Header({
                     setMenuOpen(false)
                   }}
                 >
-                  🎲 Pick for tonight
+                  <IconDice width={15} height={15} /> Pick for tonight
                 </button>
                 <button
                   type="button"

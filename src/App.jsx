@@ -459,7 +459,7 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        Physical film archive · Built with React and Node.js
+        Cinefilm Archive · Built with React and Node.js
       </footer>
 
       {selected && !useSplitView && (
