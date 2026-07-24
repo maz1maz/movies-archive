@@ -1,4 +1,4 @@
-const APP_CACHE = 'film-archive-app-v2'
+const APP_CACHE = 'film-archive-app-v3'
 const POSTER_CACHE = 'film-archive-posters-v1'
 const APP_FILES = ['/', '/index.html', '/manifest.webmanifest']
 const MAX_POSTERS = 200
