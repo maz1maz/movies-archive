@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { IconClose } from './icons.jsx'
 
 const MIN_SCALE = 1
@@ -41,7 +42,7 @@ export default function ImageLightbox({ src, alt, onClose, grayscale = false }) 
     })
   }
 
-  return (
+  return createPortal(
     <div className="lightbox-overlay" onClick={onClose}>
       <button className="lightbox-close" onClick={onClose} aria-label="Close">
         <IconClose width={16} height={16} />
@@ -58,6 +59,7 @@ export default function ImageLightbox({ src, alt, onClose, grayscale = false }) 
         onWheel={handleWheel}
         draggable={false}
       />
-    </div>
+    </div>,
+    document.body
   )
 }
