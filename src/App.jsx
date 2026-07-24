@@ -31,10 +31,10 @@ export default function App() {
   const [alpha, setAlpha] = useState('')
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 48
-  const [view, setView] = useState(() => {
-    const storedView = localStorage.getItem('fa_view')
-    return storedView === 'grid' || storedView === 'list' ? storedView : 'list'
-  })
+  // فعلاً دکمه‌ی تعویض نما (Thumbnails/List) از هدر برداشته شده و فقط
+  // Thumbnails نشون داده می‌شه؛ مقدار قبلی توی localStorage هم نادیده
+  // گرفته می‌شه تا اگه قبلاً روی List بوده، حالا گرید بیاد.
+  const [view, setView] = useState('grid')
   const [theme, setTheme] = useState(
     () => localStorage.getItem('fa_theme') || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
   )

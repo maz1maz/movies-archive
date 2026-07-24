@@ -1694,7 +1694,7 @@ body.light .header {
 /* ---------- Header: hamburger menu (always collapsed, all screen sizes) ---------- */
 .header-menu-wrap {
   position: relative;
-  z-index: 56;
+  z-index: 58;
 }
 .menu-backdrop {
   position: fixed;
@@ -1719,6 +1719,15 @@ body.light .header {
   box-shadow: var(--shadow);
   z-index: 60;
   min-width: 240px;
+}
+.header-menu-primary {
+  background: var(--accent) !important;
+  color: var(--accent-ink) !important;
+  font-weight: 700;
+  justify-content: center !important;
+}
+.header-menu-primary:hover {
+  background: var(--accent-strong) !important;
 }
 .header-menu-section-title {
   font-size: 10.5px;

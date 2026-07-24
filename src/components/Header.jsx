@@ -7,8 +7,6 @@ import {
   IconDownload,
   IconSun,
   IconMoon,
-  IconGrid,
-  IconList,
   IconBarChart,
 } from './icons.jsx'
 
@@ -104,10 +102,6 @@ export default function Header({
         </div>
 
         <div className="actions">
-          <button type="button" className="btn btn-primary" onClick={onAddFilm}>
-            + Add Film
-          </button>
-
           <button
             className="btn btn-ghost theme-toggle"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -132,6 +126,18 @@ export default function Header({
             </button>
 
             <div className={menuOpen ? 'header-menu-panel open' : 'header-menu-panel'}>
+              <div className="header-menu-section">
+                <button
+                  type="button"
+                  className="header-menu-primary"
+                  onClick={() => {
+                    onAddFilm()
+                    setMenuOpen(false)
+                  }}
+                >
+                  + Add Film
+                </button>
+              </div>
               <div className="header-menu-section">
                 <div className="header-menu-section-title">Tools</div>
                 <button
@@ -247,25 +253,6 @@ export default function Header({
         >
           <IconFilter width={14} height={14} /> Filters
         </button>
-
-        <div className="view-toggle view-toggle-standalone" role="group" aria-label="View mode">
-          <button
-            type="button"
-            className={view === 'grid' ? 'active' : ''}
-            onClick={() => setView('grid')}
-            title="Poster grid"
-          >
-            <IconGrid width={15} height={15} /> <span className="view-toggle-label">Thumbnails</span>
-          </button>
-          <button
-            type="button"
-            className={view === 'list' ? 'active' : ''}
-            onClick={() => setView('list')}
-            title="List"
-          >
-            <IconList width={15} height={15} /> <span className="view-toggle-label">List</span>
-          </button>
-        </div>
 
         <div className={filtersOpen ? 'controls-filters open' : 'controls-filters'}>
           <select className="select" value={genre} onChange={(e) => setGenre(e.target.value)}>
