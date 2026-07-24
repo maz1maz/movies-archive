@@ -30,6 +30,10 @@ export default function App() {
   const [sort, setSort] = useState('shelf')
   const [alpha, setAlpha] = useState('')
   const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [page])
   const PAGE_SIZE = 48
   // فعلاً دکمه‌ی تعویض نما (Thumbnails/List) از هدر برداشته شده و فقط
   // Thumbnails نشون داده می‌شه؛ مقدار قبلی توی localStorage هم نادیده
@@ -392,6 +396,13 @@ export default function App() {
       />
 
       <main className="container">
+        {pageCount > 1 && !loading && sectionFilms.length > 0 && (
+          <div className="pagination pagination-top">
+            <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Previous</button>
+            <span>Page {page} of {pageCount}</span>
+            <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next →</button>
+          </div>
+        )}
         {loading ? (
           <div className="status">Loading films…</div>
         ) : sectionFilms.length === 0 ? (
