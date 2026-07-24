@@ -410,9 +410,17 @@ export default function App() {
             <span className="empty-icon">
               <IconArchive width={22} height={22} />
             </span>
-            <p>No films in your archive yet.</p>
+            <p>
+              {section === 'physical'
+                ? 'No physical films match here yet.'
+                : section === 'digital-movie'
+                ? 'No digital movies added yet.'
+                : 'No digital series added yet.'}
+            </p>
             <p className="empty-hint">
-              Use the “Import Excel” button above to add your films.
+              {section === 'physical'
+                ? 'Use “Import Excel” or “+ Add Film” above to add titles.'
+                : 'Use “+ Add Film” above — it will be pre-filled for this section.'}
             </p>
           </div>
         ) : view === 'list' ? (

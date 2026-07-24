@@ -50,7 +50,10 @@ export default function FilmList({ films, onSelect, onEdit }) {
               </span>
             )}
             <span className="list-loc">
-              <IconPin width={11} height={11} /> {f.shelf || '–'}-{f.row || '–'}
+              <IconPin width={11} height={11} />{' '}
+              {f.mediaType === 'digital'
+                ? f.driveNumber || '–'
+                : `${f.shelf || '–'}-${f.row || '–'}`}
             </span>
             {typeof f.rating === 'number' && (
               <span className="tag tag-accent">
