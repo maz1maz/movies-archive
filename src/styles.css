@@ -1846,6 +1846,31 @@ body.light .header {
   overflow-y: auto;
 }
 
+/* روی صفحات باریک، جای دقیق دکمه‌ی trigger (که خودش ممکنه نزدیک لبه باشه)
+   باعث می‌شد این دو تا پاپ‌آور جزئاً یا کاملاً از صفحه بیرون بزنن. اینجا
+   موقعیت‌شون رو نسبت به کل صفحه (fixed) و وسط‌چین می‌کنیم تا همیشه کامل
+   داخل صفحه بمونن. */
+@media (max-width: 900px) {
+  .header-menu-panel.open {
+    position: fixed;
+    inset-inline-end: auto;
+    left: 12px;
+    right: 12px;
+    top: calc(var(--header-h, 240px) + 8px);
+    width: auto;
+    min-width: 0;
+    max-height: calc(100vh - var(--header-h, 240px) - 24px);
+    overflow-y: auto;
+  }
+  .az-popover.open {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: calc(var(--header-h, 240px) + 8px);
+    width: auto;
+  }
+}
+
 /* ---------- Header: filters, always collapsed behind a toggle ---------- */
 .filters-toggle {
   position: relative;
