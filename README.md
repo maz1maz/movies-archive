@@ -117,16 +117,29 @@ film-archive/
 │   ├── make-template.js# ساخت فایل قالب اکسل
 │   └── data/
 │       └── films.json  # داده‌های آرشیو (بعد از ایمپورت اینجا ذخیره می‌شه)
-└── src/
-    ├── main.jsx
-    ├── App.jsx
-    ├── styles.css
-    └── components/
-        ├── Header.jsx
-        ├── FilmGrid.jsx
-        ├── FilmCard.jsx
-        └── FilmModal.jsx
+├── src/
+│   ├── main.jsx
+│   ├── App.jsx
+│   ├── styles.css
+│   └── components/
+│       ├── Header.jsx
+│       ├── FilmGrid.jsx
+│       ├── FilmCard.jsx
+│       └── FilmModal.jsx
+└── tools/
+    └── movie-catalog-builder/  # اسکریپت پایتون آفلاین برای پر کردن اکسل کاتالوگ
 ```
 
 داده‌ها در `server/data/films.json` ذخیره می‌شن — برای بکاپ فقط کافیه این فایل
 رو نگه داری.
+
+---
+
+## 🗂️ Movie Catalog Builder (تکمیل اکسل قبل از ایمپورت)
+
+اسکریپت جدا و آفلاینی در `tools/movie-catalog-builder/` هست که از روی یه فایل
+CSV (فقط ستون `Title` لازمه، `Year` و `Director` دقت تطبیق رو بیشتر می‌کنن)
+یه فایل اکسل کامل می‌سازه — کارگردان، سال، ژانر، امتیاز IMDb، بازیگران، خلاصه،
+پوستر، استودیو و رده‌بندی MPA رو از منابع رایگان (دیتاست‌های IMDb، Wikidata،
+Wikipedia) پر می‌کنه، بدون نیاز به هیچ API key‌ای. جزئیات کامل در
+[`tools/movie-catalog-builder/README.md`](tools/movie-catalog-builder/README.md).
