@@ -394,9 +394,10 @@ body.light .header {
   justify-content: center;
   text-align: center;
   padding: 14px;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 13.5px;
-  color: var(--muted);
+  color: #f2f1ef;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
 }
 
 .card-body {
