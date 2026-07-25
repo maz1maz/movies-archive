@@ -1064,7 +1064,7 @@ body.light .header {
 .cine-main-row {
   display: flex;
   gap: 18px;
-  align-items: stretch;
+  align-items: flex-start;
 }
 
 .cine-poster-box {
