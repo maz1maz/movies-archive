@@ -13,7 +13,7 @@ function fillMissing(film, field, value) {
 }
 
 export async function enrichFilm(film, key) {
-  const query = { apikey: key, t: film.title, type: 'movie' }
+  const query = { apikey: key, t: film.title, type: film.itemType === 'series' ? 'series' : 'movie' }
   if (film.year) query.y = String(film.year)
 
   const res = await fetch(`${BASE}?${new URLSearchParams(query).toString()}`, {

@@ -137,7 +137,7 @@ app.post('/api/films/enrich', async (req, res) => {
     .map((film, index) => ({ film, index }))
     .filter(({ film }) =>
       ENRICHABLE_FIELDS.some((field) => isEmptyMetadata(film[field])) &&
-      !film.metadataEnrichmentAttemptedAt
+      (!film.metadataEnrichmentAttemptedAt || isEmptyMetadata(film.poster))
     )
     .slice(0, limit)
 
@@ -155,7 +155,7 @@ app.post('/api/films/enrich', async (req, res) => {
   const remaining = films.filter(
     (film) =>
       ENRICHABLE_FIELDS.some((field) => isEmptyMetadata(film[field])) &&
-      !film.metadataEnrichmentAttemptedAt
+      (!film.metadataEnrichmentAttemptedAt || isEmptyMetadata(film.poster))
   ).length
   res.json({ processed: candidates.length, updated, remaining })
 })

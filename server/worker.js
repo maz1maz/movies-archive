@@ -133,7 +133,16 @@ export default {
         const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
 
-        const all = await db.prepare('SELECT * FROM films WHERE metadataEnrichmentAttemptedAt IS NULL').all()
+        // قبلاً هر فیلمی که یه‌بار امتحان شده بود، حتی اگه OMDb چیزی
+        // پیدا نکرده بود (مثلاً پوستر نداشت)، برای همیشه از این لیست
+        // خارج می‌شد و دیگه هیچ‌وقت نمی‌شد دوباره امتحانش کرد. الان
+        // فیلم‌هایی که هنوز پوستر ندارن، صرف‌نظر از تلاش قبلی، دوباره
+        // قابل‌تلاش هستن.
+        const all = await db
+          .prepare(
+            "SELECT * FROM films WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''"
+          )
+          .all()
         const candidates = (all.results || []).slice(0, limit)
 
         let updated = 0
@@ -148,7 +157,11 @@ export default {
           await updateFilm(db, enriched)
         }
 
-        const remaining = await db.prepare('SELECT COUNT(*) as count FROM films WHERE metadataEnrichmentAttemptedAt IS NULL').first()
+        const remaining = await db
+          .prepare(
+            "SELECT COUNT(*) as count FROM films WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''"
+          )
+          .first()
         return json({ processed: candidates.length, updated, remaining: remaining?.count || 0 }, 200, corsHeaders)
       }
 
