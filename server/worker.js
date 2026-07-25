@@ -287,13 +287,13 @@ export default {
         if (!filmId) return json({ letterboxdRating: null }, 200, corsHeaders)
 
         try {
-          const row = await db.prepare('SELECT id, title, letterboxdRating FROM films WHERE id = ?').bind(filmId).first()
+          const row = await db.prepare('SELECT id, title, year, letterboxdRating FROM films WHERE id = ?').bind(filmId).first()
           if (!row) return json({ letterboxdRating: null }, 200, corsHeaders)
           if (row.letterboxdRating != null) {
             return json({ letterboxdRating: row.letterboxdRating }, 200, corsHeaders)
           }
 
-          const rating = await fetchLetterboxdRating(row.title)
+          const rating = await fetchLetterboxdRating(row.title, row.year)
           if (rating != null) {
             await db.prepare('UPDATE films SET letterboxdRating = ? WHERE id = ?').bind(rating, filmId).run()
           }
@@ -409,31 +409,38 @@ function emptyPersonInfo() {
   }
 }
 
-// جستجوی فیلم توی Letterboxd و استخراج امتیاز میانگین از تگ متای صفحه‌ش
-// (Letterboxd API عمومی نداره؛ meta name="twitter:data2" مقدار
-// "4.52 out of 5" رو توی <head> صفحه‌ی هر فیلم می‌ذاره)
-async function fetchLetterboxdRating(title) {
-  const headers = { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' }
-  try {
-    const searchRes = await fetch(
-      `https://letterboxd.com/search/films/${encodeURIComponent(title)}/`,
-      { headers }
-    )
-    if (!searchRes.ok) return null
-    const searchHtml = await searchRes.text()
-    const slugMatch = searchHtml.match(/href="\/film\/([a-z0-9-]+)\/"/)
-    if (!slugMatch) return null
+// جستجوی فیلم توی Letterboxd و استخراج امتیاز میانگین از تگ متای صفحه‌ش.
+// صفحه‌ی سرچ Letterboxd با جاوااسکریپت رندر می‌شه (توی HTML خام چیزی نیست)،
+// برای همین به‌جاش مستقیم از روی عنوان، اسلاگ صفحه‌ی فیلم رو می‌سازیم — که
+// خودِ صفحه‌ی فیلم (بر خلاف صفحه‌ی سرچ) سمت سرور رندر می‌شه و تگ متا داره.
+function titleToLetterboxdSlug(title) {
+  return (title || '')
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
 
-    const filmRes = await fetch(`https://letterboxd.com/film/${slugMatch[1]}/`, { headers })
-    if (!filmRes.ok) return null
-    const filmHtml = await filmRes.text()
-    const ratingMatch = filmHtml.match(/name="twitter:data2"\s+content="([\d.]+)\s+out of 5"/)
-    if (!ratingMatch) return null
-    const rating = parseFloat(ratingMatch[1])
-    return isNaN(rating) ? null : rating
-  } catch {
-    return null
+async function fetchLetterboxdRating(title, year) {
+  const headers = { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' }
+  const baseSlug = titleToLetterboxdSlug(title)
+  if (!baseSlug) return null
+  const candidates = year ? [baseSlug, `${baseSlug}-${year}`] : [baseSlug]
+
+  for (const slug of candidates) {
+    try {
+      const filmRes = await fetch(`https://letterboxd.com/film/${slug}/`, { headers })
+      if (!filmRes.ok) continue
+      const filmHtml = await filmRes.text()
+      const ratingMatch = filmHtml.match(/name="twitter:data2"\s+content="([\d.]+)\s+out of 5"/)
+      if (!ratingMatch) continue
+      const rating = parseFloat(ratingMatch[1])
+      if (!isNaN(rating)) return rating
+    } catch {
+      // این اسلاگ جواب نداد، اسلاگ بعدی رو امتحان کن
+    }
   }
+  return null
 }
 
 function ageFromBirthDate(birthDate) {
