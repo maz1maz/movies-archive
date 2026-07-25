@@ -432,8 +432,15 @@ async function fetchWikidataFacts(qid) {
       const num = parseFloat(heightVal.amount)
       const unit = String(heightVal.unit || '')
       if (!isNaN(num)) {
-        if (unit.endsWith('Q174728')) height = `${Math.round(num)} cm` // واحد از قبل سانتی‌متره
-        else height = `${Math.round(num * 100)} cm` // واحد پیش‌فرض/معمول: متر (Q11573)
+        let cm
+        if (unit.endsWith('Q174728')) cm = num // واحد صراحتاً سانتی‌متره
+        else if (unit.endsWith('Q11573')) cm = num * 100 // واحد صراحتاً متره
+        // واحد نامشخص/غیرمنتظره: بر اساس مقدار حدس بزن (قد آدم‌ها معمولاً
+        // بین ۰.۵ تا ۲.۵ متر یا ۵۰ تا ۲۵۰ سانتی‌متره)، نه اینکه همیشه متر
+        // فرض بشه (که باعث اعداد مسخره‌ای مثل ۶۴۰۰ سانتی‌متر می‌شد).
+        else cm = num < 10 ? num * 100 : num
+        // اگه بعد از این حدس هم عدد منطقی نبود (قد آدم نیست)، نادیده بگیر.
+        if (cm >= 50 && cm <= 250) height = `${Math.round(cm)} cm`
       }
     }
 
