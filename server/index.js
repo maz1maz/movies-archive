@@ -302,7 +302,23 @@ async function fetchLetterboxdRating(title, year) {
       const ratingMatch = filmHtml.match(/name="twitter:data2"\s+content="([\d.]+)\s+out of 5"/)
       if (!ratingMatch) continue
       const rating = parseFloat(ratingMatch[1])
-      if (!isNaN(rating)) return rating
+      if (isNaN(rating)) continue
+
+      let count = null
+      try {
+        const histRes = await fetch(`https://letterboxd.com/csi/film/${slug}/rating-histogram/`, { headers })
+        if (histRes.ok) {
+          const histHtml = await histRes.text()
+          const matches = [...histHtml.matchAll(/([\d,]+)\s+ratings?/gi)]
+          if (matches.length) {
+            count = matches.reduce((sum, m) => sum + parseInt(m[1].replace(/,/g, ''), 10), 0)
+          }
+        }
+      } catch {
+        // اگه هیستوگرام در دسترس نبود، فقط امتیاز میانگین رو نشون می‌دیم
+      }
+
+      return { rating, count }
     } catch {
       // این اسلاگ جواب نداد، اسلاگ بعدی رو امتحان کن
     }
@@ -437,18 +453,21 @@ app.get('/api/actor-photo', async (req, res) => {
 
 app.get('/api/letterboxd-rating', async (req, res) => {
   const filmId = (req.query.filmId || '').toString().trim()
-  if (!filmId) return res.json({ letterboxdRating: null })
+  if (!filmId) return res.json({ letterboxdRating: null, letterboxdVotes: null })
   const films = readFilms()
   const film = films.find((f) => f.id === filmId)
-  if (!film) return res.json({ letterboxdRating: null })
-  if (film.letterboxdRating != null) return res.json({ letterboxdRating: film.letterboxdRating })
+  if (!film) return res.json({ letterboxdRating: null, letterboxdVotes: null })
+  if (film.letterboxdRating != null) {
+    return res.json({ letterboxdRating: film.letterboxdRating, letterboxdVotes: film.letterboxdVotes ?? null })
+  }
 
-  const rating = await fetchLetterboxdRating(film.title, film.year)
-  if (rating != null) {
-    film.letterboxdRating = rating
+  const result = await fetchLetterboxdRating(film.title, film.year)
+  if (result != null) {
+    film.letterboxdRating = result.rating
+    film.letterboxdVotes = result.count
     writeFilms(films)
   }
-  res.json({ letterboxdRating: rating })
+  res.json({ letterboxdRating: result?.rating ?? null, letterboxdVotes: result?.count ?? null })
 })
 
 // ایمپورت اکسل (ادغام با داده‌های قبلی بر اساس نام فیلم)

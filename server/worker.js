@@ -281,25 +281,30 @@ export default {
         }
       }
 
-      // ---- GET /api/letterboxd-rating (fetch Letterboxd average rating, cached on the film row) ----
+      // ---- GET /api/letterboxd-rating (fetch Letterboxd average rating + votes, cached on the film row) ----
       if (method === 'GET' && pathname === '/api/letterboxd-rating') {
         const filmId = (url.searchParams.get('filmId') || '').trim()
-        if (!filmId) return json({ letterboxdRating: null }, 200, corsHeaders)
+        if (!filmId) return json({ letterboxdRating: null, letterboxdVotes: null }, 200, corsHeaders)
 
         try {
-          const row = await db.prepare('SELECT id, title, year, letterboxdRating FROM films WHERE id = ?').bind(filmId).first()
-          if (!row) return json({ letterboxdRating: null }, 200, corsHeaders)
+          const row = await db.prepare('SELECT id, title, year, letterboxdRating, letterboxdVotes FROM films WHERE id = ?').bind(filmId).first()
+          if (!row) return json({ letterboxdRating: null, letterboxdVotes: null }, 200, corsHeaders)
           if (row.letterboxdRating != null) {
-            return json({ letterboxdRating: row.letterboxdRating }, 200, corsHeaders)
+            return json({ letterboxdRating: row.letterboxdRating, letterboxdVotes: row.letterboxdVotes }, 200, corsHeaders)
           }
 
-          const rating = await fetchLetterboxdRating(row.title, row.year)
-          if (rating != null) {
-            await db.prepare('UPDATE films SET letterboxdRating = ? WHERE id = ?').bind(rating, filmId).run()
+          const result = await fetchLetterboxdRating(row.title, row.year)
+          if (result != null) {
+            await db.prepare('UPDATE films SET letterboxdRating = ?, letterboxdVotes = ? WHERE id = ?')
+              .bind(result.rating, result.count, filmId).run()
           }
-          return json({ letterboxdRating: rating }, 200, corsHeaders)
+          return json(
+            { letterboxdRating: result?.rating ?? null, letterboxdVotes: result?.count ?? null },
+            200,
+            corsHeaders
+          )
         } catch (e) {
-          return json({ letterboxdRating: null }, 200, corsHeaders)
+          return json({ letterboxdRating: null, letterboxdVotes: null }, 200, corsHeaders)
         }
       }
 
@@ -435,7 +440,25 @@ async function fetchLetterboxdRating(title, year) {
       const ratingMatch = filmHtml.match(/name="twitter:data2"\s+content="([\d.]+)\s+out of 5"/)
       if (!ratingMatch) continue
       const rating = parseFloat(ratingMatch[1])
-      if (!isNaN(rating)) return rating
+      if (isNaN(rating)) continue
+
+      let count = null
+      try {
+        // فرگمنت هیستوگرام امتیازها؛ عدد هر ستاره رو با هم جمع می‌زنیم تا
+        // تعداد کل رای‌ها به‌دست بیاد (مثلاً «۹۰,۰۰۰ ratings» برای هر بازه)
+        const histRes = await fetch(`https://letterboxd.com/csi/film/${slug}/rating-histogram/`, { headers })
+        if (histRes.ok) {
+          const histHtml = await histRes.text()
+          const matches = [...histHtml.matchAll(/([\d,]+)\s+ratings?/gi)]
+          if (matches.length) {
+            count = matches.reduce((sum, m) => sum + parseInt(m[1].replace(/,/g, ''), 10), 0)
+          }
+        }
+      } catch {
+        // اگه هیستوگرام در دسترس نبود، فقط امتیاز میانگین رو نشون می‌دیم
+      }
+
+      return { rating, count }
     } catch {
       // این اسلاگ جواب نداد، اسلاگ بعدی رو امتحان کن
     }

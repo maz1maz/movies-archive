@@ -8,6 +8,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const [showAllCrew, setShowAllCrew] = useState(false)
   const [actorPhotos, setActorPhotos] = useState({})
   const [letterboxdRating, setLetterboxdRating] = useState(null)
+  const [letterboxdVotes, setLetterboxdVotes] = useState(null)
   const [lightboxSrc, setLightboxSrc] = useState(null)
 
   useEffect(() => {
@@ -75,13 +76,17 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
   useEffect(() => {
     setLetterboxdRating(film?.letterboxdRating ?? null)
+    setLetterboxdVotes(film?.letterboxdVotes ?? null)
     if (film?.letterboxdRating != null || !film?.id) return
     let cancelled = false
     ;(async () => {
       try {
         const res = await fetch(`/api/letterboxd-rating?filmId=${encodeURIComponent(film.id)}`)
         const data = await res.json()
-        if (!cancelled && data.letterboxdRating != null) setLetterboxdRating(data.letterboxdRating)
+        if (!cancelled && data.letterboxdRating != null) {
+          setLetterboxdRating(data.letterboxdRating)
+          setLetterboxdVotes(data.letterboxdVotes ?? null)
+        }
       } catch {
         // اگه Letterboxd در دسترس نبود، بج امتیازش رو نشون نمی‌دیم
       }
@@ -294,8 +299,13 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     className="letterboxd-rating-box"
                     title="Letterboxd Rating"
                   >
-                    <span className="letterboxd-tag-label">Letterboxd</span>
-                    <span className="letterboxd-tag-val">{letterboxdRating.toFixed(1)}</span>
+                    <div className="letterboxd-badge-top">
+                      <span className="letterboxd-tag-label">Letterboxd</span>
+                      <span className="letterboxd-tag-val">{letterboxdRating.toFixed(1)}</span>
+                    </div>
+                    {formatVotesK(letterboxdVotes) && (
+                      <div className="letterboxd-badge-votes">{formatVotesK(letterboxdVotes)} ratings</div>
+                    )}
                   </a>
                 )}
 

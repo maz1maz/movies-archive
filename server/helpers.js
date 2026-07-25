@@ -95,7 +95,7 @@ export const EDITABLE = [
   "poster", "studio", "rated", "format", "borrowedTo", "borrowedDate",
   "watched", "myRating", "criterion",
   "copies", "mediaType", "driveNumber", "itemType", "seasonsEpisodes",
-  "letterboxdRating", "watchlisted",
+  "letterboxdRating", "watchlisted", "letterboxdVotes",
 ]
 
 export const ENRICHABLE_FIELDS = [
