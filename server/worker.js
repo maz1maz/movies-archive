@@ -444,12 +444,15 @@ async function fetchLetterboxdRating(title, year) {
 
       let count = null
       try {
-        // فرگمنت هیستوگرام امتیازها؛ عدد هر ستاره رو با هم جمع می‌زنیم تا
-        // تعداد کل رای‌ها به‌دست بیاد (مثلاً «۹۰,۰۰۰ ratings» برای هر بازه)
-        const histRes = await fetch(`https://letterboxd.com/csi/film/${slug}/rating-histogram/`, { headers })
+        // فرگمنت هیستوگرام امتیازها؛ عدد دقیق هر ستاره داخل title هر لینکه
+        // (چون متن قابل‌مشاهده‌ش مخفف مثل «13.9K» هست، نه عدد کامل)،
+        // مثلاً: title="13,875 ★★ ratings (6%)". همه رو جمع می‌زنیم.
+        const histRes = await fetch(`https://letterboxd.com/csi/film/${slug}/rating-histogram/`, {
+          headers: { ...headers, Referer: `https://letterboxd.com/film/${slug}/` },
+        })
         if (histRes.ok) {
           const histHtml = await histRes.text()
-          const matches = [...histHtml.matchAll(/([\d,]+)\s+ratings?/gi)]
+          const matches = [...histHtml.matchAll(/title="([\d,]+)\s+[^"]*ratings[^"]*"/gi)]
           if (matches.length) {
             count = matches.reduce((sum, m) => sum + parseInt(m[1].replace(/,/g, ''), 10), 0)
           }
