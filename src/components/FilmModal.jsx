@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { IconClose, IconPin, IconHandshake, IconBuilding } from './icons.jsx'
+import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 
-export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onClose, onRateFilm, panel = false }) {
+export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false }) {
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
   const [actorPhotos, setActorPhotos] = useState({})
@@ -143,9 +143,16 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
   const inner = (
     <div className={panel ? 'modal modal-cine cine-panel' : 'modal modal-cine'} onClick={(e) => e.stopPropagation()}>
-      <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
+      <div className="cine-corner-actions">
+        {onEdit && (
+          <button className="cine-edit-btn" onClick={() => onEdit(film)} aria-label="Edit film" title="Edit">
+            <IconEdit width={14} height={14} />
+          </button>
+        )}
+        <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
           <IconClose width={14} height={14} />
         </button>
+      </div>
 
         {/* Title & Subtitle Header */}
         <div className="cine-title-block">

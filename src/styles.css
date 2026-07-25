@@ -698,10 +698,16 @@ body.light .header {
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-.cine-close {
+.cine-corner-actions {
   position: absolute;
   top: 16px;
   right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+.cine-close {
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -714,6 +720,24 @@ body.light .header {
   justify-content: center;
   transition: all 0.15s;
 }
+.cine-edit-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.cine-edit-btn:hover {
+  color: #ffffff;
+  border-color: var(--accent);
+  background: var(--accent-strong);
+}
 .cine-close:hover {
   color: #ffffff;
   border-color: var(--accent);
@@ -724,12 +748,16 @@ body.light .header {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* جا برای دو دکمه‌ی گرد (ادیت + بستن) که بالا-راست شناورن، تا عنوان و
+     بج فرمت زیرشون نرن */
+  padding-right: 76px;
 }
 .cine-title-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 .cine-title {
   margin: 0;

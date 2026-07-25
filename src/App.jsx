@@ -443,6 +443,7 @@ export default function App() {
                 }}
                 onManageLoan={(film) => setLoanFilm(film)}
                 onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
+                onEdit={setEditing}
                 onClose={() => setSelected(null)}
               />
             </div>
@@ -476,6 +477,7 @@ export default function App() {
             setLoanFilm(film)
           }}
           onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
+          onEdit={setEditing}
           onClose={() => setSelected(null)}
         />
       )}
