@@ -271,6 +271,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     <IconHandshake width={13} height={13} /> Lend Film
                   </button>
                 )}
+                {film.copies > 1 && (
+                  <div className="copies-under-lend" title={`You own ${film.copies} copies of this title`}>
+                    {film.copies} COPIES
+                  </div>
+                )}
               </div>
             </div>
 
@@ -339,13 +344,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       size={15}
                       onChange={onRateFilm ? (n) => onRateFilm(film, n) : undefined}
                     />
-                  </div>
-                )}
-
-                {film.copies > 1 && (
-                  <div className="copies-box" title={`You own ${film.copies} copies of this title`}>
-                    <span className="copies-number">{film.copies}</span>
-                    <span className="copies-label">COPIES</span>
                   </div>
                 )}
               </div>
