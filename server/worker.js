@@ -281,6 +281,28 @@ export default {
         }
       }
 
+      // ---- GET /api/letterboxd-rating (fetch Letterboxd average rating, cached on the film row) ----
+      if (method === 'GET' && pathname === '/api/letterboxd-rating') {
+        const filmId = (url.searchParams.get('filmId') || '').trim()
+        if (!filmId) return json({ letterboxdRating: null }, 200, corsHeaders)
+
+        try {
+          const row = await db.prepare('SELECT id, title, letterboxdRating FROM films WHERE id = ?').bind(filmId).first()
+          if (!row) return json({ letterboxdRating: null }, 200, corsHeaders)
+          if (row.letterboxdRating != null) {
+            return json({ letterboxdRating: row.letterboxdRating }, 200, corsHeaders)
+          }
+
+          const rating = await fetchLetterboxdRating(row.title)
+          if (rating != null) {
+            await db.prepare('UPDATE films SET letterboxdRating = ? WHERE id = ?').bind(rating, filmId).run()
+          }
+          return json({ letterboxdRating: rating }, 200, corsHeaders)
+        } catch (e) {
+          return json({ letterboxdRating: null }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/template (downloadable Excel template) ----
       if (method === 'GET' && pathname === '/api/template') {
         const ws = XLSX.utils.aoa_to_sheet([
@@ -384,6 +406,33 @@ function emptyPersonInfo() {
     height: null,
     spouse: null,
     children: null,
+  }
+}
+
+// جستجوی فیلم توی Letterboxd و استخراج امتیاز میانگین از تگ متای صفحه‌ش
+// (Letterboxd API عمومی نداره؛ meta name="twitter:data2" مقدار
+// "4.52 out of 5" رو توی <head> صفحه‌ی هر فیلم می‌ذاره)
+async function fetchLetterboxdRating(title) {
+  const headers = { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' }
+  try {
+    const searchRes = await fetch(
+      `https://letterboxd.com/search/films/${encodeURIComponent(title)}/`,
+      { headers }
+    )
+    if (!searchRes.ok) return null
+    const searchHtml = await searchRes.text()
+    const slugMatch = searchHtml.match(/href="\/film\/([a-z0-9-]+)\/"/)
+    if (!slugMatch) return null
+
+    const filmRes = await fetch(`https://letterboxd.com/film/${slugMatch[1]}/`, { headers })
+    if (!filmRes.ok) return null
+    const filmHtml = await filmRes.text()
+    const ratingMatch = filmHtml.match(/name="twitter:data2"\s+content="([\d.]+)\s+out of 5"/)
+    if (!ratingMatch) return null
+    const rating = parseFloat(ratingMatch[1])
+    return isNaN(rating) ? null : rating
+  } catch {
+    return null
   }
 }
 

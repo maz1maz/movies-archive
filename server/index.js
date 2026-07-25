@@ -280,6 +280,28 @@ app.get('/api/omdb-lookup', async (req, res) => {
 // Cloudflare Worker از جدول D1 برای کش دائمی استفاده می‌کنه)
 const actorPhotoCache = new Map()
 
+// جستجوی فیلم توی Letterboxd و استخراج امتیاز میانگین از تگ متای صفحه‌ش
+async function fetchLetterboxdRating(title) {
+  const headers = { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' }
+  try {
+    const searchRes = await fetch(`https://letterboxd.com/search/films/${encodeURIComponent(title)}/`, { headers })
+    if (!searchRes.ok) return null
+    const searchHtml = await searchRes.text()
+    const slugMatch = searchHtml.match(/href="\/film\/([a-z0-9-]+)\/"/)
+    if (!slugMatch) return null
+
+    const filmRes = await fetch(`https://letterboxd.com/film/${slugMatch[1]}/`, { headers })
+    if (!filmRes.ok) return null
+    const filmHtml = await filmRes.text()
+    const ratingMatch = filmHtml.match(/name="twitter:data2"\s+content="([\d.]+)\s+out of 5"/)
+    if (!ratingMatch) return null
+    const rating = parseFloat(ratingMatch[1])
+    return isNaN(rating) ? null : rating
+  } catch {
+    return null
+  }
+}
+
 function ageFromBirthDate(birthDate) {
   if (!birthDate) return null
   const m = String(birthDate).match(/^(\d{4})-(\d{2})-(\d{2})/)
@@ -403,6 +425,22 @@ app.get('/api/actor-photo', async (req, res) => {
   } catch (e) {
     res.json(empty)
   }
+})
+
+app.get('/api/letterboxd-rating', async (req, res) => {
+  const filmId = (req.query.filmId || '').toString().trim()
+  if (!filmId) return res.json({ letterboxdRating: null })
+  const films = readFilms()
+  const film = films.find((f) => f.id === filmId)
+  if (!film) return res.json({ letterboxdRating: null })
+  if (film.letterboxdRating != null) return res.json({ letterboxdRating: film.letterboxdRating })
+
+  const rating = await fetchLetterboxdRating(film.title)
+  if (rating != null) {
+    film.letterboxdRating = rating
+    writeFilms(films)
+  }
+  res.json({ letterboxdRating: rating })
 })
 
 // ایمپورت اکسل (ادغام با داده‌های قبلی بر اساس نام فیلم)

@@ -7,6 +7,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
   const [actorPhotos, setActorPhotos] = useState({})
+  const [letterboxdRating, setLetterboxdRating] = useState(null)
   const [lightboxSrc, setLightboxSrc] = useState(null)
 
   useEffect(() => {
@@ -71,6 +72,24 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [film?.id])
+
+  useEffect(() => {
+    setLetterboxdRating(film?.letterboxdRating ?? null)
+    if (film?.letterboxdRating != null || !film?.id) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/letterboxd-rating?filmId=${encodeURIComponent(film.id)}`)
+        const data = await res.json()
+        if (!cancelled && data.letterboxdRating != null) setLetterboxdRating(data.letterboxdRating)
+      } catch {
+        // اگه Letterboxd در دسترس نبود، بج امتیازش رو نشون نمی‌دیم
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [film?.id, film?.letterboxdRating])
 
   if (!film) return null
 
@@ -267,7 +286,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
               <div className="cine-info-badges">
                 {/* Letterboxd Rating Badge */}
-                {typeof film.letterboxdRating === 'number' && (
+                {typeof letterboxdRating === 'number' && (
                   <a
                     href={`https://letterboxd.com/search/films/${encodeURIComponent(film.title)}/`}
                     target="_blank"
@@ -276,7 +295,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     title="Letterboxd Rating"
                   >
                     <span className="letterboxd-tag-label">Letterboxd</span>
-                    <span className="letterboxd-tag-val">{film.letterboxdRating.toFixed(1)}</span>
+                    <span className="letterboxd-tag-val">{letterboxdRating.toFixed(1)}</span>
                   </a>
                 )}
 
