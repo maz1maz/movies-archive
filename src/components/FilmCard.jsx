@@ -47,7 +47,6 @@ export default function FilmCard({ film, onSelect }) {
             e.currentTarget.style.display = 'none'
           }}
         />
-        <span className="poster-fallback">{film.title}</span>
         {typeof film.rating === 'number' && (
           <span className="rating-badge">
             <IconStar width={11} height={11} /> {film.rating.toFixed(1)}
