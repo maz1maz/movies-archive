@@ -238,7 +238,7 @@ export default function Header({
               alpha={alpha}
               setAlpha={(v) => {
                 setAlpha(v)
-                if (v === '') setSort('title_az')
+                setSort('title_az')
                 setAzOpen(false)
               }}
             />
