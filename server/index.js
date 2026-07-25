@@ -117,6 +117,9 @@ app.get('/api/films', (req, res) => {
       const j = Math.floor(Math.random() * (i + 1))
       ;[films[i], films[j]] = [films[j], films[i]]
     }
+  } else if (sort === 'title_az') {
+    const stripThe = (t) => (t || '').replace(/^the\s+/i, '')
+    films.sort((a, b) => stripThe(a.title).localeCompare(stripThe(b.title), 'en'))
   }
   res.json(films)
 })

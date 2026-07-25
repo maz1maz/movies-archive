@@ -238,6 +238,7 @@ export default function Header({
               alpha={alpha}
               setAlpha={(v) => {
                 setAlpha(v)
+                if (v === '') setSort('title_az')
                 setAzOpen(false)
               }}
             />
@@ -294,6 +295,7 @@ export default function Header({
 
           <select className="select" value={sort} onChange={(e) => setSort(e.target.value)}>
             <option value="random">Random</option>
+            <option value="title_az">A–Z</option>
             <option value="shelf">By shelf</option>
             <option value="year_desc">Newest</option>
             <option value="year_asc">Oldest</option>

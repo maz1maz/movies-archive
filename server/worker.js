@@ -55,7 +55,11 @@ export default {
         else if (sort === 'rating') sql += ' ORDER BY rating DESC'
         else if (sort === 'shelf') sql += ' ORDER BY shelf ASC'
         else if (sort === 'random') sql += ' ORDER BY RANDOM()'
-        else sql += ' ORDER BY title ASC'
+        else if (sort === 'title_az') {
+          // مرتب‌سازی الفبایی، نادیده گرفتن «The» ابتدای عنوان (مثلاً
+          // "The Godfather" باید زیر G بره نه T)
+          sql += ` ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
+        } else sql += ' ORDER BY title ASC'
 
         const result = await db.prepare(sql).bind(...params).all()
         // Parse JSON string fields
