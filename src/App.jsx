@@ -429,7 +429,7 @@ export default function App() {
         ) : useSplitView && selected ? (
           <div className="grid-split">
             <div className="grid-split-grid">
-              <FilmGrid films={visibleFilms} onSelect={setSelected} />
+              <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} />
             </div>
             <div className="grid-split-detail">
               <FilmModal
@@ -449,7 +449,7 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <FilmGrid films={visibleFilms} onSelect={setSelected} />
+          <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} />
         )}
         {pageCount > 1 && !loading && (
           <div className="pagination">

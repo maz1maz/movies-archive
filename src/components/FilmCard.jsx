@@ -20,10 +20,22 @@ function hashCode(str) {
   return Math.abs(h)
 }
 
-export default function FilmCard({ film, onSelect }) {
+export default function FilmCard({ film, onSelect, onToggleWatch }) {
   const [c1, c2] = PALETTE[hashCode(String(film.id)) % PALETTE.length]
   const isDigital = film.mediaType === 'digital'
   const hasLocation = isDigital ? film.driveNumber : film.shelf || film.row
+
+  // چرخه‌ی وضعیت تماشا با کلیک روی بج: ندیده → واچ‌لیست‌شده (زرد) →
+  // دیده‌شده (سبز) → دوباره ندیده
+  const status = film.watched ? 'watched' : film.watchlisted ? 'watchlisted' : 'unwatched'
+  const statusLabel = status === 'watched' ? '✓ Watched' : status === 'watchlisted' ? '☆ Watchlisted' : 'Unwatched'
+  const handleBadgeClick = (e) => {
+    e.stopPropagation()
+    if (!onToggleWatch) return
+    if (status === 'unwatched') onToggleWatch(film, { watchlisted: true, watched: false })
+    else if (status === 'watchlisted') onToggleWatch(film, { watchlisted: false, watched: true })
+    else onToggleWatch(film, { watchlisted: false, watched: false })
+  }
 
   return (
     <button
@@ -52,8 +64,12 @@ export default function FilmCard({ film, onSelect }) {
             <IconStar width={11} height={11} /> {film.rating.toFixed(1)}
           </span>
         )}
-        <span className={`watched-badge ${film.watched ? '' : 'unwatched'}`}>
-          {film.watched ? '✓ Watched' : 'Unwatched'}
+        <span
+          className={`watched-badge ${status}`}
+          onClick={handleBadgeClick}
+          title="Click to change watch status"
+        >
+          {statusLabel}
         </span>
         {hasLocation && (
           <span className="location-badge">

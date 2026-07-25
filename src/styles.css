@@ -441,9 +441,21 @@ body.light .header {
 .watched-badge {
   top: 7px;
   right: 7px;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.watched-badge:hover {
+  filter: brightness(1.15);
+}
+.watched-badge.watched {
   background: rgba(22, 65, 48, 0.94);
   color: #d1fae5;
   border: 1px solid rgba(167, 243, 208, 0.3);
+}
+.watched-badge.watchlisted {
+  background: rgba(120, 92, 6, 0.94);
+  color: #fef3c7;
+  border: 1px solid rgba(253, 224, 71, 0.4);
 }
 .watched-badge.unwatched {
   background: rgba(8, 9, 12, 0.85);
