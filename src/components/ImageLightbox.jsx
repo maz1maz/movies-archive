@@ -4,11 +4,12 @@ import { IconClose } from './icons.jsx'
 
 const MIN_SCALE = 1
 const MAX_SCALE = 4
+const DEFAULT_SCALE = 2
 
 // نمایش یه عکس (پوستر فیلم یا عکس بازیگر) به‌صورت بزرگ و وسط صفحه.
 // چرخوندن دکمه‌ی موس روی عکس زوم می‌کنه، کلیک روی پس‌زمینه یا Escape می‌بندتش.
 export default function ImageLightbox({ src, alt, onClose, grayscale = false }) {
-  const [scale, setScale] = useState(1)
+  const [scale, setScale] = useState(DEFAULT_SCALE)
 
   useEffect(() => {
     const onKey = (e) => {
@@ -29,7 +30,7 @@ export default function ImageLightbox({ src, alt, onClose, grayscale = false }) 
 
   // با هر عکس تازه (یا فیلم/بازیگر جدید)، زوم از اول شروع بشه
   useEffect(() => {
-    setScale(1)
+    setScale(DEFAULT_SCALE)
   }, [src])
 
   if (!src) return null
