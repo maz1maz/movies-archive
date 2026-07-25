@@ -22,6 +22,7 @@ function toForm(film) {
     poster: film.poster || '',
     synopsis: film.synopsis || '',
     watched: film.watched === true,
+    watchlisted: film.watchlisted === true,
     myRating: film.myRating || 0,
     criterion: film.criterion === true,
     copies: film.copies || 1,
@@ -89,6 +90,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
       poster: form.poster || undefined,
       synopsis: form.synopsis || undefined,
       watched: form.watched,
+      watchlisted: form.watchlisted,
       myRating: form.myRating,
       criterion: form.criterion,
       copies: form.copies ? parseInt(form.copies, 10) : 1,
@@ -263,13 +265,19 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
           <label className="edit-field">
             <span>Watch status</span>
             <select
-              value={form.watched ? 'yes' : 'no'}
+              value={form.watched ? 'watched' : form.watchlisted ? 'watchlisted' : 'unwatched'}
               onChange={(event) => {
-                setForm((previous) => ({ ...previous, watched: event.target.value === 'yes' }))
+                const v = event.target.value
+                setForm((previous) => ({
+                  ...previous,
+                  watched: v === 'watched',
+                  watchlisted: v === 'watchlisted',
+                }))
               }}
             >
-              <option value="no">Unwatched</option>
-              <option value="yes">Watched</option>
+              <option value="unwatched">Unwatched</option>
+              <option value="watchlisted">Watchlisted</option>
+              <option value="watched">Watched</option>
             </select>
           </label>
           <label className="edit-field edit-checkbox-field">
