@@ -54,6 +54,7 @@ export default {
         else if (sort === 'year_asc') sql += ' ORDER BY year ASC'
         else if (sort === 'rating') sql += ' ORDER BY rating DESC'
         else if (sort === 'shelf') sql += ' ORDER BY shelf ASC'
+        else if (sort === 'random') sql += ' ORDER BY RANDOM()'
         else sql += ' ORDER BY title ASC'
 
         const result = await db.prepare(sql).bind(...params).all()

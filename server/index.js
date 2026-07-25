@@ -112,6 +112,12 @@ app.get('/api/films', (req, res) => {
     films.sort((a, b) =>
       (a.shelf || '').localeCompare(b.shelf || '', 'en')
     )
+  else if (sort === 'random') {
+    for (let i = films.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[films[i], films[j]] = [films[j], films[i]]
+    }
+  }
   res.json(films)
 })
 

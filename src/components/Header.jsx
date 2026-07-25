@@ -293,6 +293,7 @@ export default function Header({
           </select>
 
           <select className="select" value={sort} onChange={(e) => setSort(e.target.value)}>
+            <option value="random">Random</option>
             <option value="shelf">By shelf</option>
             <option value="year_desc">Newest</option>
             <option value="year_asc">Oldest</option>

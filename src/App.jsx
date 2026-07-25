@@ -27,7 +27,7 @@ export default function App() {
   const [watched, setWatched] = useState('')
   const [minRating, setMinRating] = useState('')
   const [decade, setDecade] = useState('')
-  const [sort, setSort] = useState('shelf')
+  const [sort, setSort] = useState('random')
   const [alpha, setAlpha] = useState('')
   const [page, setPage] = useState(1)
 
