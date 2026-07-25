@@ -1213,27 +1213,32 @@ body.light .header {
   gap: 10px;
 }
 
-/* MPA Rating Box */
-.mpa-rating-box {
+/* Letterboxd Rating Box */
+.letterboxd-rating-box {
   display: inline-flex;
   align-items: center;
-  border: 1.5px solid var(--muted);
+  border: 1.5px solid #00e054;
   border-radius: 6px;
   background: var(--bg);
   overflow: hidden;
   font-size: 12px;
   font-weight: 800;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  text-decoration: none;
+  transition: filter 0.15s;
 }
-.mpa-tag-label {
-  background: var(--border-strong);
-  color: var(--muted);
+.letterboxd-rating-box:hover {
+  filter: brightness(1.15);
+}
+.letterboxd-tag-label {
+  background: #00e054;
+  color: #0a1a0e;
   padding: 3px 6px;
   font-size: 10px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
-.mpa-tag-val {
-  color: #ffffff;
+.letterboxd-tag-val {
+  color: #00e054;
   padding: 3px 8px;
   letter-spacing: 0.5px;
 }

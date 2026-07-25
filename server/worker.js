@@ -500,10 +500,10 @@ function parseFilmRow(row) {
 }
 
 async function insertFilm(db, film) {
-  const { id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes } = film
+  const { id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating } = film
   await db.prepare(
-    `INSERT INTO films (id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO films (id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, title || null, originalTitle || null, shelf || null, row || null,
     director || null, cast ? JSON.stringify(cast) : null,
@@ -514,14 +514,14 @@ async function insertFilm(db, film) {
     watched ? 1 : 0, imdbId || null, imdbVotes || null,
     metadataEnrichmentAttemptedAt || null, myRating || 0, criterion ? 1 : 0,
     copies || 1, mediaType || 'physical', driveNumber || null,
-    itemType || 'movie', seasonsEpisodes || null
+    itemType || 'movie', seasonsEpisodes || null, letterboxdRating || null
   ).run()
 }
 
 async function updateFilm(db, film) {
-  const { id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes } = film
+  const { id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating } = film
   await db.prepare(
-    `UPDATE films SET title=?, originalTitle=?, shelf=?, row=?, director=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=? WHERE id=?`
+    `UPDATE films SET title=?, originalTitle=?, shelf=?, row=?, director=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=?, letterboxdRating=? WHERE id=?`
   ).bind(
     title || null, originalTitle || null, shelf || null, row || null,
     director || null, cast && Array.isArray(cast) ? JSON.stringify(cast) : cast || null,
@@ -532,6 +532,6 @@ async function updateFilm(db, film) {
     watched ? 1 : 0, imdbId || null, imdbVotes || null,
     metadataEnrichmentAttemptedAt || null, myRating || 0, criterion ? 1 : 0,
     copies || 1, mediaType || 'physical', driveNumber || null,
-    itemType || 'movie', seasonsEpisodes || null, id
+    itemType || 'movie', seasonsEpisodes || null, letterboxdRating || null, id
   ).run()
 }

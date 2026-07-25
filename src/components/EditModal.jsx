@@ -18,6 +18,7 @@ function toForm(film) {
     country: film.country || '',
     studio: film.studio || '',
     rated: film.rated || film.mpaa || '',
+    letterboxdRating: film.letterboxdRating ?? '',
     poster: film.poster || '',
     synopsis: film.synopsis || '',
     watched: film.watched === true,
@@ -84,6 +85,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
       country: form.country || undefined,
       studio: form.studio || undefined,
       rated: form.rated || undefined,
+      letterboxdRating: form.letterboxdRating !== '' ? parseFloat(form.letterboxdRating) : undefined,
       poster: form.poster || undefined,
       synopsis: form.synopsis || undefined,
       watched: form.watched,
@@ -229,8 +231,8 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
             <input value={form.studio} onChange={set('studio')} placeholder="e.g. Paramount Pictures" />
           </label>
           <label className="edit-field">
-            <span>MPA Rating</span>
-            <input value={form.rated} onChange={set('rated')} placeholder="e.g. PG-13, R, PG" />
+            <span>Letterboxd Rating (0–5)</span>
+            <input type="number" step="0.5" min="0" max="5" value={form.letterboxdRating} onChange={set('letterboxdRating')} placeholder="e.g. 4.5" />
           </label>
 
           <label className="edit-field">

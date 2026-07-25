@@ -104,7 +104,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const metaSubParts = [film.year, genreText, runtimeText].filter(Boolean)
 
   const studioName = film.studio
-  const mpaRating = film.rated || film.mpaa
   const mediaFormat = film.format || (film.mediaType === 'digital' ? 'Digital' : 'Blu-ray')
 
   const trailerSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
@@ -267,12 +266,18 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               )}
 
               <div className="cine-info-badges">
-                {/* Motion Picture Association (MPA) Badge */}
-                {mpaRating && (
-                  <div className="mpa-rating-box" title="Motion Picture Association (MPA) Rating">
-                    <span className="mpa-tag-label">MPA</span>
-                    <span className="mpa-tag-val">{mpaRating}</span>
-                  </div>
+                {/* Letterboxd Rating Badge */}
+                {typeof film.letterboxdRating === 'number' && (
+                  <a
+                    href={`https://letterboxd.com/search/films/${encodeURIComponent(film.title)}/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="letterboxd-rating-box"
+                    title="Letterboxd Rating"
+                  >
+                    <span className="letterboxd-tag-label">Letterboxd</span>
+                    <span className="letterboxd-tag-val">{film.letterboxdRating.toFixed(1)}</span>
+                  </a>
                 )}
 
                 {/* IMDb Yellow Badge: All Black Numbers/Text, /10, and K format votes */}
