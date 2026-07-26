@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Header from './components/Header.jsx'
 import FilmGrid from './components/FilmGrid.jsx'
 import FilmList from './components/FilmList.jsx'
@@ -61,10 +61,12 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [enrichingCatalog, setEnrichingCatalog] = useState(false)
   const [toast, setToast] = useState('')
+  const toastTimeoutRef = useRef(null)
 
-  const showToast = (m) => {
+  const showToast = (m, duration = 4000) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
     setToast(m)
-    setTimeout(() => setToast(''), 4000)
+    toastTimeoutRef.current = setTimeout(() => setToast(''), duration)
   }
 
   useEffect(() => {
@@ -177,8 +179,22 @@ export default function App() {
       const res = await fetch('/api/import', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'import failed')
+
+      // بعد از ایمپورت، تعداد کل فیلم‌های آرشیو رو تازه می‌گیریم تا پیام
+      // نهایی هم فیلم‌های جدید و هم مجموع فعلی آرشیو رو نشون بده
+      let total = null
+      try {
+        const allRes = await fetch('/api/films')
+        const all = await allRes.json()
+        if (Array.isArray(all)) total = all.length
+      } catch {
+        // اگه تعداد کل رو نشد گرفت، پیام رو بدون اون نشون می‌دیم
+      }
+
       showToast(
-        `${data.count} film(s) processed (${data.added} new, ${data.updated} updated)`
+        `Imported: ${data.added} new, ${data.updated} updated` +
+          (total != null ? ` — ${total} films total` : ''),
+        7000
       )
       setQuery('')
       setGenre('')
@@ -235,6 +251,21 @@ export default function App() {
     }
     setEditing(null)
     setLoanFilm(null)
+  }
+
+  const handleDeleteFilm = async (film) => {
+    try {
+      const res = await fetch('/api/films/' + film.id, { method: 'DELETE' })
+      if (!res.ok) throw new Error('delete failed')
+      setFilms((prev) => prev.filter((f) => f.id !== film.id))
+      setAllFilmsUnfiltered((prev) => prev.filter((f) => f.id !== film.id))
+      if (selected && selected.id === film.id) setSelected(null)
+      showToast(`Deleted "${film.title}"`)
+      refreshMeta()
+    } catch (e) {
+      showToast(e.message)
+    }
+    setEditing(null)
   }
 
   const handleAutofillFilm = async (id) => {
@@ -527,6 +558,7 @@ export default function App() {
           onClose={() => setEditing(null)}
           onSave={(patch) => handleSaveFilm(editing.id, patch)}
           onAutofill={() => handleAutofillFilm(editing.id)}
+          onDelete={handleDeleteFilm}
         />
       )}
         </>

@@ -33,8 +33,9 @@ function toForm(film) {
   }
 }
 
-export default function EditModal({ film, onClose, onSave, onAutofill }) {
+export default function EditModal({ film, onClose, onSave, onAutofill, onDelete }) {
   const isNew = !film.id
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [form, setForm] = useState(() => toForm(film))
   const [autofilling, setAutofilling] = useState(false)
   const [lookupError, setLookupError] = useState('')
@@ -312,6 +313,23 @@ export default function EditModal({ film, onClose, onSave, onAutofill }) {
               </button>
             ) : <span />}
             {lookupError && <span className="edit-lookup-error">{lookupError}</span>}
+            {!isNew && onDelete && (
+              confirmingDelete ? (
+                <span className="edit-delete-confirm">
+                  <span>Delete this film permanently?</span>
+                  <button className="btn btn-danger" onClick={() => onDelete(film)}>
+                    Yes, delete
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => setConfirmingDelete(false)}>
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button className="btn btn-ghost btn-danger-text" onClick={() => setConfirmingDelete(true)}>
+                  Delete film
+                </button>
+              )
+            )}
           </div>
           <div className="edit-primary-actions">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>

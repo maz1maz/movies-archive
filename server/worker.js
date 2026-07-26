@@ -130,6 +130,15 @@ export default {
         return json(parseFilmRow(updated), 200, corsHeaders)
       }
 
+      // ---- DELETE /api/films/:id (permanently remove a film) ----
+      const deleteMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
+      if (method === 'DELETE' && deleteMatch) {
+        const existing = await db.prepare('SELECT id FROM films WHERE id = ?').bind(deleteMatch[1]).first()
+        if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
+        await db.prepare('DELETE FROM films WHERE id = ?').bind(deleteMatch[1]).run()
+        return json({ deleted: true, id: deleteMatch[1] }, 200, corsHeaders)
+      }
+
       // ---- POST /api/films/enrich ----
       if (method === 'POST' && pathname === '/api/films/enrich') {
         if (!env.OMDB_API_KEY) {

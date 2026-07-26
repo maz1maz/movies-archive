@@ -680,6 +680,24 @@ body.light .header {
   color: var(--danger);
   font-size: 12px;
 }
+.btn-danger-text {
+  color: var(--danger);
+}
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+}
+.btn-danger:hover {
+  filter: brightness(1.1);
+}
+.edit-delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--danger);
+}
 .edit-primary-actions {
   display: flex;
   justify-content: flex-end;

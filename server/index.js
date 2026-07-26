@@ -228,6 +228,15 @@ app.patch('/api/films/:id', (req, res) => {
   res.json(updated)
 })
 
+app.delete('/api/films/:id', (req, res) => {
+  const films = readFilms()
+  const i = films.findIndex((f) => f.id === req.params.id)
+  if (i < 0) return res.status(404).json({ error: 'not found' })
+  const [deleted] = films.splice(i, 1)
+  writeFilms(films)
+  res.json({ deleted: true, id: deleted.id })
+})
+
 app.get('/api/genres', (req, res) => {
   const set = new Set()
   readFilms().forEach((f) => (f.genre || []).forEach((g) => set.add(g)))
