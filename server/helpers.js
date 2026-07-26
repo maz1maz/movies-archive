@@ -68,10 +68,32 @@ export function normalizeTitle(t) {
   return (t || "").toString().trim().toLowerCase()
 }
 
+// اسم ستون‌های اکسل رو قبل از مچ کردن با HEADER_MAP نرمال‌سازی می‌کنیم: پرانتز
+// و توضیحات داخلش حذف می‌شه، بعد هر چیزی جز حروف/عدد (فاصله، اسلش، خط تیره)
+// هم حذف می‌شه. این‌جوری هدرهای خواناتر مثل "Rating (IMDb)"، "Original Title"،
+// "Drive Number" یا "Media Type (Physical/Digital)" هم درست به فیلد واقعی
+// وصل می‌شن، نه اینکه چون دقیقاً برابر با کلید خام نبودن، بی‌صدا دیتاشون گم بشه.
+function normalizeHeaderKey(key) {
+  return key
+    .toString()
+    .replace(/\([^)]*\)/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9آ-ی]/g, "")
+}
+
+const NORMALIZED_HEADER_MAP = Object.fromEntries(
+  Object.entries(HEADER_MAP).map(([k, v]) => [normalizeHeaderKey(k), v])
+)
+// چند هم‌معنی اضافه که در HEADER_MAP خام (با فاصله/پرانتز) وجود نداشت
+NORMALIZED_HEADER_MAP.contenttype = "itemType"
+NORMALIZED_HEADER_MAP.imdbid = "imdbId"
+NORMALIZED_HEADER_MAP.mparating = "rated"
+
 export function rowToFilm(row, index) {
   const film = { id: `f${Date.now()}_${index}` }
   for (const [key, val] of Object.entries(row)) {
-    const field = HEADER_MAP[key.trim().toLowerCase()]
+    const field = HEADER_MAP[key.trim().toLowerCase()] || NORMALIZED_HEADER_MAP[normalizeHeaderKey(key)]
     if (!field) continue
     let v = parseCell(val)
     if (field === "cast" || field === "genre") v = toList(v)
