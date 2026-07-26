@@ -1,7 +1,47 @@
-// غنی‌سازی سریال‌ها از TVMaze — یه API رایگان و بدون کلید، مخصوص سریال‌ها
-// (برخلاف OMDb که بیشتر برای فیلمه و پوشش سریال‌هاش ضعیف‌تره). قد؛ داده‌های
-// موجود توسط کاربر رو هیچ‌وقت رونویسی نمی‌کنه — فقط فیلدهای خالی رو پر می‌کنه.
+// غنی‌سازی سریال‌ها از TVMaze — یه API رایگان و بدون کلید، مخصوص سریال‌ها.
+// این نسخه از روی اسکریپت پایتونی که واقعاً برای پر کردن ۱۱۳ تا سریال جواب
+// داد پورت شده (series-enricher-complete.py) — نسخه‌ی قبلی این فایل فقط
+// singlesearch + cast می‌زد و هیچ‌وقت crew (تهیه‌کننده/کارگردان/سازنده) رو
+// نمی‌گرفت، برای همین Producer/Director سریال‌ها همیشه خالی می‌موند.
+// داده‌ی موجود توسط کاربر رو هیچ‌وقت رونویسی نمی‌کنه — فقط فیلدهای خالی رو پر می‌کنه.
 const BASE = 'https://api.tvmaze.com'
+const FETCH_HEADERS = { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' }
+const FETCH_TIMEOUT = 8000
+
+// چند تا عنوان که TVMaze سرچ ساده براشون جواب اشتباه/بی‌ربط می‌ده — شناسه‌ی
+// دقیق TVMaze رو مستقیم می‌ذاریم که دیگه به حدس سرچ نیاز نباشه.
+const CORRECTIONS = {
+  'money heist': 27436, // La Casa de Papel (2017) — نه نسخه‌ی کره‌ای ۲۰۲۲
+  protector: 36807, // Hakan: Muhafız — سریال ترکی ۲۰۱۸
+  'the protector': 36807,
+  'the bridge (bron-breon)': 1910, // Bron / Broen 2011
+  anne: 12989, // Anne with an E
+}
+
+// عنوان‌هایی که یه سری کاندید سرچ خاص لازم دارن (چون اسمشون تو آرشیو خودمون
+// با اسم رسمی TVMaze فرق داره یا خیلی کلی/مبهمه)
+function specialCandidates(title) {
+  const t = title.toLowerCase()
+  if (t === 'anne') return ['Anne with an E', 'Anne']
+  if (t === '24') return ['24']
+  if (t === 'kingdom') return ['Kingdom Korean', 'Kingdom']
+  if (t === 'money heist') return ['La Casa de Papel', 'Money Heist']
+  if (t === 'protector') return ['Hakan Muhafiz', 'The Protector 2018']
+  if (t.includes('bridge')) return ['Bron Broen', 'The Bridge', title]
+  return null
+}
+
+// "Stranger Things S 03" یا "... Season 3" -> "Stranger Things" برای سرچ بهتر
+function cleanSearchTitle(rawTitle) {
+  let t = rawTitle.trim()
+  t = t.replace(/\s+S\s*\d+.*$/i, '')
+  t = t.replace(/\s+Season\s*\d+.*$/i, '')
+  return t.replace(/\s+/g, ' ').trim()
+}
+
+function stripParenthesis(title) {
+  return title.replace(/\s*\([^)]*\)\s*/g, ' ').trim()
+}
 
 function isEmpty(value) {
   if (Array.isArray(value)) return value.length === 0
@@ -13,53 +53,152 @@ function fillMissing(film, field, value) {
   film[field] = value
 }
 
-function stripHtml(html) {
-  return String(html || '')
+function stripHtml(text) {
+  return String(text || '')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+async function fetchJson(url) {
+  try {
+    const res = await fetch(url, { headers: FETCH_HEADERS, signal: AbortSignal.timeout(FETCH_TIMEOUT) })
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
+function buildCandidates(title) {
+  const special = specialCandidates(title)
+  if (special) return special
+
+  const candidates = [title]
+  const cleaned = cleanSearchTitle(title)
+  if (cleaned !== title) candidates.push(cleaned)
+  const stripped = stripParenthesis(cleaned)
+  if (stripped !== cleaned && stripped !== title) candidates.push(stripped)
+  return [...new Set(candidates)]
+}
+
+async function findShow(title) {
+  const key = title.toLowerCase()
+  if (CORRECTIONS[key] != null) {
+    const show = await fetchJson(`${BASE}/shows/${CORRECTIONS[key]}`)
+    if (show) return show
+  }
+
+  for (const candidate of buildCandidates(title)) {
+    const results = await fetchJson(`${BASE}/search/shows?q=${encodeURIComponent(candidate)}`)
+    if (Array.isArray(results) && results.length) {
+      const correctionId = CORRECTIONS[key]
+      if (correctionId != null) {
+        const match = results.find((r) => r.show?.id === correctionId)
+        if (match) return match.show
+      }
+      return results[0].show
+    }
+  }
+  return null
+}
+
+// کشورهای متداول بر اساس زبان، برای وقتی که TVMaze کشور شبکه رو نداره
+const LANGUAGE_COUNTRY = {
+  English: 'United States',
+  Korean: 'South Korea',
+  Spanish: 'Spain',
+  Turkish: 'Turkey',
+  Swedish: 'Sweden',
+  Japanese: 'Japan',
+  French: 'France',
+  German: 'Germany',
+}
+const STREAMING_SERVICES_US = new Set(['Netflix', 'Hulu', 'Amazon Prime Video', 'Apple TV+', 'Disney+'])
+
+function extractShowFields(show) {
+  const fields = {}
+
+  if (show.premiered) {
+    const m = String(show.premiered).match(/^(19\d{2}|20\d{2})/)
+    if (m) fields.year = parseInt(m[1], 10)
+  }
+  if (Array.isArray(show.genres) && show.genres.length) fields.genre = show.genres
+  if (show.rating?.average != null) fields.rating = show.rating.average
+  fields.runtime = show.runtime || show.averageRuntime || undefined
+
+  let country = ''
+  let studio = ''
+  if (show.network) {
+    country = show.network.country?.name || ''
+    studio = show.network.name || ''
+  }
+  if (show.webChannel) {
+    if (!country) country = show.webChannel.country?.name || ''
+    if (!studio) studio = show.webChannel.name || ''
+    if (!country && STREAMING_SERVICES_US.has(show.webChannel.name)) country = 'United States'
+  }
+  if (!country) country = LANGUAGE_COUNTRY[show.language] || show.language || ''
+  if (country) fields.country = country
+  if (studio) fields.studio = studio
+
+  if (show.summary) fields.synopsis = stripHtml(show.summary)
+  const poster = show.image?.original || show.image?.medium
+  if (poster) fields.poster = poster
+  if (show.externals?.imdb) fields.imdbId = show.externals.imdb
+  if (show.name) fields.originalTitle = show.name
+
+  return fields
+}
+
+function extractCrewFields(crew, cast) {
+  const producers = []
+  const directors = []
+  const creators = []
+  for (const member of crew || []) {
+    const type = member.type || ''
+    const name = member.person?.name
+    if (!name) continue
+    if (type.includes('Producer')) producers.push(name)
+    if (type.includes('Director')) directors.push(name)
+    if (type.includes('Creator')) creators.push(name)
+  }
+  const uniq = (arr) => [...new Set(arr)]
+  let producerStr = uniq(producers).slice(0, 5).join(', ')
+  let directorStr = uniq(directors).slice(0, 3).join(', ')
+  if (!directorStr && creators.length) directorStr = uniq(creators).slice(0, 3).join(', ')
+  if (!producerStr && creators.length) producerStr = uniq(creators).slice(0, 3).join(', ')
+
+  const castNames = (cast || [])
+    .slice(0, 8)
+    .map((c) => c.person?.name)
+    .filter(Boolean)
+
+  return { producer: producerStr, director: directorStr, cast: castNames }
 }
 
 export async function enrichSeriesFromTVMaze(film) {
   const title = (film.title || '').trim()
   if (!title) return film
 
-  const searchRes = await fetch(
-    `${BASE}/singlesearch/shows?q=${encodeURIComponent(title)}&embed=cast`,
-    { signal: AbortSignal.timeout(8000) }
-  )
-  if (!searchRes.ok) return film
-  const data = await searchRes.json()
-  if (!data || !data.id) return film
+  const show = await findShow(title)
+  if (!show || !show.id) return film
+
+  const [crew, cast] = await Promise.all([
+    fetchJson(`${BASE}/shows/${show.id}/crew`),
+    fetchJson(`${BASE}/shows/${show.id}/cast`),
+  ])
 
   const out = { ...film }
-
-  if (data.name) fillMissing(out, 'originalTitle', data.name)
-  if (data.premiered) {
-    const year = parseInt(String(data.premiered).slice(0, 4), 10)
-    if (!Number.isNaN(year)) fillMissing(out, 'year', year)
+  const showFields = extractShowFields(show)
+  for (const [field, value] of Object.entries(showFields)) {
+    fillMissing(out, field, value)
   }
-  if (Array.isArray(data.genres) && data.genres.length) fillMissing(out, 'genre', data.genres)
-  if (data.rating?.average != null) fillMissing(out, 'rating', data.rating.average)
-  const runtime = data.averageRuntime || data.runtime
-  if (runtime) fillMissing(out, 'runtime', runtime)
-  const networkCountry = data.network?.country?.name || data.webChannel?.country?.name
-  if (networkCountry) fillMissing(out, 'country', networkCountry)
-  const networkName = data.network?.name || data.webChannel?.name
-  if (networkName) fillMissing(out, 'studio', networkName)
-  if (data.summary) fillMissing(out, 'synopsis', stripHtml(data.summary))
-  const poster = data.image?.original || data.image?.medium
-  if (poster) fillMissing(out, 'poster', poster)
-  if (data.externals?.imdb) fillMissing(out, 'imdbId', data.externals.imdb)
 
-  const cast = data._embedded?.cast
-  if (Array.isArray(cast) && cast.length) {
-    const names = cast
-      .slice(0, 8)
-      .map((c) => c.person?.name)
-      .filter(Boolean)
-    if (names.length) fillMissing(out, 'cast', names)
-  }
+  const { producer, director, cast: castNames } = extractCrewFields(crew || [], cast || [])
+  if (producer) fillMissing(out, 'producer', producer)
+  if (director) fillMissing(out, 'director', director)
+  if (castNames.length) fillMissing(out, 'cast', castNames)
 
   return out
 }
