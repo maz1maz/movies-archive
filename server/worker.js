@@ -139,6 +139,34 @@ export default {
         return json({ deleted: true, id: deleteMatch[1] }, 200, corsHeaders)
       }
 
+      // ---- POST /api/films/:id ("Auto-fill missing details" on one existing film) ----
+      // این مسیر توی فرانت‌اند (handleAutofillFilm) استفاده می‌شه ولی قبلاً
+      // اصلاً روی این Worker وجود نداشت — برای همین دکمه‌ی Auto-fill عملاً
+      // هیچی پر نمی‌کرد (فقط تو سرور لوکال کار می‌کرد).
+      const enrichOneMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
+      if (method === 'POST' && enrichOneMatch && enrichOneMatch[1] !== 'enrich') {
+        const existing = await db.prepare('SELECT * FROM films WHERE id = ?').bind(enrichOneMatch[1]).first()
+        if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
+        const parsed = parseFilmRow(existing)
+        const key = env.OMDB_API_KEY
+        if (!key) {
+          return json({ ...parsed, _enrichment: { enabled: false, fields: [] } }, 200, corsHeaders)
+        }
+        let fields = []
+        let enriched = parsed
+        try {
+          enriched = await enrichFilm(parsed, key)
+          fields = ENRICHABLE_FIELDS.filter(
+            (f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f])
+          )
+          enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
+          await updateFilm(db, enriched)
+        } catch {
+          return json({ ...parsed, _enrichment: { enabled: true, fields: [] } }, 200, corsHeaders)
+        }
+        return json({ ...parseFilmRow(enriched), _enrichment: { enabled: true, fields } }, 200, corsHeaders)
+      }
+
       // ---- POST /api/films/enrich ----
       if (method === 'POST' && pathname === '/api/films/enrich') {
         if (!env.OMDB_API_KEY) {
