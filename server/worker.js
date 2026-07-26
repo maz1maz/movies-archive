@@ -398,6 +398,45 @@ export default {
         })
       }
 
+      // ---- GET /api/export/excel ----
+      if (method === 'GET' && pathname === '/api/export/excel') {
+        const result = await db.prepare('SELECT * FROM films ORDER BY title').all()
+        const films = (result.results || []).map(parseFilmRow)
+        const rows = films.map((f) => ({
+          Title: f.title || '',
+          'Original Title': f.originalTitle || '',
+          Shelf: f.shelf || '',
+          Row: f.row || '',
+          Format: f.format || '',
+          Watched: f.watched === true ? 'Yes' : 'No',
+          'Borrowed To': f.borrowedTo || '',
+          'Borrowed Date': f.borrowedDate || '',
+          Director: f.director || '',
+          Cast: Array.isArray(f.cast) ? f.cast.map((x) => (typeof x === 'object' ? x.name : x)).join(', ') : f.cast || '',
+          Year: f.year || '',
+          Genre: Array.isArray(f.genre) ? f.genre.join(', ') : f.genre || '',
+          Rating: f.rating || '',
+          Runtime: f.runtime || '',
+          Country: f.country || '',
+          Studio: f.studio || '',
+          'MPA Rating': f.rated || '',
+          Synopsis: f.synopsis || '',
+          'Poster URL': f.poster || '',
+        }))
+        const ws = XLSX.utils.json_to_sheet(rows)
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'آرشیو فیلم‌ها')
+        const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' })
+        return new Response(buf, {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition': 'attachment; filename="movies-archive-export.xlsx"',
+          },
+        })
+      }
+
       // ---- SPA fallback ----
       // Static assets are handled by wrangler's asset system; this Worker only
       // deals with /api/* routes. Return 404 for anything else.
