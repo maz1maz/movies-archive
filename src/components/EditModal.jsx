@@ -30,6 +30,10 @@ function toForm(film) {
     driveNumber: film.driveNumber || '',
     itemType: film.itemType === 'series' ? 'series' : 'movie',
     seasonsEpisodes: film.seasonsEpisodes || '',
+    seasonDrives:
+      Array.isArray(film.seasonDrives) && film.seasonDrives.length > 0
+        ? film.seasonDrives
+        : [{ seasons: '', drive: '' }],
   }
 }
 
@@ -99,6 +103,10 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
       driveNumber: form.mediaType === 'digital' ? form.driveNumber || undefined : undefined,
       itemType: form.itemType,
       seasonsEpisodes: form.itemType === 'series' ? form.seasonsEpisodes || undefined : undefined,
+      seasonDrives:
+        form.mediaType === 'digital' && form.itemType === 'series'
+          ? form.seasonDrives.filter((sd) => sd.seasons.trim() || sd.drive.trim())
+          : undefined,
     }
     onSave(patch)
   }
@@ -168,7 +176,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
             </select>
           </label>
 
-          {form.mediaType === 'digital' ? (
+          {form.mediaType === 'digital' && form.itemType !== 'series' ? (
             <label className="edit-field">
               <span>Drive Number</span>
               <input
@@ -177,7 +185,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
                 placeholder="e.g. Drive 1, Drive 2"
               />
             </label>
-          ) : (
+          ) : form.mediaType === 'physical' ? (
             <>
               <label className="edit-field">
                 <span>Shelf</span>
@@ -188,17 +196,74 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
                 <input value={form.row} onChange={set('row')} />
               </label>
             </>
-          )}
+          ) : null}
 
           {form.itemType === 'series' && (
             <label className="edit-field">
-              <span>Seasons / Episodes</span>
+              <span>Seasons (total count)</span>
               <input
                 value={form.seasonsEpisodes}
                 onChange={set('seasonsEpisodes')}
-                placeholder="e.g. 3 seasons, 24 episodes"
+                placeholder="e.g. 5"
               />
             </label>
+          )}
+
+          {form.mediaType === 'digital' && form.itemType === 'series' && (
+            <div className="edit-field full seasondrives-field">
+              <span>Seasons on which drive</span>
+              {form.seasonDrives.map((sd, idx) => (
+                <div key={idx} className="seasondrive-row">
+                  <input
+                    value={sd.seasons}
+                    placeholder="e.g. Seasons 1-3"
+                    onChange={(e) =>
+                      setForm((prev) => {
+                        const next = [...prev.seasonDrives]
+                        next[idx] = { ...next[idx], seasons: e.target.value }
+                        return { ...prev, seasonDrives: next }
+                      })
+                    }
+                  />
+                  <input
+                    value={sd.drive}
+                    placeholder="e.g. Drive 1"
+                    onChange={(e) =>
+                      setForm((prev) => {
+                        const next = [...prev.seasonDrives]
+                        next[idx] = { ...next[idx], drive: e.target.value }
+                        return { ...prev, seasonDrives: next }
+                      })
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost seasondrive-remove"
+                    onClick={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        seasonDrives: prev.seasonDrives.filter((_, i) => i !== idx),
+                      }))
+                    }
+                    aria-label="Remove row"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn btn-ghost seasondrive-add"
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    seasonDrives: [...prev.seasonDrives, { seasons: '', drive: '' }],
+                  }))
+                }
+              >
+                + Add row
+              </button>
+            </div>
           )}
           <label className="edit-field">
             <span>Copies owned</span>

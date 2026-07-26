@@ -650,6 +650,27 @@ body.light .header {
 .edit-field.full {
   grid-column: 1 / -1;
 }
+.seasondrives-field {
+  gap: 8px;
+}
+.seasondrive-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.seasondrive-row input {
+  width: 100%;
+}
+.seasondrive-remove {
+  padding: 6px 10px;
+  color: var(--danger);
+  font-size: 16px;
+  line-height: 1;
+}
+.seasondrive-add {
+  align-self: flex-start;
+}
 .edit-field > span {
   color: var(--muted);
   font-size: 12px;
@@ -1524,6 +1545,39 @@ body.light .header {
 .crew-val.clickable-person-text:hover {
   color: #a9bce6;
   text-decoration: underline;
+}
+
+/* Seasons block (which hard drive each season group lives on) — full width,
+   sits below the cast/crew/trailer row since it doesn't fit that 3-col grid */
+.cine-seasons-block {
+  margin-top: 18px;
+}
+.cine-seasons-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.cine-season-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--surface-3);
+}
+.season-key {
+  color: var(--muted);
+  font-weight: 600;
+}
+.season-drive {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text);
+  font-weight: 500;
 }
 
 /* Trailer Card */

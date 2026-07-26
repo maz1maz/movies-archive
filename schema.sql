@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS films (
   driveNumber TEXT,                       -- برای آیتم‌های دیجیتال
   itemType TEXT DEFAULT 'movie',          -- movie | series
   seasonsEpisodes TEXT,                   -- برای سریال‌ها
+  seasonDrives TEXT,                       -- JSON: [{seasons:"1-3", drive:"HDD-01"}, ...] فصل‌های سریال روی چه هاردی
   letterboxdRating REAL,                  -- امتیاز Letterboxd (کش‌شده)
   letterboxdVotes INTEGER,                -- تعداد رای Letterboxd (کش‌شده)
   watchlisted INTEGER DEFAULT 0,          -- وضعیت واچ‌لیست (سه‌حالته با watched)
