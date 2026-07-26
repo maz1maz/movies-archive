@@ -52,7 +52,6 @@ function writeFilms(films) {
 // temporarily unavailable or has no match for its title.
 async function enrichMissingMetadata(film) {
   const key = process.env.OMDB_API_KEY
-  if (!key) return { film, enabled: false, fields: [] }
 
   try {
     const enriched = await enrichFilm(film, key)
@@ -61,7 +60,7 @@ async function enrichMissingMetadata(film) {
     )
     return { film: enriched, enabled: true, fields }
   } catch {
-    return { film, enabled: true, fields: [] }
+    return { film, enabled: Boolean(key), fields: [] }
   }
 }
 
@@ -133,10 +132,6 @@ app.get('/api/films/:id', (req, res) => {
 // Process a bounded batch so a large imported catalogue can be completed
 // without holding one request open for hundreds of external lookups.
 app.post('/api/films/enrich', async (req, res) => {
-  if (!process.env.OMDB_API_KEY) {
-    return res.status(400).json({ error: 'OMDB_API_KEY is not configured' })
-  }
-
   const requestedLimit = parseInt(req.query.limit, 10)
   const limit = Number.isFinite(requestedLimit)
     ? Math.min(Math.max(requestedLimit, 1), 15)
@@ -493,17 +488,15 @@ app.post('/api/import', upload.single('file'), async (req, res) => {
     let imported = rows.map((r, i) => rowToFilm(r, i))
 
     const key = process.env.OMDB_API_KEY
-    if (key) {
-      imported = await Promise.all(
-        imported.map(async (f) => {
-          try {
-            return await enrichFilm(f, key)
-          } catch {
-            return f
-          }
-        })
-      )
-    }
+    imported = await Promise.all(
+      imported.map(async (f) => {
+        try {
+          return await enrichFilm(f, key)
+        } catch {
+          return f
+        }
+      })
+    )
 
     // ادغام با آرشیو قبلی
     const existing = readFilms()

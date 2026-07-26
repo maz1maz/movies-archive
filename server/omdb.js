@@ -1,5 +1,7 @@
 // Optional metadata enrichment from OMDb. Values entered by the collector are
 // never overwritten: OMDb only fills fields that are still empty.
+import { enrichSeriesFromTVMaze } from './tvmaze.js'
+
 const BASE = process.env.OMDB_BASE_URL || 'https://www.omdbapi.com/'
 
 function isEmpty(value) {
@@ -12,7 +14,24 @@ function fillMissing(film, field, value) {
   film[field] = value
 }
 
-export async function enrichFilm(film, key) {
+export async function enrichFilm(baseFilm, key) {
+  let film = baseFilm
+
+  // برای سریال، اول TVMaze رو امتحان می‌کنیم — رایگان، بدون کلید، و
+  // مخصوص سریاله (OMDb بیشتر برای فیلمه و پوشش سریال‌هاش ضعیف‌تره).
+  // هر چیزی که TVMaze پیدا نکرد، همچنان از OMDb (پایین‌تر) پر می‌شه.
+  if (baseFilm.itemType === 'series') {
+    try {
+      film = await enrichSeriesFromTVMaze(baseFilm)
+    } catch {
+      film = baseFilm
+    }
+  }
+
+  // بدون کلید OMDb هم، حداقل نتیجه‌ی TVMaze (برای سریال) رو برگردون —
+  // قبلاً نبودِ کلید باعث می‌شد کل غنی‌سازی، حتی این بخش رایگانش، لغو بشه.
+  if (!key) return film
+
   const query = { apikey: key, t: film.title, type: film.itemType === 'series' ? 'series' : 'movie' }
   if (film.year) query.y = String(film.year)
 

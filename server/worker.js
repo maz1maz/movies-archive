@@ -95,11 +95,9 @@ export default {
           year: body.year ? parseInt(body.year, 10) : null,
           runtime: body.runtime ? parseInt(body.runtime, 10) : null,
         }
-        if (key) {
-          try {
-            film = await enrichFilm(film, key)
-          } catch {}
-        }
+        try {
+          film = await enrichFilm(film, key)
+        } catch {}
         await insertFilm(db, film)
         return json(film, 201, corsHeaders)
       }
@@ -149,9 +147,6 @@ export default {
         if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
         const parsed = parseFilmRow(existing)
         const key = env.OMDB_API_KEY
-        if (!key) {
-          return json({ ...parsed, _enrichment: { enabled: false, fields: [] } }, 200, corsHeaders)
-        }
         let fields = []
         let enriched = parsed
         try {
@@ -162,16 +157,13 @@ export default {
           enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
           await updateFilm(db, enriched)
         } catch {
-          return json({ ...parsed, _enrichment: { enabled: true, fields: [] } }, 200, corsHeaders)
+          return json({ ...parsed, _enrichment: { enabled: Boolean(key), fields: [] } }, 200, corsHeaders)
         }
         return json({ ...parseFilmRow(enriched), _enrichment: { enabled: true, fields } }, 200, corsHeaders)
       }
 
       // ---- POST /api/films/enrich ----
       if (method === 'POST' && pathname === '/api/films/enrich') {
-        if (!env.OMDB_API_KEY) {
-          return json({ error: 'OMDB_API_KEY is not configured' }, 400, corsHeaders)
-        }
         const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
 
@@ -384,17 +376,15 @@ export default {
         let imported = rows.map((r, i) => rowToFilm(r, i))
 
         const key = env.OMDB_API_KEY
-        if (key) {
-          imported = await Promise.all(
-            imported.map(async (f) => {
-              try {
-                return await enrichFilm(f, key)
-              } catch {
-                return f
-              }
-            })
-          )
-        }
+        imported = await Promise.all(
+          imported.map(async (f) => {
+            try {
+              return await enrichFilm(f, key)
+            } catch {
+              return f
+            }
+          })
+        )
 
         let added = 0
         let updated = 0
