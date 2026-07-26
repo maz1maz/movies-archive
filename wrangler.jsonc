@@ -11,7 +11,14 @@
     "directory": "./dist",
     // Same behavior as the SPA fallback redirect in netlify.toml:
     // unknown paths serve /index.html with a 200 status.
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    // Without this, plain <a href="/api/..."> clicks (download links) are
+    // top-level navigations (Sec-Fetch-Mode: navigate), and Cloudflare serves
+    // the SPA fallback (index.html) for those INSTEAD of running the Worker —
+    // even though fetch()-based /api/ calls from the app's own JS work fine.
+    // This was why "Download Excel Export" / JSON backup downloaded the
+    // app shell instead of an actual file.
+    "run_worker_first": ["/api/*"]
   },
   "d1_databases": [
     {
