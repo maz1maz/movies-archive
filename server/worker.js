@@ -325,7 +325,7 @@ export default {
         ])
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, 'Films')
-        const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' })
+        const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: false })
         return new Response(buf, {
           status: 200,
           headers: {
@@ -426,7 +426,7 @@ export default {
         const ws = XLSX.utils.json_to_sheet(rows)
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, 'آرشیو فیلم‌ها')
-        const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' })
+        const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: false })
         return new Response(buf, {
           status: 200,
           headers: {

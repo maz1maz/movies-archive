@@ -572,7 +572,7 @@ app.get('/api/template', (req, res) => {
   ])
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'فیلم‌ها')
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx', compression: false })
   res.setHeader(
     'Content-Disposition',
     'attachment; filename="film-archive-template.xlsx"'
@@ -619,7 +619,7 @@ app.get('/api/export/excel', (req, res) => {
   const ws = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'آرشیو فیلم‌ها')
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx', compression: false })
   res.setHeader('Content-Disposition', 'attachment; filename="movies-archive-export.xlsx"')
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.send(buf)
