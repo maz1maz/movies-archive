@@ -9,6 +9,7 @@ function toForm(film) {
     row: film.row || '',
     year: film.year ?? '',
     director: film.director || '',
+    producer: film.producer || '',
     cast: Array.isArray(film.cast)
       ? film.cast.map((x) => (typeof x === 'object' ? x.name : x)).join(', ')
       : film.cast || '',
@@ -78,6 +79,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
       row: form.row,
       year: form.year !== '' ? parseInt(form.year, 10) : undefined,
       director: form.director || undefined,
+      producer: form.producer || undefined,
       cast: form.cast
         .split(',')
         .map((name) => name.trim())
@@ -315,6 +317,10 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
           <label className="edit-field full">
             <span>Director</span>
             <input value={form.director} onChange={set('director')} />
+          </label>
+          <label className="edit-field full">
+            <span>Producer {form.itemType === 'series' ? '(for series, often more useful than Director since it varies per episode)' : ''}</span>
+            <input value={form.producer} onChange={set('producer')} />
           </label>
           <label className="edit-field full">
             <span>Cast (comma separated)</span>

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS films (
   shelf TEXT,
   row TEXT,
   director TEXT,
+  producer TEXT,        -- برای سریال بهتره جای کارگردان (چون هر قسمت کارگردان جدا داره)
   cast TEXT,            -- JSON array
   year INTEGER,
   genre TEXT,           -- JSON array

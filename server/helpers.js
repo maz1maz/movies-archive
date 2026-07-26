@@ -117,8 +117,20 @@ export const EDITABLE = [
   "poster", "studio", "rated", "format", "borrowedTo", "borrowedDate",
   "watched", "myRating", "criterion",
   "copies", "mediaType", "driveNumber", "itemType", "seasonsEpisodes",
-  "letterboxdRating", "watchlisted", "letterboxdVotes", "seasonDrives",
+  "letterboxdRating", "watchlisted", "letterboxdVotes", "seasonDrives", "producer",
 ]
+
+// از رو متن آزاد فصل‌ها (مثلاً "Seasons 2, 3, 4 · 18 episodes" یا
+// "Season 14, Season 15") تعداد فصل‌های یکتا رو حساب می‌کنه. عمداً فقط قسمت
+// قبل از "·" (که تعداد قسمت‌هاست، نه فصل) رو در نظر می‌گیره.
+export function countSeasonsFromText(text) {
+  if (!text) return null
+  const beforeDot = String(text).split("·")[0]
+  const numbers = beforeDot.match(/\d+/g)
+  if (!numbers) return null
+  const unique = new Set(numbers.map((n) => parseInt(n, 10)))
+  return unique.size || null
+}
 
 export const ENRICHABLE_FIELDS = [
   "originalTitle", "year", "director", "cast", "genre", "rating",

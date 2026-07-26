@@ -1,6 +1,6 @@
 // Cloudflare Workers API — replaces the old Express/Netlify server.
 // Handles all /api/* routes using D1 for persistent storage.
-import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMetadata } from './helpers.js'
+import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMetadata, countSeasonsFromText } from './helpers.js'
 import { enrichFilm } from './omdb.js'
 import * as XLSX from 'xlsx'
 
@@ -421,34 +421,61 @@ export default {
         sql += ' ORDER BY title'
         const result = await db.prepare(sql).bind(...params).all()
         const films = (result.results || []).map(parseFilmRow)
-        const rows = films.map((f) => ({
-          Title: f.title || '',
-          'Original Title': f.originalTitle || '',
-          Shelf: f.shelf || '',
-          Row: f.row || '',
-          Format: f.format || '',
-          Watched: f.watched === true ? 'Yes' : 'No',
-          'Borrowed To': f.borrowedTo || '',
-          'Borrowed Date': f.borrowedDate || '',
-          Director: f.director || '',
-          Cast: Array.isArray(f.cast) ? f.cast.map((x) => (typeof x === 'object' ? x.name : x)).join(', ') : f.cast || '',
-          Year: f.year || '',
-          Genre: Array.isArray(f.genre) ? f.genre.join(', ') : f.genre || '',
-          Rating: f.rating || '',
-          Runtime: f.runtime || '',
-          Country: f.country || '',
-          Studio: f.studio || '',
-          'MPA Rating': f.rated || '',
-          Synopsis: f.synopsis || '',
-          'Poster URL': f.poster || '',
-          'Media Type': f.mediaType || '',
-          'Content Type': f.itemType || '',
-          'Drive Number': f.driveNumber || '',
-          Seasons: f.seasonsEpisodes || '',
-          'Seasons on Drive': Array.isArray(f.seasonDrives)
-            ? f.seasonDrives.map((sd) => `${sd.seasons} → ${sd.drive}`).join(' | ')
-            : '',
-        }))
+        const isSeriesExport = itemType === 'series'
+        const rows = films.map((f) =>
+          isSeriesExport
+            ? {
+                Title: f.title || '',
+                Format: f.format || '',
+                Watched: f.watched === true ? 'Yes' : 'No',
+                Producer: f.producer || '',
+                Director: f.director || '',
+                Cast: Array.isArray(f.cast) ? f.cast.map((x) => (typeof x === 'object' ? x.name : x)).join(', ') : f.cast || '',
+                Year: f.year || '',
+                Genre: Array.isArray(f.genre) ? f.genre.join(', ') : f.genre || '',
+                Rating: f.rating || '',
+                Runtime: f.runtime || '',
+                Country: f.country || '',
+                Studio: f.studio || '',
+                Synopsis: f.synopsis || '',
+                'Poster URL': f.poster || '',
+                'Media Type': f.mediaType || '',
+                'Content Type': f.itemType || '',
+                'Drive Number': f.driveNumber || '',
+                Seasons: countSeasonsFromText(f.seasonsEpisodes) ?? (Array.isArray(f.seasonDrives) ? f.seasonDrives.length : ''),
+                'Seasons on Drive': Array.isArray(f.seasonDrives)
+                  ? f.seasonDrives.map((sd) => `${sd.seasons} → ${sd.drive}`).join(' | ')
+                  : '',
+              }
+            : {
+                Title: f.title || '',
+                'Original Title': f.originalTitle || '',
+                Shelf: f.shelf || '',
+                Row: f.row || '',
+                Format: f.format || '',
+                Watched: f.watched === true ? 'Yes' : 'No',
+                'Borrowed To': f.borrowedTo || '',
+                'Borrowed Date': f.borrowedDate || '',
+                Director: f.director || '',
+                Cast: Array.isArray(f.cast) ? f.cast.map((x) => (typeof x === 'object' ? x.name : x)).join(', ') : f.cast || '',
+                Year: f.year || '',
+                Genre: Array.isArray(f.genre) ? f.genre.join(', ') : f.genre || '',
+                Rating: f.rating || '',
+                Runtime: f.runtime || '',
+                Country: f.country || '',
+                Studio: f.studio || '',
+                'MPA Rating': f.rated || '',
+                Synopsis: f.synopsis || '',
+                'Poster URL': f.poster || '',
+                'Media Type': f.mediaType || '',
+                'Content Type': f.itemType || '',
+                'Drive Number': f.driveNumber || '',
+                Seasons: f.seasonsEpisodes || '',
+                'Seasons on Drive': Array.isArray(f.seasonDrives)
+                  ? f.seasonDrives.map((sd) => `${sd.seasons} → ${sd.drive}`).join(' | ')
+                  : '',
+              }
+        )
         const ws = XLSX.utils.json_to_sheet(rows)
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, 'آرشیو فیلم‌ها')
@@ -661,13 +688,13 @@ function parseFilmRow(row) {
 }
 
 async function insertFilm(db, film) {
-  const { id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives } = film
+  const { id, title, originalTitle, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives } = film
   await db.prepare(
-    `INSERT INTO films (id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO films (id, title, originalTitle, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, title || null, originalTitle || null, shelf || null, row || null,
-    director || null, cast ? JSON.stringify(cast) : null,
+    director || null, producer || null, cast ? JSON.stringify(cast) : null,
     year || null, genre ? JSON.stringify(genre) : null,
     rating || null, runtime || null, country || null,
     synopsis || null, poster || null, studio || null, rated || null,
@@ -681,12 +708,12 @@ async function insertFilm(db, film) {
 }
 
 async function updateFilm(db, film) {
-  const { id, title, originalTitle, shelf, row, director, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives } = film
+  const { id, title, originalTitle, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives } = film
   await db.prepare(
-    `UPDATE films SET title=?, originalTitle=?, shelf=?, row=?, director=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=?, letterboxdRating=?, watchlisted=?, seasonDrives=? WHERE id=?`
+    `UPDATE films SET title=?, originalTitle=?, shelf=?, row=?, director=?, producer=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=?, letterboxdRating=?, watchlisted=?, seasonDrives=? WHERE id=?`
   ).bind(
     title || null, originalTitle || null, shelf || null, row || null,
-    director || null, cast && Array.isArray(cast) ? JSON.stringify(cast) : cast || null,
+    director || null, producer || null, cast && Array.isArray(cast) ? JSON.stringify(cast) : cast || null,
     year || null, genre && Array.isArray(genre) ? JSON.stringify(genre) : genre || null,
     rating || null, runtime || null, country || null,
     synopsis || null, poster || null, studio || null, rated || null,

@@ -5,7 +5,7 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import XLSX from 'xlsx'
 import { enrichFilm } from './omdb.js'
-import { ENRICHABLE_FIELDS, EDITABLE, rowToFilm, normalizeTitle, isEmptyMetadata } from './helpers.js'
+import { ENRICHABLE_FIELDS, EDITABLE, rowToFilm, normalizeTitle, isEmptyMetadata, countSeasonsFromText } from './helpers.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -602,7 +602,28 @@ app.get('/api/export/excel', (req, res) => {
   let films = readFilms()
   if (mediaType) films = films.filter((f) => f.mediaType === mediaType)
   if (itemType) films = films.filter((f) => f.itemType === itemType)
-  const rows = films.map(f => ({
+  const isSeriesExport = itemType === 'series'
+  const rows = films.map(f => isSeriesExport ? {
+    'Title': f.title || '',
+    'Format': f.format || '',
+    'Watched': f.watched === true ? 'Yes' : 'No',
+    'Producer': f.producer || '',
+    'Director': f.director || '',
+    'Cast': Array.isArray(f.cast) ? f.cast.map(x => typeof x === 'object' ? x.name : x).join(', ') : (f.cast || ''),
+    'Year': f.year || '',
+    'Genre': Array.isArray(f.genre) ? f.genre.join(', ') : (f.genre || ''),
+    'Rating': f.rating || '',
+    'Runtime': f.runtime || '',
+    'Country': f.country || '',
+    'Studio': f.studio || '',
+    'Synopsis': f.synopsis || '',
+    'Poster URL': f.poster || '',
+    'Media Type': f.mediaType || '',
+    'Content Type': f.itemType || '',
+    'Drive Number': f.driveNumber || '',
+    'Seasons': countSeasonsFromText(f.seasonsEpisodes) ?? (Array.isArray(f.seasonDrives) ? f.seasonDrives.length : ''),
+    'Seasons on Drive': Array.isArray(f.seasonDrives) ? f.seasonDrives.map(sd => `${sd.seasons} → ${sd.drive}`).join(' | ') : '',
+  } : {
     'Title': f.title || '',
     'Original Title': f.originalTitle || '',
     'Shelf': f.shelf || '',
@@ -627,7 +648,7 @@ app.get('/api/export/excel', (req, res) => {
     'Drive Number': f.driveNumber || '',
     'Seasons': f.seasonsEpisodes || '',
     'Seasons on Drive': Array.isArray(f.seasonDrives) ? f.seasonDrives.map(sd => `${sd.seasons} → ${sd.drive}`).join(' | ') : '',
-  }))
+  })
   const ws = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'آرشیو فیلم‌ها')
