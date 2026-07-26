@@ -388,19 +388,38 @@ export default {
         return json({ count: imported.length, added, updated }, 200, corsHeaders)
       }
 
-      // ---- GET /api/export/json ----
+      // ---- GET /api/export/json (optional ?mediaType=&itemType= to scope the backup) ----
       if (method === 'GET' && pathname === '/api/export/json') {
-        const result = await db.prepare('SELECT * FROM films ORDER BY title').all()
+        const mediaType = url.searchParams.get('mediaType')
+        const itemType = url.searchParams.get('itemType')
+        let sql = 'SELECT * FROM films'
+        const conditions = []
+        const params = []
+        if (mediaType) { conditions.push('mediaType = ?'); params.push(mediaType) }
+        if (itemType) { conditions.push('itemType = ?'); params.push(itemType) }
+        if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ')
+        sql += ' ORDER BY title'
+        const result = await db.prepare(sql).bind(...params).all()
         const films = (result.results || []).map(parseFilmRow)
+        const filenameScope = itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : ''
         return json(films, 200, {
           ...corsHeaders,
-          'Content-Disposition': 'attachment; filename="films-backup.json"',
+          'Content-Disposition': `attachment; filename="${filenameScope}films-backup.json"`,
         })
       }
 
-      // ---- GET /api/export/excel ----
+      // ---- GET /api/export/excel (optional ?mediaType=&itemType= to scope the backup) ----
       if (method === 'GET' && pathname === '/api/export/excel') {
-        const result = await db.prepare('SELECT * FROM films ORDER BY title').all()
+        const mediaType = url.searchParams.get('mediaType')
+        const itemType = url.searchParams.get('itemType')
+        let sql = 'SELECT * FROM films'
+        const conditions = []
+        const params = []
+        if (mediaType) { conditions.push('mediaType = ?'); params.push(mediaType) }
+        if (itemType) { conditions.push('itemType = ?'); params.push(itemType) }
+        if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ')
+        sql += ' ORDER BY title'
+        const result = await db.prepare(sql).bind(...params).all()
         const films = (result.results || []).map(parseFilmRow)
         const rows = films.map((f) => ({
           Title: f.title || '',
@@ -422,17 +441,25 @@ export default {
           'MPA Rating': f.rated || '',
           Synopsis: f.synopsis || '',
           'Poster URL': f.poster || '',
+          'Media Type': f.mediaType || '',
+          'Content Type': f.itemType || '',
+          'Drive Number': f.driveNumber || '',
+          Seasons: f.seasonsEpisodes || '',
+          'Seasons on Drive': Array.isArray(f.seasonDrives)
+            ? f.seasonDrives.map((sd) => `${sd.seasons} → ${sd.drive}`).join(' | ')
+            : '',
         }))
         const ws = XLSX.utils.json_to_sheet(rows)
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, 'آرشیو فیلم‌ها')
         const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: false })
+        const excelFilenameScope = itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : ''
         return new Response(buf, {
           status: 200,
           headers: {
             ...corsHeaders,
             'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': 'attachment; filename="movies-archive-export.xlsx"',
+            'Content-Disposition': `attachment; filename="${excelFilenameScope}movies-archive-export.xlsx"`,
           },
         })
       }

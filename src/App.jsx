@@ -530,7 +530,7 @@ export default function App() {
       )}
 
       {showExport && (
-        <ExportModal films={films} onClose={() => setShowExport(false)} />
+        <ExportModal films={sectionFilms} section={section} onClose={() => setShowExport(false)} />
       )}
 
       {loanFilm && (

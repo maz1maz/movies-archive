@@ -584,17 +584,24 @@ app.get('/api/template', (req, res) => {
   res.send(buf)
 })
 
-// دانلود کامل بکاپ داده‌ها (JSON)
+// دانلود کامل بکاپ داده‌ها (JSON) — با ?mediaType= و ?itemType= اختیاری برای بکاپ محدود (مثلاً فقط سریال‌ها)
 app.get('/api/export/json', (req, res) => {
-  const films = readFilms()
-  res.setHeader('Content-Disposition', 'attachment; filename="films-backup.json"')
+  const { mediaType, itemType } = req.query
+  let films = readFilms()
+  if (mediaType) films = films.filter((f) => f.mediaType === mediaType)
+  if (itemType) films = films.filter((f) => f.itemType === itemType)
+  const scope = itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : ''
+  res.setHeader('Content-Disposition', `attachment; filename="${scope}films-backup.json"`)
   res.setHeader('Content-Type', 'application/json')
   res.send(JSON.stringify(films, null, 2))
 })
 
-// دانلود کامل بکاپ اکسل
+// دانلود کامل بکاپ اکسل — با ?mediaType= و ?itemType= اختیاری برای بکاپ محدود
 app.get('/api/export/excel', (req, res) => {
-  const films = readFilms()
+  const { mediaType, itemType } = req.query
+  let films = readFilms()
+  if (mediaType) films = films.filter((f) => f.mediaType === mediaType)
+  if (itemType) films = films.filter((f) => f.itemType === itemType)
   const rows = films.map(f => ({
     'Title': f.title || '',
     'Original Title': f.originalTitle || '',
@@ -615,12 +622,18 @@ app.get('/api/export/excel', (req, res) => {
     'MPA Rating': f.rated || '',
     'Synopsis': f.synopsis || '',
     'Poster URL': f.poster || '',
+    'Media Type': f.mediaType || '',
+    'Content Type': f.itemType || '',
+    'Drive Number': f.driveNumber || '',
+    'Seasons': f.seasonsEpisodes || '',
+    'Seasons on Drive': Array.isArray(f.seasonDrives) ? f.seasonDrives.map(sd => `${sd.seasons} → ${sd.drive}`).join(' | ') : '',
   }))
   const ws = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'آرشیو فیلم‌ها')
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx', compression: false })
-  res.setHeader('Content-Disposition', 'attachment; filename="movies-archive-export.xlsx"')
+  const scope = itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : ''
+  res.setHeader('Content-Disposition', `attachment; filename="${scope}movies-archive-export.xlsx"`)
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   res.send(buf)
 })

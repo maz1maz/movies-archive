@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { IconClose, IconDocument, IconPrinter, IconBarChart, IconDownload, IconSave } from './icons.jsx'
 
-export default function ExportModal({ films, onClose }) {
+export default function ExportModal({ films, section, onClose }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -11,6 +11,23 @@ export default function ExportModal({ films, onClose }) {
       document.body.style.overflow = ''
     }
   }, [onClose])
+
+  // فیلترهای بکاپ دیجیتال/سریال، بر اساس بخشی که کاربر الان توش هست
+  const scopeParams = new URLSearchParams()
+  let scopeLabel = 'archive'
+  if (section === 'digital-series') {
+    scopeParams.set('mediaType', 'digital')
+    scopeParams.set('itemType', 'series')
+    scopeLabel = 'series'
+  } else if (section === 'digital-movie') {
+    scopeParams.set('mediaType', 'digital')
+    scopeParams.set('itemType', 'movie')
+    scopeLabel = 'digital movies'
+  } else if (section === 'physical') {
+    scopeParams.set('mediaType', 'physical')
+    scopeLabel = 'physical collection'
+  }
+  const scopeQuery = scopeParams.toString() ? `?${scopeParams.toString()}` : ''
 
   const handleLetterboxdExport = () => {
     const esc = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
@@ -133,8 +150,8 @@ export default function ExportModal({ films, onClose }) {
               <IconBarChart width={22} height={22} />
             </span>
             <h3>Excel Spreadsheet (.xlsx)</h3>
-            <p>Export all 467 films into an Excel spreadsheet with all columns and shelf details.</p>
-            <a href="/api/export/excel" download className="btn btn-ghost">
+            <p>Export {section ? `your ${scopeLabel}` : `all ${films.length} films`} into an Excel spreadsheet with all columns and shelf/drive details.</p>
+            <a href={`/api/export/excel${scopeQuery}`} download className="btn btn-ghost">
               <IconDownload width={14} height={14} /> Download Excel Export
             </a>
           </div>
@@ -154,8 +171,8 @@ export default function ExportModal({ films, onClose }) {
               <IconSave width={22} height={22} />
             </span>
             <h3>JSON Data Backup</h3>
-            <p>Download raw database file (`films-backup.json`) for complete backup and restoration.</p>
-            <a href="/api/export/json" download className="btn btn-ghost">
+            <p>Download the raw database backup ({section ? `your ${scopeLabel}` : 'full archive'}) for complete backup and restoration.</p>
+            <a href={`/api/export/json${scopeQuery}`} download className="btn btn-ghost">
               <IconSave width={14} height={14} /> Download JSON Backup
             </a>
           </div>
