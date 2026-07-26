@@ -25,6 +25,16 @@ CREATE TABLE IF NOT EXISTS films (
   imdbId TEXT,
   imdbVotes TEXT,
   metadataEnrichmentAttemptedAt TEXT,
+  myRating INTEGER DEFAULT 0,             -- امتیاز شخصی کاربر (۰ تا ۵)
+  criterion INTEGER DEFAULT 0,            -- نسخه‌ی کرایتریون هست یا نه
+  copies INTEGER DEFAULT 1,               -- تعداد نسخه‌های فیزیکی این عنوان
+  mediaType TEXT DEFAULT 'physical',      -- physical | digital
+  driveNumber TEXT,                       -- برای آیتم‌های دیجیتال
+  itemType TEXT DEFAULT 'movie',          -- movie | series
+  seasonsEpisodes TEXT,                   -- برای سریال‌ها
+  letterboxdRating REAL,                  -- امتیاز Letterboxd (کش‌شده)
+  letterboxdVotes INTEGER,                -- تعداد رای Letterboxd (کش‌شده)
+  watchlisted INTEGER DEFAULT 0,          -- وضعیت واچ‌لیست (سه‌حالته با watched)
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
@@ -33,3 +43,16 @@ CREATE INDEX IF NOT EXISTS idx_films_title ON films(title);
 CREATE INDEX IF NOT EXISTS idx_films_shelf ON films(shelf);
 CREATE INDEX IF NOT EXISTS idx_films_year ON films(year);
 CREATE INDEX IF NOT EXISTS idx_films_watched ON films(watched);
+
+-- کش عکس/بیوگرافی بازیگرا (از ویکی‌پدیا/ویکی‌دیتا)، برای جلوگیری از فچ تکراری
+CREATE TABLE IF NOT EXISTS people_photos (
+  name TEXT PRIMARY KEY,
+  photo TEXT,
+  bio TEXT,
+  birthDate TEXT,
+  deathDate TEXT,
+  height TEXT,
+  spouse TEXT,
+  children TEXT
+);
+
