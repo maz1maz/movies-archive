@@ -466,7 +466,7 @@ export default function App() {
               <FilmModal
                 panel
                 film={selected}
-                films={visibleFilms}
+                films={sectionFilms}
                 onNavigate={(film) => setSelected(film)}
                 onSelectPerson={(name) => {
                   setSelected(null)
@@ -498,7 +498,7 @@ export default function App() {
       {selected && !useSplitView && (
         <FilmModal
           film={selected}
-          films={films}
+          films={sectionFilms}
           onNavigate={(film) => setSelected(film)}
           onSelectPerson={(name) => {
             setSelected(null)
