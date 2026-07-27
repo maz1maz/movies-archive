@@ -77,6 +77,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   useEffect(() => {
     setLetterboxdRating(film?.letterboxdRating ?? null)
     setLetterboxdVotes(film?.letterboxdVotes ?? null)
+    // Letterboxd فقط فیلم داره، سریال توش نیست — درخواست الکی نزنیم
+    if (film?.itemType === 'series') return
     if (film?.letterboxdRating != null || !film?.id) return
     let cancelled = false
     ;(async () => {
@@ -94,7 +96,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     return () => {
       cancelled = true
     }
-  }, [film?.id, film?.letterboxdRating])
+  }, [film?.id, film?.letterboxdRating, film?.itemType])
 
   if (!film) return null
 
@@ -295,8 +297,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               )}
 
               <div className="cine-info-badges">
-                {/* Letterboxd Rating Badge */}
-                {typeof letterboxdRating === 'number' && (
+                {/* Letterboxd Rating Badge (فیلم‌ها) */}
+                {film.itemType !== 'series' && typeof letterboxdRating === 'number' && (
                   <a
                     href={`https://letterboxd.com/search/films/${encodeURIComponent(film.title)}/`}
                     target="_blank"
@@ -311,6 +313,22 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     {formatVotesK(letterboxdVotes) && (
                       <div className="letterboxd-badge-votes">{formatVotesK(letterboxdVotes)} ratings</div>
                     )}
+                  </a>
+                )}
+
+                {/* TVMaze Rating Badge (سریال‌ها) — Letterboxd سریال نداره، این معادلشه */}
+                {film.itemType === 'series' && typeof film.rating === 'number' && (
+                  <a
+                    href={`https://www.tvmaze.com/search?q=${encodeURIComponent(film.title)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="letterboxd-rating-box"
+                    title="TVMaze Rating"
+                  >
+                    <div className="letterboxd-badge-top">
+                      <span className="letterboxd-tag-label">TVMaze</span>
+                      <span className="letterboxd-tag-val">{film.rating.toFixed(1)}</span>
+                    </div>
                   </a>
                 )}
 
@@ -449,20 +467,33 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             <div className={`cine-crew-table ${showAllCrew ? 'expanded' : ''}`}>
               {displayedCrew.map((item, idx) => {
                 const isPerson = ['Director', 'Writer', 'Producer', 'Musician', 'Cinematography'].includes(item.label)
+                const names = isPerson
+                  ? String(item.value)
+                      .split(',')
+                      .map((n) => n.trim())
+                      .filter(Boolean)
+                  : null
                 return (
                   <div key={idx} className="cine-crew-row">
                     <span className="crew-key">{item.label}</span>
-                    <span
-                      className={`crew-val ${isPerson ? 'clickable-person-text' : ''}`}
-                      onClick={() => {
-                        if (isPerson && onSelectPerson && item.value) {
-                          onSelectPerson(item.value)
-                        }
-                      }}
-                      title={isPerson ? `See all films featuring ${item.value}` : ''}
-                    >
-                      {item.value}
-                    </span>
+                    {isPerson ? (
+                      <span className="crew-val">
+                        {names.map((name, ni) => (
+                          <span key={ni}>
+                            <span
+                              className="clickable-person-text"
+                              onClick={() => onSelectPerson && onSelectPerson(name)}
+                              title={`See all films featuring ${name}`}
+                            >
+                              {name}
+                            </span>
+                            {ni < names.length - 1 ? ', ' : ''}
+                          </span>
+                        ))}
+                      </span>
+                    ) : (
+                      <span className="crew-val">{item.value}</span>
+                    )}
                   </div>
                 )
               })}
@@ -527,7 +558,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       <>
         {inner}
         {lightboxSrc && (
-          <ImageLightbox src={lightboxSrc} alt={film.title} onClose={() => setLightboxSrc(null)} />
+          <ImageLightbox src={lightboxSrc} alt={film.title} onClose={() => setLightboxSrc(null)} defaultScale={film.itemType === 'series' ? 1.3 : 2} />
         )}
       </>
     )
@@ -538,7 +569,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
         {inner}
       </div>
       {lightboxSrc && (
-        <ImageLightbox src={lightboxSrc} alt={film.title} onClose={() => setLightboxSrc(null)} />
+        <ImageLightbox src={lightboxSrc} alt={film.title} onClose={() => setLightboxSrc(null)} defaultScale={film.itemType === 'series' ? 1.3 : 2} />
       )}
     </>
   )

@@ -8,8 +8,8 @@ const DEFAULT_SCALE = 2
 
 // نمایش یه عکس (پوستر فیلم یا عکس بازیگر) به‌صورت بزرگ و وسط صفحه.
 // چرخوندن دکمه‌ی موس روی عکس زوم می‌کنه، کلیک روی پس‌زمینه یا Escape می‌بندتش.
-export default function ImageLightbox({ src, alt, onClose, grayscale = false }) {
-  const [scale, setScale] = useState(DEFAULT_SCALE)
+export default function ImageLightbox({ src, alt, onClose, grayscale = false, defaultScale = DEFAULT_SCALE }) {
+  const [scale, setScale] = useState(defaultScale)
 
   useEffect(() => {
     const onKey = (e) => {
@@ -30,8 +30,8 @@ export default function ImageLightbox({ src, alt, onClose, grayscale = false }) 
 
   // با هر عکس تازه (یا فیلم/بازیگر جدید)، زوم از اول شروع بشه
   useEffect(() => {
-    setScale(DEFAULT_SCALE)
-  }, [src])
+    setScale(defaultScale)
+  }, [src, defaultScale])
 
   if (!src) return null
 

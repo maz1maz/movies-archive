@@ -1537,12 +1537,12 @@ body.light .header {
   text-align: right;
   font-weight: 500;
 }
-.crew-val.clickable-person-text {
+.crew-val .clickable-person-text {
   cursor: pointer;
   color: var(--accent);
   transition: color 0.15s;
 }
-.crew-val.clickable-person-text:hover {
+.crew-val .clickable-person-text:hover {
   color: #a9bce6;
   text-decoration: underline;
 }
