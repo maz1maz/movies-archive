@@ -331,6 +331,16 @@ export default function App() {
   })
   const pageCount = Math.max(1, Math.ceil(sectionFilms.length / PAGE_SIZE))
   const visibleFilms = sectionFilms.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  // کلیدهای فیلم‌هایی که نسخه‌ی فیزیکی بلوری‌شون توی آرشیو موجوده؛ برای
+  // نشون‌دادن نشان «بلوری هم داره» روی کارت‌های دیجیتال همون فیلم
+  const blurayKeys = new Set(
+    allFilmsUnfiltered
+      .filter((f) => f.mediaType !== 'digital' && (f.format || '').toLowerCase().includes('blu-ray'))
+      .map((f) => `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
+  )
+  const hasBlurayCopy = (f) =>
+    f.mediaType === 'digital' && blurayKeys.has(`${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
   // نمای تقسیم‌شده (پنل جزئیات + گرید) فقط توی حالت Thumbnails و روی صفحه‌ی
   // عریض (دسکتاپ/تبلت)؛ توی موبایل و حالت List همون مودال قبلی می‌مونه.
   const useSplitView = view === 'grid' && isWide
@@ -456,17 +466,18 @@ export default function App() {
             </p>
           </div>
         ) : view === 'list' ? (
-          <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} />
+          <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} hasBluray={hasBlurayCopy} />
         ) : useSplitView && selected ? (
           <div className="grid-split">
             <div className="grid-split-grid">
-              <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} />
+              <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} />
             </div>
             <div className="grid-split-detail">
               <FilmModal
                 panel
                 film={selected}
                 films={sectionFilms}
+                hasBluray={hasBlurayCopy(selected)}
                 onNavigate={(film) => setSelected(film)}
                 onSelectPerson={(name) => {
                   setSelected(null)
@@ -480,7 +491,7 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} />
+          <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} />
         )}
         {pageCount > 1 && !loading && (
           <div className="pagination">
@@ -499,6 +510,7 @@ export default function App() {
         <FilmModal
           film={selected}
           films={sectionFilms}
+          hasBluray={hasBlurayCopy(selected)}
           onNavigate={(film) => setSelected(film)}
           onSelectPerson={(name) => {
             setSelected(null)

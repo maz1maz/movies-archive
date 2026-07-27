@@ -2251,6 +2251,42 @@ body.light .header {
   color: #1a1305;
 }
 
+/* ---------- Digital item that also has a physical Blu-ray copy ---------- */
+.card-has-bluray {
+  border: 2px solid #3b82f6 !important;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+}
+.bluray-badge {
+  position: absolute;
+  bottom: 7px;
+  right: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #3b82f6;
+  color: #eef4ff;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  z-index: 1;
+}
+.bluray-badge-list {
+  position: static;
+  margin-inline-start: 6px;
+  padding: 2px 5px;
+}
+.bluray-badge-modal {
+  position: static;
+  background: #3b82f6;
+  color: #eef4ff;
+}
+.cine-poster-has-bluray {
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+}
+
 /* ---------- Copies count (2+ physical/digital copies of the same title) ---------- */
 .copies-badge {
   display: inline-block;

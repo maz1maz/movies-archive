@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit } from './icons.jsx'
+import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconDisc } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 
-export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false }) {
+export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false }) {
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
   const [actorPhotos, setActorPhotos] = useState({})
@@ -188,6 +188,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               {mediaFormat}
             </span>
             {film.criterion && <span className="criterion-badge criterion-badge-modal">CRITERION</span>}
+            {hasBluray && (
+              <span className="bluray-badge bluray-badge-modal" title="Blu-ray copy also owned">
+                <IconDisc width={12} height={12} /> BLU-RAY OWNED
+              </span>
+            )}
           </div>
           {metaSubParts.length > 0 && (
             <p className="cine-subtitle">{metaSubParts.join(' | ')}</p>
@@ -197,7 +202,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
         {/* Main Body: Poster + Rearranged Gray Info Card */}
         <div className="cine-main-row">
           <div
-            className="cine-poster-box clickable-poster"
+            className={hasBluray ? 'cine-poster-box clickable-poster cine-poster-has-bluray' : 'cine-poster-box clickable-poster'}
             onClick={() => film.poster && setLightboxSrc(film.poster)}
             title="Click to view full poster"
           >

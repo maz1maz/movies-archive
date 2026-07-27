@@ -1,4 +1,4 @@
-import { IconStar, IconPin } from './icons.jsx'
+import { IconStar, IconPin, IconDisc } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 
 // پالت رنگی برای کارت‌هایی که پوستر ندارن
@@ -20,7 +20,7 @@ function hashCode(str) {
   return Math.abs(h)
 }
 
-export default function FilmCard({ film, onSelect, onToggleWatch }) {
+export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray }) {
   const [c1, c2] = PALETTE[hashCode(String(film.id)) % PALETTE.length]
   const isDigital = film.mediaType === 'digital'
   const hasLocation = isDigital ? film.driveNumber : film.shelf || film.row
@@ -40,7 +40,11 @@ export default function FilmCard({ film, onSelect, onToggleWatch }) {
   return (
     <button
       type="button"
-      className={film.criterion ? 'card card-criterion' : 'card'}
+      className={[
+        'card',
+        film.criterion && 'card-criterion',
+        hasBluray && 'card-has-bluray',
+      ].filter(Boolean).join(' ')}
       data-film-id={film.id}
       onClick={(e) => {
         e.stopPropagation()
@@ -78,6 +82,11 @@ export default function FilmCard({ film, onSelect, onToggleWatch }) {
           </span>
         )}
         {film.criterion && <span className="criterion-badge">CRITERION</span>}
+        {hasBluray && (
+          <span className="bluray-badge" title="Blu-ray copy also owned">
+            <IconDisc width={11} height={11} /> BLU-RAY
+          </span>
+        )}
       </div>
       <div className="card-body">
         <h3 className="card-title">

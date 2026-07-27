@@ -1,11 +1,11 @@
-import { IconFilm, IconPin, IconStar, IconEdit } from './icons.jsx'
+import { IconFilm, IconPin, IconStar, IconEdit, IconDisc } from './icons.jsx'
 
-export default function FilmList({ films, onSelect, onEdit }) {
+export default function FilmList({ films, onSelect, onEdit, hasBluray }) {
   return (
     <div className="list">
       {films.map((f) => (
         <div
-          className="list-row"
+          className={hasBluray && hasBluray(f) ? 'list-row list-row-has-bluray' : 'list-row'}
           key={f.id}
           role="button"
           tabIndex={0}
@@ -35,6 +35,11 @@ export default function FilmList({ films, onSelect, onEdit }) {
             <div className="list-line1">
               <span className="list-title">{f.title}</span>
               {f.year && <span className="list-year">{f.year}</span>}
+              {hasBluray && hasBluray(f) && (
+                <span className="bluray-badge bluray-badge-list" title="Blu-ray copy also owned">
+                  <IconDisc width={10} height={10} /> BLU-RAY
+                </span>
+              )}
             </div>
             {f.director && (
               <div className="list-dir">
