@@ -528,7 +528,14 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
         {/* SEASONS — کدوم بازه‌ی فصل‌ها روی کدوم هارد ذخیره شده */}
         {film.itemType === 'series' && Array.isArray(film.seasonDrives) && film.seasonDrives.length > 0 && (
           <div className="cine-seasons-block">
-            <div className="cine-col-title">SEASONS</div>
+            <div className="cine-col-title">
+              SEASONS
+              {film.totalSeasonsProduced ? (
+                <span className="seasons-produced-badge">
+                  {film.totalSeasonsProduced} total produced
+                </span>
+              ) : null}
+            </div>
             <div className="cine-seasons-table">
               {film.seasonDrives.map((sd, idx) => (
                 <div key={idx} className="cine-season-row">

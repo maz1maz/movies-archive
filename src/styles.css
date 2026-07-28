@@ -1409,6 +1409,17 @@ body.light .header {
   color: var(--muted);
   text-transform: uppercase;
 }
+.seasons-produced-badge {
+  margin-inline-start: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--accent);
+  text-transform: none;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
 .cine-accordion-btn {
   background: transparent;
   border: none;
