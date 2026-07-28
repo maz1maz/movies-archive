@@ -248,12 +248,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                   </div>
                 )}
 
-                {film.itemType === 'series' && film.seasonsEpisodes && (
-                  <div className="cine-shelf-badge cine-series-badge">
-                    {film.seasonsEpisodes}
-                  </div>
-                )}
-
                 {/* Loan Status Indicator */}
                 {film.borrowedTo ? (
                   <button
@@ -501,6 +495,58 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
           {/* TRAILER */}
           <div className="cine-col cine-col-trailer">
+            {/* SEASONS — کدوم فصل‌ها موجوده و کدوم فصل روی کدوم هارده */}
+            {film.itemType === 'series' && Array.isArray(film.seasonDrives) && film.seasonDrives.length > 0 && (
+              <div className="cine-seasons-block">
+                <div className="cine-col-title">
+                  SEASONS
+                  {film.totalSeasonsProduced ? (
+                    <span className="seasons-produced-badge">
+                      {film.totalSeasonsProduced} total produced
+                    </span>
+                  ) : null}
+                </div>
+                <div className="cine-seasons-table">
+                  {(() => {
+                    // نگاشت هر شماره فصل به هارد نگهدارنده‌اش، از روی seasonDrives
+                    const ownedMap = {}
+                    for (const sd of film.seasonDrives) {
+                      const nums = String(sd.seasons || '').match(/\d+/g) || []
+                      for (const n of nums) ownedMap[Number(n)] = sd.drive
+                    }
+                    const ownedNums = Object.keys(ownedMap).map(Number)
+                    const maxKnown = ownedNums.length ? Math.max(...ownedNums) : 0
+                    const totalCount = film.totalSeasonsProduced || maxKnown
+
+                    if (!totalCount) {
+                      // بدون عدد کل فصل‌های تولیدشده، همون بازه‌های ثبت‌شده رو نشون بده
+                      return film.seasonDrives.map((sd, idx) => (
+                        <div key={idx} className="cine-season-row">
+                          <span className="season-key">{sd.seasons}</span>
+                          <span className="season-drive">
+                            <IconPin width={12} height={12} /> {sd.drive}
+                          </span>
+                        </div>
+                      ))
+                    }
+
+                    return Array.from({ length: totalCount }, (_, i) => i + 1).map((n) => (
+                      <div key={n} className="cine-season-row">
+                        <span className="season-key">Season {n}</span>
+                        {ownedMap[n] ? (
+                          <span className="season-drive">
+                            <IconPin width={12} height={12} /> {ownedMap[n]}
+                          </span>
+                        ) : (
+                          <span className="season-drive season-missing">Not in archive</span>
+                        )}
+                      </div>
+                    ))
+                  })()}
+                </div>
+              </div>
+            )}
+
             <div className="cine-col-title">TRAILER</div>
             <a
               href={trailerSearchUrl}
@@ -518,30 +564,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             </a>
           </div>
         </div>
-
-        {/* SEASONS — کدوم بازه‌ی فصل‌ها روی کدوم هارد ذخیره شده */}
-        {film.itemType === 'series' && Array.isArray(film.seasonDrives) && film.seasonDrives.length > 0 && (
-          <div className="cine-seasons-block">
-            <div className="cine-col-title">
-              SEASONS
-              {film.totalSeasonsProduced ? (
-                <span className="seasons-produced-badge">
-                  {film.totalSeasonsProduced} total produced
-                </span>
-              ) : null}
-            </div>
-            <div className="cine-seasons-table">
-              {film.seasonDrives.map((sd, idx) => (
-                <div key={idx} className="cine-season-row">
-                  <span className="season-key">{sd.seasons}</span>
-                  <span className="season-drive">
-                    <IconPin width={12} height={12} /> {sd.drive}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
       </div>
   )

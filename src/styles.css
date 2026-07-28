@@ -1558,10 +1558,10 @@ body.light .header {
   text-decoration: underline;
 }
 
-/* Seasons block (which hard drive each season group lives on) — full width,
-   sits below the cast/crew/trailer row since it doesn't fit that 3-col grid */
+/* Seasons block (which hard drive each season lives on) — now sits inside
+   the trailer column, above the trailer itself */
 .cine-seasons-block {
-  margin-top: 18px;
+  margin-bottom: 18px;
 }
 .cine-seasons-table {
   display: flex;
@@ -1589,6 +1589,11 @@ body.light .header {
   gap: 4px;
   color: var(--text);
   font-weight: 500;
+}
+.season-missing {
+  color: var(--muted);
+  font-weight: 400;
+  font-style: italic;
 }
 
 /* Trailer Card */
