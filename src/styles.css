@@ -2751,3 +2751,54 @@ body.light .folder-back {
 .person-avatar-circle.clickable-avatar {
   cursor: zoom-in;
 }
+
+/* Toast — قبلاً هیچ استایلی نداشت و مثل یه خط متن ساده و بی‌شکل بالای صفحه
+   افتاده بود (پیام «Imported: X new, Y updated» و بقیه). حالا یه کارت شناور
+   و واضح، با آیکون و انیمیشن ورود، پایین وسط صفحه. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(92vw, 480px);
+  padding: 14px 20px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+  animation: toast-in 0.25s ease-out;
+}
+.toast::before {
+  content: '';
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>") center / 60% no-repeat;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>") center / 60% no-repeat;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+@media (max-width: 520px) {
+  .toast {
+    bottom: 16px;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+}
