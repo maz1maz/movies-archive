@@ -167,17 +167,22 @@ export default {
         const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
 
-        // قبلاً هر فیلمی که یه‌بار امتحان شده بود، حتی اگه OMDb چیزی
-        // پیدا نکرده بود (مثلاً پوستر نداشت)، برای همیشه از این لیست
-        // خارج می‌شد و دیگه هیچ‌وقت نمی‌شد دوباره امتحانش کرد. الان
-        // فیلم‌هایی که هنوز پوستر ندارن، صرف‌نظر از تلاش قبلی، دوباره
-        // قابل‌تلاش هستن.
+        // باگ قبلی: بدون ORDER BY، هر بار همون چند فیلم اولِ بی‌پوستر (که OMDb
+        // اصلاً پوستری براشون نداره یا اسمشون قابل‌تشخیص نیست) انتخاب می‌شدن؛
+        // دکمه هیچ‌وقت به فیلم‌های واقعاً بررسی‌نشده نمی‌رسید و «Fill missing
+        // details» عملاً روی همون‌ها گیر می‌کرد. الان اول فیلم‌های
+        // بررسی‌نشده رو تموم می‌کنه، بعد بی‌پوسترها رو به ترتیب قدیمی‌ترین
+        // تلاش می‌ره سراغشون (نه همیشه همون چندتای اول).
         const all = await db
           .prepare(
-            "SELECT * FROM films WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''"
+            `SELECT * FROM films
+             WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''
+             ORDER BY (metadataEnrichmentAttemptedAt IS NULL) DESC, metadataEnrichmentAttemptedAt ASC
+             LIMIT ?`
           )
+          .bind(limit)
           .all()
-        const candidates = (all.results || []).slice(0, limit)
+        const candidates = all.results || []
 
         let updated = 0
         for (const film of candidates) {
