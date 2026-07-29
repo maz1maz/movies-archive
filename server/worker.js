@@ -411,6 +411,21 @@ export default {
             const merged = { ...parsedExisting, id: existing.id }
             for (const [key, value] of Object.entries(f)) {
               if (key === 'id') continue
+              // seasonDrives استثناست: باید فصل‌های جدید به همون سریال (مثلاً
+              // موقع اضافه‌شدن فصل بعدی روی یه هارد جدید) به آرایه‌ی موجود
+              // اضافه بشن، نه اینکه چون آرایه از قبل خالی نیست کلاً نادیده گرفته بشه.
+              if (key === 'seasonDrives' && Array.isArray(value) && value.length) {
+                const existingList = Array.isArray(parsedExisting.seasonDrives) ? parsedExisting.seasonDrives : []
+                const combined = [...existingList]
+                for (const item of value) {
+                  const alreadyThere = combined.some(
+                    (e) => e.drive === item.drive && e.seasons === item.seasons
+                  )
+                  if (!alreadyThere) combined.push(item)
+                }
+                merged.seasonDrives = combined
+                continue
+              }
               if (isEmptyMetadata(parsedExisting[key])) merged[key] = value
             }
             await updateFilm(db, merged)
