@@ -45,6 +45,21 @@ export default function App() {
   const [selected, setSelected] = useState(null)
   const [section, setSection] = useState(() => localStorage.getItem('fa_section') || null)
 
+  // موقع رفتن از یه بخش (مثلاً سریال‌های دیجیتال) به بخش دیگه (مثلاً فیلم‌های
+  // دیجیتال یا فیزیکی)، جستجو/فیلترهای بخش قبلی نباید باقی بمونن و رو نتایج
+  // بخش جدید هم اعمال بشن.
+  const changeSection = (next) => {
+    setQuery('')
+    setGenre('')
+    setDecade('')
+    setAlpha('')
+    setWatched('')
+    setMinRating('')
+    setLoanedOnly(false)
+    setPage(1)
+    setSection(next)
+  }
+
   useEffect(() => {
     if (section) localStorage.setItem('fa_section', section)
     else localStorage.removeItem('fa_section')
@@ -387,16 +402,16 @@ export default function App() {
           mode="home"
           counts={folderCounts}
           posters={homePosters}
-          onSelectPhysical={() => setSection('physical')}
-          onSelectDigital={() => setSection('digital-pending')}
+          onSelectPhysical={() => changeSection('physical')}
+          onSelectDigital={() => changeSection('digital-pending')}
         />
       ) : section === 'digital-pending' ? (
         <FolderNav
           mode="digital"
           counts={folderCounts}
           posters={digitalPosters}
-          onBack={() => setSection(null)}
-          onSelectDigitalType={(type) => setSection(type === 'series' ? 'digital-series' : 'digital-movie')}
+          onBack={() => changeSection(null)}
+          onSelectDigitalType={(type) => changeSection(type === 'series' ? 'digital-series' : 'digital-movie')}
         />
       ) : (
         <>
@@ -434,7 +449,7 @@ export default function App() {
         setAlpha={setAlpha}
         theme={theme}
         setTheme={setTheme}
-        onGoToLibrary={() => setSection(null)}
+        onGoToLibrary={() => changeSection(null)}
       />
 
       <main className="container">
