@@ -89,6 +89,27 @@ const NORMALIZED_HEADER_MAP = Object.fromEntries(
 NORMALIZED_HEADER_MAP.contenttype = "itemType"
 NORMALIZED_HEADER_MAP.imdbid = "imdbId"
 NORMALIZED_HEADER_MAP.mparating = "rated"
+// ستون «فصل‌های موجود» فیلد مستقیمی توی سایت نداره؛ موقتاً می‌گیریمش تا بعد از
+// حلقه‌ی اصلی، seasonDrives (چیزی که واقعاً توی صفحه‌ی فیلم نمایش داده می‌شه) رو
+// از روش بسازیم — وگرنه بخش SEASONS بعد از ایمپورت خالی می‌موند.
+NORMALIZED_HEADER_MAP.ownedseasons = "ownedSeasonsRaw"
+
+// از متن ستون «فصل‌های موجود» (مثلاً "Seasons 1, 2 (16 eps)") یا در نبودش از
+// متن کلی seasonsEpisodes (مثلاً "2 seasons / 16 episodes")، فهرست شماره‌ی
+// فصل‌های موجود رو استخراج می‌کنه؛ برای ساخت seasonDrives موقع ایمپورت.
+function extractOwnedSeasonsList(text) {
+  if (!text) return null
+  const t = String(text)
+  const beforeParen = t.split("(")[0]
+  const nums = beforeParen.match(/\d+/g)
+  if (nums && nums.length) return nums.join(", ")
+  const countMatch = t.match(/(\d+)\s*seasons?/i)
+  if (countMatch) {
+    const n = parseInt(countMatch[1], 10)
+    if (n > 0) return Array.from({ length: n }, (_, i) => i + 1).join(", ")
+  }
+  return null
+}
 
 export function rowToFilm(row, index) {
   const film = { id: `f${Date.now()}_${index}` }
@@ -108,6 +129,15 @@ export function rowToFilm(row, index) {
     film[field] = v
   }
   if (!film.title) film.title = "بدون نام"
+  // موقع ایمپورت سریال دیجیتال/فیزیکی، اگه شماره‌ی هارد/قفسه مشخص باشه، از روی
+  // فصل‌های موجود، seasonDrives رو خودمون می‌سازیم تا بخش SEASONS توی صفحه‌ی
+  // فیلم خالی نمونه.
+  const driveOrShelf = film.driveNumber || film.shelf
+  if (film.itemType === "series" && driveOrShelf) {
+    const seasonsList = extractOwnedSeasonsList(film.ownedSeasonsRaw || film.seasonsEpisodes)
+    if (seasonsList) film.seasonDrives = [{ seasons: seasonsList, drive: driveOrShelf }]
+  }
+  delete film.ownedSeasonsRaw
   return film
 }
 
