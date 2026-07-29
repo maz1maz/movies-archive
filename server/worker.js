@@ -389,9 +389,19 @@ export default {
         let added = 0
         let updated = 0
         for (const f of imported) {
+          // تطبیق فقط با عنوان کافی نیست: باعث می‌شد فیلم دیجیتال هم‌نامِ یه
+          // فیلم فیزیکی (یا نسخه‌ی دیگه) به‌جای اضافه‌شدن، رکورد اون یکی رو
+          // overwrite کنه. سال و mediaType هم باید مچ بشن.
           const existing = await db
-            .prepare('SELECT * FROM films WHERE LOWER(title) = ?')
-            .bind(normalizeTitle(f.title))
+            .prepare(
+              'SELECT * FROM films WHERE LOWER(title) = ? AND (year IS ? OR year = ?) AND mediaType = ?'
+            )
+            .bind(
+              normalizeTitle(f.title),
+              f.year ?? null,
+              f.year ?? null,
+              f.mediaType || 'physical'
+            )
             .first()
           if (existing) {
             const merged = { ...parseFilmRow(existing), ...f, id: existing.id }
