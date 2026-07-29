@@ -222,6 +222,22 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       film.director || 'renowned filmmakers'
                     }.`}
                 </p>
+                {film.personalReview && (
+                  <div className="cine-my-review-box">
+                    <div className="cine-section-label">MY LETTERBOXD REVIEW</div>
+                    <p className="cine-synopsis-text cine-my-review-text">{film.personalReview}</p>
+                    {film.personalReviewUrl && (
+                      <a
+                        href={film.personalReviewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="cine-my-review-link"
+                      >
+                        View on Letterboxd →
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="cine-top-badges-column">

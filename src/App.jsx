@@ -336,6 +336,32 @@ export default function App() {
     }
   }
 
+  // نظرات/امتیازهای شخصیِ کاربر رو از فید RSS عمومیِ لترباکسش می‌گیره و روی
+  // فیلم‌های همنام آرشیو (با تطبیق عنوان+سال) می‌ذاره. یوزرنیم قبلی رو
+  // توی localStorage نگه می‌داریم که هر بار مجبور به تایپ دوباره‌ش نباشه.
+  const handleSyncLetterboxd = async () => {
+    const savedUsername = localStorage.getItem('fa_letterboxd_username') || ''
+    const username = window.prompt('Letterboxd username:', savedUsername)
+    if (!username || !username.trim()) return
+    localStorage.setItem('fa_letterboxd_username', username.trim())
+
+    showToast('Syncing Letterboxd reviews…')
+    try {
+      const res = await fetch('/api/letterboxd-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Letterboxd sync failed')
+      showToast(`Letterboxd sync: ${data.matched} matched, ${data.unmatched} not in archive (of ${data.processed} recent diary entries)`, 7000)
+      loadFilms()
+      loadAllFilmsUnfiltered()
+    } catch (e) {
+      showToast(e.message)
+    }
+  }
+
   // فیلم‌های همین صفحه بسته به این‌که کدوم بخش (فیزیکی/دیجیتال-فیلم/
   // دیجیتال-سریال) رو انتخاب کرده باشیم، محدود می‌شن
   const sectionFilms = films.filter((f) => {
@@ -442,6 +468,7 @@ export default function App() {
         onEnrichCatalog={handleEnrichCatalog}
         enrichingCatalog={enrichingCatalog}
         onOpenStats={() => setShowStats(true)}
+        onSyncLetterboxd={handleSyncLetterboxd}
         onOpenExport={() => setShowExport(true)}
         view={view}
         setView={setView}

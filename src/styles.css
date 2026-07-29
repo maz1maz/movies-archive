@@ -2802,3 +2802,20 @@ body.light .folder-back {
     font-size: 13px;
   }
 }
+
+/* نظر شخصیِ کاربر که از فید لترباکسش sync شده، زیر خلاصه‌ی داستان */
+.cine-my-review-box {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.cine-my-review-text {
+  font-style: italic;
+  opacity: 0.9;
+}
+.cine-my-review-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--accent);
+}

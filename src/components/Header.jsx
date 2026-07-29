@@ -53,6 +53,7 @@ export default function Header({
   enrichingCatalog,
   onOpenStats,
   onOpenExport,
+  onSyncLetterboxd,
   view,
   setView,
   alpha,
@@ -172,6 +173,16 @@ export default function Header({
                   title="View Collection Statistics & Analytics"
                 >
                   <IconBarChart width={15} height={15} /> Statistics
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSyncLetterboxd()
+                    setMenuOpen(false)
+                  }}
+                  title="Pull your own diary entries/reviews from your public Letterboxd RSS feed"
+                >
+                  <IconSparkles width={15} height={15} /> Sync Letterboxd Reviews
                 </button>
               </div>
 

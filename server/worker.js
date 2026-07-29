@@ -342,6 +342,75 @@ export default {
         }
       }
 
+      // ---- POST /api/letterboxd-sync (pull the user's own diary entries/reviews
+      // from their public Letterboxd RSS feed and attach them to matching films) ----
+      // محدودیت مهم: فید RSS لترباکس فقط ~۵۰ ورودی آخر دیاری رو می‌ده، نه کل
+      // تاریخچه؛ هر بار sync فقط همین اواخر رو چک می‌کنه.
+      if (method === 'POST' && pathname === '/api/letterboxd-sync') {
+        let body = {}
+        try {
+          body = await request.json()
+        } catch {
+          return json({ error: 'بدنه‌ی درخواست نامعتبره' }, 400, corsHeaders)
+        }
+        const username = (body.username || '').trim().replace(/^@/, '')
+        if (!username) return json({ error: 'یوزرنیم لترباکس لازمه' }, 400, corsHeaders)
+
+        let xml
+        try {
+          const res = await fetch(`https://letterboxd.com/${encodeURIComponent(username)}/rss/`, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0)' },
+          })
+          if (!res.ok) return json({ error: `یوزرنیم لترباکس پیدا نشد یا فید در دسترس نیست (${res.status})` }, 400, corsHeaders)
+          xml = await res.text()
+        } catch {
+          return json({ error: 'اتصال به لترباکس ناموفق بود' }, 502, corsHeaders)
+        }
+
+        const entries = parseLetterboxdRss(xml)
+        let matched = 0
+        let unmatched = 0
+        for (const entry of entries) {
+          if (!entry.filmTitle) continue
+          const row = await db
+            .prepare(
+              `SELECT id, myRating, personalReview FROM films
+               WHERE mediaType != 'digital' AND itemType != 'series' AND LOWER(title) = ?
+               AND (year IS ? OR year = ?)`
+            )
+            .bind(entry.filmTitle.trim().toLowerCase(), entry.filmYear ?? null, entry.filmYear ?? null)
+            .first()
+          if (!row) {
+            unmatched++
+            continue
+          }
+          matched++
+          const updates = []
+          const values = []
+          if (entry.reviewText) {
+            updates.push('personalReview = ?')
+            values.push(entry.reviewText)
+          }
+          if (entry.link) {
+            updates.push('personalReviewUrl = ?')
+            values.push(entry.link)
+          }
+          if (entry.watchedDate) {
+            updates.push('personalReviewDate = ?')
+            values.push(entry.watchedDate)
+          }
+          if (entry.memberRating != null && (row.myRating == null || row.myRating === 0)) {
+            updates.push('myRating = ?')
+            values.push(Math.round(entry.memberRating))
+          }
+          if (!updates.length) continue
+          values.push(row.id)
+          await db.prepare(`UPDATE films SET ${updates.join(', ')} WHERE id = ?`).bind(...values).run()
+        }
+
+        return json({ processed: entries.length, matched, unmatched }, 200, corsHeaders)
+      }
+
       // ---- GET /api/template (downloadable Excel template) ----
       if (method === 'GET' && pathname === '/api/template') {
         const ws = XLSX.utils.aoa_to_sheet([
@@ -570,6 +639,46 @@ function emptyPersonInfo() {
     spouse: null,
     children: null,
   }
+}
+
+// فید RSS شخصیِ لترباکس (letterboxd.com/USERNAME/rss/) رو پارس می‌کنه و از هر
+// آیتم دیاری، عنوان/سال فیلم، امتیاز شخصی (۰ تا ۵)، متن نظر (اگه نوشته باشه)
+// و لینک و تاریخ تماشا رو در میاره. فید فقط ~۵۰ ورودی آخر رو می‌ده.
+function parseLetterboxdRss(xml) {
+  const items = xml.match(/<item>[\s\S]*?<\/item>/g) || []
+  return items.map((raw) => {
+    const grab = (tag) => {
+      const m = raw.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`))
+      if (!m) return null
+      return m[1].replace(/^<!\[CDATA\[([\s\S]*)\]\]>$/, '$1').trim()
+    }
+    const filmTitle = grab('letterboxd:filmTitle')
+    const filmYearRaw = grab('letterboxd:filmYear')
+    const memberRatingRaw = grab('letterboxd:memberRating')
+    const watchedDate = grab('letterboxd:watchedDate')
+    const link = grab('link')
+    let descriptionHtml = grab('description') || ''
+    // توضیحات هر آیتم معمولاً یه <img> پوستر و بعدش متن نظر (اگه نوشته باشه)
+    // هست؛ عکس و تگ‌های HTML رو حذف می‌کنیم تا فقط متن نظر بمونه.
+    let reviewText = descriptionHtml
+      .replace(/<img[^>]*>/gi, '')
+      .replace(/<p>\s*Watched on[^<]*<\/p>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (!reviewText) reviewText = null
+    return {
+      filmTitle,
+      filmYear: filmYearRaw ? parseInt(filmYearRaw, 10) : null,
+      memberRating: memberRatingRaw ? parseFloat(memberRatingRaw) : null,
+      watchedDate,
+      link,
+      reviewText,
+    }
+  })
 }
 
 // جستجوی فیلم توی Letterboxd و استخراج امتیاز میانگین از تگ متای صفحه‌ش.
