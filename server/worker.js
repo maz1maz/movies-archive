@@ -404,7 +404,15 @@ export default {
             )
             .first()
           if (existing) {
-            const merged = { ...parseFilmRow(existing), ...f, id: existing.id }
+            // فقط فیلدهایی که توی رکورد موجود خالی هستن از اکسل پر می‌شن؛
+            // چیزی که از قبل مقدار داره (مثلاً بازیگر یا زمان فیلم) دست‌نخورده
+            // می‌مونه، حتی اگه اکسل مقدار متفاوتی براش داشته باشه.
+            const parsedExisting = parseFilmRow(existing)
+            const merged = { ...parsedExisting, id: existing.id }
+            for (const [key, value] of Object.entries(f)) {
+              if (key === 'id') continue
+              if (isEmptyMetadata(parsedExisting[key])) merged[key] = value
+            }
             await updateFilm(db, merged)
             updated++
           } else {
