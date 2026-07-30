@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { buildOscarData } from '../data/oscarData.js'
+import DashboardPosterCard from './DashboardPosterCard.jsx'
 
 const OSCAR_DATA = buildOscarData()
 const ALL_YEARS = Object.keys(OSCAR_DATA).map(Number).sort((a, b) => b - a)
@@ -10,45 +11,22 @@ function findInArchive(films, title) {
   return films.find((f) => (f.title || '').trim().toLowerCase() === t) || null
 }
 
-function NomineeRow({ nom, isMovieCategory, categoryLabel, archiveMovie, onOpenFilm, flat }) {
+function nomineeCardProps(nom, isMovieCategory, films, extraSubtitle) {
+  const archiveMovie = findInArchive(films, nom.title)
   const inArchive = !!archiveMovie
-
-  return (
-    <div
-      className={`${flat ? 'oscar-row oscar-row-flat' : 'oscar-row'}${inArchive ? ' oscar-row-clickable' : ''}`}
-      onClick={inArchive ? () => onOpenFilm(archiveMovie) : undefined}
-    >
-      <div className="oscar-row-main">
-        {inArchive && archiveMovie.poster && (
-          <div className="oscar-poster">
-            <img src={archiveMovie.poster} loading="lazy" alt="" onError={(e) => (e.currentTarget.parentElement.style.display = 'none')} />
-          </div>
-        )}
-        <div className="oscar-row-text">
-          {flat && <span className="oscar-cat-label">{categoryLabel}</span>}
-          <span className={`oscar-nominee-name${nom.winner ? ' oscar-winner' : ''}`}>
-            {nom.winner ? '🏆 ' : ''}
-            {isMovieCategory ? nom.title : nom.name}
-          </span>
-          {!isMovieCategory && (
-            <span className="oscar-film-sub">
-              Film: <em>{nom.title}</em>
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="oscar-row-actions">
-        {nom.winner && !flat && <span className="tag oscar-winner-tag">Winner</span>}
-        {inArchive ? (
-          <button className="btn btn-sm btn-primary" onClick={(e) => { e.stopPropagation(); onOpenFilm(archiveMovie) }}>
-            In Archive ✓
-          </button>
-        ) : (
-          <span className="oscar-not-in-archive">Not in archive</span>
-        )}
-      </div>
-    </div>
-  )
+  const mainTitle = isMovieCategory ? nom.title : nom.name
+  const subtitleParts = []
+  if (!isMovieCategory) subtitleParts.push(nom.title)
+  if (extraSubtitle) subtitleParts.push(extraSubtitle)
+  return {
+    title: mainTitle,
+    subtitle: subtitleParts.join(' — '),
+    poster: inArchive ? archiveMovie.poster : null,
+    badgeText: nom.winner ? '🏆 WINNER' : null,
+    badgeVariant: 'winner',
+    inArchive,
+    archiveMovie,
+  }
 }
 
 export default function OscarsPanel({ films, onOpenFilm }) {
@@ -109,6 +87,23 @@ export default function OscarsPanel({ films, onOpenFilm }) {
 
   const showWinnersFlat = category === '__winners_flat__'
 
+  const renderGrid = (items) => (
+    <div className="grid">
+      {items.map((props, idx) => (
+        <DashboardPosterCard
+          key={idx}
+          title={props.title}
+          subtitle={props.subtitle}
+          poster={props.poster}
+          badgeText={props.badgeText}
+          badgeVariant={props.badgeVariant}
+          inArchive={props.inArchive}
+          onClick={() => onOpenFilm(props.archiveMovie)}
+        />
+      ))}
+    </div>
+  )
+
   return (
     <div className="oscars-panel">
       <div className="card oscars-controls">
@@ -152,75 +147,37 @@ export default function OscarsPanel({ films, onOpenFilm }) {
           {searchResults.length === 0 ? (
             <div className="empty">No results found.</div>
           ) : (
-            <div className="card oscars-flat-list">
-              {searchResults.map((m, idx) => {
-                const isMovieCategory = m.category.name === 'Best Picture'
-                const archiveMovie = findInArchive(films, m.nominee.title)
-                return (
-                  <NomineeRow
-                    key={idx}
-                    nom={m.nominee}
-                    isMovieCategory={isMovieCategory}
-                    categoryLabel={`${m.year} — ${m.category.name}`}
-                    archiveMovie={archiveMovie}
-                    onOpenFilm={onOpenFilm}
-                    flat
-                  />
-                )
-              })}
-            </div>
+            renderGrid(
+              searchResults.map((m) =>
+                nomineeCardProps(m.nominee, m.category.name === 'Best Picture', films, `${m.year} — ${m.category.name}`)
+              )
+            )
           )}
         </section>
       ) : isAllYears ? (
         <section>
           <h2>Winners across all years{category && category !== '__winners_flat__' ? ` — ${category}` : ''}</h2>
-          <div className="card oscars-flat-list">
-            {allYearsWinnerRows.length === 0 ? (
-              <div className="empty">Nothing found.</div>
-            ) : (
-              allYearsWinnerRows.map((r, idx) => {
-                const isMovieCategory = r.cat.name === 'Best Picture'
-                const archiveMovie = findInArchive(films, r.nom.title)
-                return (
-                  <NomineeRow
-                    key={idx}
-                    nom={r.nom}
-                    isMovieCategory={isMovieCategory}
-                    categoryLabel={`${r.year} — ${r.cat.name}`}
-                    archiveMovie={archiveMovie}
-                    onOpenFilm={onOpenFilm}
-                    flat
-                  />
-                )
-              })
-            )}
-          </div>
+          {allYearsWinnerRows.length === 0 ? (
+            <div className="empty">Nothing found.</div>
+          ) : (
+            renderGrid(
+              allYearsWinnerRows.map((r) =>
+                nomineeCardProps(r.nom, r.cat.name === 'Best Picture', films, `${r.year} — ${r.cat.name}`)
+              )
+            )
+          )}
         </section>
       ) : showWinnersFlat ? (
         <section>
           <h2 className="oscars-year-title">
             {year} Oscar winners <span className="oscars-ceremony">(ceremony {yearData?.ceremony})</span>
           </h2>
-          <div className="card oscars-flat-list">
-            {yearData?.categories
+          {renderGrid(
+            (yearData?.categories || [])
               .map((cat) => ({ cat, winner: cat.nominees.find((n) => n.winner) }))
               .filter((x) => x.winner)
-              .map(({ cat, winner }, idx) => {
-                const isMovieCategory = cat.name === 'Best Picture'
-                const archiveMovie = findInArchive(films, winner.title)
-                return (
-                  <NomineeRow
-                    key={idx}
-                    nom={winner}
-                    isMovieCategory={isMovieCategory}
-                    categoryLabel={cat.name}
-                    archiveMovie={archiveMovie}
-                    onOpenFilm={onOpenFilm}
-                    flat
-                  />
-                )
-              })}
-          </div>
+              .map(({ cat, winner }) => nomineeCardProps(winner, cat.name === 'Best Picture', films, cat.name))
+          )}
         </section>
       ) : (
         <section>
@@ -228,23 +185,9 @@ export default function OscarsPanel({ films, onOpenFilm }) {
             {year} Academy Awards <span className="oscars-ceremony">(ceremony {yearData?.ceremony})</span>
           </h2>
           {categoriesToShow.map((cat) => (
-            <div className="card oscars-category-card" key={cat.name}>
+            <div className="oscars-category-block" key={cat.name}>
               <h3 className="oscars-category-title">{cat.name}</h3>
-              <div className="oscars-nominee-list">
-                {cat.nominees.map((nom, idx) => {
-                  const isMovieCategory = cat.name === 'Best Picture'
-                  const archiveMovie = findInArchive(films, nom.title)
-                  return (
-                    <NomineeRow
-                      key={idx}
-                      nom={nom}
-                      isMovieCategory={isMovieCategory}
-                      archiveMovie={archiveMovie}
-                      onOpenFilm={onOpenFilm}
-                    />
-                  )
-                })}
-              </div>
+              {renderGrid(cat.nominees.map((nom) => nomineeCardProps(nom, cat.name === 'Best Picture', films)))}
             </div>
           ))}
         </section>

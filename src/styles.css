@@ -2907,11 +2907,14 @@ body.light .folder-back {
 .oscars-category-card {
   margin-top: 14px;
 }
+.oscars-category-block {
+  margin-top: 22px;
+}
 .oscars-category-title {
   font-size: 14px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 .oscars-category-en {
   font-size: 11px;
@@ -3018,4 +3021,50 @@ body.light .folder-back {
   justify-content: center;
   font-size: 12px;
   color: var(--muted);
+}
+
+/* ---------- Dashboard poster cards (Oscars / Genre Tops) ---------- */
+.dashboard-poster-card {
+  cursor: default;
+  width: 100%;
+}
+.dashboard-poster-card:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.dashboard-poster-card-dim .poster {
+  filter: grayscale(0.55) brightness(0.75);
+}
+.dashboard-poster-card-dim .card-title,
+.dashboard-poster-card-dim .card-meta {
+  opacity: 0.55;
+}
+.dashboard-badge {
+  position: absolute;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  z-index: 1;
+}
+.dashboard-badge-winner {
+  bottom: 7px;
+  left: 7px;
+  background: #d9a441;
+  color: #1a1305;
+}
+.dashboard-badge-rank {
+  top: 7px;
+  left: 7px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+}
+.dashboard-badge-missing {
+  bottom: 7px;
+  right: 7px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #f4f3f0;
+  font-weight: 600;
+  letter-spacing: 0.2px;
 }
