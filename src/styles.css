@@ -2819,3 +2819,187 @@ body.light .folder-back {
   font-size: 12px;
   color: var(--accent);
 }
+
+/* ═══════════════════════════════ DASHBOARD / OSCARS ═══════════════════════════════ */
+.dashboard-panel {
+  min-height: 100vh;
+  padding: 24px 0 60px;
+}
+.dashboard-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 4px 0 18px;
+  color: var(--text);
+}
+.dashboard-subnav {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+.dashboard-subnav button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.dashboard-subnav button:hover {
+  color: var(--text);
+}
+.dashboard-subnav button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.oscars-panel section {
+  margin-top: 24px;
+}
+.oscars-panel h2 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.oscars-intro {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.oscars-filters {
+  gap: 14px;
+}
+.oscars-field {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.oscars-field-search {
+  min-width: 220px;
+}
+.oscars-field label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.oscars-year-title {
+  display: block;
+}
+.oscars-ceremony {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: normal;
+  margin-right: 8px;
+}
+.oscars-category-card {
+  margin-top: 14px;
+}
+.oscars-category-title {
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+.oscars-category-en {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: normal;
+}
+.oscars-nominee-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.oscars-flat-list {
+  display: flex;
+  flex-direction: column;
+}
+.oscar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.oscars-nominee-list .oscar-row:last-child {
+  border-bottom: none;
+}
+.oscar-row-flat {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+}
+.oscars-flat-list .oscar-row-flat:last-child {
+  border-bottom: none;
+}
+.oscar-row-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.oscar-poster {
+  width: 32px;
+  height: 48px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface-2);
+}
+.oscar-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.oscar-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.oscar-cat-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.oscar-nominee-name {
+  font-size: 13px;
+  color: var(--text);
+}
+.oscar-nominee-name.oscar-winner {
+  font-weight: 600;
+  color: #d6a13a;
+}
+.oscar-film-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+.oscar-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.oscar-winner-tag {
+  background: rgba(214, 161, 58, 0.12);
+  color: #d6a13a;
+  border-color: rgba(214, 161, 58, 0.25);
+  font-size: 10px;
+}
+.oscar-not-in-archive {
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.7;
+}

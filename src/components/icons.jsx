@@ -121,6 +121,12 @@ export const IconBarChart = (props) => (
   </svg>
 )
 
+export const IconTrophy = (props) => (
+  <svg {...base} {...props}>
+    <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 5H4a2 2 0 0 0 2 2M17 5h3a2 2 0 0 1-2 2" />
+  </svg>
+)
+
 export const IconBookshelf = (props) => (
   <svg {...base} {...props}>
     <path d="M3 4v16M21 4v16M3 4h18M7 4v16M11 4v16M15 4v16" />

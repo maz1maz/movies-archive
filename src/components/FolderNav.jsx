@@ -1,4 +1,4 @@
-import { IconArchive, IconDisc, IconClapper, IconBookshelf } from './icons.jsx'
+import { IconArchive, IconDisc, IconClapper, IconBookshelf, IconBarChart } from './icons.jsx'
 import PosterCollage from './PosterCollage.jsx'
 
 // صفحه‌ی اول: انتخاب بین آرشیو فیزیکی و آرشیو دیجیتال
@@ -8,6 +8,7 @@ export default function FolderNav({
   onSelectPhysical,
   onSelectDigital,
   onSelectDigitalType,
+  onSelectDashboard,
   onBack,
   counts,
   posters,
@@ -62,6 +63,13 @@ export default function FolderNav({
             </span>
             <h2>Digital Library</h2>
             <p>Drive · {counts.digital} items</p>
+          </button>
+          <button className="folder-card" onClick={onSelectDashboard}>
+            <span className="folder-icon">
+              <IconBarChart width={32} height={32} />
+            </span>
+            <h2>Dashboard</h2>
+            <p>اطلاعات و آمار</p>
           </button>
         </div>
       </div>

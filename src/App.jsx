@@ -6,6 +6,7 @@ import FilmModal from './components/FilmModal.jsx'
 import EditModal from './components/EditModal.jsx'
 import PersonModal from './components/PersonModal.jsx'
 import FolderNav from './components/FolderNav.jsx'
+import DashboardPanel from './components/DashboardPanel.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import StatsModal from './components/StatsModal.jsx'
 import ExportModal from './components/ExportModal.jsx'
@@ -430,6 +431,7 @@ export default function App() {
           posters={homePosters}
           onSelectPhysical={() => changeSection('physical')}
           onSelectDigital={() => changeSection('digital-pending')}
+          onSelectDashboard={() => changeSection('dashboard')}
         />
       ) : section === 'digital-pending' ? (
         <FolderNav
@@ -439,9 +441,30 @@ export default function App() {
           onBack={() => changeSection(null)}
           onSelectDigitalType={(type) => changeSection(type === 'series' ? 'digital-series' : 'digital-movie')}
         />
+      ) : section === 'dashboard' ? (
+        <>
+          <DashboardPanel films={allFilmsUnfiltered} onBack={() => changeSection(null)} onOpenFilm={(film) => setSelected(film)} />
+          {selected && (
+            <FilmModal
+              film={selected}
+              films={allFilmsUnfiltered}
+              hasBluray={hasBlurayCopy(selected)}
+              onNavigate={(film) => setSelected(film)}
+              onSelectPerson={(name) => {
+                setSelected(null)
+                setSelectedPerson(name)
+              }}
+              onManageLoan={(film) => setLoanFilm(film)}
+              onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
+              onEdit={setEditing}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </>
       ) : (
         <>
       <PosterCollage posters={sectionPosters} count={16} fixed />
+
 
       <Header
         query={query}
