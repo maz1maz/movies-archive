@@ -2637,6 +2637,27 @@ body.light .folder-back {
   margin-top: 2px;
 }
 
+@media (max-width: 640px) {
+  .stats-timeline {
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .timeline-col {
+    flex: 0 0 40px;
+  }
+  .timeline-bar {
+    max-width: 24px;
+  }
+  .timeline-count {
+    font-size: 9.5px;
+  }
+  .timeline-label {
+    font-size: 9px;
+  }
+}
+
 /* ---------- Stats: physical/digital & movie/series split bars ---------- */
 .stats-split {
   display: flex;
