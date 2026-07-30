@@ -1,8 +1,12 @@
 import { useState } from 'react'
 import OscarsPanel from './OscarsPanel.jsx'
-import { IconTrophy } from './icons.jsx'
+import GenreTopsPanel from './GenreTopsPanel.jsx'
+import { IconTrophy, IconMasks } from './icons.jsx'
 
-const TABS = [{ key: 'oscars', label: 'Oscars', icon: IconTrophy }]
+const TABS = [
+  { key: 'oscars', label: 'Oscars', icon: IconTrophy },
+  { key: 'genretops', label: 'Genre Tops', icon: IconMasks },
+]
 
 export default function DashboardPanel({ films, onBack, onOpenFilm }) {
   const [tab, setTab] = useState('oscars')
@@ -26,6 +30,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm }) {
           })}
         </nav>
         {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} />}
+        {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
       </div>
     </div>
   )
