@@ -596,7 +596,8 @@ app.get('/api/export/excel', (req, res) => {
   if (mediaType) films = films.filter((f) => f.mediaType === mediaType)
   if (itemType) films = films.filter((f) => f.itemType === itemType)
   const isSeriesExport = itemType === 'series'
-  const rows = films.map(f => isSeriesExport ? {
+  const rows = films.map((f, idx) => isSeriesExport ? {
+    '#': idx + 1,
     'Title': f.title || '',
     'Format': f.format || '',
     'Watched': f.watched === true ? 'Yes' : 'No',
@@ -617,6 +618,7 @@ app.get('/api/export/excel', (req, res) => {
     'Seasons': countSeasonsFromText(f.seasonsEpisodes) ?? (Array.isArray(f.seasonDrives) ? f.seasonDrives.length : ''),
     'Seasons on Drive': Array.isArray(f.seasonDrives) ? f.seasonDrives.map(sd => `${sd.seasons} → ${sd.drive}`).join(' | ') : '',
   } : {
+    '#': idx + 1,
     'Title': f.title || '',
     'Original Title': f.originalTitle || '',
     'Shelf': f.shelf || '',

@@ -547,9 +547,10 @@ export default {
         const result = await db.prepare(sql).bind(...params).all()
         const films = (result.results || []).map(parseFilmRow)
         const isSeriesExport = itemType === 'series'
-        const rows = films.map((f) =>
+        const rows = films.map((f, idx) =>
           isSeriesExport
             ? {
+                '#': idx + 1,
                 Title: f.title || '',
                 Format: f.format || '',
                 Watched: f.watched === true ? 'Yes' : 'No',
@@ -573,6 +574,7 @@ export default {
                   : '',
               }
             : {
+                '#': idx + 1,
                 Title: f.title || '',
                 'Original Title': f.originalTitle || '',
                 Shelf: f.shelf || '',
