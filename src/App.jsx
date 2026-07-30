@@ -8,7 +8,6 @@ import PersonModal from './components/PersonModal.jsx'
 import FolderNav from './components/FolderNav.jsx'
 import DashboardPanel from './components/DashboardPanel.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
-import StatsModal from './components/StatsModal.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
@@ -69,7 +68,6 @@ export default function App() {
     () => typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches
   )
   const [selectedPerson, setSelectedPerson] = useState(null)
-  const [showStats, setShowStats] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
@@ -491,7 +489,6 @@ export default function App() {
         setGenre={setGenre}
         loanedOnly={loanedOnly}
         setLoanedOnly={setLoanedOnly}
-        onRandomFilm={() => sectionFilms.length && setSelected(sectionFilms[Math.floor(Math.random() * sectionFilms.length)])}
         watched={watched}
         setWatched={setWatched}
         minRating={minRating}
@@ -508,7 +505,6 @@ export default function App() {
         onAddFilm={() => setAdding(true)}
         onEnrichCatalog={handleEnrichCatalog}
         enrichingCatalog={enrichingCatalog}
-        onOpenStats={() => setShowStats(true)}
         onSyncLetterboxd={handleSyncLetterboxd}
         onOpenExport={() => setShowExport(true)}
         view={view}
@@ -618,10 +614,6 @@ export default function App() {
           }}
           onClose={() => setSelectedPerson(null)}
         />
-      )}
-
-      {showStats && (
-        <StatsModal films={films} onClose={() => setShowStats(false)} />
       )}
 
       {showExport && (

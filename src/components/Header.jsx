@@ -6,9 +6,7 @@ import {
   IconDownload,
   IconSun,
   IconMoon,
-  IconBarChart,
   IconSparkles,
-  IconDice,
 } from './icons.jsx'
 
 function IconHamburger(props) {
@@ -35,7 +33,6 @@ export default function Header({
   genres,
   loanedOnly,
   setLoanedOnly,
-  onRandomFilm,
   watched,
   setWatched,
   minRating,
@@ -51,7 +48,6 @@ export default function Header({
   onAddFilm,
   onEnrichCatalog,
   enrichingCatalog,
-  onOpenStats,
   onOpenExport,
   onSyncLetterboxd,
   view,
@@ -154,25 +150,6 @@ export default function Header({
                   title="Fill missing posters, cast, genres, and other public metadata"
                 >
                   <IconSparkles width={15} height={15} /> {enrichingCatalog ? 'Completing metadata…' : 'Fill missing details'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onRandomFilm()
-                    setMenuOpen(false)
-                  }}
-                >
-                  <IconDice width={15} height={15} /> Pick for tonight
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenStats()
-                    setMenuOpen(false)
-                  }}
-                  title="View Collection Statistics & Analytics"
-                >
-                  <IconBarChart width={15} height={15} /> Statistics
                 </button>
                 <button
                   type="button"
