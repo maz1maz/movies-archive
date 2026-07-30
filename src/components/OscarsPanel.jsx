@@ -26,10 +26,12 @@ function nomineeCardProps(nom, isMovieCategory, films, extraSubtitle) {
     badgeVariant: 'winner',
     inArchive,
     archiveMovie,
+    isMovieCategory,
+    personName: nom.name,
   }
 }
 
-export default function OscarsPanel({ films, onOpenFilm }) {
+export default function OscarsPanel({ films, onOpenFilm, onOpenPerson }) {
   const [year, setYear] = useState(String(ALL_YEARS[0]))
   const [category, setCategory] = useState('')
   const [search, setSearch] = useState('')
@@ -98,7 +100,9 @@ export default function OscarsPanel({ films, onOpenFilm }) {
           badgeText={props.badgeText}
           badgeVariant={props.badgeVariant}
           inArchive={props.inArchive}
-          onClick={() => onOpenFilm(props.archiveMovie)}
+          clickable={props.isMovieCategory ? props.inArchive : true}
+          showMissingBadge={props.isMovieCategory ? !props.inArchive : false}
+          onClick={() => (props.isMovieCategory ? onOpenFilm(props.archiveMovie) : onOpenPerson(props.personName))}
         />
       ))}
     </div>

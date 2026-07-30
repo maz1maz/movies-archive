@@ -18,15 +18,17 @@ function hashCode(str) {
   return Math.abs(h)
 }
 
-export default function DashboardPosterCard({ title, subtitle, poster, badgeText, badgeVariant, inArchive, onClick }) {
+export default function DashboardPosterCard({ title, subtitle, poster, badgeText, badgeVariant, inArchive, clickable, showMissingBadge, onClick }) {
+  const isClickable = clickable !== undefined ? clickable : inArchive
+  const showMissing = showMissingBadge !== undefined ? showMissingBadge : !inArchive
   const [c1, c2] = PALETTE[hashCode(String(title)) % PALETTE.length]
 
   return (
     <button
       type="button"
-      className={`card dashboard-poster-card${inArchive ? '' : ' dashboard-poster-card-dim'}`}
-      onClick={inArchive ? onClick : undefined}
-      disabled={!inArchive}
+      className={`card dashboard-poster-card${isClickable ? '' : ' dashboard-poster-card-dim'}`}
+      onClick={isClickable ? onClick : undefined}
+      disabled={!isClickable}
     >
       <div className="poster" style={!poster ? { background: `linear-gradient(160deg, ${c1}, ${c2})` } : undefined}>
         {poster ? (
@@ -37,7 +39,7 @@ export default function DashboardPosterCard({ title, subtitle, poster, badgeText
         {badgeText && (
           <span className={`dashboard-badge dashboard-badge-${badgeVariant || 'default'}`}>{badgeText}</span>
         )}
-        {!inArchive && <span className="dashboard-badge dashboard-badge-missing">Not in archive</span>}
+        {showMissing && <span className="dashboard-badge dashboard-badge-missing">Not in archive</span>}
       </div>
       <div className="card-body">
         <h3 className="card-title">{title}</h3>

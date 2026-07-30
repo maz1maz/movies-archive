@@ -443,7 +443,12 @@ export default function App() {
         />
       ) : section === 'dashboard' ? (
         <>
-          <DashboardPanel films={allFilmsUnfiltered} onBack={() => changeSection(null)} onOpenFilm={(film) => setSelected(film)} />
+          <DashboardPanel
+            films={allFilmsUnfiltered}
+            onBack={() => changeSection(null)}
+            onOpenFilm={(film) => setSelected(film)}
+            onOpenPerson={(name) => setSelectedPerson(name)}
+          />
           {selected && (
             <FilmModal
               film={selected}
@@ -458,6 +463,17 @@ export default function App() {
               onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
               onEdit={setEditing}
               onClose={() => setSelected(null)}
+            />
+          )}
+          {selectedPerson && (
+            <PersonModal
+              personName={selectedPerson}
+              allFilms={allFilmsUnfiltered}
+              onSelectFilm={(film) => {
+                setSelectedPerson(null)
+                setSelected(film)
+              }}
+              onClose={() => setSelectedPerson(null)}
             />
           )}
         </>

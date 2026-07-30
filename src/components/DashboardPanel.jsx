@@ -8,7 +8,7 @@ const TABS = [
   { key: 'genretops', label: 'Genre Tops', icon: IconMasks },
 ]
 
-export default function DashboardPanel({ films, onBack, onOpenFilm }) {
+export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson }) {
   const [tab, setTab] = useState('oscars')
 
   return (
@@ -29,7 +29,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm }) {
             )
           })}
         </nav>
-        {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} />}
+        {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
         {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
       </div>
     </div>
