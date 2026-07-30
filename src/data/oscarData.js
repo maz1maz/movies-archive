@@ -236,6 +236,56 @@ const OSCAR_DATA = {
                     { name: "Edward Lachman", title: "Maria", winner: false },
                     { name: "Jarin Blaschke", title: "Nosferatu", winner: false }
                 ]
+            },
+            {
+                name: "Best Film Editing",
+                nominees: [
+                    { name: "Nick Emerson", title: "Conclave", winner: true },
+                    { name: "Sean Baker", title: "Anora", winner: false },
+                    { name: "Dávid Jancsó", title: "The Brutalist", winner: false },
+                    { name: "Juliette Welfling", title: "Emilia Pérez", winner: false },
+                    { name: "Myron Kerstein", title: "Wicked", winner: false }
+                ]
+            },
+            {
+                name: "Best Costume Design",
+                nominees: [
+                    { name: "Paul Tazewell", title: "Wicked", winner: true },
+                    { name: "Arianne Phillips", title: "A Complete Unknown", winner: false },
+                    { name: "Lisy Christl", title: "Conclave", winner: false },
+                    { name: "Janty Yates, Dave Crossman", title: "Gladiator II", winner: false },
+                    { name: "Linda Muir", title: "Nosferatu", winner: false }
+                ]
+            },
+            {
+                name: "Best Production Design",
+                nominees: [
+                    { name: "Nathan Crowley, Lee Sandales", title: "Wicked", winner: true },
+                    { name: "Judy Becker", title: "The Brutalist", winner: false },
+                    { name: "Suzie Davies", title: "Conclave", winner: false },
+                    { name: "Patrice Vermette", title: "Dune: Part Two", winner: false },
+                    { name: "Craig Lathrop", title: "Nosferatu", winner: false }
+                ]
+            },
+            {
+                name: "Best Visual Effects",
+                nominees: [
+                    { name: "Paul Lambert, Stephen James, Rhys Salcombe, Gerd Nefzer", title: "Dune: Part Two", winner: true },
+                    { title: "Alien: Romulus", winner: false },
+                    { title: "Better Man", winner: false },
+                    { title: "Kingdom of the Planet of the Apes", winner: false },
+                    { title: "Wicked", winner: false }
+                ]
+            },
+            {
+                name: "Best Sound",
+                nominees: [
+                    { name: "Gareth John, Richard King, Ron Bartlett, Doug Hemphill", title: "Dune: Part Two", winner: true },
+                    { title: "A Complete Unknown", winner: false },
+                    { title: "Emilia Pérez", winner: false },
+                    { title: "Wicked", winner: false },
+                    { title: "The Wild Robot", winner: false }
+                ]
             }
         ]
     },
@@ -355,6 +405,56 @@ const OSCAR_DATA = {
                     { name: "Rodrigo Prieto", title: "Killers of the Flower Moon", winner: false },
                     { name: "Matthew Libatique", title: "Maestro", winner: false },
                     { name: "Robbie Ryan", title: "Poor Things", winner: false }
+                ]
+            },
+            {
+                name: "Best Film Editing",
+                nominees: [
+                    { name: "Jennifer Lame", title: "Oppenheimer", winner: true },
+                    { name: "Laurent Sénéchal", title: "Anatomy of a Fall", winner: false },
+                    { name: "Thelma Schoonmaker", title: "Killers of the Flower Moon", winner: false },
+                    { name: "Yorgos Mavropsaridis", title: "Poor Things", winner: false },
+                    { name: "Kevin Tent", title: "The Holdovers", winner: false }
+                ]
+            },
+            {
+                name: "Best Costume Design",
+                nominees: [
+                    { name: "Holly Waddington", title: "Poor Things", winner: true },
+                    { name: "Jacqueline Durran", title: "Barbie", winner: false },
+                    { name: "Jacqueline West", title: "Killers of the Flower Moon", winner: false },
+                    { name: "Janty Yates, Dave Crossman", title: "Napoleon", winner: false },
+                    { name: "Ellen Mirojnick", title: "Oppenheimer", winner: false }
+                ]
+            },
+            {
+                name: "Best Production Design",
+                nominees: [
+                    { name: "James Price, Shona Heath, Zsuzsa Mihalek", title: "Poor Things", winner: true },
+                    { title: "Barbie", winner: false },
+                    { title: "Killers of the Flower Moon", winner: false },
+                    { title: "Napoleon", winner: false },
+                    { title: "Oppenheimer", winner: false }
+                ]
+            },
+            {
+                name: "Best Visual Effects",
+                nominees: [
+                    { name: "Takashi Yamazaki, Kiyoko Shibuya, Masaki Takahashi, Tatsuji Nojima", title: "Godzilla Minus One", winner: true },
+                    { title: "Guardians of the Galaxy Vol. 3", winner: false },
+                    { title: "Mission: Impossible – Dead Reckoning Part One", winner: false },
+                    { title: "Napoleon", winner: false },
+                    { title: "The Creator", winner: false }
+                ]
+            },
+            {
+                name: "Best Sound",
+                nominees: [
+                    { name: "Tarn Willers, Johnnie Burn", title: "The Zone of Interest", winner: true },
+                    { title: "Barbie", winner: false },
+                    { title: "Maestro", winner: false },
+                    { title: "Mission: Impossible – Dead Reckoning Part One", winner: false },
+                    { title: "Oppenheimer", winner: false }
                 ]
             }
         ]
@@ -476,6 +576,56 @@ const OSCAR_DATA = {
                     { name: "Roger Deakins", title: "Empire of Light", winner: false },
                     { name: "Florian Hoffmeister", title: "Tár", winner: false }
                 ]
+            },
+            {
+                name: "Best Film Editing",
+                nominees: [
+                    { name: "Paul Rogers", title: "Everything Everywhere All at Once", winner: true },
+                    { name: "Mikkel E.G. Nielsen", title: "The Banshees of Inisherin", winner: false },
+                    { name: "Matt Villa, Jonathan Redmond", title: "Elvis", winner: false },
+                    { name: "Monika Willi", title: "Tár", winner: false },
+                    { name: "Eddie Hamilton", title: "Top Gun: Maverick", winner: false }
+                ]
+            },
+            {
+                name: "Best Costume Design",
+                nominees: [
+                    { name: "Ruth E. Carter", title: "Black Panther: Wakanda Forever", winner: true },
+                    { name: "Mary Zophres", title: "Babylon", winner: false },
+                    { name: "Catherine Martin", title: "Elvis", winner: false },
+                    { name: "Shirley Kurata", title: "Everything Everywhere All at Once", winner: false },
+                    { name: "Jenny Beavan", title: "Mrs. Harris Goes to Paris", winner: false }
+                ]
+            },
+            {
+                name: "Best Production Design",
+                nominees: [
+                    { name: "Christian M. Goldbeck, Ernestine Hipper", title: "All Quiet on the Western Front", winner: true },
+                    { title: "Avatar: The Way of Water", winner: false },
+                    { title: "Babylon", winner: false },
+                    { title: "Elvis", winner: false },
+                    { title: "The Fabelmans", winner: false }
+                ]
+            },
+            {
+                name: "Best Visual Effects",
+                nominees: [
+                    { name: "Joe Letteri, Richard Baneham, Eric Saindon, Daniel Barrett", title: "Avatar: The Way of Water", winner: true },
+                    { title: "All Quiet on the Western Front", winner: false },
+                    { title: "The Batman", winner: false },
+                    { title: "Black Panther: Wakanda Forever", winner: false },
+                    { title: "Top Gun: Maverick", winner: false }
+                ]
+            },
+            {
+                name: "Best Sound",
+                nominees: [
+                    { name: "Mark Weingarten, James H. Mather, Al Nelson, Chris Burdon, Mark Taylor", title: "Top Gun: Maverick", winner: true },
+                    { title: "All Quiet on the Western Front", winner: false },
+                    { title: "Avatar: The Way of Water", winner: false },
+                    { title: "Babylon", winner: false },
+                    { title: "Elvis", winner: false }
+                ]
             }
         ]
     },
@@ -596,6 +746,56 @@ const OSCAR_DATA = {
                     { name: "Bruno Delbonnel", title: "The Tragedy of Macbeth", winner: false },
                     { name: "Janusz Kamiński", title: "West Side Story", winner: false }
                 ]
+            },
+            {
+                name: "Best Film Editing",
+                nominees: [
+                    { name: "Joe Walker", title: "Dune", winner: true },
+                    { name: "Hank Corwin", title: "Don't Look Up", winner: false },
+                    { name: "Pamela Martin", title: "King Richard", winner: false },
+                    { name: "Myron Kerstein, Andrew Weisblum", title: "tick, tick...BOOM!", winner: false },
+                    { name: "Sarah Broshar, Michael Kahn", title: "West Side Story", winner: false }
+                ]
+            },
+            {
+                name: "Best Costume Design",
+                nominees: [
+                    { name: "Jenny Beavan", title: "Cruella", winner: true },
+                    { name: "Massimo Cantini Parrini, Sarah Edwards", title: "Cyrano", winner: false },
+                    { name: "Jacqueline West, Robert Morgan", title: "Dune", winner: false },
+                    { name: "Luis Sequeira", title: "Nightmare Alley", winner: false },
+                    { name: "Paul Tazewell", title: "West Side Story", winner: false }
+                ]
+            },
+            {
+                name: "Best Production Design",
+                nominees: [
+                    { name: "Patrice Vermette, Zsuzsanna Sipos", title: "Dune", winner: true },
+                    { title: "Nightmare Alley", winner: false },
+                    { title: "The Power of the Dog", winner: false },
+                    { title: "The Tragedy of Macbeth", winner: false },
+                    { title: "West Side Story", winner: false }
+                ]
+            },
+            {
+                name: "Best Visual Effects",
+                nominees: [
+                    { name: "Paul Lambert, Tristan Myles, Brian Connor, Gerd Nefzer", title: "Dune", winner: true },
+                    { title: "Free Guy", winner: false },
+                    { title: "No Time to Die", winner: false },
+                    { title: "Shang-Chi and the Legend of the Ten Rings", winner: false },
+                    { title: "Spider-Man: No Way Home", winner: false }
+                ]
+            },
+            {
+                name: "Best Sound",
+                nominees: [
+                    { name: "Mac Ruth, Mark Mangini, Theo Green, Doug Hemphill, Ron Bartlett", title: "Dune", winner: true },
+                    { title: "Belfast", winner: false },
+                    { title: "No Time to Die", winner: false },
+                    { title: "West Side Story", winner: false },
+                    { title: "Encanto", winner: false }
+                ]
             }
         ]
     },
@@ -713,6 +913,56 @@ const OSCAR_DATA = {
                     { name: "Phedon Papamichael", title: "News of the World", winner: false },
                     { name: "Joshua James Richards", title: "Nomadland", winner: false },
                     { name: "Pariusz Wolski", title: "News of the World", winner: false }
+                ]
+            },
+            {
+                name: "Best Film Editing",
+                nominees: [
+                    { name: "Mikkel E.G. Nielsen", title: "Sound of Metal", winner: true },
+                    { name: "Yorgos Lamprinos", title: "The Father", winner: false },
+                    { name: "Chloé Zhao", title: "Nomadland", winner: false },
+                    { name: "Frédéric Thoraval", title: "Promising Young Woman", winner: false },
+                    { name: "Alan Baumgarten", title: "The Trial of the Chicago 7", winner: false }
+                ]
+            },
+            {
+                name: "Best Costume Design",
+                nominees: [
+                    { name: "Ann Roth", title: "Ma Rainey's Black Bottom", winner: true },
+                    { name: "Alexandra Byrne", title: "Emma.", winner: false },
+                    { name: "Trish Summerville", title: "Mank", winner: false },
+                    { name: "Bina Daigeler", title: "Mulan", winner: false },
+                    { name: "Massimo Cantini Parrini", title: "Pinocchio", winner: false }
+                ]
+            },
+            {
+                name: "Best Production Design",
+                nominees: [
+                    { name: "Donald Graham Burt, Jan Pascale", title: "Mank", winner: true },
+                    { title: "The Father", winner: false },
+                    { title: "Ma Rainey's Black Bottom", winner: false },
+                    { title: "News of the World", winner: false },
+                    { title: "Tenet", winner: false }
+                ]
+            },
+            {
+                name: "Best Visual Effects",
+                nominees: [
+                    { name: "Andrew Jackson, David Lee, Andrew Lockley, Scott Fisher", title: "Tenet", winner: true },
+                    { title: "Love and Monsters", winner: false },
+                    { title: "The Midnight Sky", winner: false },
+                    { title: "Mulan", winner: false },
+                    { title: "The One and Only Ivan", winner: false }
+                ]
+            },
+            {
+                name: "Best Sound",
+                nominees: [
+                    { name: "Nicolas Becker, Jaime Baksht, Michellee Couttolenc, Carlos Cortés, Phillip Bladh", title: "Sound of Metal", winner: true },
+                    { title: "Greyhound", winner: false },
+                    { title: "Mank", winner: false },
+                    { title: "News of the World", winner: false },
+                    { title: "Soul", winner: false }
                 ]
             }
         ]
@@ -833,6 +1083,56 @@ const OSCAR_DATA = {
                     { name: "Jarin Blaschke", title: "The Lighthouse", winner: false },
                     { name: "Robert Richardson", title: "Once Upon a Time in Hollywood", winner: false }
                 ]
+            },
+            {
+                name: "Best Film Editing",
+                nominees: [
+                    { name: "Michael McCusker, Andrew Buckland", title: "Ford v Ferrari", winner: true },
+                    { name: "Thelma Schoonmaker", title: "The Irishman", winner: false },
+                    { name: "Tom Eagles", title: "Jojo Rabbit", winner: false },
+                    { name: "Jeff Groth", title: "Joker", winner: false },
+                    { name: "Yang Jinmo", title: "Parasite", winner: false }
+                ]
+            },
+            {
+                name: "Best Costume Design",
+                nominees: [
+                    { name: "Jacqueline Durran", title: "Little Women", winner: true },
+                    { name: "Sandy Powell, Christopher Peterson", title: "The Irishman", winner: false },
+                    { name: "Mayes C. Rubeo", title: "Jojo Rabbit", winner: false },
+                    { name: "Mark Bridges", title: "Joker", winner: false },
+                    { name: "Arianne Phillips", title: "Once Upon a Time in Hollywood", winner: false }
+                ]
+            },
+            {
+                name: "Best Production Design",
+                nominees: [
+                    { name: "Barbara Ling, Nancy Haigh", title: "Once Upon a Time in Hollywood", winner: true },
+                    { title: "The Irishman", winner: false },
+                    { title: "Jojo Rabbit", winner: false },
+                    { title: "1917", winner: false },
+                    { title: "Parasite", winner: false }
+                ]
+            },
+            {
+                name: "Best Visual Effects",
+                nominees: [
+                    { name: "Guillaume Rocheron, Greg Butler, Dominic Tuohy", title: "1917", winner: true },
+                    { title: "Avengers: Endgame", winner: false },
+                    { title: "The Irishman", winner: false },
+                    { title: "The Lion King", winner: false },
+                    { title: "Star Wars: The Rise of Skywalker", winner: false }
+                ]
+            },
+            {
+                name: "Best Sound",
+                nominees: [
+                    { name: "Paul Massey, Donald Sylvester, David Giammarco", title: "Ford v Ferrari", winner: true },
+                    { title: "Ad Astra", winner: false },
+                    { title: "Joker", winner: false },
+                    { title: "1917", winner: false },
+                    { title: "Once Upon a Time in Hollywood", winner: false }
+                ]
             }
         ]
     },
@@ -950,6 +1250,56 @@ const OSCAR_DATA = {
                     { name: "Robbie Ryan", title: "The Favourite", winner: false },
                     { name: "Caleb Deschanel", title: "Never Look Away", winner: false },
                     { name: "Matthew Libatique", title: "A Star Is Born", winner: false }
+                ]
+            },
+            {
+                name: "Best Film Editing",
+                nominees: [
+                    { name: "John Ottman", title: "Bohemian Rhapsody", winner: true },
+                    { name: "Yorgos Mavropsaridis", title: "The Favourite", winner: false },
+                    { name: "Patrick J. Don Vito", title: "Green Book", winner: false },
+                    { name: "Hank Corwin", title: "Vice", winner: false },
+                    { name: "Barry Alexander Brown", title: "BlacKkKlansman", winner: false }
+                ]
+            },
+            {
+                name: "Best Costume Design",
+                nominees: [
+                    { name: "Ruth E. Carter", title: "Black Panther", winner: true },
+                    { name: "Mary Zophres", title: "The Ballad of Buster Scruggs", winner: false },
+                    { name: "Sandy Powell", title: "The Favourite", winner: false },
+                    { name: "Sandy Powell", title: "Mary Poppins Returns", winner: false },
+                    { name: "Alexandra Byrne", title: "Mary Queen of Scots", winner: false }
+                ]
+            },
+            {
+                name: "Best Production Design",
+                nominees: [
+                    { name: "Hannah Beachler, Jay Hart", title: "Black Panther", winner: true },
+                    { title: "The Favourite", winner: false },
+                    { title: "First Man", winner: false },
+                    { title: "Mary Poppins Returns", winner: false },
+                    { title: "Roma", winner: false }
+                ]
+            },
+            {
+                name: "Best Visual Effects",
+                nominees: [
+                    { name: "Paul Lambert, Ian Hunter, Tristan Myles, J.D. Schwalm", title: "First Man", winner: true },
+                    { title: "Avengers: Infinity War", winner: false },
+                    { title: "Christopher Robin", winner: false },
+                    { title: "Ready Player One", winner: false },
+                    { title: "Solo: A Star Wars Story", winner: false }
+                ]
+            },
+            {
+                name: "Best Sound",
+                nominees: [
+                    { name: "Paul Massey, Tim Cavagin, John Casali", title: "Bohemian Rhapsody", winner: true },
+                    { title: "Black Panther", winner: false },
+                    { title: "First Man", winner: false },
+                    { title: "Roma", winner: false },
+                    { title: "A Star Is Born", winner: false }
                 ]
             }
         ]
@@ -1070,6 +1420,56 @@ const OSCAR_DATA = {
                     { name: "Dan Laustsen", title: "The Shape of Water", winner: false },
                     { name: "Rachel Morrison", title: "Mudbound", winner: false }
                 ]
+            },
+            {
+                name: "Best Film Editing",
+                nominees: [
+                    { name: "Lee Smith", title: "Dunkirk", winner: true },
+                    { name: "Paul Machliss, Jonathan Amos", title: "Baby Driver", winner: false },
+                    { name: "Tatiana S. Riegel", title: "I, Tonya", winner: false },
+                    { name: "Sidney Wolinsky", title: "The Shape of Water", winner: false },
+                    { name: "Jon Gregory", title: "Three Billboards Outside Ebbing, Missouri", winner: false }
+                ]
+            },
+            {
+                name: "Best Costume Design",
+                nominees: [
+                    { name: "Mark Bridges", title: "Phantom Thread", winner: true },
+                    { name: "Jacqueline Durran", title: "Beauty and the Beast", winner: false },
+                    { name: "Jacqueline Durran", title: "Darkest Hour", winner: false },
+                    { name: "Luis Sequeira", title: "The Shape of Water", winner: false },
+                    { name: "Consolata Boyle", title: "Victoria & Abdul", winner: false }
+                ]
+            },
+            {
+                name: "Best Production Design",
+                nominees: [
+                    { name: "Paul Denham Austerberry, Shane Vieau, Jeff Melvin", title: "The Shape of Water", winner: true },
+                    { title: "Beauty and the Beast", winner: false },
+                    { title: "Blade Runner 2049", winner: false },
+                    { title: "Darkest Hour", winner: false },
+                    { title: "Dunkirk", winner: false }
+                ]
+            },
+            {
+                name: "Best Visual Effects",
+                nominees: [
+                    { name: "John Nelson, Paul Lambert, Richard R. Hoover, Gerd Nefzer", title: "Blade Runner 2049", winner: true },
+                    { title: "Guardians of the Galaxy Vol. 2", winner: false },
+                    { title: "Kong: Skull Island", winner: false },
+                    { title: "Star Wars: The Last Jedi", winner: false },
+                    { title: "War for the Planet of the Apes", winner: false }
+                ]
+            },
+            {
+                name: "Best Sound",
+                nominees: [
+                    { name: "Gregg Landaker, Gary Rizzo, Mark Weingarten", title: "Dunkirk", winner: true },
+                    { title: "Baby Driver", winner: false },
+                    { title: "Blade Runner 2049", winner: false },
+                    { title: "The Shape of Water", winner: false },
+                    { title: "Star Wars: The Last Jedi", winner: false }
+                ]
             }
         ]
     },
@@ -1189,6 +1589,56 @@ const OSCAR_DATA = {
                     { name: "Rodrigo Prieto", title: "Silence", winner: false },
                     { name: "Giles Nuttgens", title: "Hell or High Water", winner: false }
                 ]
+            },
+            {
+                name: "Best Film Editing",
+                nominees: [
+                    { name: "John Gilbert", title: "Hacksaw Ridge", winner: true },
+                    { name: "Joe Walker", title: "Arrival", winner: false },
+                    { name: "Jake Roberts", title: "Hell or High Water", winner: false },
+                    { name: "Tom Cross", title: "La La Land", winner: false },
+                    { name: "Nat Sanders, Joi McMillon", title: "Moonlight", winner: false }
+                ]
+            },
+            {
+                name: "Best Costume Design",
+                nominees: [
+                    { name: "Colleen Atwood", title: "Fantastic Beasts and Where to Find Them", winner: true },
+                    { name: "Joanna Johnston", title: "Allied", winner: false },
+                    { name: "Consolata Boyle", title: "Florence Foster Jenkins", winner: false },
+                    { name: "Madeline Fontaine", title: "Jackie", winner: false },
+                    { name: "Mary Zophres", title: "La La Land", winner: false }
+                ]
+            },
+            {
+                name: "Best Production Design",
+                nominees: [
+                    { name: "David Wasco, Sandy Reynolds-Wasco", title: "La La Land", winner: true },
+                    { title: "Arrival", winner: false },
+                    { title: "Fantastic Beasts and Where to Find Them", winner: false },
+                    { title: "Hail, Caesar!", winner: false },
+                    { title: "Passengers", winner: false }
+                ]
+            },
+            {
+                name: "Best Visual Effects",
+                nominees: [
+                    { name: "Robert Legato, Adam Valdez, Andrew R. Jones, Dan Lemmon", title: "The Jungle Book", winner: true },
+                    { title: "Deepwater Horizon", winner: false },
+                    { title: "Doctor Strange", winner: false },
+                    { title: "Kubo and the Two Strings", winner: false },
+                    { title: "Rogue One: A Star Wars Story", winner: false }
+                ]
+            },
+            {
+                name: "Best Sound",
+                nominees: [
+                    { name: "Kevin O'Connell, Andy Wright, Robert Mackenzie, Peter Grace", title: "Hacksaw Ridge", winner: true },
+                    { title: "Arrival", winner: false },
+                    { title: "La La Land", winner: false },
+                    { title: "Rogue One: A Star Wars Story", winner: false },
+                    { title: "13 Hours", winner: false }
+                ]
             }
         ]
     },
@@ -1307,6 +1757,56 @@ const OSCAR_DATA = {
                     { name: "John Seale", title: "Mad Max: Fury Road", winner: false },
                     { name: "Roger Deakins", title: "Sicario", winner: false }
                 ]
+            },
+            {
+                name: "Best Film Editing",
+                nominees: [
+                    { name: "Margaret Sixel", title: "Mad Max: Fury Road", winner: true },
+                    { name: "Hank Corwin", title: "The Big Short", winner: false },
+                    { name: "Stephen Mirrione", title: "The Revenant", winner: false },
+                    { name: "Tom McArdle", title: "Spotlight", winner: false },
+                    { name: "Maryann Brandon, Mary Jo Markey", title: "Star Wars: The Force Awakens", winner: false }
+                ]
+            },
+            {
+                name: "Best Costume Design",
+                nominees: [
+                    { name: "Jenny Beavan", title: "Mad Max: Fury Road", winner: true },
+                    { name: "Sandy Powell", title: "Carol", winner: false },
+                    { name: "Sandy Powell", title: "Cinderella", winner: false },
+                    { name: "Paco Delgado", title: "The Danish Girl", winner: false },
+                    { name: "Jacqueline West", title: "The Revenant", winner: false }
+                ]
+            },
+            {
+                name: "Best Production Design",
+                nominees: [
+                    { name: "Colin Gibson, Lisa Thompson", title: "Mad Max: Fury Road", winner: true },
+                    { title: "Bridge of Spies", winner: false },
+                    { title: "The Danish Girl", winner: false },
+                    { title: "The Martian", winner: false },
+                    { title: "The Revenant", winner: false }
+                ]
+            },
+            {
+                name: "Best Visual Effects",
+                nominees: [
+                    { name: "Andrew Whitehurst, Paul Norris, Mark Ardington, Sara Bennett", title: "Ex Machina", winner: true },
+                    { title: "Mad Max: Fury Road", winner: false },
+                    { title: "The Martian", winner: false },
+                    { title: "The Revenant", winner: false },
+                    { title: "Star Wars: The Force Awakens", winner: false }
+                ]
+            },
+            {
+                name: "Best Sound",
+                nominees: [
+                    { name: "Chris Jenkins, Gregg Rudloff, Ben Osmo", title: "Mad Max: Fury Road", winner: true },
+                    { title: "Bridge of Spies", winner: false },
+                    { title: "The Martian", winner: false },
+                    { title: "The Revenant", winner: false },
+                    { title: "Star Wars: The Force Awakens", winner: false }
+                ]
             }
         ]
     },
@@ -1424,6 +1924,56 @@ const OSCAR_DATA = {
                     { name: "Lukasz Zal", title: "Ida", winner: false },
                     { name: "Dick Pope", title: "Mr. Turner", winner: false },
                     { name: "Roger Deakins", title: "Unbroken", winner: false }
+                ]
+            },
+            {
+                name: "Best Film Editing",
+                nominees: [
+                    { name: "Tom Cross", title: "Whiplash", winner: true },
+                    { name: "Sandra Adair", title: "Boyhood", winner: false },
+                    { name: "Joel Cox, Gary Roach", title: "American Sniper", winner: false },
+                    { name: "Barney Pilling", title: "The Grand Budapest Hotel", winner: false },
+                    { name: "William Goldenberg", title: "The Imitation Game", winner: false }
+                ]
+            },
+            {
+                name: "Best Costume Design",
+                nominees: [
+                    { name: "Milena Canonero", title: "The Grand Budapest Hotel", winner: true },
+                    { name: "Mark Bridges", title: "Inherent Vice", winner: false },
+                    { name: "Colleen Atwood", title: "Into the Woods", winner: false },
+                    { name: "Anna B. Sheppard", title: "Maleficent", winner: false },
+                    { name: "Jacqueline Durran", title: "Mr. Turner", winner: false }
+                ]
+            },
+            {
+                name: "Best Production Design",
+                nominees: [
+                    { name: "Adam Stockhausen, Anna Pinnock", title: "The Grand Budapest Hotel", winner: true },
+                    { title: "Interstellar", winner: false },
+                    { title: "Into the Woods", winner: false },
+                    { title: "Mr. Turner", winner: false },
+                    { title: "The Imitation Game", winner: false }
+                ]
+            },
+            {
+                name: "Best Visual Effects",
+                nominees: [
+                    { name: "Paul Franklin, Andrew Lockley, Ian Hunter, Scott Fisher", title: "Interstellar", winner: true },
+                    { title: "Captain America: The Winter Soldier", winner: false },
+                    { title: "Dawn of the Planet of the Apes", winner: false },
+                    { title: "Guardians of the Galaxy", winner: false },
+                    { title: "X-Men: Days of Future Past", winner: false }
+                ]
+            },
+            {
+                name: "Best Sound",
+                nominees: [
+                    { name: "Craig Mann, Ben Wilkins, Thomas Curley", title: "Whiplash", winner: true },
+                    { title: "American Sniper", winner: false },
+                    { title: "Birdman", winner: false },
+                    { title: "Interstellar", winner: false },
+                    { title: "Unbroken", winner: false }
                 ]
             }
         ]
