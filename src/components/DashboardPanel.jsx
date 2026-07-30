@@ -2,12 +2,14 @@ import { useState } from 'react'
 import DashboardOverview from './DashboardOverview.jsx'
 import OscarsPanel from './OscarsPanel.jsx'
 import GenreTopsPanel from './GenreTopsPanel.jsx'
-import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon } from './icons.jsx'
+import DashboardExportPanel from './DashboardExportPanel.jsx'
+import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave } from './icons.jsx'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: IconBarChart },
   { key: 'oscars', label: 'Oscars', icon: IconTrophy },
   { key: 'genretops', label: 'Genre Tops', icon: IconMasks },
+  { key: 'export', label: 'Export & Backup', icon: IconSave },
 ]
 
 export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson, theme, setTheme }) {
@@ -45,6 +47,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
         {tab === 'overview' && <DashboardOverview films={films} />}
         {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
         {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
+        {tab === 'export' && <DashboardExportPanel films={films} />}
       </div>
     </div>
   )
