@@ -1,7 +1,7 @@
 // Curated "best of genre" lists for the Dashboard's Genre Tops tab.
-// Selection is sourced from IMDb's own top-rated-by-genre rankings and the
+// Selection is sourced from IMDb's top-rated-by-genre rankings and the
 // IMDb Top 250 (ratings/years verified against imdb.com as of mid-2026).
-// 10 titles per genre so the tab fits on one screen without heavy scrolling.
+// 30 titles per genre.
 const GENRE_TOPS_DATA = {
   "Action": {
     movies: [
@@ -14,7 +14,27 @@ const GENRE_TOPS_DATA = {
       { title: "Seven Samurai", year: 1954, director: "Akira Kurosawa" },
       { title: "Gladiator", year: 2000, director: "Ridley Scott" },
       { title: "Spider-Man: Across the Spider-Verse", year: 2023, director: "Joaquim Dos Santos, Kemp Powers, Justin K. Thompson" },
-      { title: "Leon: The Professional", year: 1994, director: "Luc Besson" }
+      { title: "Leon: The Professional", year: 1994, director: "Luc Besson" },
+      { title: "Aliens", year: 1986, director: "James Cameron" },
+      { title: "Die Hard", year: 1988, director: "John McTiernan" },
+      { title: "Mad Max: Fury Road", year: 2015, director: "George Miller" },
+      { title: "Raiders of the Lost Ark", year: 1981, director: "Steven Spielberg" },
+      { title: "The Bourne Ultimatum", year: 2007, director: "Paul Greengrass" },
+      { title: "John Wick", year: 2014, director: "Chad Stahelski" },
+      { title: "Kill Bill: Vol. 1", year: 2003, director: "Quentin Tarantino" },
+      { title: "The Avengers", year: 2012, director: "Joss Whedon" },
+      { title: "Avengers: Endgame", year: 2019, director: "Anthony Russo, Joe Russo" },
+      { title: "Dunkirk", year: 2017, director: "Christopher Nolan" },
+      { title: "Heat", year: 1995, director: "Michael Mann" },
+      { title: "Speed", year: 1994, director: "Jan de Bont" },
+      { title: "Casino Royale", year: 2006, director: "Martin Campbell" },
+      { title: "The Raid: Redemption", year: 2011, director: "Gareth Evans" },
+      { title: "300", year: 2007, director: "Zack Snyder" },
+      { title: "Top Gun: Maverick", year: 2022, director: "Joseph Kosinski" },
+      { title: "Predator", year: 1987, director: "John McTiernan" },
+      { title: "RoboCop", year: 1987, director: "Paul Verhoeven" },
+      { title: "Skyfall", year: 2012, director: "Sam Mendes" },
+      { title: "The Raid 2", year: 2014, director: "Gareth Evans" }
     ]
   },
   "Comedy": {
@@ -28,7 +48,27 @@ const GENRE_TOPS_DATA = {
       { title: "The Great Dictator", year: 1940, director: "Charlie Chaplin" },
       { title: "Toy Story", year: 1995, director: "John Lasseter" },
       { title: "Up", year: 2009, director: "Pete Docter" },
-      { title: "Amelie", year: 2001, director: "Jean-Pierre Jeunet" }
+      { title: "Amelie", year: 2001, director: "Jean-Pierre Jeunet" },
+      { title: "Groundhog Day", year: 1993, director: "Harold Ramis" },
+      { title: "Some Like It Hot", year: 1959, director: "Billy Wilder" },
+      { title: "Monty Python and the Holy Grail", year: 1975, director: "Terry Gilliam, Terry Jones" },
+      { title: "Airplane!", year: 1980, director: "Jim Abrahams, David Zucker, Jerry Zucker" },
+      { title: "Dr. Strangelove", year: 1964, director: "Stanley Kubrick" },
+      { title: "The Grand Budapest Hotel", year: 2014, director: "Wes Anderson" },
+      { title: "Superbad", year: 2007, director: "Greg Mottola" },
+      { title: "The Hangover", year: 2009, director: "Todd Phillips" },
+      { title: "Ferris Bueller's Day Off", year: 1986, director: "John Hughes" },
+      { title: "Annie Hall", year: 1977, director: "Woody Allen" },
+      { title: "Shaun of the Dead", year: 2004, director: "Edgar Wright" },
+      { title: "The Princess Bride", year: 1987, director: "Rob Reiner" },
+      { title: "Coco", year: 2017, director: "Lee Unkrich" },
+      { title: "Zootopia", year: 2016, director: "Byron Howard, Rich Moore" },
+      { title: "Paddington 2", year: 2017, director: "Paul King" },
+      { title: "In Bruges", year: 2008, director: "Martin McDonagh" },
+      { title: "Knives Out", year: 2019, director: "Rian Johnson" },
+      { title: "The Truman Show", year: 1998, director: "Peter Weir" },
+      { title: "Little Miss Sunshine", year: 2006, director: "Jonathan Dayton, Valerie Faris" },
+      { title: "Deadpool", year: 2016, director: "Tim Miller" }
     ]
   },
   "Drama": {
@@ -42,7 +82,27 @@ const GENRE_TOPS_DATA = {
       { title: "It's a Wonderful Life", year: 1946, director: "Frank Capra" },
       { title: "American History X", year: 1998, director: "Tony Kaye" },
       { title: "Whiplash", year: 2014, director: "Damien Chazelle" },
-      { title: "Apocalypse Now", year: 1979, director: "Francis Ford Coppola" }
+      { title: "Apocalypse Now", year: 1979, director: "Francis Ford Coppola" },
+      { title: "The Green Mile", year: 1999, director: "Frank Darabont" },
+      { title: "Good Will Hunting", year: 1997, director: "Gus Van Sant" },
+      { title: "A Beautiful Mind", year: 2001, director: "Ron Howard" },
+      { title: "The Pianist", year: 2002, director: "Roman Polanski" },
+      { title: "Requiem for a Dream", year: 2000, director: "Darren Aronofsky" },
+      { title: "There Will Be Blood", year: 2007, director: "Paul Thomas Anderson" },
+      { title: "No Country for Old Men", year: 2007, director: "Ethan Coen, Joel Coen" },
+      { title: "The Social Network", year: 2010, director: "David Fincher" },
+      { title: "12 Years a Slave", year: 2013, director: "Steve McQueen" },
+      { title: "Manchester by the Sea", year: 2016, director: "Kenneth Lonergan" },
+      { title: "Moonlight", year: 2016, director: "Barry Jenkins" },
+      { title: "Parasite", year: 2019, director: "Bong Joon-ho" },
+      { title: "Nomadland", year: 2020, director: "Chloe Zhao" },
+      { title: "The Godfather", year: 1972, director: "Francis Ford Coppola" },
+      { title: "Rain Man", year: 1988, director: "Barry Levinson" },
+      { title: "Dead Poets Society", year: 1989, director: "Peter Weir" },
+      { title: "A Separation", year: 2011, director: "Asghar Farhadi" },
+      { title: "Amadeus", year: 1984, director: "Milos Forman" },
+      { title: "The Elephant Man", year: 1980, director: "David Lynch" },
+      { title: "Million Dollar Baby", year: 2004, director: "Clint Eastwood" }
     ]
   },
   "Horror": {
@@ -56,7 +116,27 @@ const GENRE_TOPS_DATA = {
       { title: "The Exorcist", year: 1973, director: "William Friedkin" },
       { title: "Rosemary's Baby", year: 1968, director: "Roman Polanski" },
       { title: "Get Out", year: 2017, director: "Jordan Peele" },
-      { title: "A Quiet Place", year: 2018, director: "John Krasinski" }
+      { title: "A Quiet Place", year: 2018, director: "John Krasinski" },
+      { title: "Hereditary", year: 2018, director: "Ari Aster" },
+      { title: "The Babadook", year: 2014, director: "Jennifer Kent" },
+      { title: "It Follows", year: 2014, director: "David Robert Mitchell" },
+      { title: "28 Days Later", year: 2002, director: "Danny Boyle" },
+      { title: "Night of the Living Dead", year: 1968, director: "George A. Romero" },
+      { title: "Nosferatu", year: 1922, director: "F.W. Murnau" },
+      { title: "Suspiria", year: 1977, director: "Dario Argento" },
+      { title: "The Witch", year: 2015, director: "Robert Eggers" },
+      { title: "Halloween", year: 1978, director: "John Carpenter" },
+      { title: "A Nightmare on Elm Street", year: 1984, director: "Wes Craven" },
+      { title: "Jaws", year: 1975, director: "Steven Spielberg" },
+      { title: "Poltergeist", year: 1982, director: "Tobe Hooper" },
+      { title: "Let the Right One In", year: 2008, director: "Tomas Alfredson" },
+      { title: "Train to Busan", year: 2016, director: "Yeon Sang-ho" },
+      { title: "Midsommar", year: 2019, director: "Ari Aster" },
+      { title: "The Conjuring", year: 2013, director: "James Wan" },
+      { title: "Evil Dead II", year: 1987, director: "Sam Raimi" },
+      { title: "An American Werewolf in London", year: 1981, director: "John Landis" },
+      { title: "Tumbbad", year: 2018, director: "Rahi Anil Barve" },
+      { title: "The Cabin in the Woods", year: 2012, director: "Drew Goddard" }
     ]
   },
   "Romance": {
@@ -70,7 +150,27 @@ const GENRE_TOPS_DATA = {
       { title: "Pride & Prejudice", year: 2005, director: "Joe Wright" },
       { title: "The Notebook", year: 2004, director: "Nick Cassavetes" },
       { title: "Her", year: 2013, director: "Spike Jonze" },
-      { title: "When Harry Met Sally...", year: 1989, director: "Rob Reiner" }
+      { title: "When Harry Met Sally...", year: 1989, director: "Rob Reiner" },
+      { title: "Roman Holiday", year: 1953, director: "William Wyler" },
+      { title: "500 Days of Summer", year: 2009, director: "Marc Webb" },
+      { title: "Before Sunset", year: 2004, director: "Richard Linklater" },
+      { title: "The Shape of Water", year: 2017, director: "Guillermo del Toro" },
+      { title: "Call Me by Your Name", year: 2017, director: "Luca Guadagnino" },
+      { title: "Brokeback Mountain", year: 2005, director: "Ang Lee" },
+      { title: "In the Mood for Love", year: 2000, director: "Wong Kar-wai" },
+      { title: "Silver Linings Playbook", year: 2012, director: "David O. Russell" },
+      { title: "A Star Is Born", year: 2018, director: "Bradley Cooper" },
+      { title: "Moulin Rouge!", year: 2001, director: "Baz Luhrmann" },
+      { title: "Jerry Maguire", year: 1996, director: "Cameron Crowe" },
+      { title: "Pretty Woman", year: 1990, director: "Garry Marshall" },
+      { title: "Sleepless in Seattle", year: 1993, director: "Nora Ephron" },
+      { title: "The Bridges of Madison County", year: 1995, director: "Clint Eastwood" },
+      { title: "Atonement", year: 2007, director: "Joe Wright" },
+      { title: "The Fault in Our Stars", year: 2014, director: "Josh Boone" },
+      { title: "Portrait of a Lady on Fire", year: 2019, director: "Celine Sciamma" },
+      { title: "An Affair to Remember", year: 1957, director: "Leo McCarey" },
+      { title: "Ghost", year: 1990, director: "Jerry Zucker" },
+      { title: "Two for the Road", year: 1967, director: "Stanley Donen" }
     ]
   },
   "Thriller": {
@@ -84,7 +184,27 @@ const GENRE_TOPS_DATA = {
       { title: "No Country for Old Men", year: 2007, director: "Ethan Coen, Joel Coen" },
       { title: "Gone Girl", year: 2014, director: "David Fincher" },
       { title: "Zodiac", year: 2007, director: "David Fincher" },
-      { title: "The Departed", year: 2006, director: "Martin Scorsese" }
+      { title: "The Departed", year: 2006, director: "Martin Scorsese" },
+      { title: "North by Northwest", year: 1959, director: "Alfred Hitchcock" },
+      { title: "Vertigo", year: 1958, director: "Alfred Hitchcock" },
+      { title: "Prisoners", year: 2013, director: "Denis Villeneuve" },
+      { title: "Nightcrawler", year: 2014, director: "Dan Gilroy" },
+      { title: "The Girl with the Dragon Tattoo", year: 2011, director: "David Fincher" },
+      { title: "Oldboy", year: 2003, director: "Park Chan-wook" },
+      { title: "The Sixth Sense", year: 1999, director: "M. Night Shyamalan" },
+      { title: "Fargo", year: 1996, director: "Ethan Coen, Joel Coen" },
+      { title: "Training Day", year: 2001, director: "Antoine Fuqua" },
+      { title: "Wind River", year: 2017, director: "Taylor Sheridan" },
+      { title: "Blood Simple", year: 1984, director: "Ethan Coen, Joel Coen" },
+      { title: "The Fugitive", year: 1993, director: "Andrew Davis" },
+      { title: "Michael Clayton", year: 2007, director: "Tony Gilroy" },
+      { title: "Enemy of the State", year: 1998, director: "Tony Scott" },
+      { title: "The Bourne Identity", year: 2002, director: "Doug Liman" },
+      { title: "Collateral", year: 2004, director: "Michael Mann" },
+      { title: "Panic Room", year: 2002, director: "David Fincher" },
+      { title: "Wait Until Dark", year: 1967, director: "Terence Young" },
+      { title: "A Simple Plan", year: 1998, director: "Sam Raimi" },
+      { title: "Manhunter", year: 1986, director: "Michael Mann" }
     ]
   },
   "Crime": {
@@ -98,7 +218,27 @@ const GENRE_TOPS_DATA = {
       { title: "Heat", year: 1995, director: "Michael Mann" },
       { title: "Reservoir Dogs", year: 1992, director: "Quentin Tarantino" },
       { title: "Casino", year: 1995, director: "Martin Scorsese" },
-      { title: "L.A. Confidential", year: 1997, director: "Curtis Hanson" }
+      { title: "L.A. Confidential", year: 1997, director: "Curtis Hanson" },
+      { title: "American Gangster", year: 2007, director: "Ridley Scott" },
+      { title: "Donnie Brasco", year: 1997, director: "Mike Newell" },
+      { title: "Scarface", year: 1983, director: "Brian De Palma" },
+      { title: "The Untouchables", year: 1987, director: "Brian De Palma" },
+      { title: "Snatch", year: 2000, director: "Guy Ritchie" },
+      { title: "Lock, Stock and Two Smoking Barrels", year: 1998, director: "Guy Ritchie" },
+      { title: "A Prophet", year: 2009, director: "Jacques Audiard" },
+      { title: "Memories of Murder", year: 2003, director: "Bong Joon-ho" },
+      { title: "Infernal Affairs", year: 2002, director: "Andrew Lau, Alan Mak" },
+      { title: "The Sting", year: 1973, director: "George Roy Hill" },
+      { title: "Bonnie and Clyde", year: 1967, director: "Arthur Penn" },
+      { title: "Get Carter", year: 1971, director: "Mike Hodges" },
+      { title: "Miller's Crossing", year: 1990, director: "Ethan Coen, Joel Coen" },
+      { title: "Menace II Society", year: 1993, director: "Allen Hughes, Albert Hughes" },
+      { title: "Eastern Promises", year: 2007, director: "David Cronenberg" },
+      { title: "The Town", year: 2010, director: "Ben Affleck" },
+      { title: "Se7en", year: 1995, director: "David Fincher" },
+      { title: "Chinatown", year: 1974, director: "Roman Polanski" },
+      { title: "The Departed", year: 2006, director: "Martin Scorsese" },
+      { title: "Zodiac", year: 2007, director: "David Fincher" }
     ]
   },
   "Adventure": {
@@ -112,7 +252,27 @@ const GENRE_TOPS_DATA = {
       { title: "The Revenant", year: 2015, director: "Alejandro G. Inarritu" },
       { title: "Life of Pi", year: 2012, director: "Ang Lee" },
       { title: "Into the Wild", year: 2007, director: "Sean Penn" },
-      { title: "The Secret Life of Walter Mitty", year: 2013, director: "Ben Stiller" }
+      { title: "The Secret Life of Walter Mitty", year: 2013, director: "Ben Stiller" },
+      { title: "The Lord of the Rings: The Fellowship of the Ring", year: 2001, director: "Peter Jackson" },
+      { title: "The Lord of the Rings: The Two Towers", year: 2002, director: "Peter Jackson" },
+      { title: "The Lord of the Rings: The Return of the King", year: 2003, director: "Peter Jackson" },
+      { title: "Indiana Jones and the Temple of Doom", year: 1984, director: "Steven Spielberg" },
+      { title: "King Kong", year: 2005, director: "Peter Jackson" },
+      { title: "Avatar", year: 2009, director: "James Cameron" },
+      { title: "The Mummy", year: 1999, director: "Stephen Sommers" },
+      { title: "Pirates of the Caribbean: The Curse of the Black Pearl", year: 2003, director: "Gore Verbinski" },
+      { title: "Jumanji", year: 1995, director: "Joe Johnston" },
+      { title: "The Jungle Book", year: 2016, director: "Jon Favreau" },
+      { title: "Master and Commander: The Far Side of the World", year: 2003, director: "Peter Weir" },
+      { title: "The Goonies", year: 1985, director: "Richard Donner" },
+      { title: "National Treasure", year: 2004, director: "Jon Turteltaub" },
+      { title: "127 Hours", year: 2010, director: "Danny Boyle" },
+      { title: "Cast Away", year: 2000, director: "Robert Zemeckis" },
+      { title: "The Martian", year: 2015, director: "Ridley Scott" },
+      { title: "Everest", year: 2015, director: "Baltasar Kormakur" },
+      { title: "Gladiator", year: 2000, director: "Ridley Scott" },
+      { title: "Seven Samurai", year: 1954, director: "Akira Kurosawa" },
+      { title: "Mad Max: Fury Road", year: 2015, director: "George Miller" }
     ]
   },
   "Animation": {
@@ -126,7 +286,27 @@ const GENRE_TOPS_DATA = {
       { title: "Grave of the Fireflies", year: 1988, director: "Isao Takahata" },
       { title: "Princess Mononoke", year: 1997, director: "Hayao Miyazaki" },
       { title: "Inside Out", year: 2015, director: "Pete Docter" },
-      { title: "Howl's Moving Castle", year: 2004, director: "Hayao Miyazaki" }
+      { title: "Howl's Moving Castle", year: 2004, director: "Hayao Miyazaki" },
+      { title: "Toy Story 2", year: 1999, director: "John Lasseter" },
+      { title: "Finding Nemo", year: 2003, director: "Andrew Stanton" },
+      { title: "Ratatouille", year: 2007, director: "Brad Bird" },
+      { title: "How to Train Your Dragon", year: 2010, director: "Dean DeBlois, Chris Sanders" },
+      { title: "Shrek", year: 2001, director: "Andrew Adamson, Vicky Jenson" },
+      { title: "The Incredibles", year: 2004, director: "Brad Bird" },
+      { title: "Spider-Man: Into the Spider-Verse", year: 2018, director: "Bob Persichetti, Peter Ramsey, Rodney Rothman" },
+      { title: "Akira", year: 1988, director: "Katsuhiro Otomo" },
+      { title: "The Nightmare Before Christmas", year: 1993, director: "Henry Selick" },
+      { title: "Beauty and the Beast", year: 1991, director: "Gary Trousdale, Kirk Wise" },
+      { title: "Aladdin", year: 1992, director: "Ron Clements, John Musker" },
+      { title: "Wallace & Gromit: The Curse of the Were-Rabbit", year: 2005, director: "Nick Park, Steve Box" },
+      { title: "Persepolis", year: 2007, director: "Marjane Satrapi, Vincent Paronnaud" },
+      { title: "Fantasia", year: 1940, director: "Various" },
+      { title: "Klaus", year: 2019, director: "Sergio Pablos" },
+      { title: "A Silent Voice", year: 2016, director: "Naoko Yamada" },
+      { title: "The Boy and the Heron", year: 2023, director: "Hayao Miyazaki" },
+      { title: "Zootopia", year: 2016, director: "Byron Howard, Rich Moore" },
+      { title: "Up", year: 2009, director: "Pete Docter" },
+      { title: "Coraline", year: 2009, director: "Henry Selick" }
     ]
   },
   "Fantasy": {
@@ -140,7 +320,27 @@ const GENRE_TOPS_DATA = {
       { title: "The Shape of Water", year: 2017, director: "Guillermo del Toro" },
       { title: "Edward Scissorhands", year: 1990, director: "Tim Burton" },
       { title: "The Wizard of Oz", year: 1939, director: "Victor Fleming" },
-      { title: "Big Fish", year: 2003, director: "Tim Burton" }
+      { title: "Big Fish", year: 2003, director: "Tim Burton" },
+      { title: "Harry Potter and the Prisoner of Azkaban", year: 2004, director: "Alfonso Cuaron" },
+      { title: "Harry Potter and the Sorcerer's Stone", year: 2001, director: "Chris Columbus" },
+      { title: "The Chronicles of Narnia: The Lion, the Witch and the Wardrobe", year: 2005, director: "Andrew Adamson" },
+      { title: "Willow", year: 1988, director: "Ron Howard" },
+      { title: "Labyrinth", year: 1986, director: "Jim Henson" },
+      { title: "Beetlejuice", year: 1988, director: "Tim Burton" },
+      { title: "The NeverEnding Story", year: 1984, director: "Wolfgang Petersen" },
+      { title: "Stardust", year: 2007, director: "Matthew Vaughn" },
+      { title: "Doctor Strange", year: 2016, director: "Scott Derrickson" },
+      { title: "Coraline", year: 2009, director: "Henry Selick" },
+      { title: "The Dark Crystal", year: 1982, director: "Jim Henson, Frank Oz" },
+      { title: "Big", year: 1988, director: "Penny Marshall" },
+      { title: "Corpse Bride", year: 2005, director: "Tim Burton, Mike Johnson" },
+      { title: "Legend", year: 1985, director: "Ridley Scott" },
+      { title: "Midnight in Paris", year: 2011, director: "Woody Allen" },
+      { title: "The Illusionist", year: 2006, director: "Neil Burger" },
+      { title: "Hook", year: 1991, director: "Steven Spielberg" },
+      { title: "Spirited Away", year: 2001, director: "Hayao Miyazaki" },
+      { title: "Princess Mononoke", year: 1997, director: "Hayao Miyazaki" },
+      { title: "Howl's Moving Castle", year: 2004, director: "Hayao Miyazaki" }
     ]
   },
   "Mystery": {
@@ -154,7 +354,27 @@ const GENRE_TOPS_DATA = {
       { title: "The Girl with the Dragon Tattoo", year: 2011, director: "David Fincher" },
       { title: "The Sixth Sense", year: 1999, director: "M. Night Shyamalan" },
       { title: "Rebecca", year: 1940, director: "Alfred Hitchcock" },
-      { title: "Gone Baby Gone", year: 2007, director: "Ben Affleck" }
+      { title: "Gone Baby Gone", year: 2007, director: "Ben Affleck" },
+      { title: "Zodiac", year: 2007, director: "David Fincher" },
+      { title: "Memento", year: 2000, director: "Christopher Nolan" },
+      { title: "The Prestige", year: 2006, director: "Christopher Nolan" },
+      { title: "Shutter Island", year: 2010, director: "Martin Scorsese" },
+      { title: "L.A. Confidential", year: 1997, director: "Curtis Hanson" },
+      { title: "Gone Girl", year: 2014, director: "David Fincher" },
+      { title: "Se7en", year: 1995, director: "David Fincher" },
+      { title: "The Usual Suspects", year: 1995, director: "Bryan Singer" },
+      { title: "Murder on the Orient Express", year: 2017, director: "Kenneth Branagh" },
+      { title: "Death on the Nile", year: 2022, director: "Kenneth Branagh" },
+      { title: "Rear Window", year: 1954, director: "Alfred Hitchcock" },
+      { title: "Angel Heart", year: 1987, director: "Alan Parker" },
+      { title: "The Da Vinci Code", year: 2006, director: "Ron Howard" },
+      { title: "Sherlock Holmes", year: 2009, director: "Guy Ritchie" },
+      { title: "Gosford Park", year: 2001, director: "Robert Altman" },
+      { title: "The Talented Mr. Ripley", year: 1999, director: "Anthony Minghella" },
+      { title: "Blade Runner", year: 1982, director: "Ridley Scott" },
+      { title: "Manhunter", year: 1986, director: "Michael Mann" },
+      { title: "The Long Goodbye", year: 1973, director: "Robert Altman" },
+      { title: "North by Northwest", year: 1959, director: "Alfred Hitchcock" }
     ]
   }
 }

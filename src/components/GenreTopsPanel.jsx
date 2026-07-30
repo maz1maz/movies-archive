@@ -20,7 +20,7 @@ export default function GenreTopsPanel({ films, onOpenFilm }) {
     <div className="oscars-panel">
       <div className="card oscars-controls">
         <p className="oscars-intro">
-          Top 10 all-time films per genre, sourced from IMDb's genre rankings and the IMDb Top 250. Click a poster to open it if it's already in your archive.
+          Top 30 all-time films per genre, sourced from IMDb's genre rankings and the IMDb Top 250. Click a poster to open it if it's already in your archive.
         </p>
         <div className="row row-wrap oscars-filters">
           <div className="oscars-field">
