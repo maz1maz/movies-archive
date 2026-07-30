@@ -21,22 +21,25 @@ export default function FolderNav({
           <button className="btn btn-ghost folder-back" onClick={onBack}>
             ← Back
           </button>
-          <h1 className="folder-nav-title">Digital Library</h1>
-          <div className="folder-grid">
-            <button className="folder-card" onClick={() => onSelectDigitalType('movie')}>
-              <span className="folder-icon">
-                <IconClapper width={32} height={32} />
-              </span>
-              <h2>Movies</h2>
-              <p>{counts.digitalMovies} items</p>
-            </button>
-            <button className="folder-card" onClick={() => onSelectDigitalType('series')}>
-              <span className="folder-icon">
-                <IconBookshelf width={32} height={32} />
-              </span>
-              <h2>Series</h2>
-              <p>{counts.digitalSeries} items</p>
-            </button>
+          <div className="marquee-band">
+            <p className="marquee-eyebrow">Now showing</p>
+            <h1 className="folder-nav-title">Digital Library</h1>
+            <div className="folder-grid">
+              <button className="folder-card" onClick={() => onSelectDigitalType('movie')}>
+                <span className="folder-icon">
+                  <IconClapper width={32} height={32} />
+                </span>
+                <h2>Movies</h2>
+                <p>{counts.digitalMovies} items</p>
+              </button>
+              <button className="folder-card" onClick={() => onSelectDigitalType('series')}>
+                <span className="folder-icon">
+                  <IconBookshelf width={32} height={32} />
+                </span>
+                <h2>Series</h2>
+                <p>{counts.digitalSeries} items</p>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -47,30 +50,34 @@ export default function FolderNav({
     <div className="folder-nav">
       <PosterCollage posters={posters} />
       <div className="folder-nav-content">
-        <img src="/logo.png" alt="Cinefilm Archive" className="folder-nav-logo" />
-        <h1 className="folder-nav-title">CINEFILM ARCHIVE</h1>
-        <div className="folder-grid">
-          <button className="folder-card" onClick={onSelectPhysical}>
-            <span className="folder-icon">
-              <IconArchive width={32} height={32} />
-            </span>
-            <h2>Physical Collection</h2>
-            <p>Blu-rays · {counts.physical} items</p>
-          </button>
-          <button className="folder-card" onClick={onSelectDigital}>
-            <span className="folder-icon">
-              <IconDisc width={32} height={32} />
-            </span>
-            <h2>Digital Library</h2>
-            <p>Drive · {counts.digital} items</p>
-          </button>
-          <button className="folder-card" onClick={onSelectDashboard}>
-            <span className="folder-icon">
-              <IconBarChart width={32} height={32} />
-            </span>
-            <h2>Dashboard</h2>
-            <p>Info &amp; Statistics</p>
-          </button>
+        <div className="marquee-band">
+          <img src="/logo.png" alt="Cinefilm Archive" className="folder-nav-logo" />
+          <p className="marquee-eyebrow">Now showing</p>
+          <h1 className="folder-nav-title">Cinefilm Archive</h1>
+          <div className="folder-grid">
+            <button className="folder-card" onClick={onSelectPhysical}>
+              <span className="folder-icon">
+                <IconArchive width={32} height={32} />
+              </span>
+              <h2>Physical Collection</h2>
+              <p>Blu-rays · {counts.physical} items</p>
+            </button>
+            <button className="folder-card" onClick={onSelectDigital}>
+              <span className="folder-icon">
+                <IconDisc width={32} height={32} />
+              </span>
+              <h2>Digital Library</h2>
+              <p>Drive · {counts.digital} items</p>
+            </button>
+            <button className="folder-card folder-card-dashboard" onClick={onSelectDashboard}>
+              <span className="folder-icon">
+                <IconBarChart width={32} height={32} />
+              </span>
+              <h2>Dashboard</h2>
+              <p>Info &amp; Statistics</p>
+            </button>
+          </div>
+          <p className="marquee-footer">Admit one · no refunds · enjoy the show</p>
         </div>
       </div>
     </div>

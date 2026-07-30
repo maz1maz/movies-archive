@@ -2493,22 +2493,83 @@ body.light .page-collage-overlay {
   border-radius: 22px;
   filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.55));
 }
+
+/* ---------- Marquee band: the warm cinema-ticket panel that frames the
+   folder cards, sitting between the poster collage above and below ---------- */
+.marquee-band {
+  --marquee-bg: #141110;
+  --marquee-border: #3a3227;
+  --marquee-gold: #c9a13b;
+  --marquee-cream: #f3ede0;
+  --marquee-muted: #8a8375;
+  --marquee-ruby: #8a2f2f;
+  --marquee-ruby-icon: #d97b7b;
+  position: relative;
+  z-index: 2;
+  background: var(--marquee-bg);
+  border: 1px solid var(--marquee-border);
+  border-radius: 14px;
+  padding: 40px 36px 32px;
+  max-width: 640px;
+}
+.marquee-band::before,
+.marquee-band::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 7px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 6px,
+    var(--marquee-gold) 6px 8px
+  );
+  opacity: 0.45;
+}
+.marquee-band::before {
+  top: 0;
+}
+.marquee-band::after {
+  bottom: 0;
+}
+body.light .marquee-band {
+  --marquee-bg: #f6f1e4;
+  --marquee-border: #ddd0ac;
+  --marquee-gold: #a67c1e;
+  --marquee-cream: #211d16;
+  --marquee-muted: #7a715c;
+  --marquee-ruby: #8a2f2f;
+  --marquee-ruby-icon: #8a2f2f;
+}
+.marquee-eyebrow {
+  margin: 0 0 6px;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 12px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--marquee-gold);
+}
+.marquee-footer {
+  margin: 22px 0 0;
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  color: var(--marquee-muted);
+}
 .folder-nav-title {
-  margin: 0 0 34px;
+  margin: 0 0 30px;
+  font-family: 'Lora', Georgia, serif;
   font-size: 30px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
-  color: #f4f3f0;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--marquee-cream, #f4f3f0);
 }
 body.light .folder-nav-title {
-  color: #1c1a15;
-  text-shadow: none;
+  color: var(--marquee-cream, #1c1a15);
 }
 .folder-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 22px;
+  gap: 16px;
   justify-content: center;
 }
 .folder-card {
@@ -2516,54 +2577,59 @@ body.light .folder-nav-title {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  width: 224px;
-  padding: 34px 20px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 16px;
+  width: 172px;
+  padding: 26px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--marquee-border, rgba(255, 255, 255, 0.14));
+  border-radius: 12px;
   cursor: pointer;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
   transition: border-color 0.18s, transform 0.18s, background 0.18s;
 }
 .folder-card:hover {
-  border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--marquee-gold, var(--accent));
+  background: rgba(255, 255, 255, 0.06);
   transform: translateY(-4px);
 }
 body.light .folder-card {
-  background: rgba(255, 255, 255, 0.55);
-  border-color: rgba(20, 18, 12, 0.12);
+  background: rgba(255, 255, 255, 0.4);
 }
 body.light .folder-card:hover {
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.65);
 }
 .folder-icon {
-  width: 60px;
-  height: 60px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  background: linear-gradient(145deg, var(--accent), var(--accent-strong));
-  color: #fff;
+  background: rgba(201, 161, 59, 0.12);
+  border: 1px solid var(--marquee-gold, var(--accent));
+  color: var(--marquee-gold, var(--accent));
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.folder-card-dashboard {
+  border-color: var(--marquee-ruby);
+}
+.folder-card-dashboard .folder-icon {
+  background: rgba(138, 47, 47, 0.12);
+  border-color: var(--marquee-ruby);
+  color: var(--marquee-ruby-icon);
 }
 .folder-card h2 {
   margin: 6px 0 0;
-  font-size: 16.5px;
-  color: #f4f3f0;
+  font-size: 15.5px;
+  color: var(--marquee-cream, #f4f3f0);
 }
 body.light .folder-card h2 {
-  color: #1c1a15;
+  color: var(--marquee-cream, #1c1a15);
 }
 .folder-card p {
   margin: 0;
-  font-size: 12.5px;
-  color: rgba(244, 243, 240, 0.65);
+  font-size: 12px;
+  color: var(--marquee-muted, rgba(244, 243, 240, 0.65));
 }
 body.light .folder-card p {
-  color: rgba(28, 26, 21, 0.6);
+  color: var(--marquee-muted, rgba(28, 26, 21, 0.6));
 }
 .folder-back {
   align-self: flex-start;
@@ -3179,5 +3245,19 @@ body.light .folder-back {
   .dashboard-topbar {
     flex-wrap: wrap;
     gap: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .marquee-band {
+    padding: 28px 18px 22px;
+  }
+  .folder-nav-title {
+    font-size: 24px;
+    margin-bottom: 22px;
+  }
+  .folder-card {
+    width: 140px;
+    padding: 20px 12px;
   }
 }
