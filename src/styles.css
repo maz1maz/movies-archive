@@ -3093,3 +3093,58 @@ body.light .folder-back {
 .dashboard-panel .export-options-grid {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
+
+/* ---------- Dashboard: mobile responsiveness ---------- */
+@media (max-width: 720px) {
+  .dashboard-title {
+    font-size: 18px;
+  }
+  .stats-cards-grid,
+  .stats-cards-grid-6 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .stats-card {
+    padding: 10px;
+  }
+  .stats-card-num {
+    font-size: 16px;
+  }
+  .stats-section-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .oscars-field,
+  .oscars-field-search {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+  .oscars-controls {
+    padding: 14px;
+  }
+  .dashboard-subnav button {
+    padding: 9px 11px;
+    font-size: 12px;
+  }
+  .dashboard-poster-card .poster {
+    width: 100%;
+  }
+  .export-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-cards-grid,
+  .stats-cards-grid-6 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+  }
+  .dashboard-topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
