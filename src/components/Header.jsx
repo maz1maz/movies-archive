@@ -45,6 +45,7 @@ export default function Header({
   total,
   section,
   onImport,
+  onImportRatings,
   onAddFilm,
   onEnrichCatalog,
   enrichingCatalog,
@@ -59,6 +60,7 @@ export default function Header({
   onGoToLibrary,
 }) {
   const fileRef = useRef(null)
+  const ratingsFileRef = useRef(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [azOpen, setAzOpen] = useState(false)
@@ -75,6 +77,12 @@ export default function Header({
   const onFile = (e) => {
     const file = e.target.files?.[0]
     if (file) onImport(file)
+    e.target.value = ''
+  }
+
+  const onRatingsFile = (e) => {
+    const file = e.target.files?.[0]
+    if (file) onImportRatings(file)
     e.target.value = ''
   }
 
@@ -187,11 +195,22 @@ export default function Header({
                 >
                   <IconDownload width={15} height={15} /> Export / Backup
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    ratingsFileRef.current?.click()
+                    setMenuOpen(false)
+                  }}
+                  title="Import ratings and watched status from a Letterboxd or IMDb export CSV"
+                >
+                  <IconUpload width={15} height={15} /> Import Ratings (Letterboxd/IMDb)
+                </button>
               </div>
             </div>
           </div>
 
           <input ref={fileRef} type="file" accept=".xlsx,.xls" hidden onChange={onFile} />
+          <input ref={ratingsFileRef} type="file" accept=".csv" hidden onChange={onRatingsFile} />
         </div>
       </div>
 

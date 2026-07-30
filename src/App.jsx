@@ -9,6 +9,7 @@ import FolderNav from './components/FolderNav.jsx'
 import DashboardPanel from './components/DashboardPanel.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import ExportModal from './components/ExportModal.jsx'
+import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
 
@@ -220,6 +221,52 @@ export default function App() {
     } catch (e) {
       showToast(e.message)
     }
+  }
+
+  const handleImportRatings = async (file) => {
+    const text = await file.text()
+    const { format, entries } = parseImportCsv(text)
+    if (format === 'unknown') {
+      showToast('Unrecognized file — export a ratings/diary CSV from Letterboxd or IMDb and try again')
+      return
+    }
+    const { matched, unmatched } = matchEntriesToFilms(entries, allFilmsUnfiltered)
+    if (matched.length === 0) {
+      showToast(`No matches found in your archive (checked ${entries.length} ${format === 'imdb' ? 'IMDb' : 'Letterboxd'} entries)`, 7000)
+      return
+    }
+    showToast(`Matching ${matched.length} films from ${format === 'imdb' ? 'IMDb' : 'Letterboxd'}…`)
+
+    // به‌روزرسانی رو تکه‌تکه (به‌جای همه‌ی درخواست‌ها یهو) می‌فرستیم تا فشار
+    // زیادی روی ورکر/دی‌وان نیاد
+    const chunkSize = 8
+    let updated = 0
+    for (let i = 0; i < matched.length; i += chunkSize) {
+      const chunk = matched.slice(i, i + chunkSize)
+      await Promise.all(
+        chunk.map(async ({ entry, film }) => {
+          try {
+            const patch = { watched: true }
+            if (entry.myRating) patch.myRating = entry.myRating
+            const res = await fetch(`/api/films/${film.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(patch),
+            })
+            if (res.ok) updated++
+          } catch {
+            // یه فیلم شکست بخوره، بقیه ادامه پیدا می‌کنن
+          }
+        })
+      )
+    }
+
+    showToast(
+      `${format === 'imdb' ? 'IMDb' : 'Letterboxd'} import: ${updated} films updated, ${unmatched.length} not in your archive (of ${entries.length} entries)`,
+      8000
+    )
+    loadFilms()
+    loadAllFilmsUnfiltered()
   }
 
   const handleAddFilm = async (patch) => {
@@ -502,6 +549,7 @@ export default function App() {
         total={sectionFilms.length}
         section={section}
         onImport={handleImport}
+        onImportRatings={handleImportRatings}
         onAddFilm={() => setAdding(true)}
         onEnrichCatalog={handleEnrichCatalog}
         enrichingCatalog={enrichingCatalog}
