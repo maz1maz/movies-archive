@@ -2825,6 +2825,15 @@ body.light .folder-back {
   min-height: 100vh;
   padding: 24px 0 60px;
 }
+.dashboard-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.dashboard-topbar .folder-back {
+  margin-bottom: 0;
+}
 .dashboard-title {
   font-size: 22px;
   font-weight: 600;

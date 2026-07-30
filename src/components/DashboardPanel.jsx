@@ -2,7 +2,7 @@ import { useState } from 'react'
 import DashboardOverview from './DashboardOverview.jsx'
 import OscarsPanel from './OscarsPanel.jsx'
 import GenreTopsPanel from './GenreTopsPanel.jsx'
-import { IconBarChart, IconTrophy, IconMasks } from './icons.jsx'
+import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon } from './icons.jsx'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: IconBarChart },
@@ -10,15 +10,26 @@ const TABS = [
   { key: 'genretops', label: 'Genre Tops', icon: IconMasks },
 ]
 
-export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson }) {
+export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson, theme, setTheme }) {
   const [tab, setTab] = useState('overview')
 
   return (
     <div className="dashboard-panel">
       <div className="container">
-        <button className="btn btn-ghost folder-back" onClick={onBack}>
-          ← Back
-        </button>
+        <div className="dashboard-topbar">
+          <button className="btn btn-ghost folder-back" onClick={onBack}>
+            ← Back
+          </button>
+          {setTheme && (
+            <button
+              className="btn btn-ghost theme-toggle"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              title="Toggle dark / light"
+            >
+              {theme === 'dark' ? <IconSun width={16} height={16} /> : <IconMoon width={16} height={16} />}
+            </button>
+          )}
+        </div>
         <h1 className="dashboard-title">Dashboard</h1>
         <nav className="dashboard-subnav">
           {TABS.map((t) => {

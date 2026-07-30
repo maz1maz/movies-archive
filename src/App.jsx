@@ -448,6 +448,8 @@ export default function App() {
             onBack={() => changeSection(null)}
             onOpenFilm={(film) => setSelected(film)}
             onOpenPerson={(name) => setSelectedPerson(name)}
+            theme={theme}
+            setTheme={setTheme}
           />
           {selected && (
             <FilmModal
