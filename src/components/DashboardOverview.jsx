@@ -41,6 +41,18 @@ export default function DashboardOverview({ films }) {
     const fmt = f.format || 'Blu-ray'
     formatCounts[fmt] = (formatCounts[fmt] || 0) + 1
   })
+  const topFormats = Object.entries(formatCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+
+  const countryCounts = {}
+  films.forEach((f) => {
+    const c = f.country && f.country.trim()
+    if (c) countryCounts[c] = (countryCounts[c] || 0) + 1
+  })
+  const topCountries = Object.entries(countryCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
 
   const loanedFilms = films.filter((f) => f.borrowedTo)
 
@@ -104,6 +116,26 @@ export default function DashboardOverview({ films }) {
   const longest = withRuntime.length ? withRuntime.reduce((a, b) => (a.runtime > b.runtime ? a : b)) : null
   const shortest = withRuntime.length ? withRuntime.reduce((a, b) => (a.runtime < b.runtime ? a : b)) : null
 
+  const highestRated = ratedFilms.length ? ratedFilms.reduce((a, b) => (a.rating > b.rating ? a : b)) : null
+  const uniqueDirectors = new Set(films.map((f) => f.director).filter(Boolean)).size
+  const uniqueCountries = Object.keys(countryCounts).length
+  const uniqueGenres = Object.keys(genreCounts).length
+  const avgRuntime = withRuntime.length
+    ? Math.round(withRuntime.reduce((acc, f) => acc + f.runtime, 0) / withRuntime.length)
+    : null
+  const busiestDecade = decadeEntries.length
+    ? decadeEntries.reduce((a, b) => (b[1] > a[1] ? b : a))
+    : null
+
+  const ratingBuckets = [
+    ['9.0+', (r) => r >= 9],
+    ['8.0 – 8.9', (r) => r >= 8 && r < 9],
+    ['7.0 – 7.9', (r) => r >= 7 && r < 8],
+    ['6.0 – 6.9', (r) => r >= 6 && r < 7],
+    ['Below 6.0', (r) => r < 6],
+  ].map(([label, test]) => [label, ratedFilms.filter((f) => test(f.rating)).length])
+  const maxBucket = ratingBuckets.reduce((m, [, c]) => Math.max(m, c), 1)
+
   return (
     <div className="dashboard-overview">
       <div className="stats-cards-grid stats-cards-grid-6">
@@ -166,7 +198,7 @@ export default function DashboardOverview({ films }) {
         <div className="stats-box">
           <h3><IconDisc width={15} height={15} /> Physical Media Formats</h3>
           <div className="stats-bars">
-            {Object.entries(formatCounts).map(([fmt, count]) => {
+            {topFormats.map(([fmt, count]) => {
               const pct = Math.round((count / totalFilms) * 100)
               return (
                 <div key={fmt} className="stats-bar-item">
@@ -197,6 +229,53 @@ export default function DashboardOverview({ films }) {
                   </div>
                   <div className="stats-bar-track">
                     <div className="stats-bar-fill genre-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="stats-section-row">
+        <div className="stats-box">
+          <h3><IconArchive width={15} height={15} /> Top Countries</h3>
+          <div className="stats-bars">
+            {topCountries.length === 0 ? (
+              <div className="cine-empty">No country data yet</div>
+            ) : (
+              topCountries.map(([country, count]) => {
+                const maxC = topCountries[0][1]
+                const pct = Math.round((count / maxC) * 100)
+                return (
+                  <div key={country} className="stats-bar-item">
+                    <div className="stats-bar-meta">
+                      <span className="stats-bar-name">{country}</span>
+                      <span className="stats-bar-val">{count} films</span>
+                    </div>
+                    <div className="stats-bar-track">
+                      <div className="stats-bar-fill country-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="stats-box">
+          <h3><IconStar width={15} height={15} /> Rating Distribution</h3>
+          <div className="stats-bars">
+            {ratingBuckets.map(([label, count]) => {
+              const pct = Math.round((count / maxBucket) * 100)
+              return (
+                <div key={label} className="stats-bar-item">
+                  <div className="stats-bar-meta">
+                    <span className="stats-bar-name">{label}</span>
+                    <span className="stats-bar-val">{count} films</span>
+                  </div>
+                  <div className="stats-bar-track">
+                    <div className="stats-bar-fill format-fill" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               )
@@ -315,6 +394,36 @@ export default function DashboardOverview({ films }) {
             <span className="fact-lbl">Total physical copies owned</span>
             <span className="fact-val">{totalCopies}</span>
           </div>
+          {highestRated && (
+            <div className="fact-item">
+              <span className="fact-lbl">Highest IMDb rating</span>
+              <span className="fact-val">{highestRated.title} ({highestRated.rating.toFixed(1)})</span>
+            </div>
+          )}
+          <div className="fact-item">
+            <span className="fact-lbl">Unique directors</span>
+            <span className="fact-val">{uniqueDirectors}</span>
+          </div>
+          <div className="fact-item">
+            <span className="fact-lbl">Countries represented</span>
+            <span className="fact-val">{uniqueCountries}</span>
+          </div>
+          <div className="fact-item">
+            <span className="fact-lbl">Genres represented</span>
+            <span className="fact-val">{uniqueGenres}</span>
+          </div>
+          {avgRuntime && (
+            <div className="fact-item">
+              <span className="fact-lbl">Average runtime</span>
+              <span className="fact-val">{avgRuntime} min</span>
+            </div>
+          )}
+          {busiestDecade && (
+            <div className="fact-item">
+              <span className="fact-lbl">Busiest decade</span>
+              <span className="fact-val">{busiestDecade[0]}s ({busiestDecade[1]} films)</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

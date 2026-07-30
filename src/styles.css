@@ -993,6 +993,9 @@ body.light .header {
 .genre-fill {
   background: #d9a441;
 }
+.country-fill {
+  background: #4fa3a0;
+}
 
 .stats-shelf-pills {
   display: flex;
