@@ -2432,6 +2432,18 @@ body.light .header {
   object-fit: cover;
   filter: saturate(1.05) contrast(1.05);
 }
+
+@media (max-width: 640px) {
+  .folder-collage-grid {
+    inset: -30px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .folder-collage-tile {
+    transform: rotate(var(--tilt)) scale(1.08);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.5);
+  }
+}
 /* روی صفحات پوشه: فید سبک، چون پشتش فقط دوتا کارت بزرگه و خودِ پوسترها
    باید واضح دیده بشن */
 .folder-collage-overlay {
