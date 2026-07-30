@@ -3068,3 +3068,10 @@ body.light .folder-back {
   font-weight: 600;
   letter-spacing: 0.2px;
 }
+
+.dashboard-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: var(--text);
+}

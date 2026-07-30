@@ -1,15 +1,17 @@
 import { useState } from 'react'
+import DashboardOverview from './DashboardOverview.jsx'
 import OscarsPanel from './OscarsPanel.jsx'
 import GenreTopsPanel from './GenreTopsPanel.jsx'
-import { IconTrophy, IconMasks } from './icons.jsx'
+import { IconBarChart, IconTrophy, IconMasks } from './icons.jsx'
 
 const TABS = [
+  { key: 'overview', label: 'Overview', icon: IconBarChart },
   { key: 'oscars', label: 'Oscars', icon: IconTrophy },
   { key: 'genretops', label: 'Genre Tops', icon: IconMasks },
 ]
 
 export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson }) {
-  const [tab, setTab] = useState('oscars')
+  const [tab, setTab] = useState('overview')
 
   return (
     <div className="dashboard-panel">
@@ -29,6 +31,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
             )
           })}
         </nav>
+        {tab === 'overview' && <DashboardOverview films={films} />}
         {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
         {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
       </div>
