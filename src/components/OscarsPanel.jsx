@@ -14,7 +14,10 @@ function NomineeRow({ nom, isMovieCategory, categoryLabel, archiveMovie, onOpenF
   const inArchive = !!archiveMovie
 
   return (
-    <div className={flat ? 'oscar-row oscar-row-flat' : 'oscar-row'}>
+    <div
+      className={`${flat ? 'oscar-row oscar-row-flat' : 'oscar-row'}${inArchive ? ' oscar-row-clickable' : ''}`}
+      onClick={inArchive ? () => onOpenFilm(archiveMovie) : undefined}
+    >
       <div className="oscar-row-main">
         {inArchive && archiveMovie.poster && (
           <div className="oscar-poster">
@@ -37,7 +40,7 @@ function NomineeRow({ nom, isMovieCategory, categoryLabel, archiveMovie, onOpenF
       <div className="oscar-row-actions">
         {nom.winner && !flat && <span className="tag oscar-winner-tag">Winner</span>}
         {inArchive ? (
-          <button className="btn btn-sm btn-primary" onClick={() => onOpenFilm(archiveMovie)}>
+          <button className="btn btn-sm btn-primary" onClick={(e) => { e.stopPropagation(); onOpenFilm(archiveMovie) }}>
             In Archive ✓
           </button>
         ) : (
