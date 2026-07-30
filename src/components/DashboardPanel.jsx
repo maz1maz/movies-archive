@@ -2,7 +2,7 @@ import { useState } from 'react'
 import OscarsPanel from './OscarsPanel.jsx'
 import { IconTrophy } from './icons.jsx'
 
-const TABS = [{ key: 'oscars', label: 'اسکار', icon: IconTrophy }]
+const TABS = [{ key: 'oscars', label: 'Oscars', icon: IconTrophy }]
 
 export default function DashboardPanel({ films, onBack, onOpenFilm }) {
   const [tab, setTab] = useState('oscars')
@@ -13,7 +13,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm }) {
         <button className="btn btn-ghost folder-back" onClick={onBack}>
           ← Back
         </button>
-        <h1 className="dashboard-title">داشبورد اطلاعات و آمار</h1>
+        <h1 className="dashboard-title">Dashboard</h1>
         <nav className="dashboard-subnav">
           {TABS.map((t) => {
             const Icon = t.icon

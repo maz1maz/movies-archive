@@ -69,7 +69,7 @@ export default function FolderNav({
               <IconBarChart width={32} height={32} />
             </span>
             <h2>Dashboard</h2>
-            <p>اطلاعات و آمار</p>
+            <p>Info &amp; Statistics</p>
           </button>
         </div>
       </div>

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { buildOscarData } from '../data/oscarData.js'
-import { IconTrophy } from './icons.jsx'
 
 const OSCAR_DATA = buildOscarData()
 const ALL_YEARS = Object.keys(OSCAR_DATA).map(Number).sort((a, b) => b - a)
@@ -12,7 +11,6 @@ function findInArchive(films, title) {
 }
 
 function NomineeRow({ nom, isMovieCategory, categoryLabel, archiveMovie, onOpenFilm, flat }) {
-  const filmTitle = nom.title
   const inArchive = !!archiveMovie
 
   return (
@@ -31,19 +29,19 @@ function NomineeRow({ nom, isMovieCategory, categoryLabel, archiveMovie, onOpenF
           </span>
           {!isMovieCategory && (
             <span className="oscar-film-sub">
-              فیلم: <em>{nom.title}</em>
+              Film: <em>{nom.title}</em>
             </span>
           )}
         </div>
       </div>
       <div className="oscar-row-actions">
-        {nom.winner && !flat && <span className="tag oscar-winner-tag">برنده</span>}
+        {nom.winner && !flat && <span className="tag oscar-winner-tag">Winner</span>}
         {inArchive ? (
           <button className="btn btn-sm btn-primary" onClick={() => onOpenFilm(archiveMovie)}>
-            در آرشیو ✓
+            In Archive ✓
           </button>
         ) : (
-          <span className="oscar-not-in-archive">در آرشیو نیست</span>
+          <span className="oscar-not-in-archive">Not in archive</span>
         )}
       </div>
     </div>
@@ -56,13 +54,11 @@ export default function OscarsPanel({ films, onOpenFilm }) {
   const [search, setSearch] = useState('')
 
   const categories = useMemo(() => {
-    const seen = new Map()
+    const seen = new Set()
     Object.values(OSCAR_DATA).forEach((data) => {
-      data.categories.forEach((cat) => {
-        if (!seen.has(cat.name)) seen.set(cat.name, cat.persianName)
-      })
+      data.categories.forEach((cat) => seen.add(cat.name))
     })
-    return Array.from(seen.entries())
+    return Array.from(seen)
   }, [])
 
   const isAllYears = year === '__all__'
@@ -87,7 +83,7 @@ export default function OscarsPanel({ films, onOpenFilm }) {
     return matches.slice(0, 60)
   }, [search])
 
-  // حالت «همه‌ی سال‌ها»: فقط برندگان (وگرنه لیست خیلی بزرگ می‌شه)
+  // "All years" mode: winners only (otherwise the list would be huge)
   const allYearsWinnerRows = useMemo(() => {
     if (!isAllYears) return []
     const rows = []
@@ -114,44 +110,44 @@ export default function OscarsPanel({ films, onOpenFilm }) {
     <div className="oscars-panel">
       <div className="card oscars-controls">
         <p className="oscars-intro">
-          آرشیو کامل برندگان و کاندیداهای اسکار. سال و دسته را انتخاب کنید و ببینید کدام‌یک از آن‌ها در آرشیو شخصی شما موجود است.
+          Full archive of Academy Award winners and nominees. Pick a year and category to see which of them are already in your personal archive.
         </p>
         <div className="row row-wrap oscars-filters">
           <div className="oscars-field">
-            <label>سال مراسم</label>
+            <label>Ceremony year</label>
             <select className="input" value={year} onChange={(e) => setYear(e.target.value)}>
-              <option value="__all__">همه سال‌ها</option>
+              <option value="__all__">All years</option>
               {ALL_YEARS.map((y) => (
                 <option key={y} value={y}>
-                  سال {y} (دوره {OSCAR_DATA[y].ceremony})
+                  {y} (ceremony {OSCAR_DATA[y].ceremony})
                 </option>
               ))}
             </select>
           </div>
           <div className="oscars-field">
-            <label>دسته‌بندی</label>
+            <label>Category</label>
             <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="">همه دسته‌ها</option>
-              <option value="__winners_flat__">فقط برندگان</option>
-              {categories.map(([name, persianName]) => (
+              <option value="">All categories</option>
+              <option value="__winners_flat__">Winners only</option>
+              {categories.map((name) => (
                 <option key={name} value={name}>
-                  {persianName}
+                  {name}
                 </option>
               ))}
             </select>
           </div>
           <div className="oscars-field oscars-field-search">
-            <label>جستجوی فیلم یا کاندیدا</label>
-            <input className="input" placeholder="نام فیلم یا شخص..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <label>Search film or nominee</label>
+            <input className="input" placeholder="Film or person name..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </div>
       </div>
 
       {search.trim().length >= 2 ? (
         <section>
-          <h2>نتایج جستجو</h2>
+          <h2>Search results</h2>
           {searchResults.length === 0 ? (
-            <div className="empty">نتیجه‌ای یافت نشد.</div>
+            <div className="empty">No results found.</div>
           ) : (
             <div className="card oscars-flat-list">
               {searchResults.map((m, idx) => {
@@ -162,7 +158,7 @@ export default function OscarsPanel({ films, onOpenFilm }) {
                     key={idx}
                     nom={m.nominee}
                     isMovieCategory={isMovieCategory}
-                    categoryLabel={`اسکار ${m.year} — ${m.category.persianName}`}
+                    categoryLabel={`${m.year} — ${m.category.name}`}
                     archiveMovie={archiveMovie}
                     onOpenFilm={onOpenFilm}
                     flat
@@ -174,10 +170,10 @@ export default function OscarsPanel({ films, onOpenFilm }) {
         </section>
       ) : isAllYears ? (
         <section>
-          <h2>برندگان همه‌ی سال‌ها{category && category !== '__winners_flat__' ? ` — ${categories.find(([n]) => n === category)?.[1] || ''}` : ''}</h2>
+          <h2>Winners across all years{category && category !== '__winners_flat__' ? ` — ${category}` : ''}</h2>
           <div className="card oscars-flat-list">
             {allYearsWinnerRows.length === 0 ? (
-              <div className="empty">موردی یافت نشد.</div>
+              <div className="empty">Nothing found.</div>
             ) : (
               allYearsWinnerRows.map((r, idx) => {
                 const isMovieCategory = r.cat.name === 'Best Picture'
@@ -187,7 +183,7 @@ export default function OscarsPanel({ films, onOpenFilm }) {
                     key={idx}
                     nom={r.nom}
                     isMovieCategory={isMovieCategory}
-                    categoryLabel={`سال ${r.year} — ${r.cat.persianName}`}
+                    categoryLabel={`${r.year} — ${r.cat.name}`}
                     archiveMovie={archiveMovie}
                     onOpenFilm={onOpenFilm}
                     flat
@@ -200,7 +196,7 @@ export default function OscarsPanel({ films, onOpenFilm }) {
       ) : showWinnersFlat ? (
         <section>
           <h2 className="oscars-year-title">
-            برندگان اسکار سال {year} <span className="oscars-ceremony">(دوره {yearData?.ceremony})</span>
+            {year} Oscar winners <span className="oscars-ceremony">(ceremony {yearData?.ceremony})</span>
           </h2>
           <div className="card oscars-flat-list">
             {yearData?.categories
@@ -214,7 +210,7 @@ export default function OscarsPanel({ films, onOpenFilm }) {
                     key={idx}
                     nom={winner}
                     isMovieCategory={isMovieCategory}
-                    categoryLabel={cat.persianName}
+                    categoryLabel={cat.name}
                     archiveMovie={archiveMovie}
                     onOpenFilm={onOpenFilm}
                     flat
@@ -226,13 +222,11 @@ export default function OscarsPanel({ films, onOpenFilm }) {
       ) : (
         <section>
           <h2 className="oscars-year-title">
-            مراسم اسکار سال {year} <span className="oscars-ceremony">(دوره {yearData?.ceremony})</span>
+            {year} Academy Awards <span className="oscars-ceremony">(ceremony {yearData?.ceremony})</span>
           </h2>
           {categoriesToShow.map((cat) => (
             <div className="card oscars-category-card" key={cat.name}>
-              <h3 className="oscars-category-title">
-                {cat.persianName} <span className="oscars-category-en">— {cat.name}</span>
-              </h3>
+              <h3 className="oscars-category-title">{cat.name}</h3>
               <div className="oscars-nominee-list">
                 {cat.nominees.map((nom, idx) => {
                   const isMovieCategory = cat.name === 'Best Picture'
