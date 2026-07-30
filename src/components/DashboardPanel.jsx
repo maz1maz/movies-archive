@@ -2,14 +2,16 @@ import { useState } from 'react'
 import DashboardOverview from './DashboardOverview.jsx'
 import OscarsPanel from './OscarsPanel.jsx'
 import GenreTopsPanel from './GenreTopsPanel.jsx'
+import CraftsPanel from './CraftsPanel.jsx'
 import DashboardExportPanel from './DashboardExportPanel.jsx'
 import DashboardRecommendPanel from './DashboardRecommendPanel.jsx'
-import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice } from './icons.jsx'
+import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper } from './icons.jsx'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: IconBarChart },
   { key: 'oscars', label: 'Oscars', icon: IconTrophy },
   { key: 'genretops', label: 'Genre Tops', icon: IconMasks },
+  { key: 'crafts', label: 'Crafts', icon: IconClapper },
   { key: 'recommend', label: 'Tonight', icon: IconDice },
   { key: 'export', label: 'Export & Backup', icon: IconSave },
 ]
@@ -49,6 +51,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
         {tab === 'overview' && <DashboardOverview films={films} />}
         {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
         {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
+        {tab === 'crafts' && <CraftsPanel films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
         {tab === 'recommend' && <DashboardRecommendPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'export' && <DashboardExportPanel films={films} />}
       </div>
