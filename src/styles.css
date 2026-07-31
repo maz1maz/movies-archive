@@ -7,9 +7,9 @@
   --border-strong: #3a3b42;
   --text: #ececed;
   --muted: #8d8f98;
-  --accent: #6d8fdb;
-  --accent-strong: #5b7fd6;
-  --accent-ink: #0d1220;
+  --accent: #d4af37;
+  --accent-strong: #b8952b;
+  --accent-ink: #1a1305;
   --danger: #d97066;
   --radius: 10px;
   --shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
@@ -27,8 +27,8 @@ body.light {
   --border-strong: #cfcfc9;
   --text: #17181c;
   --muted: #6c6e77;
-  --accent: #34479e;
-  --accent-strong: #2a3980;
+  --accent: #9c7a1f;
+  --accent-strong: #83671a;
   --accent-ink: #ffffff;
   --shadow: 0 16px 36px rgba(20, 20, 20, 0.08);
 }
@@ -114,10 +114,10 @@ body.light .header {
 }
 .brand-title {
   margin: 0;
-  font-size: 21px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
   color: var(--text);
 }
 .brand-icon {
