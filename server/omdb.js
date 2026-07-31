@@ -39,8 +39,13 @@ export async function enrichFilm(baseFilm, key) {
   const stillNeedsEnrichment = ENRICHABLE_FIELDS.some((field) => isEmptyMetadata(film[field]))
   if (!stillNeedsEnrichment) return film
 
-  const query = { apikey: key, t: film.title, type: film.itemType === 'series' ? 'series' : 'movie' }
-  if (film.year) query.y = String(film.year)
+  // اگه imdbId از قبل معلومه (مثلاً از خود اکسل)، مستقیم با همون آیدی از
+  // OMDb می‌گیریم — دقیق‌تر و مطمئن‌تر از جستجوی عنوان، که برای عنوان‌های
+  // پرتکرار ممکنه فیلم اشتباهی رو برگردونه.
+  const query = film.imdbId
+    ? { apikey: key, i: film.imdbId }
+    : { apikey: key, t: film.title, type: film.itemType === 'series' ? 'series' : 'movie' }
+  if (!film.imdbId && film.year) query.y = String(film.year)
 
   const res = await fetch(`${BASE}?${new URLSearchParams(query).toString()}`, {
     signal: AbortSignal.timeout(8000),
