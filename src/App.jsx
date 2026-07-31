@@ -47,8 +47,8 @@ export default function App() {
   const [section, setSection] = useState(() => localStorage.getItem('fa_section') || null)
 
   // موقع رفتن از یه بخش (مثلاً سریال‌های دیجیتال) به بخش دیگه (مثلاً فیلم‌های
-  // دیجیتال یا فیزیکی)، جستجو/فیلترهای بخش قبلی نباید باقی بمونن و رو نتایج
-  // بخش جدید هم اعمال بشن.
+  // دیجیتال/فیزیکی/داشبورد)، جستجو/فیلترهای بخش قبلی نباید باقی بمونن و رو
+  // نتایج بخش جدید هم اعمال بشن.
   const changeSection = (next) => {
     setQuery('')
     setGenre('')
@@ -58,6 +58,10 @@ export default function App() {
     setMinRating('')
     setLoanedOnly(false)
     setPage(1)
+    // اگه موقع رفتن به بخش دیگه (یا داشبورد)، صفحه‌ی جزئیات یه فیلم هنوز باز
+    // بود، بسته می‌شد ولی state=selected پاک نمی‌شد؛ برای همین همون فیلم
+    // قبلی رو نگه می‌داشت و انگار صفحه عوض نشده بود.
+    setSelected(null)
     setSection(next)
   }
 
