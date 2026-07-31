@@ -252,62 +252,64 @@ export default function Header({
           </div>
         </div>
 
-        <button
-          type="button"
-          className="btn btn-ghost filters-toggle"
-          onClick={() => {
-            setFiltersOpen((v) => !v)
-            setMenuOpen(false)
-            setAzOpen(false)
-          }}
-          aria-expanded={filtersOpen}
-        >
-          <IconFilter width={14} height={14} /> Filters
-        </button>
+        <div className="filters-wrap">
+          <button
+            type="button"
+            className="btn btn-ghost filters-toggle"
+            onClick={() => {
+              setFiltersOpen((v) => !v)
+              setMenuOpen(false)
+              setAzOpen(false)
+            }}
+            aria-expanded={filtersOpen}
+          >
+            <IconFilter width={14} height={14} /> Filters
+          </button>
 
-        <div className={filtersOpen ? 'controls-filters open' : 'controls-filters'}>
-          <select className="select" value={genre} onChange={(e) => setGenre(e.target.value)}>
-            <option value="">All genres</option>
-            {genres.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
-
-          <label className="loan-filter">
-            <input type="checkbox" checked={loanedOnly} onChange={(e) => setLoanedOnly(e.target.checked)} />
-            Loaned only
-          </label>
-
-          <select className="select" value={watched} onChange={(e) => setWatched(e.target.value)}>
-            <option value="">All watch statuses</option>
-            <option value="0">Unwatched</option>
-            <option value="1">Watched</option>
-          </select>
-          <select className="select" value={minRating} onChange={(e) => setMinRating(e.target.value)}>
-            <option value="">Any rating</option>
-            <option value="7">Rating 7+</option>
-            <option value="8">Rating 8+</option>
-            <option value="9">Rating 9+</option>
-          </select>
-          <select className="select" value={decade} onChange={(e) => setDecade(e.target.value)}>
-            <option value="">All decades</option>
-            {decades.map((d) => (
-              <option key={d} value={d}>
-                {d}s
-              </option>
-            ))}
-          </select>
-
-          <select className="select" value={sort} onChange={(e) => setSort(e.target.value)}>
-            <option value="random">Random</option>
-            <option value="title_az">A–Z</option>
-            <option value="shelf">By shelf</option>
-            <option value="year_desc">Newest</option>
-            <option value="year_asc">Oldest</option>
-            <option value="rating">Top rated</option>
-          </select>
+          <div className={filtersOpen ? 'controls-filters open' : 'controls-filters'}>
+            <p className="filters-panel-label">Refine the archive</p>
+            <div className="filters-grid">
+              <select className="select" value={genre} onChange={(e) => setGenre(e.target.value)}>
+                <option value="">All genres</option>
+                {genres.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+              <select className="select" value={watched} onChange={(e) => setWatched(e.target.value)}>
+                <option value="">All watch statuses</option>
+                <option value="0">Unwatched</option>
+                <option value="1">Watched</option>
+              </select>
+              <select className="select" value={minRating} onChange={(e) => setMinRating(e.target.value)}>
+                <option value="">Any rating</option>
+                <option value="7">Rating 7+</option>
+                <option value="8">Rating 8+</option>
+                <option value="9">Rating 9+</option>
+              </select>
+              <select className="select" value={decade} onChange={(e) => setDecade(e.target.value)}>
+                <option value="">All decades</option>
+                {decades.map((d) => (
+                  <option key={d} value={d}>
+                    {d}s
+                  </option>
+                ))}
+              </select>
+              <select className="select" value={sort} onChange={(e) => setSort(e.target.value)}>
+                <option value="random">Random</option>
+                <option value="title_az">A–Z</option>
+                <option value="shelf">By shelf</option>
+                <option value="year_desc">Newest</option>
+                <option value="year_asc">Oldest</option>
+                <option value="rating">Top rated</option>
+              </select>
+              <label className="loan-filter">
+                <input type="checkbox" checked={loanedOnly} onChange={(e) => setLoanedOnly(e.target.checked)} />
+                Loaned only
+              </label>
+            </div>
+          </div>
         </div>
       </div>
     </header>
