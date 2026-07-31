@@ -48,8 +48,7 @@ export default function FolderNav({
 
   return (
     <div className="folder-nav">
-      <span className="stage-curtain stage-curtain-left" aria-hidden="true" />
-      <span className="stage-curtain stage-curtain-right" aria-hidden="true" />
+      <span className="stage-curtain" aria-hidden="true" />
       <PosterCollage posters={posters} />
       <div className="folder-nav-content">
         <div className="marquee-band">
