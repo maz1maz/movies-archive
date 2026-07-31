@@ -932,9 +932,9 @@ body.light .header {
   color: var(--accent);
 }
 .stats-card-num {
-  font-family: 'Lora', Georgia, serif;
+  font-family: var(--font-sans);
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text);
 }
 .stats-card-lbl {
@@ -2509,11 +2509,11 @@ body.light .page-collage-overlay {
 .marquee-band {
   --marquee-bg: #141110;
   --marquee-border: #3a3227;
-  --marquee-gold: #c9a13b;
+  --marquee-gold: #d4af37;
   --marquee-cream: #f3ede0;
   --marquee-muted: #8a8375;
-  --marquee-ruby: #8a2f2f;
-  --marquee-ruby-icon: #d97b7b;
+  --marquee-ruby: #9c2b3c;
+  --marquee-ruby-icon: #e0808e;
   position: relative;
   z-index: 2;
   background: var(--marquee-bg);
@@ -2545,16 +2545,17 @@ body.light .page-collage-overlay {
 body.light .marquee-band {
   --marquee-bg: #f6f1e4;
   --marquee-border: #ddd0ac;
-  --marquee-gold: #a67c1e;
+  --marquee-gold: #9c7a1f;
   --marquee-cream: #211d16;
   --marquee-muted: #7a715c;
-  --marquee-ruby: #8a2f2f;
-  --marquee-ruby-icon: #8a2f2f;
+  --marquee-ruby: #9c2b3c;
+  --marquee-ruby-icon: #9c2b3c;
 }
 .marquee-eyebrow {
   margin: 0 0 6px;
-  font-family: 'Lora', Georgia, serif;
-  font-size: 12px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: 4px;
   text-transform: uppercase;
   color: var(--marquee-gold);
@@ -2567,10 +2568,10 @@ body.light .marquee-band {
 }
 .folder-nav-title {
   margin: 0 0 30px;
-  font-family: 'Lora', Georgia, serif;
-  font-size: 30px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
   color: var(--marquee-cream, #f4f3f0);
 }
 body.light .folder-nav-title {
@@ -2936,15 +2937,15 @@ body.light .folder-back {
 
 /* ═══════════════════════════════ DASHBOARD / OSCARS ═══════════════════════════════ */
 .dashboard-panel {
-  --accent: #c9a13b;
-  --accent-strong: #b38a2e;
+  --accent: #d4af37;
+  --accent-strong: #b8952b;
   --accent-ink: #1a1305;
   min-height: 100vh;
   padding: 24px 0 60px;
 }
 body.light .dashboard-panel {
-  --accent: #a67c1e;
-  --accent-strong: #8a6a18;
+  --accent: #9c7a1f;
+  --accent-strong: #83671a;
   --accent-ink: #ffffff;
 }
 .dashboard-topbar {
@@ -2958,18 +2959,19 @@ body.light .dashboard-panel {
 }
 .dashboard-eyebrow {
   margin: 10px 0 2px;
-  font-family: 'Lora', Georgia, serif;
+  font-family: var(--font-sans);
   font-size: 11px;
+  font-weight: 600;
   letter-spacing: 3px;
   text-transform: uppercase;
   color: var(--accent);
 }
 .dashboard-title {
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
   margin: 0 0 18px;
   color: var(--text);
-  font-family: 'Lora', Georgia, serif;
+  font-family: 'Playfair Display', Georgia, serif;
 }
 .dashboard-subnav {
   display: flex;
