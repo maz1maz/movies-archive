@@ -115,6 +115,25 @@ export default function App() {
     }
   }, [])
 
+  // پیجینیشن بالا (وقتی هست) خودش sticky زیر هدره؛ پنل جزئیات split-view هم
+  // باید به همون اندازه پایین‌تر بچسبه، وگرنه عنوانش زیر نوار پیجینیشن گم
+  // می‌شه. ارتفاعش رو (اگه رندر شده باشه) اندازه می‌گیریم؛ وگرنه صفر.
+  useEffect(() => {
+    const update = () => {
+      const el = document.querySelector('.pagination-top')
+      document.documentElement.style.setProperty('--pagination-h', `${el ? el.offsetHeight : 0}px`)
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    const target = document.querySelector('main') || document.body
+    ro.observe(target)
+    const interval = setInterval(update, 300)
+    return () => {
+      ro.disconnect()
+      clearInterval(interval)
+    }
+  }, [page, pageCount, section])
+
   useEffect(() => {
     localStorage.setItem('fa_view', view)
   }, [view])

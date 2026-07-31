@@ -1,13 +1,27 @@
 import { useEffect, useState } from 'react'
-import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconDisc } from './icons.jsx'
+import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconDisc, IconShare } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
+import { shareFilmCard } from '../utils/shareCard.js'
 
 export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false }) {
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
   const [actorPhotos, setActorPhotos] = useState({})
   const [letterboxdRating, setLetterboxdRating] = useState(null)
+  const [shareStatus, setShareStatus] = useState(null)
+
+  const handleShare = async () => {
+    setShareStatus('working')
+    try {
+      const result = await shareFilmCard(film)
+      setShareStatus(result === 'shared' ? 'shared' : 'downloaded')
+    } catch (err) {
+      if (err?.name !== 'AbortError') setShareStatus('error')
+      else setShareStatus(null)
+    }
+    setTimeout(() => setShareStatus(null), 2500)
+  }
   const [letterboxdVotes, setLetterboxdVotes] = useState(null)
   const [lightboxSrc, setLightboxSrc] = useState(null)
 
@@ -287,6 +301,23 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     {film.copies} COPIES
                   </div>
                 )}
+                <button
+                  className="loan-badge manage-loan-btn"
+                  onClick={handleShare}
+                  disabled={shareStatus === 'working'}
+                  title="Create a shareable image and hand it to your phone's share sheet (Instagram, etc.)"
+                >
+                  <IconShare width={13} height={13} />
+                  {shareStatus === 'working'
+                    ? 'Preparing…'
+                    : shareStatus === 'shared'
+                      ? 'Shared ✓'
+                      : shareStatus === 'downloaded'
+                        ? 'Image saved ✓'
+                        : shareStatus === 'error'
+                          ? "Couldn't create image"
+                          : 'Share'}
+                </button>
               </div>
             </div>
 

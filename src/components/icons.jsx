@@ -127,6 +127,15 @@ export const IconTrophy = (props) => (
   </svg>
 )
 
+export const IconShare = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="18" cy="5" r="2.5" />
+    <circle cx="6" cy="12" r="2.5" />
+    <circle cx="18" cy="19" r="2.5" />
+    <path d="M8.3 10.7l7.4-4.4M8.3 13.3l7.4 4.4" />
+  </svg>
+)
+
 export const IconBookshelf = (props) => (
   <svg {...base} {...props}>
     <path d="M3 4v16M21 4v16M3 4h18M7 4v16M11 4v16M15 4v16" />
