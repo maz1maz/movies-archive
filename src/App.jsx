@@ -135,13 +135,14 @@ export default function App() {
       .then((r) => r.json())
       .then((data) => {
         if (!Array.isArray(data)) {
-          // پاسخ خطا (مثل مشکل دیتابیس) به‌جای آرایه‌ی فیلم‌ها — اگه اینجا
-          // بدون این چک films رو ست کنیم، films.length/films.slice بعداً
-          // throw می‌کنه و کل صفحه‌ی React سیاه/خالی می‌شه.
+          // پاسخ خطا (مثل مشکل موقت دیتابیس زیر بار سنگین یه ایمپورت بزرگ)
+          // — قبلاً اینجا films رو خالی می‌کردیم که باعث می‌شد کاربر فکر کنه
+          // همه‌ی آرشیوش پاک شده، در حالی که فقط یه fetch لحظه‌ای fail شده
+          // بود و خود دیتابیس دست‌نخورده مونده بود. الان لیست قبلی رو نگه
+          // می‌داریم و فقط خطا رو نشون می‌دیم.
           console.error('Unexpected /api/films response:', data)
-          setFilms([])
           setLoading(false)
-          showToast((data && data.error) || 'خطا در بارگذاری فیلم‌ها')
+          showToast((data && data.error) || 'خطا در بارگذاری فیلم‌ها — لیست قبلی نگه داشته شد')
           return
         }
         setFilms(data)
@@ -182,7 +183,11 @@ export default function App() {
   const loadAllFilmsUnfiltered = () => {
     fetch('/api/films')
       .then((r) => r.json())
-      .then((data) => setAllFilmsUnfiltered(Array.isArray(data) ? data : []))
+      .then((data) => {
+        // همون مشکل loadFilms: اگه بجای آرایه، پاسخ خطا برگرده (مثلاً زیر بار
+        // یه ایمپورت بزرگ)، نباید کل شمارش/آمار آرشیو صفر بشه.
+        if (Array.isArray(data)) setAllFilmsUnfiltered(data)
+      })
       .catch(() => {})
   }
 
