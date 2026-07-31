@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { IconClose, IconUser, IconPin } from './icons.jsx'
+import { IconClose, IconUser, IconPin, IconDisc } from './icons.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 
-export default function PersonModal({ personName, allFilms, onSelectFilm, onClose }) {
+export default function PersonModal({ personName, allFilms, onSelectFilm, onClose, hasBluray }) {
   const [photo, setPhoto] = useState(null)
   const [bio, setBio] = useState(null)
   const [facts, setFacts] = useState({
@@ -71,7 +71,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   const target = personName.trim().toLowerCase()
 
   // Filter matching films where personName appears in director, cast, writer, musician, producer, etc.
-  const matchingFilms = allFilms.filter((f) => {
+  const matchingFilmsRaw = allFilms.filter((f) => {
     if ((f.director || '').toLowerCase().includes(target)) return true
     if ((f.writer || '').toLowerCase().includes(target)) return true
     if ((f.producer || '').toLowerCase().includes(target)) return true
@@ -83,6 +83,19 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
       return (name || '').toLowerCase().includes(target)
     })
   })
+
+  // اگه همون فیلم هم به‌صورت فیزیکی (بلوری) هم دیجیتال توی آرشیو باشه، قبلاً
+  // اینجا دو کارت جدا براش نشون داده می‌شد. الان با title+year یکی می‌کنیم و
+  // نسخه‌ی دیجیتالی (با بج بلوری روش) رو به‌عنوان نماینده نگه می‌داریم.
+  const seenKeys = new Map()
+  for (const f of matchingFilmsRaw) {
+    const key = `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`
+    const existing = seenKeys.get(key)
+    if (!existing || (f.mediaType === 'digital' && existing.mediaType !== 'digital')) {
+      seenKeys.set(key, f)
+    }
+  }
+  const matchingFilms = Array.from(seenKeys.values())
 
   return (
     <>
@@ -175,6 +188,11 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
                   {(film.shelf || film.row) && (
                     <span className="person-location-badge">
                       <IconPin width={11} height={11} /> {film.shelf || '—'} / {film.row || '—'}
+                    </span>
+                  )}
+                  {hasBluray && hasBluray(film) && (
+                    <span className="bluray-badge" title="Blu-ray copy also owned">
+                      <IconDisc width={11} height={11} /> BLU-RAY
                     </span>
                   )}
                 </div>

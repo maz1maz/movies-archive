@@ -525,6 +525,7 @@ export default function App() {
             <PersonModal
               personName={selectedPerson}
               allFilms={allFilmsUnfiltered}
+              hasBluray={hasBlurayCopy}
               onSelectFilm={(film) => {
                 setSelectedPerson(null)
                 setSelected(film)
@@ -665,6 +666,7 @@ export default function App() {
         <PersonModal
           personName={selectedPerson}
           allFilms={allFilmsUnfiltered}
+          hasBluray={hasBlurayCopy}
           onSelectFilm={(film) => {
             setSelectedPerson(null)
             setSelected(film)
