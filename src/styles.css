@@ -911,20 +911,30 @@ body.light .header {
 .stats-card {
   background: var(--surface);
   border: 1px solid var(--border-strong);
+  border-top: 2px solid var(--accent);
   border-radius: 12px;
-  padding: 14px;
+  padding: 16px 14px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 4px;
+  gap: 6px;
 }
 .stats-card-icon {
-  font-size: 22px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(201, 161, 59, 0.12);
+  border: 1px solid var(--accent);
+  color: var(--accent);
 }
 .stats-card-num {
+  font-family: 'Lora', Georgia, serif;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text);
 }
 .stats-card-lbl {
@@ -2926,23 +2936,40 @@ body.light .folder-back {
 
 /* ═══════════════════════════════ DASHBOARD / OSCARS ═══════════════════════════════ */
 .dashboard-panel {
+  --accent: #c9a13b;
+  --accent-strong: #b38a2e;
+  --accent-ink: #1a1305;
   min-height: 100vh;
   padding: 24px 0 60px;
+}
+body.light .dashboard-panel {
+  --accent: #a67c1e;
+  --accent-strong: #8a6a18;
+  --accent-ink: #ffffff;
 }
 .dashboard-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 4px;
 }
 .dashboard-topbar .folder-back {
   margin-bottom: 0;
 }
+.dashboard-eyebrow {
+  margin: 10px 0 2px;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
 .dashboard-title {
   font-size: 22px;
   font-weight: 600;
-  margin: 4px 0 18px;
+  margin: 0 0 18px;
   color: var(--text);
+  font-family: 'Lora', Georgia, serif;
 }
 .dashboard-subnav {
   display: flex;
@@ -3176,10 +3203,12 @@ body.light .folder-back {
 .dashboard-badge-missing {
   bottom: 7px;
   right: 7px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #f4f3f0;
+  background: rgba(20, 17, 16, 0.55);
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  color: #e8e3d6;
   font-weight: 600;
   letter-spacing: 0.2px;
+  backdrop-filter: blur(2px);
 }
 
 .dashboard-overview {
@@ -3197,6 +3226,12 @@ body.light .folder-back {
 @media (max-width: 720px) {
   .dashboard-title {
     font-size: 18px;
+  }
+  .dashboard-tab-label {
+    display: none;
+  }
+  .dashboard-subnav button {
+    padding: 10px 12px;
   }
   .stats-cards-grid,
   .stats-cards-grid-6 {

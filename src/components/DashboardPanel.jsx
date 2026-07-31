@@ -16,8 +16,22 @@ const TABS = [
   { key: 'export', label: 'Export & Backup', icon: IconSave },
 ]
 
+const LAST_TAB_KEY = 'cinefilm-dashboard-last-tab'
+
 export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson, theme, setTheme }) {
-  const [tab, setTab] = useState('overview')
+  const [tab, setTab] = useState(() => {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem(LAST_TAB_KEY) : null
+    return TABS.some((t) => t.key === saved) ? saved : 'overview'
+  })
+
+  const changeTab = (key) => {
+    setTab(key)
+    try {
+      window.localStorage.setItem(LAST_TAB_KEY, key)
+    } catch {
+      // ذخیره‌سازی محلی در دسترس نبود؛ مشکلی نیست، فقط تب پیش‌فرض می‌مونه
+    }
+  }
 
   return (
     <div className="dashboard-panel">
@@ -36,14 +50,15 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
             </button>
           )}
         </div>
+        <p className="dashboard-eyebrow">Behind the scenes</p>
         <h1 className="dashboard-title">Dashboard</h1>
         <nav className="dashboard-subnav">
           {TABS.map((t) => {
             const Icon = t.icon
             return (
-              <button key={t.key} className={tab === t.key ? 'active' : ''} onClick={() => setTab(t.key)}>
+              <button key={t.key} className={tab === t.key ? 'active' : ''} onClick={() => changeTab(t.key)} title={t.label}>
                 <Icon width={14} height={14} />
-                {t.label}
+                <span className="dashboard-tab-label">{t.label}</span>
               </button>
             )
           })}
