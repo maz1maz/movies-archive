@@ -129,6 +129,9 @@ export function rowToFilm(row, index) {
     film[field] = v
   }
   if (!film.title) film.title = "بدون نام"
+  // کل مجموعه‌ی فیزیکی این کاربر بلوریه؛ اگه اکسل ستون format نداشته باشه،
+  // به‌جای خالی موندن (که باعث می‌شد بج بلوری نیاد)، خودش Blu-ray بشه.
+  if (film.mediaType !== "digital" && !film.format) film.format = "Blu-ray"
   // موقع ایمپورت سریال دیجیتال/فیزیکی، اگه شماره‌ی هارد/قفسه مشخص باشه، از روی
   // فصل‌های موجود، seasonDrives رو خودمون می‌سازیم تا بخش SEASONS توی صفحه‌ی
   // فیلم خالی نمونه.
