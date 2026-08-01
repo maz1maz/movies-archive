@@ -109,17 +109,20 @@ export default {
             break
           }
           const html = await res.text()
-          const itemRe = /data-film-name="([^"]+)"[^>]*data-film-release-year="(\d{4})"|data-film-release-year="(\d{4})"[^>]*data-film-name="([^"]+)"/g
+          // شبکه‌ی پوسترها معمولاً تو یه <ul class="poster-list ...">...</ul>
+          // هست؛ هر پوستر یه alt متنی با اسم فیلم داره — این قابل‌اعتمادترین
+          // چیزیه که همیشه هست (برخلاف اسم دقیق data-attributeها که ممکنه
+          // عوض بشه). سال معمولاً تو همین شبکه نیست، فقط تو صفحه‌ی خودِ فیلم.
+          const listMatch = html.match(/<ul class="poster-list[\s\S]*?<\/ul>/)
+          const scope = listMatch ? listMatch[0] : html
+          const altRe = /alt="([^"]{2,200})"/g
           let match
           let foundOnPage = 0
-          while ((match = itemRe.exec(html))) {
-            const name = decodeHtmlEntities(match[1] || match[4])
-            const year = parseInt(match[2] || match[3], 10)
-            const key = `${name}|${year}`
-            if (!seen.has(key)) {
-              seen.add(key)
-              entries.push({ title: name, year })
-            }
+          while ((match = altRe.exec(scope))) {
+            const name = decodeHtmlEntities(match[1]).trim()
+            if (!name || seen.has(name)) continue
+            seen.add(name)
+            entries.push({ title: name, year: null })
             foundOnPage++
           }
           if (foundOnPage === 0) break
