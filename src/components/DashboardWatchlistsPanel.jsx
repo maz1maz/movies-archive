@@ -79,7 +79,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
 
   const handleImportFromLetterboxd = async () => {
     if (!activeList) return
-    const input = window.prompt('Letterboxd username, watchlist URL, or list URL:', 'https://letterboxd.com/USERNAME/watchlist/')
+    const input = window.prompt('Letterboxd username, watchlist/list/reviews URL:', 'https://letterboxd.com/USERNAME/watchlist/')
     if (!input || !input.trim()) return
     setStatus('Fetching from Letterboxd…')
     try {
@@ -207,7 +207,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
                     Add
                   </button>
                   <button className="btn" onClick={handleImportFromLetterboxd}>
-                    Import from Letterboxd (watchlist/list URL)
+                    Import from Letterboxd (watchlist/list/reviews)
                   </button>
                   <button className="btn" onClick={() => fileRef.current?.click()}>
                     Import CSV
@@ -237,17 +237,29 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
                 <div className="grid">
                   {itemsWithMatch.map(({ item, archiveMovie }, idx) => {
                     const inArchive = !!archiveMovie
+                    const subtitle = [
+                      item.year || '',
+                      item.myRating ? `★ ${item.myRating}` : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' — ')
                     return (
                       <div key={idx} style={{ position: 'relative' }}>
                         <DashboardPosterCard
                           title={item.title}
-                          subtitle={item.year || ''}
+                          subtitle={subtitle}
                           poster={inArchive ? archiveMovie.poster : null}
                           inArchive={inArchive}
                           clickable={inArchive}
                           showMissingBadge={!inArchive}
                           onClick={() => onOpenFilm(archiveMovie)}
                         />
+                        {item.reviewText && (
+                          <p style={{ fontSize: 11, color: 'var(--muted)', margin: '6px 2px 0', lineHeight: 1.5 }} title={item.reviewText}>
+                            {item.reviewText.slice(0, 120)}
+                            {item.reviewText.length > 120 ? '…' : ''}
+                          </p>
+                        )}
                         <button
                           className="btn btn-sm watchlist-remove-btn"
                           onClick={() => handleRemoveItem(idx)}

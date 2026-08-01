@@ -87,14 +87,16 @@ export default {
         }
       }
 
-      // ---- POST /api/letterboxd-watchlist (scrape a public Letterboxd watchlist
-      // OR list by URL/username — Letterboxd doesn't offer an RSS/API for these,
-      // only a CSV export, so this reads the public HTML pages directly) ----
+      // ---- POST /api/letterboxd-watchlist (scrape a public Letterboxd watchlist,
+      // list, OR reviews page by URL/username — Letterboxd doesn't offer an
+      // RSS/API for these, only a CSV export, so this reads the public HTML
+      // pages directly) ----
       if (method === 'POST' && pathname === '/api/letterboxd-watchlist') {
         const body = await request.json()
         let input = (body.username || '').trim().replace(/^@/, '')
+        const isReviews = /\/reviews\/?/i.test(input)
 
-        // ورودی می‌تونه لینک کامل واچ‌لیست/لیست باشه (هرکدوم)، یا فقط یوزرنیم
+        // ورودی می‌تونه لینک کامل واچ‌لیست/لیست/نقدها باشه، یا فقط یوزرنیم
         // (که پیش‌فرض واچ‌لیست خودش رو برمی‌داریم).
         let basePath
         const fullUrlMatch = input.match(/letterboxd\.com\/([^?#]+?)\/?(?:page\/\d+\/?)?\/?$/i)
@@ -103,7 +105,14 @@ export default {
         } else if (input) {
           basePath = `${input}/watchlist`
         }
-        if (!basePath) return json({ error: 'username or a watchlist/list URL is required' }, 400, corsHeaders)
+        if (!basePath) return json({ error: 'username or a watchlist/list/reviews URL is required' }, 400, corsHeaders)
+
+        // صفحه‌بندیِ «نقدها» زیر مسیر .../reviews/films/page/N/ هست، نه
+        // .../reviews/page/N/ — پس اگه لینک فقط تا reviews/ داده شده باشه،
+        // films/ رو اضافه می‌کنیم.
+        if (isReviews) {
+          basePath = basePath.replace(/\/reviews\/?$/i, '/reviews/films')
+        }
 
         const entries = []
         const seen = new Set()
@@ -123,27 +132,57 @@ export default {
             break
           }
           const html = await res.text()
-          // شبکه‌ی پوسترها معمولاً تو یه <ul class="poster-list ...">...</ul>
-          // هست؛ هر پوستر یه alt متنی با اسم فیلم داره — این قابل‌اعتمادترین
-          // چیزیه که همیشه هست (برخلاف اسم دقیق data-attributeها که ممکنه
-          // عوض بشه). سال معمولاً تو همین شبکه نیست، فقط تو صفحه‌ی خودِ فیلم.
-          const listMatch = html.match(/<ul class="poster-list[\s\S]*?<\/ul>/)
-          const scope = listMatch ? listMatch[0] : html
-          const altRe = /alt="([^"]{2,200})"/g
-          let match
           let foundOnPage = 0
-          while ((match = altRe.exec(scope))) {
-            const name = decodeHtmlEntities(match[1]).trim()
-            if (!name || seen.has(name)) continue
-            seen.add(name)
-            entries.push({ title: name, year: null })
-            foundOnPage++
+
+          if (isReviews) {
+            // هر نقد یه <h2 class="headline-2 ..."> با لینک عنوان فیلم داره؛
+            // بعدش رتبه (★/½)، و متن نقد تو یه بلاک body-text میاد.
+            const chunks = html.split(/class="headline-2/).slice(1)
+            for (const chunk of chunks) {
+              const titleMatch = chunk.match(/<a[^>]*href="\/[^"]*\/film\/[^"]*"[^>]*>([^<]+)<\/a>/)
+              if (!titleMatch) continue
+              const title = decodeHtmlEntities(titleMatch[1]).trim()
+              const yearMatch = chunk.slice(0, 400).match(/\/films\/year\/(\d{4})\//)
+              const chunkWindow = chunk.slice(0, 3000)
+              const starMatch = chunkWindow.match(/(★{1,5}½?|½)/)
+              const myRating = starMatch ? starMatch[1].replace(/½/g, '.5').split('★').length - 1 + (starMatch[1].includes('½') ? 0.5 : 0) : null
+              const bodyMatch = chunkWindow.match(/class="body-text[^"]*"[^>]*>([\s\S]*?)<\/div>/)
+              const reviewText = bodyMatch
+                ? decodeHtmlEntities(bodyMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')).trim().slice(0, 500)
+                : null
+              const key = `${title}|${yearMatch ? yearMatch[1] : ''}`
+              if (seen.has(key)) continue
+              seen.add(key)
+              entries.push({
+                title,
+                year: yearMatch ? parseInt(yearMatch[1], 10) : null,
+                myRating: myRating || null,
+                reviewText,
+              })
+              foundOnPage++
+            }
+          } else {
+            // شبکه‌ی پوسترها معمولاً تو یه <ul class="poster-list ...">...</ul>
+            // هست؛ هر پوستر یه alt متنی با اسم فیلم داره — این قابل‌اعتمادترین
+            // چیزیه که همیشه هست (برخلاف اسم دقیق data-attributeها که ممکنه
+            // عوض بشه). سال معمولاً تو همین شبکه نیست، فقط تو صفحه‌ی خودِ فیلم.
+            const listMatch = html.match(/<ul class="poster-list[\s\S]*?<\/ul>/)
+            const scope = listMatch ? listMatch[0] : html
+            const altRe = /alt="([^"]{2,200})"/g
+            let match
+            while ((match = altRe.exec(scope))) {
+              const name = decodeHtmlEntities(match[1]).trim()
+              if (!name || seen.has(name)) continue
+              seen.add(name)
+              entries.push({ title: name, year: null })
+              foundOnPage++
+            }
           }
           if (foundOnPage === 0) break
         }
 
         if (entries.length === 0) {
-          return json({ error: 'No films found — that watchlist/list may be private, empty, or the URL is wrong.' }, 400, corsHeaders)
+          return json({ error: 'Nothing found — that page may be private, empty, or the URL is wrong.' }, 400, corsHeaders)
         }
         return json({ source: basePath, entries }, 200, corsHeaders)
       }
