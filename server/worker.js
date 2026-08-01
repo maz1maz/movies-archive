@@ -1,6 +1,6 @@
 // Cloudflare Workers API — replaces the old Express/Netlify server.
 // Handles all /api/* routes using D1 for persistent storage.
-import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMetadata, countSeasonsFromText } from './helpers.js'
+import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMetadata, countSeasonsFromText, decodeHtmlEntities } from './helpers.js'
 import { enrichFilm } from './omdb.js'
 import * as XLSX from 'xlsx'
 
@@ -85,6 +85,50 @@ export default {
           await db.prepare('DELETE FROM watchlists WHERE id = ?').bind(id).run()
           return json({ ok: true }, 200, corsHeaders)
         }
+      }
+
+      // ---- POST /api/letterboxd-watchlist (scrape a public Letterboxd watchlist by
+      // username/URL — Letterboxd doesn't offer an RSS/API for watchlists, only a
+      // CSV export, so this reads the public HTML pages directly) ----
+      if (method === 'POST' && pathname === '/api/letterboxd-watchlist') {
+        const body = await request.json()
+        let username = (body.username || '').trim()
+        const urlMatch = username.match(/letterboxd\.com\/([^/]+)\/watchlist/i)
+        if (urlMatch) username = urlMatch[1]
+        username = username.replace(/^@/, '')
+        if (!username) return json({ error: 'username or watchlist URL is required' }, 400, corsHeaders)
+
+        const entries = []
+        const seen = new Set()
+        const MAX_PAGES = 40
+        for (let page = 1; page <= MAX_PAGES; page++) {
+          const pageUrl = `https://letterboxd.com/${encodeURIComponent(username)}/watchlist/page/${page}/`
+          const res = await fetch(pageUrl, { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } })
+          if (!res.ok) {
+            if (page === 1) return json({ error: `Couldn't reach that watchlist (${res.status}). Check the username/URL.` }, 400, corsHeaders)
+            break
+          }
+          const html = await res.text()
+          const itemRe = /data-film-name="([^"]+)"[^>]*data-film-release-year="(\d{4})"|data-film-release-year="(\d{4})"[^>]*data-film-name="([^"]+)"/g
+          let match
+          let foundOnPage = 0
+          while ((match = itemRe.exec(html))) {
+            const name = decodeHtmlEntities(match[1] || match[4])
+            const year = parseInt(match[2] || match[3], 10)
+            const key = `${name}|${year}`
+            if (!seen.has(key)) {
+              seen.add(key)
+              entries.push({ title: name, year })
+            }
+            foundOnPage++
+          }
+          if (foundOnPage === 0) break
+        }
+
+        if (entries.length === 0) {
+          return json({ error: 'No films found — the watchlist may be private, empty, or the username is wrong.' }, 400, corsHeaders)
+        }
+        return json({ username, entries }, 200, corsHeaders)
       }
 
       // ---- GET /api/films ----

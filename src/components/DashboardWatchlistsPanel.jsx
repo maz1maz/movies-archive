@@ -77,6 +77,36 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
     await saveItems(activeList.id, nextItems)
   }
 
+  const handleImportFromLetterboxd = async () => {
+    if (!activeList) return
+    const input = window.prompt('Letterboxd username or watchlist URL:', 'https://letterboxd.com/USERNAME/watchlist/')
+    if (!input || !input.trim()) return
+    setStatus('Fetching watchlist from Letterboxd…')
+    try {
+      const res = await fetch('/api/letterboxd-watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: input.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Import failed')
+      const existingKeys = new Set(activeList.items.map((i) => `${i.title}|${i.year || ''}`))
+      const merged = [...activeList.items]
+      data.entries.forEach((e) => {
+        const key = `${e.title}|${e.year || ''}`
+        if (!existingKeys.has(key)) {
+          existingKeys.add(key)
+          merged.push(e)
+        }
+      })
+      await saveItems(activeList.id, merged)
+      setStatus(`Imported ${data.entries.length} films from @${data.username} (${merged.length - activeList.items.length} new)`)
+    } catch (err) {
+      setStatus(err.message)
+    }
+    setTimeout(() => setStatus(''), 6000)
+  }
+
   const handleImportCsv = async (file) => {
     if (!activeList) return
     setStatus('Reading file…')
@@ -122,8 +152,9 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
     <div className="oscars-panel">
       <div className="card oscars-controls">
         <p className="oscars-intro">
-          Keep multiple named watchlists — import a Letterboxd watchlist or list export (Settings → Import & Export →
-          Export Your Data), or add films one by one. Owned films show their poster and open right in your archive.
+          Keep multiple named watchlists — paste a Letterboxd watchlist URL to import it directly, or upload a
+          watchlist/list CSV export (Settings → Import & Export → Export Your Data), or add films one by one. Owned
+          films show their poster and open right in your archive.
         </p>
         <div className="row row-wrap oscars-filters">
           <div className="oscars-field oscars-field-search">
@@ -174,6 +205,9 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
                   />
                   <button className="btn" onClick={handleAddManual} disabled={!manualTitle.trim()}>
                     Add
+                  </button>
+                  <button className="btn" onClick={handleImportFromLetterboxd}>
+                    Import from Letterboxd URL
                   </button>
                   <button className="btn" onClick={() => fileRef.current?.click()}>
                     Import CSV

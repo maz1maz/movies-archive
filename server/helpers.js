@@ -144,6 +144,18 @@ export function rowToFilm(row, index) {
   return film
 }
 
+export function decodeHtmlEntities(str) {
+  if (!str) return str
+  return str
+    .replace(/&#0?39;/g, "'")
+    .replace(/&#0?34;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
+}
+
 export const EDITABLE = [
   "title", "originalTitle", "shelf", "row", "director", "cast",
   "year", "genre", "rating", "runtime", "country", "synopsis",
