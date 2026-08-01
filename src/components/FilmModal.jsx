@@ -317,6 +317,17 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
             )}
 
+            {Array.isArray(film.reviews) &&
+              film.reviews.map((r, idx) => (
+                <div className="cine-my-review-box" key={idx}>
+                  <div className="cine-section-label">
+                    {r.author ? `${r.author.toUpperCase()}'S REVIEW` : 'LETTERBOXD REVIEW'}
+                    {r.rating ? ` · ★ ${r.rating}` : ''}
+                  </div>
+                  <p className="cine-my-review-text">{r.text}</p>
+                </div>
+              ))}
+
             {/* Bottom Row: Studio Name (Left) + MPA Box + All-Black IMDb Badge with K votes */}
             <div className="cine-info-bottom-row">
               {studioName ? (

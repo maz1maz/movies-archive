@@ -45,8 +45,16 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
       const film = findInArchive(films, e.title)
       if (!film) continue
       const patch = {}
-      if (e.reviewText) patch.personalReview = attribution ? `${attribution} wrote:\n\n${e.reviewText}` : e.reviewText
       if (e.myRating) patch.myRating = Math.round(e.myRating)
+      if (e.reviewText) {
+        const author = attribution || 'Me'
+        const existingReviews = Array.isArray(film.reviews) ? film.reviews : []
+        const withoutThisAuthor = existingReviews.filter((r) => r.author !== author)
+        patch.reviews = [
+          ...withoutThisAuthor,
+          { author, text: e.reviewText, rating: e.myRating || null },
+        ]
+      }
       try {
         await fetch(`/api/films/${film.id}`, {
           method: 'PATCH',
