@@ -106,6 +106,19 @@ export function parseImportCsv(text) {
   return { format: 'unknown', entries: [] }
 }
 
+// Parses a Letterboxd watchlist.csv or list export (columns include at
+// least "Name" and usually "Year") into simple {title, year} entries —
+// used by the Dashboard Watchlists tab.
+export function parseWatchlistCsv(text) {
+  const rows = toObjects(parseCsv(text))
+  return rows
+    .map((r) => ({
+      title: r['Name'] || r['Title'] || '',
+      year: r['Year'] ? parseInt(r['Year'], 10) : null,
+    }))
+    .filter((e) => e.title)
+}
+
 function normalizeTitle(t) {
   return (t || '').trim().toLowerCase().replace(/^the\s+/, '')
 }

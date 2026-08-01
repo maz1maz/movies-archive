@@ -44,6 +44,49 @@ export default {
         }
       }
 
+      // ---- Watchlists (custom named lists, e.g. imported from Letterboxd) ----
+      if (method === 'GET' && pathname === '/api/watchlists') {
+        const result = await db.prepare('SELECT * FROM watchlists ORDER BY createdAt DESC').all()
+        const lists = (result.results || []).map((r) => ({ ...r, items: JSON.parse(r.items || '[]') }))
+        return json(lists, 200, corsHeaders)
+      }
+
+      if (method === 'POST' && pathname === '/api/watchlists') {
+        const body = await request.json()
+        const name = (body.name || '').trim()
+        if (!name) return json({ error: 'name is required' }, 400, corsHeaders)
+        const id = crypto.randomUUID()
+        const createdAt = new Date().toISOString()
+        await db
+          .prepare('INSERT INTO watchlists (id, name, items, createdAt) VALUES (?, ?, ?, ?)')
+          .bind(id, name, JSON.stringify(body.items || []), createdAt)
+          .run()
+        return json({ id, name, items: body.items || [], createdAt }, 201, corsHeaders)
+      }
+
+      const watchlistMatch = pathname.match(/^\/api\/watchlists\/([^/]+)$/)
+      if (watchlistMatch) {
+        const id = watchlistMatch[1]
+
+        if (method === 'PATCH') {
+          const body = await request.json()
+          const existing = await db.prepare('SELECT * FROM watchlists WHERE id = ?').bind(id).first()
+          if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
+          const nextName = body.name !== undefined ? body.name : existing.name
+          const nextItems = body.items !== undefined ? body.items : JSON.parse(existing.items || '[]')
+          await db
+            .prepare('UPDATE watchlists SET name = ?, items = ? WHERE id = ?')
+            .bind(nextName, JSON.stringify(nextItems), id)
+            .run()
+          return json({ id, name: nextName, items: nextItems }, 200, corsHeaders)
+        }
+
+        if (method === 'DELETE') {
+          await db.prepare('DELETE FROM watchlists WHERE id = ?').bind(id).run()
+          return json({ ok: true }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
         const { q, genre, shelf, sort, alpha, decade, loaned, watched, minRating } = Object.fromEntries(url.searchParams)
