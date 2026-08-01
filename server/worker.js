@@ -222,7 +222,10 @@ export default {
         if (watched === '0') { sql += ' AND (watched IS NULL OR watched = 0)' }
         if (minRating) { sql += ' AND rating >= ?'; params.push(Number(minRating)) }
         if (shelf) { sql += ' AND shelf = ?'; params.push(shelf) }
-        if (drive) { sql += ' AND driveNumber = ?'; params.push(drive) }
+        if (drive) {
+          sql += ' AND (driveNumber = ? OR driveNumber LIKE ? OR driveNumber LIKE ? OR driveNumber LIKE ?)'
+          params.push(drive, `${drive},%`, `%, ${drive}`, `%, ${drive},%`)
+        }
         if (genre) { sql += ' AND genre LIKE ?'; params.push(`%"${genre}"%`) }
         if (q) {
           const s = `%${q.toLowerCase()}%`
