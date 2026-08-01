@@ -370,12 +370,25 @@ export default function App() {
     let processed = 0
     let updated = 0
 
-    try {
-      for (let batch = 0; batch < 100; batch++) {
-        const res = await fetch('/api/films/enrich?limit=10', { method: 'POST' })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'metadata enrichment failed')
+    const fetchBatchWithRetry = async (attempts = 2) => {
+      for (let i = 0; i <= attempts; i++) {
+        try {
+          const res = await fetch('/api/films/enrich?limit=5', { method: 'POST' })
+          const data = await res.json()
+          if (!res.ok) throw new Error(data.error || 'metadata enrichment failed')
+          return data
+        } catch (err) {
+          if (i === attempts) throw err
+          // یه دفعه شکست خورد (مثلاً OMDb موقتاً کند بود) — یه لحظه صبر و دوباره امتحان،
+          // به‌جای این‌که کل عملیات رو بندازیم دور
+          await new Promise((r) => setTimeout(r, 800))
+        }
+      }
+    }
 
+    try {
+      for (let batch = 0; batch < 300; batch++) {
+        const data = await fetchBatchWithRetry()
         processed += data.processed
         updated += data.updated
         if (data.remaining === 0 || data.processed === 0) break
@@ -385,7 +398,10 @@ export default function App() {
       refreshMeta()
       loadAllFilmsUnfiltered()
     } catch (e) {
-      showToast(e.message)
+      showToast(`Stopped after ${processed} films — ${e.message}. Click "Fill missing details" again to resume.`, 7000)
+      loadFilms()
+      refreshMeta()
+      loadAllFilmsUnfiltered()
     } finally {
       setEnrichingCatalog(false)
     }
