@@ -2962,19 +2962,27 @@ body.light .folder-back {
   }
 }
 
-/* نظر شخصیِ کاربر که از فید لترباکسش sync شده، زیر خلاصه‌ی داستان */
+/* نظر شخصیِ کاربر که از فید لترباکسش sync شده — کارت جدا، بالای بخش تریلر */
 .cine-my-review-box {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
 }
 .cine-my-review-text {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
   font-style: italic;
-  opacity: 0.9;
+  opacity: 0.92;
+  white-space: pre-line;
 }
 .cine-my-review-link {
   display: inline-block;
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 12px;
   color: var(--accent);
 }

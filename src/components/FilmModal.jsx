@@ -236,22 +236,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       film.director || 'renowned filmmakers'
                     }.`}
                 </p>
-                {film.personalReview && (
-                  <div className="cine-my-review-box">
-                    <div className="cine-section-label">MY LETTERBOXD REVIEW</div>
-                    <p className="cine-synopsis-text cine-my-review-text">{film.personalReview}</p>
-                    {film.personalReviewUrl && (
-                      <a
-                        href={film.personalReviewUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="cine-my-review-link"
-                      >
-                        View on Letterboxd →
-                      </a>
-                    )}
-                  </div>
-                )}
               </div>
 
               <div className="cine-top-badges-column">
@@ -320,6 +304,18 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 </button>
               </div>
             </div>
+
+            {film.personalReview && (
+              <div className="cine-my-review-box">
+                <div className="cine-section-label">MY LETTERBOXD REVIEW</div>
+                <p className="cine-my-review-text">{film.personalReview}</p>
+                {film.personalReviewUrl && (
+                  <a href={film.personalReviewUrl} target="_blank" rel="noreferrer" className="cine-my-review-link">
+                    View on Letterboxd →
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Bottom Row: Studio Name (Left) + MPA Box + All-Black IMDb Badge with K votes */}
             <div className="cine-info-bottom-row">
