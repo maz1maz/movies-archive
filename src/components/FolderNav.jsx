@@ -23,8 +23,8 @@ export default function FolderNav({
               <span className="folder-icon">
                 <IconArchive width={32} height={32} />
               </span>
-              <h2>Physical Collection</h2>
-              <p>Blu-rays · {counts.physical} items</p>
+              <h2>Blu-ray Movies</h2>
+              <p>Physical · {counts.physical} items</p>
             </button>
             <button className="folder-card reveal-item reveal-5" onClick={() => onSelectDigitalType('movie')}>
               <span className="folder-icon">
