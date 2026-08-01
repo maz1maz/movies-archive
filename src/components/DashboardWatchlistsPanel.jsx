@@ -9,7 +9,7 @@ function findInArchive(films, title) {
   return films.find((f) => (f.title || '').trim().toLowerCase() === t) || null
 }
 
-export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
+export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsChanged }) {
   const [lists, setLists] = useState(null)
   const [activeId, setActiveId] = useState(null)
   const [newName, setNewName] = useState('')
@@ -33,6 +33,34 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
   }, [])
 
   const activeList = lists?.find((l) => l.id === activeId) || null
+
+  // اگه فیلمی که داریم ایمپورت می‌کنیم از قبل تو آرشیو باشه و متن نقد/امتیاز
+  // داشته باشه، همون‌جا رو رکورد خودِ فیلم می‌نویسیم تا تو صفحه‌ی جزئیات فیلم
+  // هم دیده بشه (نه فقط تو لیست این واچ‌لیست).
+  const applyReviewsToArchive = async (entries) => {
+    const withReviewData = entries.filter((e) => e.reviewText || e.myRating)
+    if (!withReviewData.length) return
+    let applied = 0
+    for (const e of withReviewData) {
+      const film = findInArchive(films, e.title)
+      if (!film) continue
+      const patch = {}
+      if (e.reviewText) patch.personalReview = e.reviewText
+      if (e.myRating) patch.myRating = Math.round(e.myRating)
+      try {
+        await fetch(`/api/films/${film.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(patch),
+        })
+        applied++
+      } catch {
+        // یه فیلم شکست بخوره، بقیه ادامه پیدا می‌کنن
+      }
+    }
+    if (applied > 0 && onFilmsChanged) onFilmsChanged()
+    return applied
+  }
 
   const handleCreate = async () => {
     const name = newName.trim()
@@ -101,7 +129,11 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
         }
       })
       await saveItems(activeList.id, merged)
-      setStatus(`Imported ${data.entries.length} films from ${data.source} (${merged.length - activeList.items.length} new)`)
+      const applied = await applyReviewsToArchive(data.entries)
+      setStatus(
+        `Imported ${data.entries.length} films from ${data.source} (${merged.length - activeList.items.length} new)` +
+          (applied ? ` — ${applied} review(s)/rating(s) applied to your archive` : '')
+      )
     } catch (err) {
       setStatus(err.message)
     }
@@ -169,7 +201,11 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
         }
       })
       await saveItems(activeList.id, merged)
-      setStatus(`Imported ${combined.length} entries (${merged.length - activeList.items.length} new)`)
+      const applied = await applyReviewsToArchive(combined)
+      setStatus(
+        `Imported ${combined.length} entries (${merged.length - activeList.items.length} new)` +
+          (applied ? ` — ${applied} review(s)/rating(s) applied to your archive` : '')
+      )
     } catch {
       setStatus('Import failed — is this a Letterboxd export (.zip) or watchlist/list/reviews CSV?')
     }
@@ -250,6 +286,18 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
                   </button>
                   <button className="btn" onClick={handleImportFromLetterboxd}>
                     Import from Letterboxd (watchlist/list/reviews)
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={async () => {
+                      setStatus('Applying reviews/ratings to your archive…')
+                      const applied = await applyReviewsToArchive(activeList.items)
+                      setStatus(applied ? `Applied ${applied} review(s)/rating(s) to your archive` : 'Nothing to apply — no matched films with a rating or review text')
+                      setTimeout(() => setStatus(''), 5000)
+                    }}
+                    title="Push review text/rating from this list's items onto their matching archive film"
+                  >
+                    Apply to archive
                   </button>
                   <button className="btn" onClick={() => fileRef.current?.click()}>
                     Import CSV / Export ZIP
