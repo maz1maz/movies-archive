@@ -65,6 +65,21 @@ async function enrichMissingMetadata(film) {
 }
 
 // ---------- مسیرهای API ----------
+app.get('/api/image-proxy', async (req, res) => {
+  const target = req.query.url || ''
+  if (!/^https?:\/\//i.test(target)) return res.status(400).send('Invalid url')
+  try {
+    const upstream = await fetch(target, { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } })
+    if (!upstream.ok) return res.status(502).send('Upstream error')
+    res.set('Content-Type', upstream.headers.get('content-type') || 'image/jpeg')
+    res.set('Cache-Control', 'public, max-age=86400')
+    const buf = Buffer.from(await upstream.arrayBuffer())
+    res.send(buf)
+  } catch {
+    res.status(502).send('Fetch failed')
+  }
+})
+
 app.get('/api/films', (req, res) => {
   const { q, genre, shelf, sort, alpha, decade, loaned, watched, minRating } = req.query
   let films = readFilms()

@@ -54,7 +54,8 @@ export async function buildShareCard(film) {
   let posterOk = false
   if (film.poster) {
     try {
-      const img = await loadImage(film.poster)
+      const proxied = `/api/image-proxy?url=${encodeURIComponent(film.poster)}`
+      const img = await loadImage(proxied)
       const pw = 760
       const ph = pw * 1.5
       const px = (W - pw) / 2

@@ -23,6 +23,27 @@ export default {
     const db = env.DB // D1 binding
 
     try {
+      // ---- GET /api/image-proxy?url=... (same-origin passthrough for external
+      // poster images, so <canvas> can draw them without a CORS-tainted canvas —
+      // used by the Share-to-Instagram feature) ----
+      if (method === 'GET' && pathname === '/api/image-proxy') {
+        const target = url.searchParams.get('url') || ''
+        if (!/^https?:\/\//i.test(target)) {
+          return new Response('Invalid url', { status: 400, headers: corsHeaders })
+        }
+        try {
+          const upstream = await fetch(target, { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } })
+          if (!upstream.ok) return new Response('Upstream error', { status: 502, headers: corsHeaders })
+          const contentType = upstream.headers.get('content-type') || 'image/jpeg'
+          return new Response(upstream.body, {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': contentType, 'Cache-Control': 'public, max-age=86400' },
+          })
+        } catch {
+          return new Response('Fetch failed', { status: 502, headers: corsHeaders })
+        }
+      }
+
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
         const { q, genre, shelf, sort, alpha, decade, loaned, watched, minRating } = Object.fromEntries(url.searchParams)
