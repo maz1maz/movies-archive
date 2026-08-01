@@ -337,12 +337,9 @@ body.light .header {
 .pagination button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; padding: 3px 8px; font-size: 12px; cursor: pointer; }
 .pagination button:disabled { opacity: .4; cursor: not-allowed; }
 .pagination-top {
-  position: sticky;
-  top: var(--header-h, 0px);
-  z-index: 20;
+  position: relative;
   padding: 6px 0 3px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 3px;
   background: var(--bg);
 }
 

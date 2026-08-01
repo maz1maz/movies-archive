@@ -58,6 +58,10 @@ export default function Header({
   theme,
   setTheme,
   onGoToLibrary,
+  page,
+  pageCount,
+  setPage,
+  showPagination,
 }) {
   const fileRef = useRef(null)
   const ratingsFileRef = useRef(null)
@@ -312,6 +316,14 @@ export default function Header({
           </div>
         </div>
       </div>
+
+      {showPagination && (
+        <div className="container pagination pagination-top">
+          <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Previous</button>
+          <span>Page {page} of {pageCount}</span>
+          <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next →</button>
+        </div>
+      )}
     </header>
   )
 }

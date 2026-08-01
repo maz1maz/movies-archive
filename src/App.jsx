@@ -572,16 +572,13 @@ export default function App() {
         theme={theme}
         setTheme={setTheme}
         onGoToLibrary={() => changeSection(null)}
+        page={page}
+        pageCount={pageCount}
+        setPage={setPage}
+        showPagination={pageCount > 1 && !loading && sectionFilms.length > 0}
       />
 
       <main className="container">
-        {pageCount > 1 && !loading && sectionFilms.length > 0 && (
-          <div className="pagination pagination-top">
-            <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Previous</button>
-            <span>Page {page} of {pageCount}</span>
-            <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next →</button>
-          </div>
-        )}
         {loading ? (
           <div className="status">Loading films…</div>
         ) : sectionFilms.length === 0 ? (
