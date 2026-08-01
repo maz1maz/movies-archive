@@ -37,7 +37,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
   // اگه فیلمی که داریم ایمپورت می‌کنیم از قبل تو آرشیو باشه و متن نقد/امتیاز
   // داشته باشه، همون‌جا رو رکورد خودِ فیلم می‌نویسیم تا تو صفحه‌ی جزئیات فیلم
   // هم دیده بشه (نه فقط تو لیست این واچ‌لیست).
-  const applyReviewsToArchive = async (entries) => {
+  const applyReviewsToArchive = async (entries, attribution) => {
     const withReviewData = entries.filter((e) => e.reviewText || e.myRating)
     if (!withReviewData.length) return
     let applied = 0
@@ -45,7 +45,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
       const film = findInArchive(films, e.title)
       if (!film) continue
       const patch = {}
-      if (e.reviewText) patch.personalReview = e.reviewText
+      if (e.reviewText) patch.personalReview = attribution ? `${attribution} wrote:\n\n${e.reviewText}` : e.reviewText
       if (e.myRating) patch.myRating = Math.round(e.myRating)
       try {
         await fetch(`/api/films/${film.id}`, {
@@ -129,7 +129,8 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
         }
       })
       await saveItems(activeList.id, merged)
-      const applied = await applyReviewsToArchive(data.entries)
+      const attribution = (data.source || '').split('/')[0]
+      const applied = await applyReviewsToArchive(data.entries, attribution)
       setStatus(
         `Imported ${data.entries.length} films from ${data.source} (${merged.length - activeList.items.length} new)` +
           (applied ? ` — ${applied} review(s)/rating(s) applied to your archive` : '')
@@ -142,6 +143,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
 
   const handleImportCsv = async (file) => {
     if (!activeList) return
+    const attribution = window.prompt("Whose reviews are these? (leave blank if it's your own account)", '') || ''
     const isZip = file.name.toLowerCase().endsWith('.zip') || file.type === 'application/zip'
     setStatus(isZip ? 'Opening export file…' : 'Reading file…')
     try {
@@ -201,7 +203,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
         }
       })
       await saveItems(activeList.id, merged)
-      const applied = await applyReviewsToArchive(combined)
+      const applied = await applyReviewsToArchive(combined, attribution.trim())
       setStatus(
         `Imported ${combined.length} entries (${merged.length - activeList.items.length} new)` +
           (applied ? ` — ${applied} review(s)/rating(s) applied to your archive` : '')
@@ -290,8 +292,9 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
                   <button
                     className="btn"
                     onClick={async () => {
+                      const attribution = window.prompt("Whose reviews are these? (leave blank if it's your own account)", '') || ''
                       setStatus('Applying reviews/ratings to your archive…')
-                      const applied = await applyReviewsToArchive(activeList.items)
+                      const applied = await applyReviewsToArchive(activeList.items, attribution.trim())
                       setStatus(applied ? `Applied ${applied} review(s)/rating(s) to your archive` : 'Nothing to apply — no matched films with a rating or review text')
                       setTimeout(() => setStatus(''), 5000)
                     }}
