@@ -1062,9 +1062,9 @@ async function insertFilm(db, film) {
 }
 
 async function updateFilm(db, film) {
-  const { id, title, originalTitle, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives } = film
+  const { id, title, originalTitle, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, letterboxdVotes, watchlisted, seasonDrives, personalReview, personalReviewUrl, personalReviewDate } = film
   await db.prepare(
-    `UPDATE films SET title=?, originalTitle=?, shelf=?, row=?, director=?, producer=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=?, letterboxdRating=?, watchlisted=?, seasonDrives=? WHERE id=?`
+    `UPDATE films SET title=?, originalTitle=?, shelf=?, row=?, director=?, producer=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=?, letterboxdRating=?, letterboxdVotes=?, watchlisted=?, seasonDrives=?, personalReview=?, personalReviewUrl=?, personalReviewDate=? WHERE id=?`
   ).bind(
     title || null, originalTitle || null, shelf || null, row || null,
     director || null, producer || null, cast && Array.isArray(cast) ? JSON.stringify(cast) : cast || null,
@@ -1075,7 +1075,8 @@ async function updateFilm(db, film) {
     watched ? 1 : 0, imdbId || null, imdbVotes || null,
     metadataEnrichmentAttemptedAt || null, myRating || 0, criterion ? 1 : 0,
     copies || 1, mediaType || 'physical', driveNumber || null,
-    itemType || 'movie', seasonsEpisodes || null, letterboxdRating || null, watchlisted ? 1 : 0,
-    seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(seasonDrives) : seasonDrives) : null, id
+    itemType || 'movie', seasonsEpisodes || null, letterboxdRating || null, letterboxdVotes || null, watchlisted ? 1 : 0,
+    seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(seasonDrives) : seasonDrives) : null,
+    personalReview || null, personalReviewUrl || null, personalReviewDate || null, id
   ).run()
 }
