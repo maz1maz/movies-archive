@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import JSZip from 'jszip'
 import DashboardPosterCard from './DashboardPosterCard.jsx'
 import { parseWatchlistCsv } from '../utils/csvImport.js'
 
@@ -109,18 +110,58 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
 
   const handleImportCsv = async (file) => {
     if (!activeList) return
-    setStatus('Reading file…')
+    const isZip = file.name.toLowerCase().endsWith('.zip') || file.type === 'application/zip'
+    setStatus(isZip ? 'Opening export file…' : 'Reading file…')
     try {
-      const text = await file.text()
-      const entries = parseWatchlistCsv(text)
-      if (!entries.length) {
+      let combined = []
+
+      if (isZip) {
+        const zip = await JSZip.loadAsync(file)
+        // ترتیب مهمه: reviews.csv بیشترین اطلاعات رو داره (ریتینگ + متن نقد)،
+        // بعدش ratings/diary (فقط ریتینگ)، در آخر watchlist (فقط عنوان/سال) —
+        // اگه یه فیلم تو چندتاشون باشه، نسخه‌ی کامل‌تر رو نگه می‌داریم.
+        const filesToCheck = ['reviews.csv', 'ratings.csv', 'diary.csv', 'watchlist.csv']
+        const byKey = new Map()
+        for (const name of filesToCheck) {
+          const entry = zip.file(name)
+          if (!entry) continue
+          const text = await entry.async('string')
+          const parsed = parseWatchlistCsv(text)
+          parsed.forEach((e) => {
+            const key = `${e.title}|${e.year || ''}`
+            const existing = byKey.get(key)
+            if (!existing) {
+              byKey.set(key, e)
+            } else {
+              // اطلاعات جدید رو فقط اگه چیزی که نداشتیم اضافه کنه، ادغام می‌کنیم
+              byKey.set(key, {
+                title: existing.title,
+                year: existing.year ?? e.year,
+                myRating: existing.myRating ?? e.myRating,
+                reviewText: existing.reviewText ?? e.reviewText,
+              })
+            }
+          })
+        }
+        combined = Array.from(byKey.values())
+        if (combined.length === 0) {
+          setStatus("Couldn't find watchlist.csv, ratings.csv, diary.csv, or reviews.csv inside that export")
+          setTimeout(() => setStatus(''), 5000)
+          return
+        }
+      } else {
+        const text = await file.text()
+        combined = parseWatchlistCsv(text)
+      }
+
+      if (!combined.length) {
         setStatus("Couldn't find any films in that file")
         setTimeout(() => setStatus(''), 4000)
         return
       }
       const existingKeys = new Set(activeList.items.map((i) => `${i.title}|${i.year || ''}`))
       const merged = [...activeList.items]
-      entries.forEach((e) => {
+      combined.forEach((e) => {
         const key = `${e.title}|${e.year || ''}`
         if (!existingKeys.has(key)) {
           existingKeys.add(key)
@@ -128,9 +169,9 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
         }
       })
       await saveItems(activeList.id, merged)
-      setStatus(`Imported ${entries.length} entries (${merged.length - activeList.items.length} new)`)
+      setStatus(`Imported ${combined.length} entries (${merged.length - activeList.items.length} new)`)
     } catch {
-      setStatus('Import failed — is this a Letterboxd watchlist/list CSV export?')
+      setStatus('Import failed — is this a Letterboxd export (.zip) or watchlist/list/reviews CSV?')
     }
     setTimeout(() => setStatus(''), 5000)
   }
@@ -152,9 +193,10 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
     <div className="oscars-panel">
       <div className="card oscars-controls">
         <p className="oscars-intro">
-          Keep multiple named watchlists — paste a Letterboxd watchlist or list URL to import it directly, or upload a
-          watchlist/list CSV export (Settings → Import & Export → Export Your Data), or add films one by one. Owned
-          films show their poster and open right in your archive.
+          Keep multiple named watchlists — paste a Letterboxd watchlist, list, or reviews URL to import it directly,
+          or upload your full Letterboxd export (.zip from Settings → Import & Export → Export Your Data — reviews,
+          ratings, diary and watchlist are all picked up automatically), or add films one by one. Owned films show
+          their poster and open right in your archive.
         </p>
         <div className="row row-wrap oscars-filters">
           <div className="oscars-field oscars-field-search">
@@ -210,7 +252,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
                     Import from Letterboxd (watchlist/list/reviews)
                   </button>
                   <button className="btn" onClick={() => fileRef.current?.click()}>
-                    Import CSV
+                    Import CSV / Export ZIP
                   </button>
                   <button className="btn btn-ghost" onClick={() => handleDelete(activeList.id)}>
                     Delete list
@@ -218,7 +260,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
                   <input
                     ref={fileRef}
                     type="file"
-                    accept=".csv"
+                    accept=".csv,.zip"
                     hidden
                     onChange={(e) => {
                       const file = e.target.files?.[0]
