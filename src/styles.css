@@ -2215,9 +2215,13 @@ body.light .header {
   flex: 0 0 min(620px, 54%);
   min-width: 0;
   position: sticky;
-  top: calc(var(--header-h, 260px) + var(--pagination-h, 0px) + 14px);
-  max-height: calc(100vh - var(--header-h, 260px) - var(--pagination-h, 0px) - 28px);
+  top: calc(var(--header-h, 260px) + 10px);
+  max-height: calc(100vh - var(--header-h, 260px) - 24px);
   overflow-y: auto;
+}
+.grid-split.has-pagination .grid-split-detail {
+  top: calc(var(--header-h, 260px) + 58px);
+  max-height: calc(100vh - var(--header-h, 260px) - 72px);
 }
 .grid-split-grid {
   flex: 1 1 auto;
