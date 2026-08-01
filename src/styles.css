@@ -327,21 +327,22 @@ body.light .header {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 14px;
-  padding: 10px 0;
-  margin-top: 6px;
+  gap: 10px;
+  padding: 5px 0;
+  margin-top: 3px;
   background: var(--bg);
   color: var(--muted);
+  font-size: 12px;
 }
-.pagination button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.pagination button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; padding: 3px 8px; font-size: 12px; cursor: pointer; }
 .pagination button:disabled { opacity: .4; cursor: not-allowed; }
 .pagination-top {
   position: sticky;
   top: var(--header-h, 0px);
   z-index: 20;
-  padding: 14px 0 6px;
+  padding: 6px 0 3px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 6px;
+  margin-bottom: 3px;
   background: var(--bg);
 }
 
@@ -2220,8 +2221,8 @@ body.light .header {
   overflow-y: auto;
 }
 .grid-split.has-pagination .grid-split-detail {
-  top: calc(var(--header-h, 260px) + 58px);
-  max-height: calc(100vh - var(--header-h, 260px) - 72px);
+  top: calc(var(--header-h, 260px) + 32px);
+  max-height: calc(100vh - var(--header-h, 260px) - 46px);
 }
 .grid-split-grid {
   flex: 1 1 auto;
