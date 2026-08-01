@@ -57,6 +57,7 @@ export default function App() {
     setWatched('')
     setMinRating('')
     setLoanedOnly(false)
+    setSort('random')
     setPage(1)
     // اگه موقع رفتن به بخش دیگه (یا داشبورد)، صفحه‌ی جزئیات یه فیلم هنوز باز
     // بود، بسته می‌شد ولی state=selected پاک نمی‌شد؛ برای همین همون فیلم
