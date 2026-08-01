@@ -79,9 +79,9 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
 
   const handleImportFromLetterboxd = async () => {
     if (!activeList) return
-    const input = window.prompt('Letterboxd username or watchlist URL:', 'https://letterboxd.com/USERNAME/watchlist/')
+    const input = window.prompt('Letterboxd username, watchlist URL, or list URL:', 'https://letterboxd.com/USERNAME/watchlist/')
     if (!input || !input.trim()) return
-    setStatus('Fetching watchlist from Letterboxd…')
+    setStatus('Fetching from Letterboxd…')
     try {
       const res = await fetch('/api/letterboxd-watchlist', {
         method: 'POST',
@@ -100,7 +100,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
         }
       })
       await saveItems(activeList.id, merged)
-      setStatus(`Imported ${data.entries.length} films from @${data.username} (${merged.length - activeList.items.length} new)`)
+      setStatus(`Imported ${data.entries.length} films from ${data.source} (${merged.length - activeList.items.length} new)`)
     } catch (err) {
       setStatus(err.message)
     }
@@ -152,7 +152,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
     <div className="oscars-panel">
       <div className="card oscars-controls">
         <p className="oscars-intro">
-          Keep multiple named watchlists — paste a Letterboxd watchlist URL to import it directly, or upload a
+          Keep multiple named watchlists — paste a Letterboxd watchlist or list URL to import it directly, or upload a
           watchlist/list CSV export (Settings → Import & Export → Export Your Data), or add films one by one. Owned
           films show their poster and open right in your archive.
         </p>
@@ -207,7 +207,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm }) {
                     Add
                   </button>
                   <button className="btn" onClick={handleImportFromLetterboxd}>
-                    Import from Letterboxd URL
+                    Import from Letterboxd (watchlist/list URL)
                   </button>
                   <button className="btn" onClick={() => fileRef.current?.click()}>
                     Import CSV

@@ -87,22 +87,29 @@ export default {
         }
       }
 
-      // ---- POST /api/letterboxd-watchlist (scrape a public Letterboxd watchlist by
-      // username/URL — Letterboxd doesn't offer an RSS/API for watchlists, only a
-      // CSV export, so this reads the public HTML pages directly) ----
+      // ---- POST /api/letterboxd-watchlist (scrape a public Letterboxd watchlist
+      // OR list by URL/username — Letterboxd doesn't offer an RSS/API for these,
+      // only a CSV export, so this reads the public HTML pages directly) ----
       if (method === 'POST' && pathname === '/api/letterboxd-watchlist') {
         const body = await request.json()
-        let username = (body.username || '').trim()
-        const urlMatch = username.match(/letterboxd\.com\/([^/]+)\/watchlist/i)
-        if (urlMatch) username = urlMatch[1]
-        username = username.replace(/^@/, '')
-        if (!username) return json({ error: 'username or watchlist URL is required' }, 400, corsHeaders)
+        let input = (body.username || '').trim().replace(/^@/, '')
+
+        // ورودی می‌تونه لینک کامل واچ‌لیست/لیست باشه (هرکدوم)، یا فقط یوزرنیم
+        // (که پیش‌فرض واچ‌لیست خودش رو برمی‌داریم).
+        let basePath
+        const fullUrlMatch = input.match(/letterboxd\.com\/([^?#]+?)\/?(?:page\/\d+\/?)?\/?$/i)
+        if (fullUrlMatch) {
+          basePath = fullUrlMatch[1].replace(/\/page$/, '')
+        } else if (input) {
+          basePath = `${input}/watchlist`
+        }
+        if (!basePath) return json({ error: 'username or a watchlist/list URL is required' }, 400, corsHeaders)
 
         const entries = []
         const seen = new Set()
         const MAX_PAGES = 40
         for (let page = 1; page <= MAX_PAGES; page++) {
-          const pageUrl = `https://letterboxd.com/${encodeURIComponent(username)}/watchlist/page/${page}/`
+          const pageUrl = `https://letterboxd.com/${basePath}/page/${page}/`
           const res = await fetch(pageUrl, {
             headers: {
               'User-Agent':
@@ -112,7 +119,7 @@ export default {
             },
           })
           if (!res.ok) {
-            if (page === 1) return json({ error: `Couldn't reach that watchlist (${res.status}). Check the username/URL.` }, 400, corsHeaders)
+            if (page === 1) return json({ error: `Couldn't reach that page (${res.status}). Check the username/URL.` }, 400, corsHeaders)
             break
           }
           const html = await res.text()
@@ -136,9 +143,9 @@ export default {
         }
 
         if (entries.length === 0) {
-          return json({ error: 'No films found — the watchlist may be private, empty, or the username is wrong.' }, 400, corsHeaders)
+          return json({ error: 'No films found — that watchlist/list may be private, empty, or the URL is wrong.' }, 400, corsHeaders)
         }
-        return json({ username, entries }, 200, corsHeaders)
+        return json({ source: basePath, entries }, 200, corsHeaders)
       }
 
       // ---- GET /api/films ----
