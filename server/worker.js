@@ -137,18 +137,21 @@ export default {
           let foundOnPage = 0
 
           if (isReviews) {
-            // هر نقد یه <h2 class="headline-2 ..."> با لینک عنوان فیلم داره؛
-            // بعدش رتبه (★/½)، و متن نقد تو یه بلاک body-text میاد.
-            const chunks = html.split(/class="headline-2/).slice(1)
+            // به‌جای تکیه به یه اسم کلاس حدسی، رو الگوی href لینک عنوان فیلم
+            // تکیه می‌کنیم (/username/film/slug/) که مطمئناً همیشه هست.
+            const chunks = html.split(/href="\/[^/"]+\/film\/[^"]+\/?"/).slice(1)
             for (const chunk of chunks) {
-              const titleMatch = chunk.match(/<a[^>]*href="\/[^"]*\/film\/[^"]*"[^>]*>([^<]+)<\/a>/)
+              const titleMatch = chunk.match(/^[^<]*>([^<]{1,150})<\/a>/)
               if (!titleMatch) continue
               const title = decodeHtmlEntities(titleMatch[1]).trim()
-              const yearMatch = chunk.slice(0, 400).match(/\/films\/year\/(\d{4})\//)
-              const chunkWindow = chunk.slice(0, 3000)
+              if (!title || /^(re)?watched$/i.test(title)) continue
+              const chunkWindow = chunk.slice(0, 2000)
+              const yearMatch = chunkWindow.match(/\/films\/year\/(\d{4})\//)
               const starMatch = chunkWindow.match(/(★{1,5}½?|½)/)
-              const myRating = starMatch ? starMatch[1].replace(/½/g, '.5').split('★').length - 1 + (starMatch[1].includes('½') ? 0.5 : 0) : null
-              const bodyMatch = chunkWindow.match(/class="body-text[^"]*"[^>]*>([\s\S]*?)<\/div>/)
+              const myRating = starMatch
+                ? starMatch[1].split('★').length - 1 + (starMatch[1].includes('½') ? 0.5 : 0)
+                : null
+              const bodyMatch = chunkWindow.match(/class="[^"]*body-text[^"]*"[^>]*>([\s\S]*?)<\/div>/)
               const reviewText = bodyMatch
                 ? decodeHtmlEntities(bodyMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')).trim().slice(0, 500)
                 : null
