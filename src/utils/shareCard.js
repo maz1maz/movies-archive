@@ -140,11 +140,20 @@ export async function shareFilmCard(film) {
   const blob = await buildShareCard(film)
   const file = new File([blob], `${film.title.replace(/[^a-z0-9]+/gi, '-')}.png`, { type: 'image/png' })
 
+  const params = new URLSearchParams()
+  params.set('film', film.id)
+  const section =
+    film.mediaType === 'digital' ? (film.itemType === 'series' ? 'digital-series' : 'digital-movie') : 'physical'
+  params.set('section', section)
+  const filmUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`
+  const shareText = `${film.title} — from my Cinefilm Archive\n${filmUrl}`
+
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     await navigator.share({
       files: [file],
       title: film.title,
-      text: `${film.title} — from my Cinefilm Archive`,
+      text: shareText,
+      url: filmUrl,
     })
     return 'shared'
   }

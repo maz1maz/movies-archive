@@ -196,6 +196,39 @@ export default function App() {
       .catch(() => {})
   }
 
+  // لینک‌دهی مستقیم به یه فیلم خاص: وقتی یه فیلم بازه، آدرس صفحه رو به‌روز
+  // می‌کنیم (?film=id&section=...) تا بشه اون لینک رو به اشتراک گذاشت و با
+  // بازکردنش مستقیم همون صفحه‌ی فیلم باز بشه (برای دکمه‌ی Share).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (selected) {
+      params.set('film', selected.id)
+      if (section) params.set('section', section)
+    } else {
+      params.delete('film')
+    }
+    const next = params.toString()
+    const url = next ? `${window.location.pathname}?${next}` : window.location.pathname
+    window.history.replaceState(null, '', url)
+  }, [selected, section])
+
+  const deepLinkRestoredRef = useRef(false)
+  useEffect(() => {
+    if (deepLinkRestoredRef.current) return
+    if (!allFilmsUnfiltered.length) return
+    deepLinkRestoredRef.current = true
+    const params = new URLSearchParams(window.location.search)
+    const filmId = params.get('film')
+    if (!filmId) return
+    const film = allFilmsUnfiltered.find((f) => String(f.id) === filmId)
+    if (!film) return
+    const restoredSection =
+      params.get('section') ||
+      (film.mediaType === 'digital' ? (film.itemType === 'series' ? 'digital-series' : 'digital-movie') : 'physical')
+    setSection(restoredSection)
+    setSelected(film)
+  }, [allFilmsUnfiltered])
+
   const handleImport = async (file) => {
     const fd = new FormData()
     fd.append('file', file)
