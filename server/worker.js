@@ -109,8 +109,11 @@ export default {
 
         // صفحه‌ی اول «نقدها» همون آدرس ساده‌ی .../reviews/ هست (بدون films یا
         // شماره صفحه)؛ فقط از صفحه‌ی دوم به بعد مسیر به .../reviews/films/page/N/
-        // تغییر می‌کنه — این یه رفتار خاص لتربوکسه.
-        const reviewsBase = isReviews ? basePath.replace(/\/reviews\/?$/i, '/reviews') : null
+        // تغییر می‌کنه — این یه رفتار خاص لتربوکسه. اگه کاربر خودش یه لینک
+        // عمیق‌تر (با /films/page/N/ از قبل توش) پیست کرده باشه، این رو به
+        // شکل ساده‌ی username/reviews برمی‌گردونیم.
+        const reviewsUserMatch = basePath.match(/^(.+?)\/reviews\b/i)
+        const reviewsBase = isReviews ? (reviewsUserMatch ? `${reviewsUserMatch[1]}/reviews` : basePath) : null
 
         const entries = []
         const seen = new Set()
