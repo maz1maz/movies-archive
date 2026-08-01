@@ -257,7 +257,16 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       <IconPin width={13} height={13} />
                     </span>
                     <span>
-                      Drive <strong>{film.driveNumber || '—'}</strong>
+                      {/* driveNumber معمولاً از قبل کلمه‌ی "Drive" رو داره (مثل
+                          "Drive 4" یا "Drive 1, Drive 4")؛ اضافه‌کردن دوباره‌ی
+                          پیشوند "Drive" باعث می‌شد بج بنویسه "Drive Drive 4". */}
+                      {/^drive\b/i.test(film.driveNumber || '') ? (
+                        <strong>{film.driveNumber}</strong>
+                      ) : (
+                        <>
+                          Drive <strong>{film.driveNumber || '—'}</strong>
+                        </>
+                      )}
                     </span>
                   </div>
                 )}
