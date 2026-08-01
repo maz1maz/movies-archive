@@ -107,18 +107,20 @@ export default {
         }
         if (!basePath) return json({ error: 'username or a watchlist/list/reviews URL is required' }, 400, corsHeaders)
 
-        // صفحه‌بندیِ «نقدها» زیر مسیر .../reviews/films/page/N/ هست، نه
-        // .../reviews/page/N/ — پس اگه لینک فقط تا reviews/ داده شده باشه،
-        // films/ رو اضافه می‌کنیم.
-        if (isReviews) {
-          basePath = basePath.replace(/\/reviews\/?$/i, '/reviews/films')
-        }
+        // صفحه‌ی اول «نقدها» همون آدرس ساده‌ی .../reviews/ هست (بدون films یا
+        // شماره صفحه)؛ فقط از صفحه‌ی دوم به بعد مسیر به .../reviews/films/page/N/
+        // تغییر می‌کنه — این یه رفتار خاص لتربوکسه.
+        const reviewsBase = isReviews ? basePath.replace(/\/reviews\/?$/i, '/reviews') : null
 
         const entries = []
         const seen = new Set()
         const MAX_PAGES = 40
         for (let page = 1; page <= MAX_PAGES; page++) {
-          const pageUrl = `https://letterboxd.com/${basePath}/page/${page}/`
+          const pageUrl = isReviews
+            ? page === 1
+              ? `https://letterboxd.com/${reviewsBase}/`
+              : `https://letterboxd.com/${reviewsBase}/films/page/${page}/`
+            : `https://letterboxd.com/${basePath}/page/${page}/`
           const res = await fetch(pageUrl, {
             headers: {
               'User-Agent':

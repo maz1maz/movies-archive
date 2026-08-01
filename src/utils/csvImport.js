@@ -106,16 +106,23 @@ export function parseImportCsv(text) {
   return { format: 'unknown', entries: [] }
 }
 
-// Parses a Letterboxd watchlist.csv or list export (columns include at
-// least "Name" and usually "Year") into simple {title, year} entries —
-// used by the Dashboard Watchlists tab.
+// Parses a Letterboxd watchlist.csv, list export, or reviews.csv (columns
+// include at least "Name", usually "Year", and for reviews.csv also "Rating"
+// and "Review") into {title, year, myRating, reviewText} entries — used by
+// the Dashboard Watchlists tab.
 export function parseWatchlistCsv(text) {
   const rows = toObjects(parseCsv(text))
   return rows
-    .map((r) => ({
-      title: r['Name'] || r['Title'] || '',
-      year: r['Year'] ? parseInt(r['Year'], 10) : null,
-    }))
+    .map((r) => {
+      const ratingRaw = r['Rating']
+      const rating = ratingRaw ? parseFloat(ratingRaw) : null
+      return {
+        title: r['Name'] || r['Title'] || '',
+        year: r['Year'] ? parseInt(r['Year'], 10) : null,
+        myRating: rating && !isNaN(rating) ? rating : null,
+        reviewText: r['Review'] ? r['Review'].slice(0, 500) : null,
+      }
+    })
     .filter((e) => e.title)
 }
 
