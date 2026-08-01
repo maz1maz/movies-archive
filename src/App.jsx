@@ -540,20 +540,11 @@ export default function App() {
 
       {!section ? (
         <FolderNav
-          mode="home"
           counts={folderCounts}
           posters={homePosters}
           onSelectPhysical={() => changeSection('physical')}
-          onSelectDigital={() => changeSection('digital-pending')}
-          onSelectDashboard={() => changeSection('dashboard')}
-        />
-      ) : section === 'digital-pending' ? (
-        <FolderNav
-          mode="digital"
-          counts={folderCounts}
-          posters={digitalPosters}
-          onBack={() => changeSection(null)}
           onSelectDigitalType={(type) => changeSection(type === 'series' ? 'digital-series' : 'digital-movie')}
+          onSelectDashboard={() => changeSection('dashboard')}
         />
       ) : section === 'dashboard' ? (
         <>
