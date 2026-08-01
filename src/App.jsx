@@ -22,12 +22,16 @@ export default function App() {
   const [allFilmsUnfiltered, setAllFilmsUnfiltered] = useState([])
   const [genres, setGenres] = useState([])
   const [decades, setDecades] = useState([])
+  const drives = [...new Set(allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.driveNumber).map((f) => String(f.driveNumber)))].sort(
+    (a, b) => a.localeCompare(b, undefined, { numeric: true })
+  )
   const [query, setQuery] = useState('')
   const [genre, setGenre] = useState('')
   const [loanedOnly, setLoanedOnly] = useState(false)
   const [watched, setWatched] = useState('')
   const [minRating, setMinRating] = useState('')
   const [decade, setDecade] = useState('')
+  const [drive, setDrive] = useState('')
   const [sort, setSort] = useState('random')
   const [alpha, setAlpha] = useState('')
   const [page, setPage] = useState(1)
@@ -53,6 +57,7 @@ export default function App() {
     setQuery('')
     setGenre('')
     setDecade('')
+    setDrive('')
     setAlpha('')
     setWatched('')
     setMinRating('')
@@ -134,6 +139,7 @@ export default function App() {
     if (watched) params.set('watched', watched)
     if (minRating) params.set('minRating', minRating)
     if (decade) params.set('decade', decade)
+    if (drive) params.set('drive', drive)
     if (sort) params.set('sort', sort)
     if (alpha) params.set('alpha', alpha)
     fetch('/api/films?' + params.toString())
@@ -160,7 +166,7 @@ export default function App() {
     setPage(1)
     loadFilms()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, genre, loanedOnly, watched, minRating, decade, sort, alpha])
+  }, [query, genre, loanedOnly, watched, minRating, decade, drive, sort, alpha])
 
   useEffect(() => {
     fetch('/api/genres')
@@ -636,6 +642,9 @@ export default function App() {
         decade={decade}
         setDecade={setDecade}
         decades={decades}
+        drive={drive}
+        setDrive={setDrive}
+        drives={drives}
         sort={sort}
         setSort={setSort}
         total={sectionFilms.length}

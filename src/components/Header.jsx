@@ -40,6 +40,9 @@ export default function Header({
   decade,
   setDecade,
   decades,
+  drive,
+  setDrive,
+  drives,
   sort,
   setSort,
   total,
@@ -160,6 +163,16 @@ export default function Header({
                     </option>
                   ))}
                 </select>
+                {(section === 'digital-movie' || section === 'digital-series') && (
+                  <select className="select" value={drive} onChange={(e) => setDrive(e.target.value)}>
+                    <option value="">All drives</option>
+                    {drives.map((d) => (
+                      <option key={d} value={d}>
+                        Drive {d}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <select className="select" value={sort} onChange={(e) => setSort(e.target.value)}>
                   <option value="random">Random</option>
                   <option value="title_az">A–Z</option>

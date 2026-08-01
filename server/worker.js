@@ -213,7 +213,7 @@ export default {
 
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
-        const { q, genre, shelf, sort, alpha, decade, loaned, watched, minRating } = Object.fromEntries(url.searchParams)
+        const { q, genre, shelf, sort, alpha, decade, drive, loaned, watched, minRating } = Object.fromEntries(url.searchParams)
         let sql = 'SELECT * FROM films WHERE 1=1'
         const params = []
 
@@ -222,6 +222,7 @@ export default {
         if (watched === '0') { sql += ' AND (watched IS NULL OR watched = 0)' }
         if (minRating) { sql += ' AND rating >= ?'; params.push(Number(minRating)) }
         if (shelf) { sql += ' AND shelf = ?'; params.push(shelf) }
+        if (drive) { sql += ' AND driveNumber = ?'; params.push(drive) }
         if (genre) { sql += ' AND genre LIKE ?'; params.push(`%"${genre}"%`) }
         if (q) {
           const s = `%${q.toLowerCase()}%`
