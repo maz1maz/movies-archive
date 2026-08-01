@@ -2,6 +2,7 @@
 // Handles all /api/* routes using D1 for persistent storage.
 import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMetadata, countSeasonsFromText, decodeHtmlEntities } from './helpers.js'
 import { enrichFilm } from './omdb.js'
+import { fetchTotalSeasons } from './tvmaze.js'
 import * as XLSX from 'xlsx'
 
 export default {
@@ -387,6 +388,54 @@ export default {
           .prepare(
             "SELECT COUNT(*) as count FROM films WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''"
           )
+          .first()
+        return json({ processed: candidates.length, updated, remaining: remaining?.count || 0 }, 200, corsHeaders)
+      }
+
+      // ---- POST /api/films/season-counts (fetch "total seasons produced so
+      // far" from TVMaze for series that don't have it yet) ----
+      if (method === 'POST' && pathname === '/api/films/season-counts') {
+        const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
+        const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
+
+        const all = await db
+          .prepare(
+            `SELECT * FROM films
+             WHERE itemType = 'series' AND totalSeasonsProduced IS NULL
+             ORDER BY totalSeasonsUpdatedAt IS NOT NULL, title
+             LIMIT ?`
+          )
+          .bind(limit)
+          .all()
+        const candidates = all.results || []
+
+        let updated = 0
+        for (const film of candidates) {
+          let total = null
+          try {
+            total = await fetchTotalSeasons(film.title)
+          } catch {
+            total = null
+          }
+          const now = new Date().toISOString()
+          if (total != null) {
+            await db
+              .prepare('UPDATE films SET totalSeasonsProduced = ?, totalSeasonsUpdatedAt = ? WHERE id = ?')
+              .bind(total, now, film.id)
+              .run()
+            updated++
+          } else {
+            // پیدا نشد؛ تاریخ رو می‌زنیم که این ردیف همیشه اولِ صف نمونه، ولی
+            // خودِ عدد رو NULL نگه می‌داریم تا دفعه‌ی بعد دوباره امتحان بشه.
+            await db
+              .prepare('UPDATE films SET totalSeasonsUpdatedAt = ? WHERE id = ?')
+              .bind(now, film.id)
+              .run()
+          }
+        }
+
+        const remaining = await db
+          .prepare("SELECT COUNT(*) as count FROM films WHERE itemType = 'series' AND totalSeasonsProduced IS NULL")
           .first()
         return json({ processed: candidates.length, updated, remaining: remaining?.count || 0 }, 200, corsHeaders)
       }

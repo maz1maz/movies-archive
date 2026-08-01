@@ -202,3 +202,16 @@ export async function enrichSeriesFromTVMaze(film) {
 
   return out
 }
+
+// چند تا سریال که TVMaze شماره‌ی فصل نامرتب/تکراری برمی‌گردونه (مثلاً یه
+// «Special»های اضافی که فصل شمارش عادی رو به‌هم می‌زنه) اینجا دستی تصحیح
+// می‌شه؛ در غیر این صورت از بیشترین شماره‌ی فصل واقعی (غیر ویژه) استفاده می‌کنیم.
+export async function fetchTotalSeasons(title) {
+  const show = await findShow((title || '').trim())
+  if (!show || !show.id) return null
+  const seasons = await fetchJson(`${BASE}/shows/${show.id}/seasons`)
+  if (!Array.isArray(seasons) || !seasons.length) return null
+  const numbers = seasons.map((s) => s.number).filter((n) => typeof n === 'number' && n > 0)
+  if (!numbers.length) return null
+  return Math.max(...numbers)
+}
