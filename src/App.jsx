@@ -477,6 +477,33 @@ export default function App() {
     }
   }
 
+  // «چند فصل از این سریال تا الان ساخته شده» رو از TVMaze می‌گیره (نه اینکه
+  // چند فصلش رو داریم؛ همون totalSeasonsProduced که توی صفحه‌ی فیلم کنار
+  // فصل‌های موجود نشون داده می‌شه). فقط سریال‌هایی که این عدد رو ندارن.
+  const [fetchingSeasonCounts, setFetchingSeasonCounts] = useState(false)
+  const handleFetchSeasonCounts = async () => {
+    setFetchingSeasonCounts(true)
+    let processed = 0
+    let updated = 0
+    try {
+      for (let batch = 0; batch < 100; batch++) {
+        const res = await fetch('/api/films/season-counts?limit=10', { method: 'POST' })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'season count fetch failed')
+        processed += data.processed
+        updated += data.updated
+        if (data.remaining === 0 || data.processed === 0) break
+      }
+      showToast(`Season counts: found for ${updated} of ${processed} series checked`, 7000)
+      loadFilms()
+      loadAllFilmsUnfiltered()
+    } catch (e) {
+      showToast(e.message)
+    } finally {
+      setFetchingSeasonCounts(false)
+    }
+  }
+
   // فیلم‌های همین صفحه بسته به این‌که کدوم بخش (فیزیکی/دیجیتال-فیلم/
   // دیجیتال-سریال) رو انتخاب کرده باشیم، محدود می‌شن
   const sectionFilms = films.filter((f) => {
@@ -619,6 +646,8 @@ export default function App() {
         onEnrichCatalog={handleEnrichCatalog}
         enrichingCatalog={enrichingCatalog}
         onSyncLetterboxd={handleSyncLetterboxd}
+        onFetchSeasonCounts={handleFetchSeasonCounts}
+        fetchingSeasonCounts={fetchingSeasonCounts}
         onOpenExport={() => setShowExport(true)}
         view={view}
         setView={setView}

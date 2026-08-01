@@ -51,6 +51,8 @@ export default function Header({
   enrichingCatalog,
   onOpenExport,
   onSyncLetterboxd,
+  onFetchSeasonCounts,
+  fetchingSeasonCounts,
   view,
   setView,
   alpha,
@@ -232,6 +234,18 @@ export default function Header({
                   title="Pull your own diary entries/reviews from your public Letterboxd RSS feed"
                 >
                   <IconSparkles width={15} height={15} /> Sync Letterboxd Reviews
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onFetchSeasonCounts()
+                    setMenuOpen(false)
+                  }}
+                  disabled={fetchingSeasonCounts}
+                  title="Look up how many seasons have been produced so far for series missing that number"
+                >
+                  <IconSparkles width={15} height={15} />{' '}
+                  {fetchingSeasonCounts ? 'Fetching season counts…' : 'Fetch Season Counts'}
                 </button>
               </div>
 
