@@ -199,7 +199,14 @@ export default function App() {
   // لینک‌دهی مستقیم به یه فیلم خاص: وقتی یه فیلم بازه، آدرس صفحه رو به‌روز
   // می‌کنیم (?film=id&section=...) تا بشه اون لینک رو به اشتراک گذاشت و با
   // بازکردنش مستقیم همون صفحه‌ی فیلم باز بشه (برای دکمه‌ی Share).
+  // نکته‌ی مهم: اول لود صفحه، selected هنوز null هست (تا فیلم‌ها لود بشن و
+  // بازیابی انجام بشه) — اگه همین effect زودتر از بازیابی اجرا بشه، پارامتر
+  // film=... رو از آدرس پاک می‌کنه قبل از این‌که فرصت خوندنش باشه. برای همین
+  // تا وقتی بازیابی تموم نشده (deepLinkReady)، این effect کاری نمی‌کنه.
+  const [deepLinkReady, setDeepLinkReady] = useState(() => !new URLSearchParams(window.location.search).get('film'))
+
   useEffect(() => {
+    if (!deepLinkReady) return
     const params = new URLSearchParams(window.location.search)
     if (selected) {
       params.set('film', selected.id)
@@ -210,7 +217,7 @@ export default function App() {
     const next = params.toString()
     const url = next ? `${window.location.pathname}?${next}` : window.location.pathname
     window.history.replaceState(null, '', url)
-  }, [selected, section])
+  }, [selected, section, deepLinkReady])
 
   const deepLinkRestoredRef = useRef(false)
   useEffect(() => {
@@ -219,14 +226,17 @@ export default function App() {
     deepLinkRestoredRef.current = true
     const params = new URLSearchParams(window.location.search)
     const filmId = params.get('film')
-    if (!filmId) return
-    const film = allFilmsUnfiltered.find((f) => String(f.id) === filmId)
-    if (!film) return
-    const restoredSection =
-      params.get('section') ||
-      (film.mediaType === 'digital' ? (film.itemType === 'series' ? 'digital-series' : 'digital-movie') : 'physical')
-    setSection(restoredSection)
-    setSelected(film)
+    if (filmId) {
+      const film = allFilmsUnfiltered.find((f) => String(f.id) === filmId)
+      if (film) {
+        const restoredSection =
+          params.get('section') ||
+          (film.mediaType === 'digital' ? (film.itemType === 'series' ? 'digital-series' : 'digital-movie') : 'physical')
+        setSection(restoredSection)
+        setSelected(film)
+      }
+    }
+    setDeepLinkReady(true)
   }, [allFilmsUnfiltered])
 
   const handleImport = async (file) => {
