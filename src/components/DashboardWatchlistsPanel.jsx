@@ -214,10 +214,18 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
     setTimeout(() => setStatus(''), 5000)
   }
 
+  const [itemSearch, setItemSearch] = useState('')
+
   const itemsWithMatch = useMemo(() => {
     if (!activeList) return []
-    return activeList.items.map((item) => ({ item, archiveMovie: findInArchive(films, item.title) }))
-  }, [activeList, films])
+    const q = itemSearch.trim().toLowerCase()
+    const source = q ? activeList.items.filter((item) => item.title.toLowerCase().includes(q)) : activeList.items
+    return source.map((item) => ({
+      item,
+      originalIndex: activeList.items.indexOf(item),
+      archiveMovie: findInArchive(films, item.title),
+    }))
+  }, [activeList, films, itemSearch])
 
   if (lists === null) {
     return (
@@ -264,7 +272,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
         <>
           <div className="dashboard-subnav" style={{ marginTop: 20 }}>
             {lists.map((l) => (
-              <button key={l.id} className={activeId === l.id ? 'active' : ''} onClick={() => setActiveId(l.id)}>
+              <button key={l.id} className={activeId === l.id ? 'active' : ''} onClick={() => { setActiveId(l.id); setItemSearch('') }}>
                 {l.name} <span style={{ opacity: 0.6 }}>({l.items.length})</span>
               </button>
             ))}
@@ -324,11 +332,22 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
 
               {status && <p className="oscars-intro">{status}</p>}
 
+              {activeList.items.length > 8 && (
+                <div className="oscars-field oscars-field-search" style={{ marginBottom: 14 }}>
+                  <input
+                    className="input"
+                    placeholder={`Search within "${activeList.name}"…`}
+                    value={itemSearch}
+                    onChange={(e) => setItemSearch(e.target.value)}
+                  />
+                </div>
+              )}
+
               {itemsWithMatch.length === 0 ? (
                 <div className="empty">This watchlist is empty — import a CSV or add a film above.</div>
               ) : (
                 <div className="grid">
-                  {itemsWithMatch.map(({ item, archiveMovie }, idx) => {
+                  {itemsWithMatch.map(({ item, archiveMovie, originalIndex }) => {
                     const inArchive = !!archiveMovie
                     const subtitle = [
                       item.year || '',
@@ -337,7 +356,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
                       .filter(Boolean)
                       .join(' — ')
                     return (
-                      <div key={idx} style={{ position: 'relative' }}>
+                      <div key={originalIndex} style={{ position: 'relative' }}>
                         <DashboardPosterCard
                           title={item.title}
                           subtitle={subtitle}
@@ -355,7 +374,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
                         )}
                         <button
                           className="btn btn-sm watchlist-remove-btn"
-                          onClick={() => handleRemoveItem(idx)}
+                          onClick={() => handleRemoveItem(originalIndex)}
                           title="Remove from this watchlist"
                         >
                           ×
