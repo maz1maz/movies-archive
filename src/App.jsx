@@ -605,7 +605,7 @@ export default function App() {
         ) : view === 'list' ? (
           <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} hasBluray={hasBlurayCopy} />
         ) : useSplitView && selected ? (
-          <div className={pageCount > 1 ? 'grid-split has-pagination' : 'grid-split'}>
+          <div className="grid-split">
             <div className="grid-split-grid">
               <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} />
             </div>
