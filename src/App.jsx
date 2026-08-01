@@ -132,7 +132,7 @@ export default function App() {
       ro.disconnect()
       clearInterval(interval)
     }
-  }, [page, pageCount, section])
+  }, [page, section])
 
   useEffect(() => {
     localStorage.setItem('fa_view', view)
