@@ -118,20 +118,35 @@ export default {
         const entries = []
         const seen = new Set()
         const MAX_PAGES = 40
+        let previousPageUrl = null
         for (let page = 1; page <= MAX_PAGES; page++) {
           const pageUrl = isReviews
             ? page === 1
               ? `https://letterboxd.com/${reviewsBase}/`
               : `https://letterboxd.com/${reviewsBase}/films/page/${page}/`
             : `https://letterboxd.com/${basePath}/page/${page}/`
-          const res = await fetch(pageUrl, {
-            headers: {
-              'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-              Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              'Accept-Language': 'en-US,en;q=0.9',
-            },
-          })
+
+          // بعد از صفحه‌ی اول کمی صبر می‌کنیم و رفرر رو هم می‌فرستیم — شبیه‌تر
+          // به یه کاربر واقعی که رو دکمه‌ی «صفحه‌ی بعد» کلیک می‌کنه، تا کمتر
+          // به‌عنوان بات تشخیص داده بشه.
+          if (page > 1) await new Promise((r) => setTimeout(r, 500))
+
+          const fetchHeaders = {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+          }
+          if (previousPageUrl) fetchHeaders.Referer = previousPageUrl
+
+          let res = await fetch(pageUrl, { headers: fetchHeaders })
+          if (res.status === 403 && page > 1) {
+            // یه بار دیگه با یه مکث بیشتر امتحان می‌کنیم؛ شاید موقتی
+            // (rate limit) بوده، نه یه مسدودسازی قطعی
+            await new Promise((r) => setTimeout(r, 1500))
+            res = await fetch(pageUrl, { headers: fetchHeaders })
+          }
+          previousPageUrl = pageUrl
           if (!res.ok) {
             if (page === 1) return json({ error: `Couldn't reach that page (${res.status}). Check the username/URL.` }, 400, corsHeaders)
             break
