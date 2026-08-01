@@ -101,12 +101,15 @@ function extractOwnedSeasonsList(text) {
   if (!text) return null
   const t = String(text)
   const beforeParen = t.split("(")[0]
-  const nums = beforeParen.match(/\d+/g)
-  if (nums && nums.length) return nums.join(", ")
+  // اعداد ۳-۴ رقمی معمولاً سالن (مثلاً بازه‌ی پخش "2015–2023")، نه شماره‌ی
+  // فصل؛ قبلاً این‌ها اشتباهی به‌عنوان شماره‌ی فصل ("فصل ۲۰۱۵، ۲۰۲۳") ثبت
+  // می‌شدن. فقط اعداد کوتاه (۱ یا ۲ رقمی) رو به‌عنوان شماره‌ی فصل واقعی قبول می‌کنیم.
+  const nums = (beforeParen.match(/\d+/g) || []).filter((n) => n.length <= 2)
+  if (nums.length) return nums.join(", ")
   const countMatch = t.match(/(\d+)\s*seasons?/i)
   if (countMatch) {
     const n = parseInt(countMatch[1], 10)
-    if (n > 0) return Array.from({ length: n }, (_, i) => i + 1).join(", ")
+    if (n > 0 && n <= 50) return Array.from({ length: n }, (_, i) => i + 1).join(", ")
   }
   return null
 }
