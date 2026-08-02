@@ -2018,7 +2018,7 @@ body.light .header {
   display: block;
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  inset-inline-end: 0;
   width: min(360px, 90vw);
   background: var(--surface);
   border: 1px solid var(--border);
