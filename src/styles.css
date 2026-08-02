@@ -3418,6 +3418,7 @@ body.light .dashboard-panel {
 .reveal-6 { animation-delay: 1.5s; }
 .reveal-7 { animation-delay: 1.65s; }
 .reveal-8 { animation-delay: 1.8s; }
+.reveal-9 { animation-delay: 1.95s; }
 
 @media (prefers-reduced-motion: reduce) {
   .stage-curtain {

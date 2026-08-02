@@ -1,10 +1,13 @@
-import { IconArchive, IconClapper, IconBookshelf, IconBarChart } from './icons.jsx'
+import { IconArchive, IconClapper, IconBookshelf, IconBarChart, IconDisc, IconStar } from './icons.jsx'
 import PosterCollage from './PosterCollage.jsx'
 
-// صفحه‌ی اول: چهار مسیر مستقیم — فیزیکی، دیجیتال فیلم، دیجیتال سریال، داشبورد
+// صفحه‌ی اول: مسیرهای مستقیم — فیزیکی فیلم/سریال، دیجیتال فیلم/سریال،
+// مجموعه‌های ویژه، داشبورد
 export default function FolderNav({
   onSelectPhysical,
+  onSelectPhysicalSeries,
   onSelectDigitalType,
+  onSelectSpecialCollections,
   onSelectDashboard,
   counts,
   posters,
@@ -26,21 +29,35 @@ export default function FolderNav({
               <h2>Blu-ray Movies</h2>
               <p>Physical · {counts.physical} items</p>
             </button>
-            <button className="folder-card reveal-item reveal-5" onClick={() => onSelectDigitalType('movie')}>
+            <button className="folder-card reveal-item reveal-5" onClick={onSelectPhysicalSeries}>
+              <span className="folder-icon">
+                <IconDisc width={32} height={32} />
+              </span>
+              <h2>Blu-ray Series</h2>
+              <p>Physical · {counts.physicalSeries || 0} items</p>
+            </button>
+            <button className="folder-card reveal-item reveal-6" onClick={() => onSelectDigitalType('movie')}>
               <span className="folder-icon">
                 <IconClapper width={32} height={32} />
               </span>
               <h2>Digital Movies</h2>
               <p>Drive · {counts.digitalMovies} items</p>
             </button>
-            <button className="folder-card reveal-item reveal-6" onClick={() => onSelectDigitalType('series')}>
+            <button className="folder-card reveal-item reveal-7" onClick={() => onSelectDigitalType('series')}>
               <span className="folder-icon">
                 <IconBookshelf width={32} height={32} />
               </span>
               <h2>Digital Series</h2>
               <p>Drive · {counts.digitalSeries} items</p>
             </button>
-            <button className="folder-card folder-card-dashboard reveal-item reveal-7" onClick={onSelectDashboard}>
+            <button className="folder-card reveal-item reveal-8" onClick={onSelectSpecialCollections}>
+              <span className="folder-icon">
+                <IconStar width={32} height={32} />
+              </span>
+              <h2>Special Collections</h2>
+              <p>Coming soon</p>
+            </button>
+            <button className="folder-card folder-card-dashboard reveal-item reveal-9" onClick={onSelectDashboard}>
               <span className="folder-icon">
                 <IconBarChart width={32} height={32} />
               </span>
@@ -48,7 +65,7 @@ export default function FolderNav({
               <p>Info &amp; Statistics</p>
             </button>
           </div>
-          <p className="marquee-footer reveal-item reveal-8">Admit one · no refunds · enjoy the show</p>
+          <p className="marquee-footer reveal-item reveal-9">Admit one · no refunds · enjoy the show</p>
         </div>
       </div>
     </div>

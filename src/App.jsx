@@ -239,7 +239,13 @@ export default function App() {
       if (film) {
         const restoredSection =
           params.get('section') ||
-          (film.mediaType === 'digital' ? (film.itemType === 'series' ? 'digital-series' : 'digital-movie') : 'physical')
+          (film.mediaType === 'digital'
+            ? film.itemType === 'series'
+              ? 'digital-series'
+              : 'digital-movie'
+            : film.itemType === 'series'
+            ? 'physical-series'
+            : 'physical')
         setSection(restoredSection)
         setSelected(film)
       }
@@ -515,7 +521,8 @@ export default function App() {
   // فیلم‌های همین صفحه بسته به این‌که کدوم بخش (فیزیکی/دیجیتال-فیلم/
   // دیجیتال-سریال) رو انتخاب کرده باشیم، محدود می‌شن
   const sectionFilms = films.filter((f) => {
-    if (section === 'physical') return f.mediaType !== 'digital'
+    if (section === 'physical') return f.mediaType !== 'digital' && f.itemType !== 'series'
+    if (section === 'physical-series') return f.mediaType !== 'digital' && f.itemType === 'series'
     if (section === 'digital-movie') return f.mediaType === 'digital' && f.itemType !== 'series'
     if (section === 'digital-series') return f.mediaType === 'digital' && f.itemType === 'series'
     return true
@@ -537,7 +544,8 @@ export default function App() {
   const useSplitView = view === 'grid' && isWide
 
   const folderCounts = {
-    physical: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital').length,
+    physical: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital' && f.itemType !== 'series').length,
+    physicalSeries: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital' && f.itemType === 'series').length,
     digital: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital').length,
     digitalMovies: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType !== 'series').length,
     digitalSeries: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType === 'series').length,
@@ -551,7 +559,11 @@ export default function App() {
     .filter(Boolean)
   // برای پس‌زمینه‌ی صفحات محتوا (بعد از انتخاب بخش)، فقط از پوسترهای همون بخش
   const physicalPosters = allFilmsUnfiltered
-    .filter((f) => f.mediaType !== 'digital')
+    .filter((f) => f.mediaType !== 'digital' && f.itemType !== 'series')
+    .map((f) => f.poster)
+    .filter(Boolean)
+  const physicalSeriesPosters = allFilmsUnfiltered
+    .filter((f) => f.mediaType !== 'digital' && f.itemType === 'series')
     .map((f) => f.poster)
     .filter(Boolean)
   const digitalMoviePosters = allFilmsUnfiltered
@@ -565,6 +577,8 @@ export default function App() {
   const sectionPosters =
     section === 'physical'
       ? physicalPosters
+      : section === 'physical-series'
+      ? physicalSeriesPosters
       : section === 'digital-movie'
       ? digitalMoviePosters
       : digitalSeriesPosters
@@ -578,9 +592,27 @@ export default function App() {
           counts={folderCounts}
           posters={homePosters}
           onSelectPhysical={() => changeSection('physical')}
+          onSelectPhysicalSeries={() => changeSection('physical-series')}
           onSelectDigitalType={(type) => changeSection(type === 'series' ? 'digital-series' : 'digital-movie')}
+          onSelectSpecialCollections={() => changeSection('special-collections')}
           onSelectDashboard={() => changeSection('dashboard')}
         />
+      ) : section === 'special-collections' ? (
+        <div className="folder-nav">
+          <PosterCollage posters={homePosters} />
+          <div className="folder-nav-content">
+            <button className="btn btn-ghost folder-back" onClick={() => changeSection(null)}>
+              ← Back
+            </button>
+            <div className="marquee-band">
+              <p className="marquee-eyebrow">Coming soon</p>
+              <h1 className="folder-nav-title">Special Collections</h1>
+              <p style={{ color: 'var(--marquee-muted, #8a8375)', fontSize: 14, maxWidth: 420, margin: '0 auto' }}>
+                This section is set up and ready — just waiting on the collection data.
+              </p>
+            </div>
+          </div>
+        </div>
       ) : section === 'dashboard' ? (
         <>
           <DashboardPanel
@@ -685,14 +717,16 @@ export default function App() {
             <p>
               {section === 'physical'
                 ? 'No physical films match here yet.'
+                : section === 'physical-series'
+                ? 'No physical (Blu-ray) series added yet.'
                 : section === 'digital-movie'
                 ? 'No digital movies added yet.'
                 : 'No digital series added yet.'}
             </p>
             <p className="empty-hint">
-              {section === 'physical'
-                ? 'Use “Import Excel” or “+ Add Film” above to add titles.'
-                : 'Use “+ Add Film” above — it will be pre-filled for this section.'}
+              {section === 'physical' || section === 'physical-series'
+                ? 'Use "Import Excel" or "+ Add Film" above to add titles.'
+                : 'Use "+ Add Film" above — it will be pre-filled for this section.'}
             </p>
           </div>
         ) : view === 'list' ? (
@@ -777,7 +811,13 @@ export default function App() {
           onClose={() => setShowDuplicates(false)}
           onOpenFilm={(film) => {
             const target =
-              film.mediaType === 'digital' ? (film.itemType === 'series' ? 'digital-series' : 'digital-movie') : 'physical'
+              film.mediaType === 'digital'
+                ? film.itemType === 'series'
+                  ? 'digital-series'
+                  : 'digital-movie'
+                : film.itemType === 'series'
+                ? 'physical-series'
+                : 'physical'
             setShowDuplicates(false)
             changeSection(target)
             setSelected(film)
@@ -796,8 +836,8 @@ export default function App() {
       {adding && (
         <EditModal
           film={{
-            mediaType: section === 'physical' ? 'physical' : 'digital',
-            itemType: section === 'digital-series' ? 'series' : 'movie',
+            mediaType: section === 'digital-movie' || section === 'digital-series' ? 'digital' : 'physical',
+            itemType: section === 'digital-series' || section === 'physical-series' ? 'series' : 'movie',
           }}
           onClose={() => setAdding(false)}
           onSave={handleAddFilm}

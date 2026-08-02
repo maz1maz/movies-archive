@@ -143,7 +143,13 @@ export async function shareFilmCard(film) {
   const params = new URLSearchParams()
   params.set('film', film.id)
   const section =
-    film.mediaType === 'digital' ? (film.itemType === 'series' ? 'digital-series' : 'digital-movie') : 'physical'
+    film.mediaType === 'digital'
+      ? film.itemType === 'series'
+        ? 'digital-series'
+        : 'digital-movie'
+      : film.itemType === 'series'
+      ? 'physical-series'
+      : 'physical'
   params.set('section', section)
   const filmUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`
   const shareText = `${film.title} — from my Cinefilm Archive\n${filmUrl}`

@@ -121,7 +121,14 @@ export default function Header({
             <h1 className="brand-title">CINEFILM ARCHIVE</h1>
             <p className="brand-owner">Alireza Mazlaghani</p>
             <p className="brand-sub">
-              {total} {section === 'digital-movie' ? 'digital movies' : section === 'digital-series' ? 'digital series' : 'physical films'}
+              {total}{' '}
+              {section === 'digital-movie'
+                ? 'digital movies'
+                : section === 'digital-series'
+                ? 'digital series'
+                : section === 'physical-series'
+                ? 'Blu-ray series'
+                : 'physical films'}
             </p>
           </div>
         </button>
