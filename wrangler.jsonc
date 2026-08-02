@@ -26,7 +26,12 @@
       "database_name": "movies-archive",
       "database_id": "fcc3c3a7-2550-417e-92a2-2ba53ad97a6e"
     }
-  ]
+  ],
+  // هر روز ساعت ۳ بامداد UTC، خودکار یه دسته از enrichment رو انجام می‌ده
+  // (تا سهمیه‌ی رایگان روزانه‌ی OMDb تموم بشه) — بدون نیاز به کلیک دستی.
+  "triggers": {
+    "crons": ["0 3 * * *"]
+  }
   // OMDB_API_KEY is set as a secret (wrangler secret put OMDB_API_KEY), not here —
   // a plain "vars" entry with the same name would overwrite the secret on every deploy.
 }

@@ -372,46 +372,22 @@ export default {
         return json({ ...parseFilmRow(enriched), _enrichment: { enabled: true, fields } }, 200, corsHeaders)
       }
 
-      // ---- POST /api/films/enrich ----
-      if (method === 'POST' && pathname === '/api/films/enrich') {
-        const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
-        const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
-
-        // باگ قبلی: بدون ORDER BY، هر بار همون چند فیلم اولِ بی‌پوستر (که OMDb
-        // اصلاً پوستری براشون نداره یا اسمشون قابل‌تشخیص نیست) انتخاب می‌شدن؛
-        // دکمه هیچ‌وقت به فیلم‌های واقعاً بررسی‌نشده نمی‌رسید و «Fill missing
-        // details» عملاً روی همون‌ها گیر می‌کرد. الان اول فیلم‌های
-        // بررسی‌نشده رو تموم می‌کنه، بعد بی‌پوسترها رو به ترتیب قدیمی‌ترین
-        // تلاش می‌ره سراغشون (نه همیشه همون چندتای اول).
-        const all = await db
-          .prepare(
-            `SELECT * FROM films
-             WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''
-             ORDER BY (metadataEnrichmentAttemptedAt IS NULL) DESC, metadataEnrichmentAttemptedAt ASC
-             LIMIT ?`
-          )
-          .bind(limit)
-          .all()
-        const candidates = all.results || []
-
-        let updated = 0
-        for (const film of candidates) {
-          const parsed = parseFilmRow(film)
-          const enriched = await enrichFilm(parsed, env.OMDB_API_KEY)
-          const fields = ENRICHABLE_FIELDS.filter(
-            (f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f])
-          )
-          if (fields.length) updated++
-          enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
-          await updateFilm(db, enriched)
-        }
-
+      // ---- GET /api/films/enrich-status (just the remaining count, no processing) ----
+      if (method === 'GET' && pathname === '/api/films/enrich-status') {
         const remaining = await db
           .prepare(
             "SELECT COUNT(*) as count FROM films WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''"
           )
           .first()
-        return json({ processed: candidates.length, updated, remaining: remaining?.count || 0 }, 200, corsHeaders)
+        return json({ remaining: remaining?.count || 0 }, 200, corsHeaders)
+      }
+
+      // ---- POST /api/films/enrich ----
+      if (method === 'POST' && pathname === '/api/films/enrich') {
+        const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
+        const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
+        const result = await enrichBatch(db, env, limit)
+        return json(result, 200, corsHeaders)
       }
 
       // ---- POST /api/films/season-counts (fetch "total seasons produced so
@@ -885,6 +861,22 @@ export default {
       return json({ error: err.message }, 500, corsHeaders)
     }
   },
+
+  // هر روز خودکار (بدون این‌که کاربر دکمه رو بزنه) یه دسته از فیلم‌های
+  // بی‌اطلاعات رو enrich می‌کنه — تا سهمیه‌ی روزانه‌ی رایگان OMDb (۱۰۰۰
+  // درخواست) تموم بشه یا فیلمی برای enrich کردن نمونه، هرکدوم زودتر.
+  async scheduled(event, env, ctx) {
+    const db = env.DB
+    let totalProcessed = 0
+    let totalUpdated = 0
+    for (let i = 0; i < 65; i++) {
+      const result = await enrichBatch(db, env, 15)
+      totalProcessed += result.processed
+      totalUpdated += result.updated
+      if (result.quotaExceeded || result.processed === 0 || result.remaining === 0) break
+    }
+    console.log(`Daily enrichment: processed ${totalProcessed}, updated ${totalUpdated}`)
+  },
 }
 
 // ---------- Helpers ----------
@@ -1135,6 +1127,51 @@ async function insertFilm(db, film) {
     itemType || 'movie', seasonsEpisodes || null, letterboxdRating || null, watchlisted ? 1 : 0,
     seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(seasonDrives) : seasonDrives) : null
   ).run()
+}
+
+// یه دسته از فیلم‌های بی‌اطلاعات رو enrich می‌کنه — هم دکمه‌ی «Fill missing
+// details» تو اپ، هم کرون روزانه از همین استفاده می‌کنن.
+// باگ قبلی: بدون ORDER BY، هر بار همون چند فیلم اولِ بی‌پوستر (که OMDb اصلاً
+// پوستری براشون نداره یا اسمشون قابل‌تشخیص نیست) انتخاب می‌شدن؛ دکمه هیچ‌وقت
+// به فیلم‌های واقعاً بررسی‌نشده نمی‌رسید. الان اول فیلم‌های بررسی‌نشده رو
+// تموم می‌کنه، بعد بی‌پوسترها رو به ترتیب قدیمی‌ترین تلاش می‌ره سراغشون.
+async function enrichBatch(db, env, limit) {
+  const all = await db
+    .prepare(
+      `SELECT * FROM films
+       WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''
+       ORDER BY (metadataEnrichmentAttemptedAt IS NULL) DESC, metadataEnrichmentAttemptedAt ASC
+       LIMIT ?`
+    )
+    .bind(limit)
+    .all()
+  const candidates = all.results || []
+
+  let updated = 0
+  let quotaExceeded = false
+  for (const film of candidates) {
+    const parsed = parseFilmRow(film)
+    let enriched
+    try {
+      enriched = await enrichFilm(parsed, env.OMDB_API_KEY)
+    } catch (e) {
+      if (e.code === 'OMDB_QUOTA_EXCEEDED') {
+        quotaExceeded = true
+        break
+      }
+      throw e
+    }
+    const fields = ENRICHABLE_FIELDS.filter((f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f]))
+    if (fields.length) updated++
+    enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
+    await updateFilm(db, enriched)
+  }
+
+  const remaining = await db
+    .prepare("SELECT COUNT(*) as count FROM films WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''")
+    .first()
+
+  return { processed: candidates.length, updated, remaining: remaining?.count || 0, quotaExceeded }
 }
 
 async function updateFilm(db, film) {

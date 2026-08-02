@@ -87,6 +87,18 @@ export default function App() {
   const [adding, setAdding] = useState(false)
   const [loading, setLoading] = useState(true)
   const [enrichingCatalog, setEnrichingCatalog] = useState(false)
+  const [enrichRemaining, setEnrichRemaining] = useState(null)
+
+  const refreshEnrichRemaining = () => {
+    fetch('/api/films/enrich-status')
+      .then((r) => r.json())
+      .then((data) => setEnrichRemaining(data.remaining))
+      .catch(() => {})
+  }
+
+  useEffect(() => {
+    refreshEnrichRemaining()
+  }, [])
   const [toast, setToast] = useState('')
   const toastTimeoutRef = useRef(null)
 
@@ -445,21 +457,38 @@ export default function App() {
     }
 
     try {
+      let remaining = null
+      let hitQuota = false
       for (let batch = 0; batch < 300; batch++) {
         const data = await fetchBatchWithRetry()
         processed += data.processed
         updated += data.updated
+        remaining = data.remaining
+        if (data.quotaExceeded) {
+          hitQuota = true
+          break
+        }
         if (data.remaining === 0 || data.processed === 0) break
       }
-      showToast(`Metadata complete · updated ${updated} of ${processed} films`)
+      if (hitQuota) {
+        showToast(
+          `Updated ${updated} of ${processed} films — hit OMDb's daily free-tier limit (1000 requests/day). ` +
+            `${remaining} films still need enrichment; a daily auto-retry is scheduled, or try again tomorrow.`,
+          9000
+        )
+      } else {
+        showToast(`Metadata complete · updated ${updated} of ${processed} films`)
+      }
       loadFilms()
       refreshMeta()
       loadAllFilmsUnfiltered()
+      refreshEnrichRemaining()
     } catch (e) {
       showToast(`Stopped after ${processed} films — ${e.message}. Click "Fill missing details" again to resume.`, 7000)
       loadFilms()
       refreshMeta()
       loadAllFilmsUnfiltered()
+      refreshEnrichRemaining()
     } finally {
       setEnrichingCatalog(false)
     }
@@ -700,6 +729,7 @@ export default function App() {
         onEnrichCatalog={handleEnrichCatalog}
         onFindDuplicates={() => setShowDuplicates(true)}
         enrichingCatalog={enrichingCatalog}
+        enrichRemaining={enrichRemaining}
         onSyncLetterboxd={handleSyncLetterboxd}
         onFetchSeasonCounts={handleFetchSeasonCounts}
         fetchingSeasonCounts={fetchingSeasonCounts}

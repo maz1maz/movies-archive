@@ -53,6 +53,7 @@ export default function Header({
   onAddFilm,
   onEnrichCatalog,
   enrichingCatalog,
+  enrichRemaining,
   onFindDuplicates,
   onOpenExport,
   onSyncLetterboxd,
@@ -261,7 +262,12 @@ export default function Header({
                   disabled={enrichingCatalog}
                   title="Fill missing posters, cast, genres, and other public metadata"
                 >
-                  <IconSparkles width={15} height={15} /> {enrichingCatalog ? 'Completing metadata…' : 'Fill missing details'}
+                  <IconSparkles width={15} height={15} />{' '}
+                  {enrichingCatalog
+                    ? 'Completing metadata…'
+                    : enrichRemaining > 0
+                    ? `Fill missing details (${enrichRemaining} left)`
+                    : 'Fill missing details'}
                 </button>
                 <button
                   type="button"

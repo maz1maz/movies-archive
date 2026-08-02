@@ -53,7 +53,18 @@ export async function enrichFilm(baseFilm, key) {
   if (!res.ok) return film
 
   const data = await res.json()
-  if (data.Response !== 'True') return film
+  if (data.Response !== 'True') {
+    // سهمیه‌ی روزانه‌ی رایگان OMDb (۱۰۰۰ درخواست) تموم شده — این یه خطای
+    // موقتیه (فردا دوباره باز می‌شه)، نه اینکه این فیلم پیدا نشده باشه؛
+    // برای همین جدا علامت‌گذاریش می‌کنیم تا caller بتونه ادامه‌ی دسته رو
+    // متوقف کنه، به‌جای اینکه بی‌فایده برای بقیه هم درخواست بفرسته.
+    if (/request limit reached/i.test(data.Error || '')) {
+      const err = new Error('OMDB_QUOTA_EXCEEDED')
+      err.code = 'OMDB_QUOTA_EXCEEDED'
+      throw err
+    }
+    return film
+  }
 
   const out = { ...film }
   if (data.Year && data.Year !== 'N/A') {
