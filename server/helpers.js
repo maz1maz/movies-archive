@@ -100,7 +100,12 @@ NORMALIZED_HEADER_MAP.ownedseasons = "ownedSeasonsRaw"
 function extractOwnedSeasonsList(text) {
   if (!text) return null
   const t = String(text)
-  const beforeParen = t.split("(")[0]
+  // قبلاً عدد تعداد قسمت‌ها هم قاطیِ شماره‌ی فصل می‌شد (مثلاً "Season 2 · 12
+  // episodes" غلط می‌شد "فصل ۲, ۱۲")؛ چون فرمت متن همیشه "...فصل‌ها · تعداد
+  // قسمت" هست، فقط قسمت قبل از "·" (یا نبودش، کل متن) رو برای شماره‌ی فصل
+  // در نظر می‌گیریم، نه قسمت episodes رو.
+  const beforeDot = t.split("·")[0]
+  const beforeParen = beforeDot.split("(")[0]
   // اعداد ۳-۴ رقمی معمولاً سالن (مثلاً بازه‌ی پخش "2015–2023")، نه شماره‌ی
   // فصل؛ قبلاً این‌ها اشتباهی به‌عنوان شماره‌ی فصل ("فصل ۲۰۱۵، ۲۰۲۳") ثبت
   // می‌شدن. فقط اعداد کوتاه (۱ یا ۲ رقمی) رو به‌عنوان شماره‌ی فصل واقعی قبول می‌کنیم.
