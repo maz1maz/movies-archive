@@ -136,6 +136,13 @@ export const IconShare = (props) => (
   </svg>
 )
 
+export const IconLayers = (props) => (
+  <svg {...base} {...props}>
+    <rect x="5" y="5" width="12" height="12" rx="2" />
+    <path d="M9 19h10a2 2 0 0 0 2-2V9" />
+  </svg>
+)
+
 export const IconBookshelf = (props) => (
   <svg {...base} {...props}>
     <path d="M3 4v16M21 4v16M3 4h18M7 4v16M11 4v16M15 4v16" />

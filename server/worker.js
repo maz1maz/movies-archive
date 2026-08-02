@@ -211,6 +211,24 @@ export default {
         return json({ source: basePath, entries }, 200, corsHeaders)
       }
 
+      // ---- GET /api/duplicates (possible accidental duplicate entries — same
+      // title+year within the same media type/item type, not intentional
+      // multi-copy tracking which uses the "copies" counter instead) ----
+      if (method === 'GET' && pathname === '/api/duplicates') {
+        const result = await db
+          .prepare('SELECT id, title, year, mediaType, itemType, shelf, row, driveNumber, poster, format, copies FROM films')
+          .all()
+        const rows = result.results || []
+        const groups = new Map()
+        rows.forEach((f) => {
+          const key = `${normalizeTitle(f.title)}|${f.year || ''}|${f.mediaType}|${f.itemType}`
+          if (!groups.has(key)) groups.set(key, [])
+          groups.get(key).push(f)
+        })
+        const duplicates = Array.from(groups.values()).filter((g) => g.length > 1)
+        return json(duplicates, 200, corsHeaders)
+      }
+
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
         const { q, genre, shelf, sort, alpha, decade, drive, loaned, watched, minRating } = Object.fromEntries(url.searchParams)

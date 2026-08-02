@@ -7,6 +7,7 @@ import {
   IconSun,
   IconMoon,
   IconSparkles,
+  IconLayers,
 } from './icons.jsx'
 
 function IconHamburger(props) {
@@ -52,6 +53,7 @@ export default function Header({
   onAddFilm,
   onEnrichCatalog,
   enrichingCatalog,
+  onFindDuplicates,
   onOpenExport,
   onSyncLetterboxd,
   onFetchSeasonCounts,
@@ -227,6 +229,16 @@ export default function Header({
               </div>
               <div className="header-menu-section">
                 <div className="header-menu-section-title">Tools</div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onFindDuplicates()
+                    setMenuOpen(false)
+                  }}
+                  title="Find accidental duplicate entries (same title/year/media type)"
+                >
+                  <IconLayers width={15} height={15} /> Find Duplicates
+                </button>
                 <button
                   type="button"
                   onClick={() => {
