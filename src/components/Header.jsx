@@ -78,9 +78,15 @@ export default function Header({
   const [condensed, setCondensed] = useState(false)
 
   // موقع اسکرول به پایین، هدر جمع‌وجورتر بشه (زیرعنوان‌ها مخفی، پدینگ کمتر)
-  // تا فضای بیشتری به محتوا بده.
+  // تا فضای بیشتری به محتوا بده. همچنین اگه پنل فیلتر/منو/A-Z باز بود، با
+  // اسکرول بسته بشه — وگرنه رو پوسترها معلق می‌مونه و جلوی دیدشون رو می‌گیره.
   useEffect(() => {
-    const onScroll = () => setCondensed(window.scrollY > 40)
+    const onScroll = () => {
+      setCondensed(window.scrollY > 40)
+      setFiltersOpen(false)
+      setMenuOpen(false)
+      setAzOpen(false)
+    }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
