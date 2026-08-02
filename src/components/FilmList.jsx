@@ -1,6 +1,6 @@
-import { IconFilm, IconPin, IconStar, IconEdit, IconDisc } from './icons.jsx'
+import { IconFilm, IconPin, IconStar, IconEdit, IconDisc, IconClapper } from './icons.jsx'
 
-export default function FilmList({ films, onSelect, onEdit, hasBluray }) {
+export default function FilmList({ films, onSelect, onEdit, hasBluray, hasDigital }) {
   return (
     <div className="list">
       {films.map((f) => (
@@ -38,6 +38,11 @@ export default function FilmList({ films, onSelect, onEdit, hasBluray }) {
               {hasBluray && hasBluray(f) && (
                 <span className="bluray-badge bluray-badge-list" title="Blu-ray copy also owned">
                   <IconDisc width={10} height={10} /> BLU-RAY
+                </span>
+              )}
+              {hasDigital && hasDigital(f) && (
+                <span className="digital-badge digital-badge-list" title="Digital copy also owned">
+                  <IconClapper width={10} height={10} /> DIGITAL
                 </span>
               )}
             </div>

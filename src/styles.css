@@ -2334,10 +2334,31 @@ body.light .header {
 
 /* ---------- Digital item that also has a physical Blu-ray copy ---------- */
 .card-has-bluray {
+  border: 2px solid #d4af37 !important;
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35);
+}
+/* ---------- Physical item that also has a digital copy ---------- */
+.card-has-digital {
   border: 2px solid #3b82f6 !important;
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
 }
 .bluray-badge {
+  position: absolute;
+  bottom: 7px;
+  left: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #d4af37;
+  color: #1a1305;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  z-index: 2;
+}
+.digital-badge {
   position: absolute;
   bottom: 7px;
   right: 7px;
@@ -2351,19 +2372,33 @@ body.light .header {
   letter-spacing: 0.5px;
   padding: 3px 6px;
   border-radius: 5px;
-  z-index: 1;
+  z-index: 2;
 }
 .bluray-badge-list {
   position: static;
   margin-inline-start: 6px;
   padding: 2px 5px;
 }
+.digital-badge-list {
+  position: static;
+  margin-inline-start: 6px;
+  padding: 2px 5px;
+}
 .bluray-badge-modal {
+  position: static;
+  background: #d4af37;
+  color: #1a1305;
+}
+.digital-badge-modal {
   position: static;
   background: #3b82f6;
   color: #eef4ff;
 }
 .cine-poster-has-bluray {
+  border: 2px solid #d4af37;
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35);
+}
+.cine-poster-has-digital {
   border: 2px solid #3b82f6;
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
 }

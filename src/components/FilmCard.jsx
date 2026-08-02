@@ -1,4 +1,4 @@
-import { IconStar, IconPin, IconDisc } from './icons.jsx'
+import { IconStar, IconPin, IconDisc, IconClapper } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 
 // پالت رنگی برای کارت‌هایی که پوستر ندارن
@@ -20,7 +20,7 @@ function hashCode(str) {
   return Math.abs(h)
 }
 
-export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray }) {
+export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, hasDigital }) {
   const [c1, c2] = PALETTE[hashCode(String(film.id)) % PALETTE.length]
   const isDigital = film.mediaType === 'digital'
   const hasLocation = isDigital ? film.driveNumber : film.shelf || film.row
@@ -44,6 +44,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray }) {
         'card',
         film.criterion && 'card-criterion',
         hasBluray && 'card-has-bluray',
+        hasDigital && 'card-has-digital',
       ].filter(Boolean).join(' ')}
       data-film-id={film.id}
       onClick={(e) => {
@@ -85,6 +86,11 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray }) {
         {hasBluray && (
           <span className="bluray-badge" title="Blu-ray copy also owned">
             <IconDisc width={11} height={11} /> BLU-RAY
+          </span>
+        )}
+        {hasDigital && (
+          <span className="digital-badge" title="Digital copy also owned">
+            <IconClapper width={11} height={11} /> DIGITAL
           </span>
         )}
       </div>

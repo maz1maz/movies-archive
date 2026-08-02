@@ -539,6 +539,15 @@ export default function App() {
   )
   const hasBlurayCopy = (f) =>
     f.mediaType === 'digital' && blurayKeys.has(`${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
+  // برعکسش: کلیدهای فیلم‌هایی که نسخه‌ی دیجیتال هم دارن، برای نشون‌دادن نشان
+  // «دیجیتال هم داره» روی کارت‌های بلوری همون فیلم/سریال
+  const digitalKeys = new Set(
+    allFilmsUnfiltered
+      .filter((f) => f.mediaType === 'digital')
+      .map((f) => `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
+  )
+  const hasDigitalCopy = (f) =>
+    f.mediaType !== 'digital' && digitalKeys.has(`${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
   // نمای تقسیم‌شده (پنل جزئیات + گرید) فقط توی حالت Thumbnails و روی صفحه‌ی
   // عریض (دسکتاپ/تبلت)؛ توی موبایل و حالت List همون مودال قبلی می‌مونه.
   const useSplitView = view === 'grid' && isWide
@@ -632,6 +641,7 @@ export default function App() {
               film={selected}
               films={allFilmsUnfiltered}
               hasBluray={hasBlurayCopy(selected)}
+              hasDigital={hasDigitalCopy(selected)}
               onNavigate={(film) => setSelected(film)}
               onSelectPerson={(name) => {
                 setSelected(null)
@@ -648,6 +658,7 @@ export default function App() {
               personName={selectedPerson}
               allFilms={allFilmsUnfiltered}
               hasBluray={hasBlurayCopy}
+              hasDigital={hasDigitalCopy}
               onSelectFilm={(film) => {
                 setSelectedPerson(null)
                 setSelected(film)
@@ -730,11 +741,11 @@ export default function App() {
             </p>
           </div>
         ) : view === 'list' ? (
-          <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} hasBluray={hasBlurayCopy} />
+          <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
         ) : useSplitView && selected ? (
           <div className="grid-split">
             <div className="grid-split-grid">
-              <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} />
+              <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
             </div>
             <div className="grid-split-detail">
               <FilmModal
@@ -742,6 +753,7 @@ export default function App() {
                 film={selected}
                 films={sectionFilms}
                 hasBluray={hasBlurayCopy(selected)}
+                hasDigital={hasDigitalCopy(selected)}
                 onNavigate={(film) => setSelected(film)}
                 onSelectPerson={(name) => {
                   setSelected(null)
@@ -755,7 +767,7 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} />
+          <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
         )}
         {pageCount > 1 && !loading && (
           <div className="pagination">
@@ -775,6 +787,7 @@ export default function App() {
           film={selected}
           films={sectionFilms}
           hasBluray={hasBlurayCopy(selected)}
+          hasDigital={hasDigitalCopy(selected)}
           onNavigate={(film) => setSelected(film)}
           onSelectPerson={(name) => {
             setSelected(null)
@@ -794,6 +807,7 @@ export default function App() {
           personName={selectedPerson}
           allFilms={allFilmsUnfiltered}
           hasBluray={hasBlurayCopy}
+          hasDigital={hasDigitalCopy}
           onSelectFilm={(film) => {
             setSelectedPerson(null)
             setSelected(film)
