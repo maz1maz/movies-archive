@@ -154,6 +154,13 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     ? `https://www.imdb.com/title/${film.imdbId}/`
     : `https://www.imdb.com/find/?q=${encodeURIComponent(film.title)}`
 
+  // لتربوکس یه لینک ریدایرکت مستقیم بر اساس IMDb ID داره که همیشه به صفحه‌ی
+  // درست همون فیلم می‌ره (نه نتایج سرچ) — چون حدس زدن اسلاگ از رو عنوان/سال
+  // همیشه درست از آب درنمیاد (ریمیک‌ها، کاراکترهای خاص، و...).
+  const letterboxdUrl = film.imdbId
+    ? `https://letterboxd.com/imdb/${film.imdbId}/`
+    : `https://letterboxd.com/search/films/${encodeURIComponent(film.title)}/`
+
   const getActorPhoto = (actorObj, name) => {
     if (typeof actorObj === 'object' && actorObj?.photo) return actorObj.photo
     if (actorPhotos[name]) return actorPhotos[name]
@@ -356,7 +363,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 {/* Letterboxd Rating Badge (فیلم‌ها) */}
                 {film.itemType !== 'series' && typeof letterboxdRating === 'number' && (
                   <a
-                    href={`https://letterboxd.com/search/films/${encodeURIComponent(film.title)}/`}
+                    href={letterboxdUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="letterboxd-rating-box"
