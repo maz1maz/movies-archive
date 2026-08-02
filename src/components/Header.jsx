@@ -56,6 +56,7 @@ export default function Header({
   onFindDuplicates,
   onOpenExport,
   onSyncLetterboxd,
+  onSyncTrakt,
   onFetchSeasonCounts,
   fetchingSeasonCounts,
   view,
@@ -259,6 +260,16 @@ export default function Header({
                   title="Pull your own diary entries/reviews from your public Letterboxd RSS feed"
                 >
                   <IconSparkles width={15} height={15} /> Sync Letterboxd Reviews
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSyncTrakt()
+                    setMenuOpen(false)
+                  }}
+                  title="Pull ratings and watched status from your public Trakt profile"
+                >
+                  <IconSparkles width={15} height={15} /> Sync Trakt Ratings
                 </button>
                 <button
                   type="button"

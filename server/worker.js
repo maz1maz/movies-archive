@@ -3,6 +3,7 @@
 import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMetadata, countSeasonsFromText, decodeHtmlEntities } from './helpers.js'
 import { enrichFilm } from './omdb.js'
 import { fetchTotalSeasons } from './tvmaze.js'
+import { fetchTraktLibrary } from './trakt.js'
 import * as XLSX from 'xlsx'
 
 export default {
@@ -667,6 +668,63 @@ export default {
         }
 
         return json({ processed: entries.length, matched, unmatched }, 200, corsHeaders)
+      }
+
+      // ---- POST /api/trakt-sync (pull ratings + watched status from a public
+      // Trakt profile and attach them to matching films — movies AND series,
+      // physical AND digital, matched by IMDb ID first, then title+year) ----
+      if (method === 'POST' && pathname === '/api/trakt-sync') {
+        const clientId = env.TRAKT_CLIENT_ID
+        if (!clientId) {
+          return json(
+            { error: 'TRAKT_CLIENT_ID تنظیم نشده — باید یه اپلیکیشن توی Trakt بسازی و Client ID رو به‌عنوان secret اضافه کنی' },
+            400,
+            corsHeaders
+          )
+        }
+        let body = {}
+        try {
+          body = await request.json()
+        } catch {
+          return json({ error: 'بدنه‌ی درخواست نامعتبره' }, 400, corsHeaders)
+        }
+        const username = (body.username || '').trim()
+        if (!username) return json({ error: 'یوزرنیم Trakt لازمه' }, 400, corsHeaders)
+
+        let lib
+        try {
+          lib = await fetchTraktLibrary(username, clientId)
+        } catch (e) {
+          return json({ error: 'اتصال به Trakt ناموفق بود: ' + e.message }, 502, corsHeaders)
+        }
+        if (!lib) return json({ error: 'یوزرنیم Trakt پیدا نشد' }, 400, corsHeaders)
+
+        const all = await db.prepare('SELECT id, title, year, imdbId, myRating, watched FROM films').all()
+        let matched = 0
+        for (const film of all.results || []) {
+          const keyByImdb = film.imdbId || null
+          const keyByTitle = `${(film.title || '').toLowerCase()}::${film.year || ''}`
+          const ratingEntry = (keyByImdb && lib.ratings.get(keyByImdb)) || lib.ratings.get(keyByTitle)
+          const isWatched = (keyByImdb && lib.watched.has(keyByImdb)) || lib.watched.has(keyByTitle)
+          if (!ratingEntry && !isWatched) continue
+
+          const updates = []
+          const values = []
+          if (ratingEntry && (film.myRating == null || film.myRating === 0)) {
+            updates.push('myRating = ?')
+            values.push(ratingEntry.stars)
+          }
+          if (isWatched && !film.watched) {
+            updates.push('watched = ?')
+            values.push(1)
+          }
+          if (!updates.length) continue
+          matched++
+          values.push(film.id)
+          await db.prepare(`UPDATE films SET ${updates.join(', ')} WHERE id = ?`).bind(...values).run()
+        }
+
+        return json({ matched }, 200, corsHeaders)
       }
 
       // ---- GET /api/template (downloadable Excel template) ----

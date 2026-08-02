@@ -485,6 +485,31 @@ export default function App() {
     }
   }
 
+  // امتیاز و وضعیت تماشا رو از پروفایل عمومیِ Trakt کاربر می‌گیره؛ روی همه‌ی
+  // فیلم/سریال‌ها (فیزیکی و دیجیتال) با تطبیق IMDb ID یا title+year اعمال می‌شه.
+  const handleSyncTrakt = async () => {
+    const savedUsername = localStorage.getItem('fa_trakt_username') || ''
+    const username = window.prompt('Trakt username:', savedUsername)
+    if (!username || !username.trim()) return
+    localStorage.setItem('fa_trakt_username', username.trim())
+
+    showToast('Syncing Trakt ratings & watched status…')
+    try {
+      const res = await fetch('/api/trakt-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Trakt sync failed')
+      showToast(`Trakt sync: ${data.matched} films updated`, 6000)
+      loadFilms()
+      loadAllFilmsUnfiltered()
+    } catch (e) {
+      showToast(e.message)
+    }
+  }
+
   // «چند فصل از این سریال تا الان ساخته شده» رو از TVMaze می‌گیره (نه اینکه
   // چند فصلش رو داریم؛ همون totalSeasonsProduced که توی صفحه‌ی فیلم کنار
   // فصل‌های موجود نشون داده می‌شه). فقط سریال‌هایی که این عدد رو ندارن.
@@ -658,6 +683,7 @@ export default function App() {
         onFindDuplicates={() => setShowDuplicates(true)}
         enrichingCatalog={enrichingCatalog}
         onSyncLetterboxd={handleSyncLetterboxd}
+        onSyncTrakt={handleSyncTrakt}
         onFetchSeasonCounts={handleFetchSeasonCounts}
         fetchingSeasonCounts={fetchingSeasonCounts}
         onOpenExport={() => setShowExport(true)}
