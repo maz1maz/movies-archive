@@ -197,7 +197,12 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
         {/* Title & Subtitle Header */}
         <div className="cine-title-block">
           <div className="cine-title-row">
-            <h2 className="cine-title">{film.title}</h2>
+            <h2 className="cine-title">
+              {film.title}
+              {film.originalTitle && film.originalTitle.trim() && film.originalTitle.trim() !== film.title.trim() && (
+                <span className="cine-original-title"> ({film.originalTitle})</span>
+              )}
+            </h2>
             {/* Format Badge */}
             <span className={`format-badge ${mediaFormat.toLowerCase().includes('4k') ? 'fmt-4k' : mediaFormat.toLowerCase().replace(/[^a-z0-9]/g, '')}`}>
               {mediaFormat}

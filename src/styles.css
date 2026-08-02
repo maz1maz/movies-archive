@@ -813,10 +813,16 @@ body.light .header {
 }
 .cine-title {
   margin: 0;
-  font-size: 25px;
+  font-size: 27px;
   font-weight: 800;
   color: var(--accent);
   letter-spacing: -0.3px;
+}
+.cine-original-title {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0;
 }
 
 /* Format Badges */
