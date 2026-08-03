@@ -9,7 +9,6 @@ import FolderNav from './components/FolderNav.jsx'
 import DashboardPanel from './components/DashboardPanel.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import ExportModal from './components/ExportModal.jsx'
-import DuplicatesModal from './components/DuplicatesModal.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
@@ -81,7 +80,6 @@ export default function App() {
   )
   const [selectedPerson, setSelectedPerson] = useState(null)
   const [showExport, setShowExport] = useState(false)
-  const [showDuplicates, setShowDuplicates] = useState(false)
   const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
@@ -727,7 +725,6 @@ export default function App() {
         onImportRatings={handleImportRatings}
         onAddFilm={() => setAdding(true)}
         onEnrichCatalog={handleEnrichCatalog}
-        onFindDuplicates={() => setShowDuplicates(true)}
         enrichingCatalog={enrichingCatalog}
         enrichRemaining={enrichRemaining}
         onSyncLetterboxd={handleSyncLetterboxd}
@@ -848,25 +845,6 @@ export default function App() {
 
       {showExport && (
         <ExportModal films={sectionFilms} section={section} onClose={() => setShowExport(false)} />
-      )}
-
-      {showDuplicates && (
-        <DuplicatesModal
-          onClose={() => setShowDuplicates(false)}
-          onOpenFilm={(film) => {
-            const target =
-              film.mediaType === 'digital'
-                ? film.itemType === 'series'
-                  ? 'digital-series'
-                  : 'digital-movie'
-                : film.itemType === 'series'
-                ? 'physical-series'
-                : 'physical'
-            setShowDuplicates(false)
-            changeSection(target)
-            setSelected(film)
-          }}
-        />
       )}
 
       {loanFilm && (

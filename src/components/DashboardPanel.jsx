@@ -6,7 +6,8 @@ import CraftsPanel from './CraftsPanel.jsx'
 import DashboardExportPanel from './DashboardExportPanel.jsx'
 import DashboardRecommendPanel from './DashboardRecommendPanel.jsx'
 import DashboardWatchlistsPanel from './DashboardWatchlistsPanel.jsx'
-import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper, IconBookshelf } from './icons.jsx'
+import DashboardDuplicatesPanel from './DashboardDuplicatesPanel.jsx'
+import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper, IconBookshelf, IconLayers } from './icons.jsx'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: IconBarChart },
@@ -14,6 +15,7 @@ const TABS = [
   { key: 'genretops', label: 'Genre Tops', icon: IconMasks },
   { key: 'crafts', label: 'Crafts', icon: IconClapper },
   { key: 'watchlists', label: 'Watchlists', icon: IconBookshelf },
+  { key: 'duplicates', label: 'Duplicates', icon: IconLayers },
   { key: 'recommend', label: 'Tonight', icon: IconDice },
   { key: 'export', label: 'Export & Backup', icon: IconSave },
 ]
@@ -70,6 +72,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
         {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'crafts' && <CraftsPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'watchlists' && <DashboardWatchlistsPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
+        {tab === 'duplicates' && <DashboardDuplicatesPanel onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
         {tab === 'recommend' && <DashboardRecommendPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'export' && <DashboardExportPanel films={films} />}
       </div>

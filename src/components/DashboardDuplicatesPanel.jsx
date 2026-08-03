@@ -1,67 +1,74 @@
 import { useEffect, useState } from 'react'
-import { IconClose, IconLayers } from './icons.jsx'
 
-export default function DuplicatesModal({ onClose, onOpenFilm }) {
+const SCOPES = [
+  { key: 'all', label: 'Everything' },
+  { key: 'physical', label: 'Blu-ray (Physical)' },
+  { key: 'digital', label: 'Digital' },
+  { key: 'series', label: 'Series only' },
+  { key: 'movies', label: 'Movies only' },
+]
+
+export default function DashboardDuplicatesPanel({ onOpenFilm, onFilmsChanged }) {
+  const [scope, setScope] = useState('all')
   const [groups, setGroups] = useState(null)
   const [busyId, setBusyId] = useState(null)
 
-  const load = () => {
+  const load = (s) => {
     setGroups(null)
-    fetch('/api/duplicates')
+    fetch(`/api/duplicates?scope=${s}`)
       .then((r) => r.json())
       .then((data) => setGroups(Array.isArray(data) ? data : []))
       .catch(() => setGroups([]))
   }
 
   useEffect(() => {
-    load()
-    const onKey = (e) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-    }
+    load(scope)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [scope])
 
   const handleDelete = async (id) => {
     if (!window.confirm('Permanently delete this entry? This cannot be undone.')) return
     setBusyId(id)
     try {
       await fetch(`/api/films/${id}`, { method: 'DELETE' })
-      load()
+      load(scope)
+      if (onFilmsChanged) onFilmsChanged()
     } finally {
       setBusyId(null)
     }
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-stats" onClick={(e) => e.stopPropagation()}>
-        <div className="stats-header">
-          <h2>
-            <IconLayers width={18} height={18} /> Possible Duplicates
-          </h2>
-          <button className="icon-btn" onClick={onClose}>
-            <IconClose width={18} height={18} />
-          </button>
-        </div>
-
-        <p style={{ fontSize: 12.5, color: 'var(--muted)', margin: '-8px 0 4px' }}>
+    <div className="oscars-panel">
+      <div className="card oscars-controls">
+        <p className="oscars-intro">
           Same title, year, and media type appearing more than once — usually an accidental double entry, not
           intentional multi-copy tracking (that uses the Copies counter on a single entry instead).
         </p>
+        <div className="row row-wrap oscars-filters">
+          <div className="oscars-field">
+            <label>Check where?</label>
+            <select className="input" value={scope} onChange={(e) => setScope(e.target.value)}>
+              {SCOPES.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
 
+      <section>
         {groups === null ? (
           <div className="empty">Scanning your archive…</div>
         ) : groups.length === 0 ? (
-          <div className="empty">No duplicates found — your archive looks clean. 🎬</div>
+          <div className="empty">No duplicates found here — looks clean. 🎬</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 16 }}>
             {groups.map((group, gi) => (
-              <div key={gi} className="stats-box">
-                <h3>
+              <div key={gi} className="card oscars-category-block" style={{ padding: 16 }}>
+                <h3 className="oscars-category-title" style={{ borderBottom: 'none', marginBottom: 4 }}>
                   {group[0].title} {group[0].year ? `(${group[0].year})` : ''} — {group.length} entries
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
@@ -83,7 +90,8 @@ export default function DuplicatesModal({ onClose, onOpenFilm }) {
                         {f.mediaType === 'digital'
                           ? f.driveNumber || 'No drive set'
                           : `Shelf ${f.shelf || '—'} / Row ${f.row || '—'}`}{' '}
-                        · {f.format || '—'} · {f.copies > 1 ? `${f.copies} copies` : '1 copy'}
+                        · {f.itemType === 'series' ? 'Series' : 'Movie'} · {f.format || '—'} ·{' '}
+                        {f.copies > 1 ? `${f.copies} copies` : '1 copy'}
                       </div>
                       <button className="btn btn-sm" onClick={() => onOpenFilm(f)}>
                         View
@@ -103,7 +111,7 @@ export default function DuplicatesModal({ onClose, onOpenFilm }) {
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
   )
 }
