@@ -4,12 +4,14 @@ import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { shareFilmCard } from '../utils/shareCard.js'
 
-export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false }) {
+export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false, onSaveSeasonDrive }) {
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
   const [actorPhotos, setActorPhotos] = useState({})
   const [letterboxdRating, setLetterboxdRating] = useState(null)
   const [shareStatus, setShareStatus] = useState(null)
+  const [editingSeason, setEditingSeason] = useState(null)
+  const [seasonDriveInput, setSeasonDriveInput] = useState('')
 
   const handleShare = async () => {
     setShareStatus('working')
@@ -21,6 +23,37 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       else setShareStatus(null)
     }
     setTimeout(() => setShareStatus(null), 2500)
+  }
+
+  // یه شماره فصل رو به هارد جدید نگاشت می‌کنه (یا از نقشه پاک می‌کنه اگه
+  // خالی گذاشته بشه)، بعد seasonDrives رو دوباره از رو نقشه‌ی به‌روزشده
+  // می‌سازه — به‌جای این‌که فقط رشته‌ی همون یه ردیف رو دستکاری کنه، چون یه
+  // ردیف seasonDrives می‌تونه چندتا فصل رو باهم پوشش بده (مثلاً "2, 3").
+  const saveSeasonDrive = (seasonNum, newDrive) => {
+    if (!onSaveSeasonDrive) return
+    const ownedMap = {}
+    ;(film.seasonDrives || []).forEach((sd) => {
+      const nums = String(sd.seasons || '').match(/\d+/g) || []
+      nums.forEach((n) => {
+        ownedMap[Number(n)] = sd.drive
+      })
+    })
+    if (newDrive && newDrive.trim()) {
+      ownedMap[seasonNum] = newDrive.trim()
+    } else {
+      delete ownedMap[seasonNum]
+    }
+    const byDrive = {}
+    Object.entries(ownedMap).forEach(([n, drive]) => {
+      if (!byDrive[drive]) byDrive[drive] = []
+      byDrive[drive].push(Number(n))
+    })
+    const nextSeasonDrives = Object.entries(byDrive).map(([drive, nums]) => ({
+      seasons: nums.sort((a, b) => a - b).join(', '),
+      drive,
+    }))
+    onSaveSeasonDrive(film, nextSeasonDrives)
+    setEditingSeason(null)
   }
   const [letterboxdVotes, setLetterboxdVotes] = useState(null)
   const [lightboxSrc, setLightboxSrc] = useState(null)
@@ -619,12 +652,43 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     return Array.from({ length: totalCount }, (_, i) => i + 1).map((n) => (
                       <div key={n} className="cine-season-row">
                         <span className="season-key">Season {n}</span>
-                        {ownedMap[n] ? (
-                          <span className="season-drive">
-                            <IconPin width={12} height={12} /> {ownedMap[n]}
+                        {editingSeason === n ? (
+                          <span className="season-drive season-drive-editing">
+                            <input
+                              autoFocus
+                              className="season-drive-input"
+                              value={seasonDriveInput}
+                              placeholder="e.g. Drive 3"
+                              onChange={(e) => setSeasonDriveInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveSeasonDrive(n, seasonDriveInput)
+                                if (e.key === 'Escape') setEditingSeason(null)
+                              }}
+                              onBlur={() => saveSeasonDrive(n, seasonDriveInput)}
+                            />
                           </span>
                         ) : (
-                          <span className="season-drive season-missing">Not in archive</span>
+                          <span
+                            className={ownedMap[n] ? 'season-drive' : 'season-drive season-missing'}
+                            onClick={
+                              onSaveSeasonDrive
+                                ? () => {
+                                    setEditingSeason(n)
+                                    setSeasonDriveInput(ownedMap[n] || '')
+                                  }
+                                : undefined
+                            }
+                            style={onSaveSeasonDrive ? { cursor: 'pointer' } : undefined}
+                            title={onSaveSeasonDrive ? 'Click to edit which drive this season is on' : undefined}
+                          >
+                            {ownedMap[n] ? (
+                              <>
+                                <IconPin width={12} height={12} /> {ownedMap[n]}
+                              </>
+                            ) : (
+                              'Not in archive'
+                            )}
+                          </span>
                         )}
                       </div>
                     ))

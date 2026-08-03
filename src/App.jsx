@@ -676,6 +676,7 @@ export default function App() {
               }}
               onManageLoan={(film) => setLoanFilm(film)}
               onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
+              onSaveSeasonDrive={(film, seasonDrives) => handleSaveFilm(film.id, { seasonDrives })}
               onEdit={setEditing}
               onClose={() => setSelected(null)}
             />
@@ -788,6 +789,7 @@ export default function App() {
                 }}
                 onManageLoan={(film) => setLoanFilm(film)}
                 onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
+                onSaveSeasonDrive={(film, seasonDrives) => handleSaveFilm(film.id, { seasonDrives })}
                 onEdit={setEditing}
                 onClose={() => setSelected(null)}
               />
@@ -824,6 +826,7 @@ export default function App() {
             setLoanFilm(film)
           }}
           onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
+          onSaveSeasonDrive={(film, seasonDrives) => handleSaveFilm(film.id, { seasonDrives })}
           onEdit={setEditing}
           onClose={() => setSelected(null)}
         />

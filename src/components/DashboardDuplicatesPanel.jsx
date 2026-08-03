@@ -159,6 +159,14 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
                       onClose={() => {}}
                       onEdit={() => {}}
                       onNavigate={() => {}}
+                      onSaveSeasonDrive={async (f, seasonDrives) => {
+                        await fetch(`/api/films/${f.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ seasonDrives }),
+                        })
+                        if (onFilmsChanged) onFilmsChanged()
+                      }}
                     />
                     <button
                       className="btn btn-sm btn-ghost"
