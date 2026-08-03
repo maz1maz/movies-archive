@@ -664,8 +664,23 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                                 if (e.key === 'Enter') saveSeasonDrive(n, seasonDriveInput)
                                 if (e.key === 'Escape') setEditingSeason(null)
                               }}
-                              onBlur={() => saveSeasonDrive(n, seasonDriveInput)}
                             />
+                            <button
+                              type="button"
+                              className="season-drive-save-btn"
+                              onClick={() => saveSeasonDrive(n, seasonDriveInput)}
+                              title="Save"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              type="button"
+                              className="season-drive-cancel-btn"
+                              onClick={() => setEditingSeason(null)}
+                              title="Cancel"
+                            >
+                              ✕
+                            </button>
                           </span>
                         ) : (
                           <span

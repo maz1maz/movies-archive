@@ -1629,6 +1629,27 @@ body.light .header {
   background: var(--surface);
   color: var(--text);
 }
+.season-drive-editing {
+  gap: 4px;
+}
+.season-drive-save-btn,
+.season-drive-cancel-btn {
+  border: none;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 1;
+}
+.season-drive-save-btn {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.season-drive-cancel-btn {
+  background: var(--surface-3);
+  color: var(--muted);
+}
 
 /* Trailer Card */
 .cine-trailer-card {
