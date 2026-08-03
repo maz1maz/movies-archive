@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { IconClose } from './icons.jsx'
+import FilmModal from './FilmModal.jsx'
 
 const SCOPES = [
   { key: 'all', label: 'Everything' },
@@ -8,10 +10,11 @@ const SCOPES = [
   { key: 'movies', label: 'Movies only' },
 ]
 
-export default function DashboardDuplicatesPanel({ onOpenFilm, onFilmsChanged }) {
+export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFilmsChanged }) {
   const [scope, setScope] = useState('all')
   const [groups, setGroups] = useState(null)
   const [busyId, setBusyId] = useState(null)
+  const [compareGroup, setCompareGroup] = useState(null)
 
   const load = (s) => {
     setGroups(null)
@@ -68,8 +71,16 @@ export default function DashboardDuplicatesPanel({ onOpenFilm, onFilmsChanged })
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 16 }}>
             {groups.map((group, gi) => (
               <div key={gi} className="card oscars-category-block" style={{ padding: 16 }}>
-                <h3 className="oscars-category-title" style={{ borderBottom: 'none', marginBottom: 4 }}>
+                <h3
+                  className="oscars-category-title"
+                  style={{ borderBottom: 'none', marginBottom: 4, cursor: 'pointer' }}
+                  onClick={() => setCompareGroup(group)}
+                  title="Click to compare these entries side by side"
+                >
                   {group[0].title} {group[0].year ? `(${group[0].year})` : ''} — {group.length} entries
+                  <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 500, marginInlineStart: 10 }}>
+                    Compare →
+                  </span>
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
                   {group.map((f) => (
@@ -112,6 +123,66 @@ export default function DashboardDuplicatesPanel({ onOpenFilm, onFilmsChanged })
           </div>
         )}
       </section>
+
+      {compareGroup && (
+        <div className="modal-overlay" onClick={() => setCompareGroup(null)}>
+          <div
+            className="modal modal-compare"
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: 'min(1400px, 96vw)', maxHeight: '92vh', overflowY: 'auto', padding: 20 }}
+          >
+            <div className="stats-header">
+              <h2>
+                Comparing {compareGroup.length} entries — {compareGroup[0].title}
+              </h2>
+              <button className="icon-btn" onClick={() => setCompareGroup(null)}>
+                <IconClose width={18} height={18} />
+              </button>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${Math.min(compareGroup.length, 2)}, 1fr)`,
+                gap: 16,
+              }}
+            >
+              {compareGroup.map((entry) => {
+                const full = films.find((f) => f.id === entry.id) || entry
+                return (
+                  <div key={entry.id} className="card" style={{ padding: 12, overflow: 'hidden' }}>
+                    <FilmModal
+                      film={full}
+                      films={films}
+                      panel
+                      hasBluray={false}
+                      hasDigital={false}
+                      onClose={() => {}}
+                      onEdit={() => {}}
+                      onNavigate={() => {}}
+                    />
+                    <button
+                      className="btn btn-sm btn-ghost"
+                      style={{ marginTop: 10, width: '100%', color: 'var(--marquee-ruby, #9c2b3c)' }}
+                      onClick={async () => {
+                        if (!window.confirm(`Delete this entry (${full.title})? This cannot be undone.`)) return
+                        setBusyId(entry.id)
+                        await fetch(`/api/films/${entry.id}`, { method: 'DELETE' })
+                        setBusyId(null)
+                        setCompareGroup(null)
+                        load(scope)
+                        if (onFilmsChanged) onFilmsChanged()
+                      }}
+                      disabled={busyId === entry.id}
+                    >
+                      {busyId === entry.id ? 'Deleting…' : 'Delete this one'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

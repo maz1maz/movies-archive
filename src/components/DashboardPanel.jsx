@@ -72,7 +72,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
         {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'crafts' && <CraftsPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'watchlists' && <DashboardWatchlistsPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
-        {tab === 'duplicates' && <DashboardDuplicatesPanel onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
+        {tab === 'duplicates' && <DashboardDuplicatesPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
         {tab === 'recommend' && <DashboardRecommendPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'export' && <DashboardExportPanel films={films} />}
       </div>
