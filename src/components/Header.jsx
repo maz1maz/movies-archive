@@ -8,6 +8,10 @@ import {
   IconMoon,
   IconSparkles,
   IconLayers,
+  IconArchive,
+  IconDisc,
+  IconClapper,
+  IconBookshelf,
 } from './icons.jsx'
 
 function IconHamburger(props) {
@@ -116,6 +120,7 @@ export default function Header({
       {anyPopoverOpen && <div className="menu-backdrop" onClick={closeAllPopovers} />}
 
       <div className="container header-inner">
+        <div className="header-brand-group">
         <button type="button" className="brand brand-clickable" onClick={onGoToLibrary} title="Back to Library">
           <img src="/logo.png" alt="Cinefilm Archive" className="brand-logo" />
           <div className="brand-text">
@@ -133,6 +138,27 @@ export default function Header({
             </p>
           </div>
         </button>
+
+        <div className={`section-badge section-badge-${section === 'digital-movie' || section === 'digital-series' ? 'digital' : 'physical'}`}>
+          {section === 'digital-movie' ? (
+            <>
+              <IconClapper width={14} height={14} /> Digital Movies
+            </>
+          ) : section === 'digital-series' ? (
+            <>
+              <IconBookshelf width={14} height={14} /> Digital Series
+            </>
+          ) : section === 'physical-series' ? (
+            <>
+              <IconDisc width={14} height={14} /> Blu-ray Series
+            </>
+          ) : (
+            <>
+              <IconArchive width={14} height={14} /> Blu-ray Movies
+            </>
+          )}
+        </div>
+        </div>
 
         <div className="actions">
           <div className="filters-wrap">

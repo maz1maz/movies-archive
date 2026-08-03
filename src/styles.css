@@ -3486,3 +3486,41 @@ body.light .dashboard-panel {
   background: var(--marquee-ruby, #9c2b3c);
   border-color: var(--marquee-ruby, #9c2b3c);
 }
+
+/* ---------- Header: clear "you are here" section indicator ---------- */
+.section-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.section-badge-physical {
+  background: rgba(212, 175, 55, 0.14);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  color: #d4af37;
+}
+.section-badge-digital {
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  color: #3b82f6;
+}
+@media (max-width: 720px) {
+  .section-badge {
+    font-size: 11px;
+    padding: 5px 9px;
+  }
+}
+
+.header-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
