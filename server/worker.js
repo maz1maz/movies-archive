@@ -234,6 +234,27 @@ export default {
         return json(duplicates, 200, corsHeaders)
       }
 
+      // ---- GET /api/films/by-person?name=... (search server-side instead of
+      // relying on the client having the ENTIRE films table loaded — with the
+      // archive at 9000+ rows, the full unfiltered fetch could silently fail
+      // or be stale, making a person's own filmography wrongly show 0 films) ----
+      if (method === 'GET' && pathname === '/api/films/by-person') {
+        const name = (url.searchParams.get('name') || '').trim()
+        if (!name) return json([], 200, corsHeaders)
+        const s = `%${name.toLowerCase()}%`
+        const result = await db
+          .prepare(
+            `SELECT * FROM films WHERE
+             LOWER(director) LIKE ? OR LOWER(writer) LIKE ? OR LOWER(producer) LIKE ? OR
+             LOWER(musician) LIKE ? OR LOWER(composer) LIKE ? OR LOWER("cast") LIKE ?
+             ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
+          )
+          .bind(s, s, s, s, s, s)
+          .all()
+        const films = (result.results || []).map(parseFilmRow)
+        return json(films, 200, corsHeaders)
+      }
+
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
         const { q, genre, shelf, sort, alpha, decade, drive, loaned, watched, minRating } = Object.fromEntries(url.searchParams)

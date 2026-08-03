@@ -70,8 +70,33 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
 
   const target = personName.trim().toLowerCase()
 
+  // قبلاً اینجا فقط لیست allFilms (که باید کل جدول فیلم‌ها رو از قبل توی
+  // مرورگر لود کرده باشه) فیلتر می‌شد؛ با رشد آرشیو به ۹۰۰۰+ ردیف، اون لیست
+  // گاهی هنوز کامل/به‌روز لود نشده بود و صفحه‌ی بازیگر اشتباهاً «۰ فیلم»
+  // نشون می‌داد، حتی برای فیلمی که همین الان ازش باز شده بودیم. الان مستقیم
+  // از سرور برای همین شخص جستجو می‌کنیم، بدون وابستگی به دیتای از‌قبل‌لودشده.
+  const [serverFilms, setServerFilms] = useState(null)
+  useEffect(() => {
+    let cancelled = false
+    setServerFilms(null)
+    if (!personName) return
+    fetch(`/api/films/by-person?name=${encodeURIComponent(personName)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) setServerFilms(data)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [personName])
+
+  // تا وقتی جواب سرور نرسیده، به‌عنوان fallback از همون لیستِ کلاینت استفاده
+  // می‌کنیم تا صفحه خالی نیفته؛ به محض رسیدن جواب سرور، جایگزینش می‌کنیم.
+  const source = serverFilms !== null ? serverFilms : allFilms
+
   // Filter matching films where personName appears in director, cast, writer, musician, producer, etc.
-  const matchingFilmsRaw = allFilms.filter((f) => {
+  const matchingFilmsRaw = source.filter((f) => {
     if ((f.director || '').toLowerCase().includes(target)) return true
     if ((f.writer || '').toLowerCase().includes(target)) return true
     if ((f.producer || '').toLowerCase().includes(target)) return true
