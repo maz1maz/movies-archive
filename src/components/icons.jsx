@@ -233,3 +233,13 @@ export const IconClapper = (props) => (
     <path d="M6 6l2 4.5M11 6l2 4.5M16 6l2 4.5" />
   </svg>
 )
+
+export const IconTV = (props) => (
+  <svg {...base} {...props}>
+    <rect x="2.5" y="5.5" width="19" height="13" rx="1.5" />
+    <path d="M8 21.5h8" />
+    <path d="M12 18.5v3" />
+    <path d="M7 9l2.5 2.5L7 14" />
+    <path d="M13.5 14h3.5" />
+  </svg>
+)
