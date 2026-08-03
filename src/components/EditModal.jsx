@@ -5,6 +5,7 @@ import StarRating from './StarRating.jsx'
 function toForm(film) {
   return {
     title: film.title || '',
+    originalTitle: film.originalTitle || '',
     shelf: film.shelf || '',
     row: film.row || '',
     year: film.year ?? '',
@@ -75,6 +76,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
   const save = () => {
     const patch = {
       title: form.title,
+      originalTitle: form.originalTitle || undefined,
       shelf: form.shelf,
       row: form.row,
       year: form.year !== '' ? parseInt(form.year, 10) : undefined,
@@ -151,6 +153,11 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
           <label className="edit-field full">
             <span>Title</span>
             <input value={form.title} onChange={set('title')} />
+          </label>
+
+          <label className="edit-field full">
+            <span>Original Title (if different — French, Italian, etc.)</span>
+            <input value={form.originalTitle} onChange={set('originalTitle')} placeholder="e.g. Il buono, il brutto, il cattivo" />
           </label>
 
           <label className="edit-field">
