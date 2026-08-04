@@ -33,10 +33,17 @@ export async function enrichFilm(baseFilm, key) {
   // قبلاً نبودِ کلید باعث می‌شد کل غنی‌سازی، حتی این بخش رایگانش، لغو بشه.
   if (!key) return film
 
-  // اگه همه‌ی فیلدهای قابل‌غنی‌سازی از قبل (مثلاً از خودِ اکسل) پر شدن، اصلاً
-  // نیازی به زدن OMDb نیست — این باعث می‌شد ایمپورت فایل‌های بزرگ و از‌قبل‌کامل
-  // به‌خاطر محدودیت subrequest ورکر نصفه بمونه یا fail بشه.
-  const stillNeedsEnrichment = ENRICHABLE_FIELDS.some((field) => isEmptyMetadata(film[field]))
+  // اگه فیلدهای اصلیِ قابل‌غنی‌سازی (همونایی که واقعاً توی اکسل‌های ایمپورتی
+  // پر می‌شن) از قبل پر شدن، اصلاً نیازی به زدن OMDb نیست. قبلاً این چک کل
+  // ENRICHABLE_FIELDS رو می‌سنجید که شامل rated/studio/imdbVotes/imdbId هم
+  // می‌شد — فیلدهایی که تقریباً هیچ‌وقت توی فایل اکسل ما پر نمی‌شن؛ در نتیجه
+  // این چک همیشه true برمی‌گشت و OMDb برای هر ردیف زده می‌شد، حتی وقتی همه‌ی
+  // اطلاعات اصلی (کارگردان/بازیگر/خلاصه/پوستر و...) از قبل کامل بود — همین
+  // باعث fail شدن ایمپورت فایل‌های بزرگ و از‌قبل‌کامل با خطای «too many API» می‌شد.
+  const CORE_ENRICHABLE_FIELDS = [
+    "director", "cast", "genre", "rating", "runtime", "country", "synopsis", "poster",
+  ]
+  const stillNeedsEnrichment = CORE_ENRICHABLE_FIELDS.some((field) => isEmptyMetadata(film[field]))
   if (!stillNeedsEnrichment) return film
 
   // اگه imdbId از قبل معلومه (مثلاً از خود اکسل)، مستقیم با همون آیدی از
