@@ -68,7 +68,7 @@ export default function DashboardOverview({ films }) {
 
   const shelfCounts = {}
   films.forEach((f) => {
-    const sh = f.shelf ? `Shelf ${f.shelf}` : 'Unassigned'
+    const sh = f.closet ? `Closet ${f.closet}` : 'Unassigned'
     shelfCounts[sh] = (shelfCounts[sh] || 0) + 1
   })
   const topShelves = Object.entries(shelfCounts).sort((a, b) => a[0].localeCompare(b[0]))
@@ -334,7 +334,7 @@ export default function DashboardOverview({ films }) {
 
       <div className="stats-section-row">
         <div className="stats-box">
-          <h3><IconBookshelf width={15} height={15} /> Shelf Storage Breakdown</h3>
+          <h3><IconBookshelf width={15} height={15} /> Closet Storage Breakdown</h3>
           <div className="stats-shelf-pills">
             {topShelves.map(([sh, count]) => (
               <div key={sh} className="shelf-stat-pill">

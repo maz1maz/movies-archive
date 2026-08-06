@@ -210,9 +210,9 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
                     }}
                   />
                   <div className="person-poster-fallback">{film.title}</div>
-                  {(film.shelf || film.row) && (
+                  {(film.closet || film.shelf || film.row) && (
                     <span className="person-location-badge">
-                      <IconPin width={11} height={11} /> {film.shelf || '—'} / {film.row || '—'}
+                      <IconPin width={11} height={11} /> C{film.closet || '—'} R{film.row || '—'} S{film.shelf || '—'}
                     </span>
                   )}
                   {hasBluray && hasBluray(film) && (

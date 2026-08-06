@@ -216,7 +216,7 @@ export default {
       // multi-copy tracking which uses the "copies" counter instead) ----
       if (method === 'GET' && pathname === '/api/duplicates') {
         const scope = url.searchParams.get('scope') || 'all'
-        let sql = 'SELECT id, title, year, mediaType, itemType, shelf, row, driveNumber, poster, format, copies FROM films WHERE 1=1'
+        let sql = 'SELECT id, title, year, mediaType, itemType, closet, shelf, row, driveNumber, poster, format, copies FROM films WHERE 1=1'
         if (scope === 'physical') sql += " AND mediaType != 'digital'"
         else if (scope === 'digital') sql += " AND mediaType = 'digital'"
         else if (scope === 'series') sql += " AND itemType = 'series'"
@@ -257,7 +257,7 @@ export default {
 
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
-        const { q, genre, shelf, sort, alpha, decade, drive, loaned, watched, minRating } = Object.fromEntries(url.searchParams)
+        const { q, genre, shelf, closet, sort, alpha, decade, drive, loaned, watched, minRating } = Object.fromEntries(url.searchParams)
         let sql = 'SELECT * FROM films WHERE 1=1'
         const params = []
 
@@ -266,6 +266,7 @@ export default {
         if (watched === '0') { sql += ' AND (watched IS NULL OR watched = 0)' }
         if (minRating) { sql += ' AND rating >= ?'; params.push(Number(minRating)) }
         if (shelf) { sql += ' AND shelf = ?'; params.push(shelf) }
+        if (closet) { sql += ' AND closet = ?'; params.push(closet) }
         if (drive) {
           sql += ' AND (driveNumber = ? OR driveNumber LIKE ? OR driveNumber LIKE ? OR driveNumber LIKE ?)'
           params.push(drive, `${drive},%`, `%, ${drive}`, `%, ${drive},%`)
@@ -322,6 +323,7 @@ export default {
           ...body,
           id: `f${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
           title: String(body.title).trim(),
+          closet: body.closet || '',
           shelf: body.shelf || '',
           row: body.row || '',
           cast: Array.isArray(body.cast) ? JSON.stringify(body.cast) : (body.cast || ''),
@@ -483,6 +485,12 @@ export default {
       if (method === 'GET' && pathname === '/api/shelves') {
         const result = await db.prepare('SELECT DISTINCT shelf FROM films WHERE shelf IS NOT NULL AND shelf != \'\' ORDER BY shelf').all()
         return json((result.results || []).map((r) => r.shelf), 200, corsHeaders)
+      }
+
+      // ---- GET /api/closets ----
+      if (method === 'GET' && pathname === '/api/closets') {
+        const result = await db.prepare('SELECT DISTINCT closet FROM films WHERE closet IS NOT NULL AND closet != \'\' ORDER BY CAST(closet AS INTEGER)').all()
+        return json((result.results || []).map((r) => r.closet), 200, corsHeaders)
       }
 
       // ---- GET /api/decades ----
@@ -840,6 +848,7 @@ export default {
                 '#': idx + 1,
                 Title: f.title || '',
                 'Original Title': f.originalTitle || '',
+                Closet: f.closet || '',
                 Shelf: f.shelf || '',
                 Row: f.row || '',
                 Format: f.format || '',
@@ -1139,12 +1148,12 @@ function parseFilmRow(row) {
 }
 
 async function insertFilm(db, film) {
-  const { id, title, originalTitle, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives } = film
+  const { id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives } = film
   await db.prepare(
-    `INSERT INTO films (id, title, originalTitle, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO films (id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
-    id, title || null, originalTitle || null, shelf || null, row || null,
+    id, title || null, originalTitle || null, closet || null, shelf || null, row || null,
     director || null, producer || null, cast ? JSON.stringify(cast) : null,
     year || null, genre ? JSON.stringify(genre) : null,
     rating || null, runtime || null, country || null,
@@ -1222,11 +1231,11 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
 }
 
 async function updateFilm(db, film) {
-  const { id, title, originalTitle, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, letterboxdVotes, watchlisted, seasonDrives, personalReview, personalReviewUrl, personalReviewDate, reviews } = film
+  const { id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, letterboxdVotes, watchlisted, seasonDrives, personalReview, personalReviewUrl, personalReviewDate, reviews } = film
   await db.prepare(
-    `UPDATE films SET title=?, originalTitle=?, shelf=?, row=?, director=?, producer=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=?, letterboxdRating=?, letterboxdVotes=?, watchlisted=?, seasonDrives=?, personalReview=?, personalReviewUrl=?, personalReviewDate=?, reviews=? WHERE id=?`
+    `UPDATE films SET title=?, originalTitle=?, closet=?, shelf=?, row=?, director=?, producer=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=?, letterboxdRating=?, letterboxdVotes=?, watchlisted=?, seasonDrives=?, personalReview=?, personalReviewUrl=?, personalReviewDate=?, reviews=? WHERE id=?`
   ).bind(
-    title || null, originalTitle || null, shelf || null, row || null,
+    title || null, originalTitle || null, closet || null, shelf || null, row || null,
     director || null, producer || null, cast && Array.isArray(cast) ? JSON.stringify(cast) : cast || null,
     year || null, genre && Array.isArray(genre) ? JSON.stringify(genre) : genre || null,
     rating || null, runtime || null, country || null,

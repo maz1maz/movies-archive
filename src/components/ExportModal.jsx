@@ -59,7 +59,7 @@ export default function ExportModal({ films, section, onClose }) {
         (f) => `
       <tr>
         <td><strong>${f.title}</strong><br><small style="color:#666">${f.originalTitle || ''}</small></td>
-        <td>Shelf ${f.shelf || '—'} / Row ${f.row || '—'}</td>
+        <td>Closet ${f.closet || '—'} / Row ${f.row || '—'} / Section ${f.shelf || '—'}</td>
         <td>${f.format || 'Blu-ray'}</td>
         <td>${f.year || '—'}</td>
         <td>${f.director || '—'}</td>

@@ -62,7 +62,7 @@ export default function DashboardExportPanel({ films }) {
         (f) => `
       <tr>
         <td><strong>${f.title}</strong><br><small style="color:#666">${f.originalTitle || ''}</small></td>
-        <td>${f.mediaType === 'digital' ? `Drive ${f.driveNumber || '—'}` : `Shelf ${f.shelf || '—'} / Row ${f.row || '—'}`}</td>
+        <td>${f.mediaType === 'digital' ? `Drive ${f.driveNumber || '—'}` : `Closet ${f.closet || '—'} / Row ${f.row || '—'} / Section ${f.shelf || '—'}`}</td>
         <td>${f.format || 'Blu-ray'}</td>
         <td>${f.year || '—'}</td>
         <td>${f.director || '—'}</td>

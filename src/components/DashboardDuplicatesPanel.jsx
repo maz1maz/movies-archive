@@ -100,7 +100,7 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
                       <div style={{ flex: 1, fontSize: 12.5, color: 'var(--muted)' }}>
                         {f.mediaType === 'digital'
                           ? f.driveNumber || 'No drive set'
-                          : `Shelf ${f.shelf || '—'} / Row ${f.row || '—'}`}{' '}
+                          : `Closet ${f.closet || '—'} / Row ${f.row || '—'} / Section ${f.shelf || '—'}`}{' '}
                         · {f.itemType === 'series' ? 'Series' : 'Movie'} · {f.format || '—'} ·{' '}
                         {f.copies > 1 ? `${f.copies} copies` : '1 copy'}
                       </div>

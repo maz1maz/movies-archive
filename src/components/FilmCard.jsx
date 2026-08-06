@@ -23,7 +23,7 @@ function hashCode(str) {
 export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, hasDigital }) {
   const [c1, c2] = PALETTE[hashCode(String(film.id)) % PALETTE.length]
   const isDigital = film.mediaType === 'digital'
-  const hasLocation = isDigital ? film.driveNumber : film.shelf || film.row
+  const hasLocation = isDigital ? film.driveNumber : film.closet || film.shelf || film.row
 
   // چرخه‌ی وضعیت تماشا با کلیک روی بج: ندیده → واچ‌لیست‌شده (زرد) →
   // دیده‌شده (سبز) → دوباره ندیده
@@ -79,7 +79,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         {hasLocation && (
           <span className="location-badge">
             <IconPin width={11} height={11} />{' '}
-            {isDigital ? film.driveNumber : `${film.shelf || '–'}-${film.row || '–'}`}
+            {isDigital ? film.driveNumber : `C${film.closet || '–'} R${film.row || '–'} S${film.shelf || '–'}`}
           </span>
         )}
         {film.criterion && <span className="criterion-badge">CRITERION</span>}

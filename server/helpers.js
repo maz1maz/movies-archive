@@ -7,6 +7,7 @@ export const HEADER_MAP = {
   "نام اصلی": "originalTitle", "نام لاتین": "originalTitle",
   originaltitle: "originalTitle", original_title: "originalTitle",
   قفسه: "shelf", shelf: "shelf",
+  کمد: "closet", closet: "closet",
   ردیف: "row", "ردیف محل": "row", "محل قرارگیری": "row", row: "row",
   کارگردان: "director", director: "director",
   بازیگران: "cast", بازیگر: "cast", cast: "cast", actors: "cast",
@@ -165,7 +166,7 @@ export function decodeHtmlEntities(str) {
 }
 
 export const EDITABLE = [
-  "title", "originalTitle", "shelf", "row", "director", "cast",
+  "title", "originalTitle", "closet", "shelf", "row", "director", "cast",
   "year", "genre", "rating", "runtime", "country", "synopsis",
   "poster", "studio", "rated", "format", "borrowedTo", "borrowedDate",
   "watched", "myRating", "criterion",

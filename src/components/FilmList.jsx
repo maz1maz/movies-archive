@@ -63,7 +63,7 @@ export default function FilmList({ films, onSelect, onEdit, hasBluray, hasDigita
               <IconPin width={11} height={11} />{' '}
               {f.mediaType === 'digital'
                 ? f.driveNumber || '–'
-                : `${f.shelf || '–'}-${f.row || '–'}`}
+                : `C${f.closet || '–'} R${f.row || '–'} S${f.shelf || '–'}`}
             </span>
             {typeof f.rating === 'number' && (
               <span className="tag tag-accent">

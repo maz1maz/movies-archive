@@ -81,7 +81,7 @@ app.get('/api/image-proxy', async (req, res) => {
 })
 
 app.get('/api/films', (req, res) => {
-  const { q, genre, shelf, sort, alpha, decade, loaned, watched, minRating } = req.query
+  const { q, genre, shelf, closet, sort, alpha, decade, loaned, watched, minRating } = req.query
   let films = readFilms()
   if (loaned === '1') films = films.filter((f) => f.borrowedTo)
   if (watched === '1') films = films.filter((f) => f.watched === true)
@@ -99,6 +99,7 @@ app.get('/api/films', (req, res) => {
   }
   if (genre) films = films.filter((f) => (f.genre || []).includes(genre))
   if (shelf) films = films.filter((f) => (f.shelf || '').toString() === shelf)
+  if (closet) films = films.filter((f) => (f.closet || '').toString() === closet)
   if (alpha) {
     const a = alpha.toString().toLowerCase()
     if (a === '0-9') {
@@ -190,6 +191,7 @@ app.post('/api/films', async (req, res) => {
     ...body,
     id: `f${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     title: String(body.title).trim(),
+    closet: body.closet || '',
     shelf: body.shelf || '',
     row: body.row || '',
   }
@@ -259,6 +261,14 @@ app.get('/api/shelves', (req, res) => {
     if (f.shelf) set.add(f.shelf.toString())
   })
   res.json([...set].sort((a, b) => a.localeCompare(b, 'fa')))
+})
+
+app.get('/api/closets', (req, res) => {
+  const set = new Set()
+  readFilms().forEach((f) => {
+    if (f.closet) set.add(f.closet.toString())
+  })
+  res.json([...set].sort((a, b) => Number(a) - Number(b)))
 })
 
 app.get('/api/decades', (req, res) => {
@@ -636,6 +646,7 @@ app.get('/api/export/excel', (req, res) => {
     '#': idx + 1,
     'Title': f.title || '',
     'Original Title': f.originalTitle || '',
+    'Closet': f.closet || '',
     'Shelf': f.shelf || '',
     'Row': f.row || '',
     'Format': f.format || '',

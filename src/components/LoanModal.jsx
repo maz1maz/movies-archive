@@ -57,7 +57,7 @@ export default function LoanModal({ film, onClose, onSaveLoan }) {
         ) : (
           <div className="loan-status-box available-loan">
             <div className="loan-status-badge">AVAILABLE IN ARCHIVE</div>
-            <p>Physical Location: Shelf <strong>{film.shelf || '—'}</strong> / Row <strong>{film.row || '—'}</strong></p>
+            <p>Physical Location: Closet <strong>{film.closet || '—'}</strong> / Row <strong>{film.row || '—'}</strong> / Section <strong>{film.shelf || '—'}</strong></p>
           </div>
         )}
 

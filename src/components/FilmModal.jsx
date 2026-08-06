@@ -295,14 +295,15 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
 
               <div className="cine-top-badges-column">
-                {(film.shelf || film.row) && film.mediaType !== 'digital' && (
+                {(film.closet || film.shelf || film.row) && film.mediaType !== 'digital' && (
                   <div className="cine-shelf-badge">
                     <span className="shelf-icon">
                       <IconPin width={13} height={13} />
                     </span>
                     <span>
-                      Shelf <strong>{film.shelf || '—'}</strong> / Row{' '}
-                      <strong>{film.row || '—'}</strong>
+                      Closet <strong>{film.closet || '—'}</strong> / Row{' '}
+                      <strong>{film.row || '—'}</strong> / Section{' '}
+                      <strong>{film.shelf || '—'}</strong>
                     </span>
                   </div>
                 )}

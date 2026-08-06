@@ -6,6 +6,7 @@ function toForm(film) {
   return {
     title: film.title || '',
     originalTitle: film.originalTitle || '',
+    closet: film.closet || '',
     shelf: film.shelf || '',
     row: film.row || '',
     year: film.year ?? '',
@@ -77,6 +78,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
     const patch = {
       title: form.title,
       originalTitle: form.originalTitle || undefined,
+      closet: form.closet,
       shelf: form.shelf,
       row: form.row,
       year: form.year !== '' ? parseInt(form.year, 10) : undefined,
@@ -124,6 +126,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
         if (data) {
           setForm((prev) => ({
             ...toForm(data),
+            closet: prev.closet,
             shelf: prev.shelf,
             row: prev.row,
             title: data.title || prev.title,
@@ -197,12 +200,31 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
           ) : form.mediaType === 'physical' ? (
             <>
               <label className="edit-field">
-                <span>Shelf</span>
-                <input value={form.shelf} onChange={set('shelf')} />
+                <span>Closet</span>
+                <select className="select" value={form.closet} onChange={set('closet')}>
+                  <option value="">—</option>
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
               </label>
               <label className="edit-field">
                 <span>Row</span>
-                <input value={form.row} onChange={set('row')} />
+                <select className="select" value={form.row} onChange={set('row')}>
+                  <option value="">—</option>
+                  {Array.from({ length: 13 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="edit-field">
+                <span>Section</span>
+                <select className="select" value={form.shelf} onChange={set('shelf')}>
+                  <option value="">—</option>
+                  {[1, 2, 3].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
               </label>
             </>
           ) : null}
