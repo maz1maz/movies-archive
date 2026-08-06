@@ -165,8 +165,16 @@ export default function App() {
     localStorage.setItem('fa_theme', theme)
   }, [theme])
 
+  // هر تایپ توی سرچ یه fetch جدید می‌فرسته؛ بدون این محافظت، رو موبایل که
+  // تأخیر شبکه نامنظم‌تره، ممکنه جواب یه حرفِ قبلی (query عمومی‌تر، با نتایج
+  // بیشتر و نامرتبط) دیرتر از جواب query نهایی برسه و نتیجه‌ی درست رو با یه
+  // نتیجه‌ی قدیمی‌تر و پرت بازنویسی کنه. requestIdRef فقط جواب آخرین
+  // درخواست رو قبول می‌کنه.
+  const requestIdRef = useRef(0)
+
   const loadFilms = () => {
     setLoading(true)
+    const requestId = ++requestIdRef.current
     const params = new URLSearchParams()
     if (query.trim()) params.set('q', query.trim())
     if (genre) params.set('genre', genre)
@@ -180,6 +188,7 @@ export default function App() {
     fetch('/api/films?' + params.toString())
       .then((r) => r.json())
       .then((data) => {
+        if (requestId !== requestIdRef.current) return // یه درخواست جدیدتر در راهه، این جواب دیررسیده رو نادیده بگیر
         if (!Array.isArray(data)) {
           // پاسخ خطا (مثل مشکل موقت دیتابیس زیر بار سنگین یه ایمپورت بزرگ)
           // — قبلاً اینجا films رو خالی می‌کردیم که باعث می‌شد کاربر فکر کنه
@@ -194,12 +203,19 @@ export default function App() {
         setFilms(data)
         setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch(() => {
+        if (requestId === requestIdRef.current) setLoading(false)
+      })
   }
 
+  // برای query یه تأخیر کوچیک (debounce) می‌ذاریم تا هر کاراکتر تایپ‌شده
+  // یه fetch جدا نفرسته — هم تعداد درخواست‌ها رو (به‌خصوص روی موبایل) کم
+  // می‌کنه، هم خودش یکی از راه‌های کاهش race condition بین جواب‌هاست.
+  // فیلترهای دیگه (genre, drive, ...) فوری اعمال می‌شن.
   useEffect(() => {
     setPage(1)
-    loadFilms()
+    const t = setTimeout(loadFilms, 250)
+    return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, genre, loanedOnly, watched, minRating, decade, drive, sort, alpha])
 
