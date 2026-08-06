@@ -650,15 +650,50 @@ export default function App() {
       {toast && <div className="toast">{toast}</div>}
 
       {!section ? (
-        <FolderNav
-          counts={folderCounts}
-          posters={homePosters}
-          onSelectPhysical={() => changeSection('physical')}
-          onSelectPhysicalSeries={() => changeSection('physical-series')}
-          onSelectDigitalType={(type) => changeSection(type === 'series' ? 'digital-series' : 'digital-movie')}
-          onSelectSpecialCollections={() => changeSection('special-collections')}
-          onSelectDashboard={() => changeSection('dashboard')}
-        />
+        <>
+          <FolderNav
+            counts={folderCounts}
+            posters={homePosters}
+            allFilms={allFilmsUnfiltered}
+            onOpenFilm={(film) => setSelected(film)}
+            onSelectPhysical={() => changeSection('physical')}
+            onSelectPhysicalSeries={() => changeSection('physical-series')}
+            onSelectDigitalType={(type) => changeSection(type === 'series' ? 'digital-series' : 'digital-movie')}
+            onSelectSpecialCollections={() => changeSection('special-collections')}
+            onSelectDashboard={() => changeSection('dashboard')}
+          />
+          {selected && (
+            <FilmModal
+              film={selected}
+              films={allFilmsUnfiltered}
+              hasBluray={hasBlurayCopy(selected)}
+              hasDigital={hasDigitalCopy(selected)}
+              onNavigate={(film) => setSelected(film)}
+              onSelectPerson={(name) => {
+                setSelected(null)
+                setSelectedPerson(name)
+              }}
+              onManageLoan={(film) => setLoanFilm(film)}
+              onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
+              onSaveSeasonDrive={(film, seasonDrives) => handleSaveFilm(film.id, { seasonDrives })}
+              onEdit={setEditing}
+              onClose={() => setSelected(null)}
+            />
+          )}
+          {selectedPerson && (
+            <PersonModal
+              personName={selectedPerson}
+              allFilms={allFilmsUnfiltered}
+              hasBluray={hasBlurayCopy}
+              hasDigital={hasDigitalCopy}
+              onSelectFilm={(film) => {
+                setSelectedPerson(null)
+                setSelected(film)
+              }}
+              onClose={() => setSelectedPerson(null)}
+            />
+          )}
+        </>
       ) : section === 'special-collections' ? (
         <div className="folder-nav">
           <PosterCollage posters={homePosters} />

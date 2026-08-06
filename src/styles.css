@@ -2697,6 +2697,106 @@ body.light .marquee-band {
 body.light .folder-nav-title {
   color: var(--marquee-cream, #1c1a15);
 }
+.folder-nav-search {
+  position: relative;
+  max-width: 460px;
+  margin: 0 auto 30px;
+  text-align: left;
+}
+.folder-nav-search .search-box input {
+  background: color-mix(in srgb, var(--marquee-cream, #f4f3f0) 10%, transparent);
+  border-color: color-mix(in srgb, var(--marquee-cream, #f4f3f0) 25%, transparent);
+  color: var(--marquee-cream, #f4f3f0);
+}
+.folder-nav-search .search-box input::placeholder {
+  color: var(--marquee-muted);
+}
+.folder-nav-search .search-icon {
+  color: var(--marquee-gold);
+}
+.search-clear {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  background: none;
+  border: none;
+  color: var(--marquee-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+.search-clear:hover {
+  color: var(--marquee-cream, #f4f3f0);
+}
+.folder-nav-search-results {
+  margin-top: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--marquee-cream, #f4f3f0) 18%, transparent);
+  background: color-mix(in srgb, #000 55%, transparent);
+  backdrop-filter: blur(6px);
+}
+.folder-nav-search-empty {
+  margin: 0;
+  padding: 16px;
+  font-size: 13px;
+  color: var(--marquee-muted);
+  text-align: center;
+}
+.folder-nav-search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--marquee-cream, #f4f3f0) 10%, transparent);
+  cursor: pointer;
+  text-align: left;
+}
+.folder-nav-search-row:last-child {
+  border-bottom: none;
+}
+.folder-nav-search-row:hover {
+  background: color-mix(in srgb, var(--marquee-gold) 12%, transparent);
+}
+.folder-nav-search-poster {
+  width: 34px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--marquee-cream, #f4f3f0) 12%, transparent);
+}
+.folder-nav-search-poster-empty {
+  display: block;
+}
+.folder-nav-search-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.folder-nav-search-title {
+  font-size: 13.5px;
+  color: var(--marquee-cream, #f4f3f0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.folder-nav-search-year {
+  color: var(--marquee-muted);
+  font-weight: 400;
+}
+.folder-nav-search-badge {
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: var(--marquee-gold);
+}
 .folder-grid {
   display: flex;
   flex-wrap: wrap;
