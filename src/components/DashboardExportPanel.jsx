@@ -7,6 +7,10 @@ const SCOPES = [
   { key: 'digital', label: 'Digital Library', mediaType: 'digital', itemType: null },
   { key: 'movies', label: 'Movies Only', mediaType: null, itemType: 'movie' },
   { key: 'series', label: 'Series Only', mediaType: null, itemType: 'series' },
+  { key: 'physical-movies', label: 'Physical Movies Only', mediaType: 'physical', itemType: 'movie' },
+  { key: 'physical-series', label: 'Physical Series Only', mediaType: 'physical', itemType: 'series' },
+  { key: 'digital-movies', label: 'Digital Movies Only', mediaType: 'digital', itemType: 'movie' },
+  { key: 'digital-series', label: 'Digital Series Only', mediaType: 'digital', itemType: 'series' },
 ]
 
 function filterByScope(films, scope) {
