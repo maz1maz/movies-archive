@@ -402,17 +402,20 @@ export default {
       if (method === 'GET' && pathname === '/api/films/enrich-status') {
         const remaining = await db
           .prepare(
-            "SELECT COUNT(*) as count FROM films WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''"
+            `SELECT COUNT(*) as count FROM films WHERE (metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = '')${enrichScopeClause(url.searchParams)}`
           )
           .first()
         return json({ remaining: remaining?.count || 0 }, 200, corsHeaders)
       }
 
       // ---- POST /api/films/enrich ----
+      // Optional ?mediaType=physical|digital and ?itemType=movie|series scope
+      // the batch to whichever section the user currently has open, so the
+      // "Fill missing details" button only touches that section's films.
       if (method === 'POST' && pathname === '/api/films/enrich') {
         const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
-        const result = await enrichBatch(db, env, limit)
+        const result = await enrichBatch(db, env, limit, enrichScopeClause(url.searchParams))
         return json(result, 200, corsHeaders)
       }
 
@@ -1155,17 +1158,33 @@ async function insertFilm(db, film) {
   ).run()
 }
 
+// بر اساس ?mediaType= و ?itemType= توی کوئری‌استرینگ، یه شرط AND اضافه
+// می‌سازه تا enrichBatch/شمارش‌باقی‌مونده فقط رو همون قسمتی که کاربر بازش
+// کرده (فیلم فیزیکی/سریال فیزیکی/فیلم دیجیتال/سریال دیجیتال) کار کنه.
+// مقدار نامعتبر یا نبودن پارامتر = بدون فیلتر (کل آرشیو، رفتار قبلی).
+function enrichScopeClause(searchParams) {
+  const mediaType = searchParams.get('mediaType')
+  const itemType = searchParams.get('itemType')
+  let clause = ''
+  if (mediaType === 'digital') clause += " AND mediaType = 'digital'"
+  else if (mediaType === 'physical') clause += " AND (mediaType IS NULL OR mediaType != 'digital')"
+  if (itemType === 'series') clause += " AND itemType = 'series'"
+  else if (itemType === 'movie') clause += " AND (itemType IS NULL OR itemType != 'series')"
+  return clause
+}
+
 // یه دسته از فیلم‌های بی‌اطلاعات رو enrich می‌کنه — هم دکمه‌ی «Fill missing
 // details» تو اپ، هم کرون روزانه از همین استفاده می‌کنن.
 // باگ قبلی: بدون ORDER BY، هر بار همون چند فیلم اولِ بی‌پوستر (که OMDb اصلاً
 // پوستری براشون نداره یا اسمشون قابل‌تشخیص نیست) انتخاب می‌شدن؛ دکمه هیچ‌وقت
 // به فیلم‌های واقعاً بررسی‌نشده نمی‌رسید. الان اول فیلم‌های بررسی‌نشده رو
 // تموم می‌کنه، بعد بی‌پوسترها رو به ترتیب قدیمی‌ترین تلاش می‌ره سراغشون.
-async function enrichBatch(db, env, limit) {
+// scopeClause (اختیاری): خروجیِ enrichScopeClause، برای محدود کردن به یه بخش خاص.
+async function enrichBatch(db, env, limit, scopeClause = '') {
   const all = await db
     .prepare(
       `SELECT * FROM films
-       WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''
+       WHERE (metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = '')${scopeClause}
        ORDER BY (metadataEnrichmentAttemptedAt IS NULL) DESC, metadataEnrichmentAttemptedAt ASC
        LIMIT ?`
     )
@@ -1194,7 +1213,9 @@ async function enrichBatch(db, env, limit) {
   }
 
   const remaining = await db
-    .prepare("SELECT COUNT(*) as count FROM films WHERE metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = ''")
+    .prepare(
+      `SELECT COUNT(*) as count FROM films WHERE (metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = '')${scopeClause}`
+    )
     .first()
 
   return { processed: candidates.length, updated, remaining: remaining?.count || 0, quotaExceeded }

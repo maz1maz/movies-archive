@@ -57,6 +57,7 @@ export default function Header({
   onEnrichCatalog,
   enrichingCatalog,
   enrichRemaining,
+  enrichScopeLabel,
   onOpenExport,
   onSyncLetterboxd,
   onFetchSeasonCounts,
@@ -274,14 +275,18 @@ export default function Header({
                     setMenuOpen(false)
                   }}
                   disabled={enrichingCatalog}
-                  title="Fill missing posters, cast, genres, and other public metadata"
+                  title={
+                    enrichScopeLabel
+                      ? `Fill missing posters, cast, genres, and other public metadata — ${enrichScopeLabel} only`
+                      : 'Fill missing posters, cast, genres, and other public metadata'
+                  }
                 >
                   <IconSparkles width={15} height={15} />{' '}
                   {enrichingCatalog
                     ? 'Completing metadata…'
                     : enrichRemaining > 0
-                    ? `Fill missing details (${enrichRemaining} left)`
-                    : 'Fill missing details'}
+                    ? `Fill missing details${enrichScopeLabel ? ` (${enrichScopeLabel})` : ''} (${enrichRemaining} left)`
+                    : `Fill missing details${enrichScopeLabel ? ` (${enrichScopeLabel})` : ''}`}
                 </button>
                 <button
                   type="button"

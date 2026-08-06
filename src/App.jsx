@@ -87,8 +87,30 @@ export default function App() {
   const [enrichingCatalog, setEnrichingCatalog] = useState(false)
   const [enrichRemaining, setEnrichRemaining] = useState(null)
 
+  // section (physical/physical-series/digital-movie/digital-series) رو به
+  // ?mediaType=&itemType= برای اندپوینت‌های enrich تبدیل می‌کنه، تا دکمه‌ی
+  // «Fill missing details» فقط رو همون قسمتی که کاربر بازش کرده کار کنه.
+  // سکشن‌های بدون فیلم مشخص (dashboard, special-collections, ...) => کل آرشیو.
+  const enrichScopeLabel = (sec) => {
+    if (sec === 'physical') return 'physical movies'
+    if (sec === 'physical-series') return 'physical series'
+    if (sec === 'digital-movie') return 'digital movies'
+    if (sec === 'digital-series') return 'digital series'
+    return null
+  }
+
+  const enrichScopeParams = (sec) => {
+    const params = new URLSearchParams()
+    if (sec === 'physical' || sec === 'digital-movie') params.set('itemType', 'movie')
+    else if (sec === 'physical-series' || sec === 'digital-series') params.set('itemType', 'series')
+    if (sec === 'physical' || sec === 'physical-series') params.set('mediaType', 'physical')
+    else if (sec === 'digital-movie' || sec === 'digital-series') params.set('mediaType', 'digital')
+    return params.toString()
+  }
+
   const refreshEnrichRemaining = () => {
-    fetch('/api/films/enrich-status')
+    const qs = enrichScopeParams(section)
+    fetch(`/api/films/enrich-status${qs ? `?${qs}` : ''}`)
       .then((r) => r.json())
       .then((data) => setEnrichRemaining(data.remaining))
       .catch(() => {})
@@ -96,7 +118,8 @@ export default function App() {
 
   useEffect(() => {
     refreshEnrichRemaining()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section])
   const [toast, setToast] = useState('')
   const toastTimeoutRef = useRef(null)
 
@@ -438,10 +461,13 @@ export default function App() {
     let processed = 0
     let updated = 0
 
+    const scopeQs = enrichScopeParams(section)
+    const enrichUrl = `/api/films/enrich?limit=5${scopeQs ? `&${scopeQs}` : ''}`
+
     const fetchBatchWithRetry = async (attempts = 2) => {
       for (let i = 0; i <= attempts; i++) {
         try {
-          const res = await fetch('/api/films/enrich?limit=5', { method: 'POST' })
+          const res = await fetch(enrichUrl, { method: 'POST' })
           const data = await res.json()
           if (!res.ok) throw new Error(data.error || 'metadata enrichment failed')
           return data
@@ -726,6 +752,7 @@ export default function App() {
         onImportRatings={handleImportRatings}
         onAddFilm={() => setAdding(true)}
         onEnrichCatalog={handleEnrichCatalog}
+        enrichScopeLabel={enrichScopeLabel(section)}
         enrichingCatalog={enrichingCatalog}
         enrichRemaining={enrichRemaining}
         onSyncLetterboxd={handleSyncLetterboxd}
