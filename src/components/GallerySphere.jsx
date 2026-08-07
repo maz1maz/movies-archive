@@ -339,7 +339,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       })
 
       let raf
-      const AUTO_SPEED = 0.00012
+      const AUTO_SPEED = 0.00004 // قبلاً 0.00012 بود، حدود یک‌سوم کندتر شد
       function loop(t) {
         raf = requestAnimationFrame(loop)
         autoRotation = t * AUTO_SPEED
