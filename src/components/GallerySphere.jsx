@@ -72,7 +72,7 @@ async function loadStaticAtlas(onProgress) {
       v1: (row + 1) / rows,
     }
   }
-  return { image, uvRects, count: config.count }
+  return { image: img, uvRects, count: config.count }
 }
 
 // چیدمان یکنواخت نقاط روی سطح کره (الگوریتم Fibonacci sphere)
