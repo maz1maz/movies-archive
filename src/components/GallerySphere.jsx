@@ -42,85 +42,37 @@ const fragment = /* glsl */ `
   }
 `;
 
-function loadImage(src, timeoutMs = 8000) {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    let settled = false
-    const timer = setTimeout(() => {
-      if (settled) return
-      settled = true
-      reject(new Error('timeout: ' + src))
-    }, timeoutMs)
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      resolve(img)
-    }
-    img.onerror = () => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      reject(new Error('load failed: ' + src))
-    }
-    img.src = src
+// اطلس ساده رو (که از قبل با scripts/build-sphere-atlas.mjs ساخته شده)
+// می‌خونه. یه فایل JPG ثابته، بدون هیچ درخواست زنده‌ای به Amazon/Wikimedia
+// (که قبلاً باعث بلاک‌شدن/CORS می‌شدن).
+async function loadStaticAtlas(onProgress) {
+  onProgress?.(10, 100)
+  const configRes = await fetch('/sphere-media/atlas-config.json')
+  if (!configRes.ok) throw new Error('atlas-config.json پیدا نشد')
+  const config = await configRes.json()
+  onProgress?.(30, 100)
+
+  const img = await new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('atlas.jpg لود نشد'))
+    image.src = '/sphere-media/atlas.jpg?v=' + config.count // کش‌باستینگ ساده
   })
-}
+  onProgress?.(100, 100)
 
-// همه‌ی پوسترها رو توی یه تکسچر بزرگ (اطلس) می‌چینه — یه بار در شروع،
-// کاملاً در مرورگر، بدون نیاز به build step یا فرمت فشرده‌ی خاص.
-async function buildAtlas(items, tileSize, onProgress, concurrency = 32) {
-  const cols = Math.ceil(Math.sqrt(items.length))
-  const size = cols * tileSize
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')
-  ctx.fillStyle = '#1a1a1a'
-  ctx.fillRect(0, 0, size, size)
-
-  const uvRects = new Array(items.length)
-  items.forEach((_, i) => {
+  const { cols, rows } = config
+  const uvRects = new Array(config.count)
+  for (let i = 0; i < config.count; i++) {
     const col = i % cols
     const row = Math.floor(i / cols)
     uvRects[i] = {
       u0: col / cols,
-      v0: row / cols,
+      v0: row / rows,
       u1: (col + 1) / cols,
-      v1: (row + 1) / cols,
-    }
-  })
-
-  let loaded = 0
-  let idx = 0
-  async function worker() {
-    while (idx < items.length) {
-      const i = idx++
-      const col = i % cols
-      const row = Math.floor(i / cols)
-      try {
-        // به‌جای گرفتن مستقیم از media-amazon.com (که CORS نمی‌ده)، از
-        // پراکسی خود Worker رد می‌شیم — همون origin، بدون مشکل CORS.
-        const proxiedUrl = '/api/image-proxy?url=' + encodeURIComponent(items[i].poster)
-        const img = await loadImage(proxiedUrl, 8000)
-        ctx.drawImage(img, col * tileSize, row * tileSize, tileSize, tileSize)
-      } catch {
-        // خالی می‌مونه (خاکستری تیره) — لینک شکسته، CORS، یا timeout
-      }
-      loaded++
-      if (onProgress) onProgress(loaded, items.length)
+      v1: (row + 1) / rows,
     }
   }
-
-  // سقف زمانی کلی: اگه به هر دلیلی (خیلی لینک کند/شکسته) کل فرایند خیلی
-  // طول کشید، به‌جای گیرکردن ابدی روی صفحه‌ی لودینگ، با هرچی تا الان
-  // آماده شده ادامه می‌دیم.
-  const workersPromise = Promise.all(Array.from({ length: concurrency }, worker))
-  const overallTimeout = new Promise((resolve) => setTimeout(resolve, 60000))
-  await Promise.race([workersPromise, overallTimeout])
-
-  return { canvas, uvRects }
+  return { image, uvRects, count: config.count }
 }
 
 // چیدمان یکنواخت نقاط روی سطح کره (الگوریتم Fibonacci sphere)
@@ -142,6 +94,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
   const containerRef = useRef(null)
   const [progress, setProgress] = useState({ loaded: 0, total: 0 })
   const [ready, setReady] = useState(false)
+  const [loadError, setLoadError] = useState(null)
 
   const seenPosters = new Set()
   const postersOnly = films
@@ -183,16 +136,16 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
 
       const scene = new Transform()
 
-      const atlas = await buildAtlas(postersOnly, 48, (loaded, total) => setProgress({ loaded, total }))
+      const atlas = await loadStaticAtlas((loaded, total) => setProgress({ loaded, total }))
       if (disposed) return
       setReady(true)
 
       const texture = new Texture(gl, { generateMipmaps: false })
-      texture.image = atlas.canvas
+      texture.image = atlas.image
       texture.needsUpdate = true
 
-      const positions = fibonacciSphere(postersOnly.length, RADIUS)
-      const n = postersOnly.length
+      const n = atlas.count
+      const positions = fibonacciSphere(n, RADIUS)
       const centerArr = new Float32Array(n * 6 * 3)
       const cornerArr = new Float32Array(n * 6 * 2)
       const uvArr = new Float32Array(n * 6 * 2)
@@ -344,7 +297,10 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       cleanupFns.push(() => cancelAnimationFrame(raf))
     }
 
-    init()
+    init().catch((err) => {
+      console.error('GallerySphere init failed:', err)
+      setLoadError(err.message || String(err))
+    })
 
     return () => {
       disposed = true
@@ -376,7 +332,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       >
         ← Back
       </button>
-      {!ready && (
+      {!ready && !loadError && (
         <div
           style={{
             position: 'fixed',
@@ -391,10 +347,32 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
             zIndex: 10,
           }}
         >
-          <div>در حال ساخت گالری کروی… {pct}%</div>
+          <div>در حال بارگذاری گالری کروی…</div>
           <div style={{ width: 240, height: 6, background: '#333', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pct}%`, background: '#c0392b', transition: 'width 0.15s linear' }} />
           </div>
+        </div>
+      )}
+      {loadError && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            color: '#eee',
+            background: '#0a0a0c',
+            zIndex: 10,
+            textAlign: 'center',
+            padding: 20,
+          }}
+        >
+          <div>اطلس گالری هنوز ساخته نشده.</div>
+          <code style={{ opacity: 0.7 }}>node scripts/build-sphere-atlas.mjs</code>
+          <div style={{ fontSize: 12, opacity: 0.5, marginTop: 8 }}>{loadError}</div>
         </div>
       )}
       <div ref={containerRef} style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh' }} />

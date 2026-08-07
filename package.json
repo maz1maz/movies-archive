@@ -12,7 +12,8 @@
     "template": "node server/make-template.js",
     "deploy": "npm run build && npx wrangler deploy",
     "db:init": "npx wrangler d1 execute movies-archive --file=schema.sql",
-    "gallery:build": "node scripts/build-gallery-media.mjs"
+    "gallery:build": "node scripts/build-gallery-media.mjs",
+    "sphere:build": "node scripts/build-sphere-atlas.mjs"
   },
   "dependencies": {
     "@tweakpane/plugin-essentials": "^0.2.1",
