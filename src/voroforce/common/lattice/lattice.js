@@ -171,7 +171,18 @@ export function generateCenterOutwardSubgridsAndAssignCellIds(
   let directionChanges = 0
 
   // Continue until we've used all elements
-  while (remainingElements > 0 && result.length < elementCount) {
+  // سقف امنیتی سخت: در حالت عادی این حلقه خیلی زودتر از این تعداد تموم
+  // می‌شه (چند صد قدم برای هزاران سلول). اگه به هر دلیلی (مثلاً ترکیب
+  // نامتعارفی از subgrid/کل گرید) گیر کرد، به‌جای رشد بی‌نهایتِ visited
+  // (که به خطای "Set maximum size exceeded" می‌رسه)، اینجا متوقفش می‌کنیم.
+  const MAX_SPIRAL_STEPS = Math.max(elementCount * 50, 20000)
+  let spiralSteps = 0
+  while (
+    remainingElements > 0 &&
+    result.length < elementCount &&
+    spiralSteps < MAX_SPIRAL_STEPS
+  ) {
+    spiralSteps++
     // Move in current direction
     const [rowDelta, colDelta] = dirMovements[direction]
     currentGridRow += rowDelta
@@ -196,6 +207,12 @@ export function generateCenterOutwardSubgridsAndAssignCellIds(
         stepsInCurrentDirection++
       }
     }
+  }
+  if (spiralSteps >= MAX_SPIRAL_STEPS) {
+    console.warn(
+      `[voroforce/lattice] spiral placement hit its safety cap (${MAX_SPIRAL_STEPS} steps) — ` +
+        `${elementCount - result.length} of ${elementCount} cells may be missing a subgrid id`,
+    )
   }
 
   return result
@@ -357,6 +374,35 @@ export const handleLattice = (globalConfig, cells, width, height) => {
         totalCapacity: 9999999,
       },
     )
+
+  // دفاعی: طراحی اصلی موتور فرض می‌کنه چند نسخه‌ی مدیا با اندازه‌های خیلی
+  // متفاوت هست (یه subgrid کوچیک ~۲۰۰تایی که خیلی از total cell count
+  // کوچیک‌تره). وقتی فقط یک نسخه مدیا داریم (مثل تنظیمات گالری ما) و
+  // subgrid تقریباً برابر کل گریده، الگوریتم مارپیچ پایین همین فایل
+  // (generateCenterOutwardSubgridsAndAssignCellIds) می‌تونه بی‌نهایت بچرخه
+  // و با new Set() به خطای "Set maximum size exceeded" بخوره.
+  // cell.subgrid/subgridIndex فقط برای batch-loading JSON استفاده می‌شن
+  // (جای دیگه‌ای توی موتور رندر ازش استفاده نمی‌شه)، پس محدودکردنش امنه.
+  const SAFE_MAX_SUBGRID_DIM = 32
+  const SAFE_DEFAULT_SUBGRID_DIM = 16
+  if (!config.subgrid.cols || !config.subgrid.rows) {
+    // media خاموشه یا هیچ نسخه‌ای تعریف نشده — یه پیش‌فرض کوچیک و امن بذار
+    config.subgrid = {
+      ...config.subgrid,
+      cols: SAFE_DEFAULT_SUBGRID_DIM,
+      rows: SAFE_DEFAULT_SUBGRID_DIM,
+      layers: config.subgrid.layers || 1,
+    }
+  } else if (
+    config.subgrid.cols > SAFE_MAX_SUBGRID_DIM ||
+    config.subgrid.rows > SAFE_MAX_SUBGRID_DIM
+  ) {
+    config.subgrid = {
+      ...config.subgrid,
+      cols: Math.min(config.subgrid.cols, SAFE_MAX_SUBGRID_DIM),
+      rows: Math.min(config.subgrid.rows, SAFE_MAX_SUBGRID_DIM),
+    }
+  }
 
   const prevRows = config.rows
   const prevCols = config.cols
