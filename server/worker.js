@@ -890,6 +890,34 @@ export default {
         })
       }
 
+      // ---- GET /api/backups (list automatic daily backups stored in KV) ----
+      if (method === 'GET' && pathname === '/api/backups') {
+        const list = await env.BACKUPS.list({ prefix: 'backup:' })
+        const dates = list.keys
+          .map((k) => k.name)
+          .filter((name) => name !== 'backup:latest')
+          .map((name) => name.replace('backup:', ''))
+          .sort()
+          .reverse()
+        return json({ backups: dates }, 200, corsHeaders)
+      }
+
+      // ---- GET /api/backups/:date (download a specific daily backup, or "latest") ----
+      if (method === 'GET' && pathname.startsWith('/api/backups/')) {
+        const dateParam = pathname.replace('/api/backups/', '')
+        const key = dateParam === 'latest' ? 'backup:latest' : `backup:${dateParam}`
+        const value = await env.BACKUPS.get(key)
+        if (!value) return json({ error: 'Backup not found' }, 404, corsHeaders)
+        return new Response(value, {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Content-Disposition': `attachment; filename="films-backup-${dateParam}.json"`,
+          },
+        })
+      }
+
       // ---- SPA fallback ----
       // Static assets are handled by wrangler's asset system; this Worker only
       // deals with /api/* routes. Return 404 for anything else.
@@ -904,6 +932,13 @@ export default {
   // بی‌اطلاعات رو enrich می‌کنه — تا سهمیه‌ی روزانه‌ی رایگان OMDb (۱۰۰۰
   // درخواست) تموم بشه یا فیلمی برای enrich کردن نمونه، هرکدوم زودتر.
   async scheduled(event, env, ctx) {
+    // این تابع با دو زمان‌بندی متفاوت صدا زده می‌شه (به wrangler.jsonc نگاه کن)؛
+    // event.cron مشخص می‌کنه کدوم کرون بوده تا کار درست انجام بشه.
+    if (event.cron === '0 4 * * *') {
+      await runDailyBackup(env)
+      return
+    }
+
     const db = env.DB
     let totalProcessed = 0
     let totalUpdated = 0
@@ -915,6 +950,35 @@ export default {
     }
     console.log(`Daily enrichment: processed ${totalProcessed}, updated ${totalUpdated}`)
   },
+}
+
+// هر روز ساعت ۴ بامداد UTC (یه ساعت بعد از enrichment) کل جدول films رو به‌صورت
+// JSON در KV ذخیره می‌کنه؛ کلید بر اساس تاریخ ساخته می‌شه (backup:YYYY-MM-DD) تا
+// تاریخچه‌ی روزانه حفظ بشه. بکاپ‌های قدیمی‌تر از ۳۰ روز خودکار پاک می‌شن تا فضای
+// KV پر نشه. یه کلید ثابت "backup:latest" هم برای دسترسی سریع نگه داشته می‌شه.
+async function runDailyBackup(env) {
+  const db = env.DB
+  const result = await db.prepare('SELECT * FROM films ORDER BY title').all()
+  const films = (result.results || []).map(parseFilmRow)
+  const payload = JSON.stringify({ backedUpAt: new Date().toISOString(), count: films.length, films })
+
+  const dateKey = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  await env.BACKUPS.put(`backup:${dateKey}`, payload)
+  await env.BACKUPS.put('backup:latest', payload)
+
+  // پاکسازی بکاپ‌های قدیمی‌تر از ۳۰ روز
+  const list = await env.BACKUPS.list({ prefix: 'backup:' })
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
+  for (const key of list.keys) {
+    const m = key.name.match(/^backup:(\d{4}-\d{2}-\d{2})$/)
+    if (!m) continue
+    const keyDate = new Date(m[1] + 'T00:00:00Z').getTime()
+    if (keyDate < cutoff) {
+      await env.BACKUPS.delete(key.name)
+    }
+  }
+
+  console.log(`Daily backup: saved ${films.length} films as backup:${dateKey}`)
 }
 
 // ---------- Helpers ----------
