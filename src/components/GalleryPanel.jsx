@@ -35,31 +35,51 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
     if (!containerRef.current || postersOnly.length === 0 || mediaStatus === 'loading') return
 
     let vf
-    try {
-      vf = new Voroforce(containerRef.current, {
-        cells: postersOnly.length,
-        media: mediaConfig ?? { enabled: false },
-        multiThreading: { enabled: false },
-        ticker: { mode: 'auto' },
-      })
-      vfRef.current = vf
-    } catch (err) {
-      // اگه موتور (مثلاً به‌خاطر نبود WebGL2 روی این مرورگر/GPU) کرش کرد،
-      // به‌جای صفحه‌ی مشکی بی‌توضیح، پیام خطا نشون بده و دکمه‌ی برگشت رو نگه دار
-      console.error('Voroforce init failed:', err)
-      setEngineError(err.message || String(err))
-      return
+    let cancelled = false
+
+    const init = () => {
+      if (cancelled || !containerRef.current) return
+      const { clientWidth, clientHeight } = containerRef.current
+      if (clientWidth === 0 || clientHeight === 0) {
+        // هنوز layout مرورگر کامل نشده (کانتینر اندازه‌ی صفر داره) — یه فریم
+        // دیگه صبر کن. اگه بدون این چک بریم جلو، calculateOptimalLattice
+        // موتور یه گرید ۱x۱ می‌سازه و برای هزاران سلول خطای «Invalid index»
+        // پرت می‌کنه.
+        requestAnimationFrame(init)
+        return
+      }
+      try {
+        vf = new Voroforce(containerRef.current, {
+          cells: postersOnly.length,
+          media: mediaConfig ?? { enabled: false },
+          multiThreading: { enabled: false },
+          ticker: { mode: 'auto' },
+        })
+        vfRef.current = vf
+      } catch (err) {
+        // اگه موتور (مثلاً به‌خاطر نبود WebGL2 روی این مرورگر/GPU) کرش کرد،
+        // به‌جای صفحه‌ی مشکی بی‌توضیح، پیام خطا نشون بده و دکمه‌ی برگشت رو نگه دار
+        console.error('Voroforce init failed:', err)
+        setEngineError(err.message || String(err))
+        return
+      }
+
+      const onCellSelected = (e) => {
+        const cell = e.cell
+        if (cell && postersOnly[cell.index]) onOpenFilm(postersOnly[cell.index])
+      }
+      vf.controls.listen('selected', onCellSelected)
+      vf._onCellSelected = onCellSelected
     }
 
-    const onCellSelected = (e) => {
-      const cell = e.cell
-      if (cell && postersOnly[cell.index]) onOpenFilm(postersOnly[cell.index])
-    }
-    vf.controls.listen('selected', onCellSelected)
+    init()
 
     return () => {
-      vf.controls.unlisten('selected', onCellSelected)
-      vf.dispose?.()
+      cancelled = true
+      if (vf) {
+        vf.controls.unlisten('selected', vf._onCellSelected)
+        vf.dispose?.()
+      }
       if (containerRef.current) containerRef.current.innerHTML = ''
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -101,7 +121,7 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
         </div>
       )}
 
-      <div ref={containerRef} style={{ width: '100%', height: '100vh' }} />
+      <div ref={containerRef} style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh' }} />
     </div>
   )
 }

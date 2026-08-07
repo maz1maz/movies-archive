@@ -44,7 +44,12 @@ export default class NeighborsSimulationStep extends BaseSimulationStep {
     function getGridNeighbors(index, columns, rows, level = 1) {
       // Validate input parameters
       if (index < 0 || index >= columns * rows) {
-        throw new Error('Invalid index')
+        // در حالت عادی نباید پیش بیاد (calculateOptimalLattice تضمین می‌کنه
+        // cols*rows >= numCells)، اما اگه container موقع اندازه‌گیری اولیه
+        // ابعاد صفر/نامعتبر داشته باشه، ممکنه پیش بیاد. به‌جای throw کردن
+        // (که کل تیک شبیه‌سازی رو می‌کشه)، این سلول رو بدون همسایه رد کن.
+        console.warn(`[voroforce/neighbors-step] index ${index} out of grid bounds (${columns}x${rows}) — skipping`)
+        return []
       }
 
       const neighbors = []
