@@ -63,14 +63,11 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
           simulation: {
             steps: {
               force: {
-                // تلاش دوم: این بار forces-step/index.js یه try/catch داره،
-                // پس اگه omni باز خطا بده، دیگه کل رندر رو فریز نمی‌کنه —
-                // فقط لاگ می‌ده و خودش رو غیرفعال می‌کنه. اگه بازم حرکتی
-                // ندیدی، از Console خط قرمز رو برام بفرست.
                 forces: {
-                  type: 'omni',
+                  type: 'origin',
                   enabled: true,
-                  breathing: { enabled: true, cycleDuration: 6000, variability: 0.15 },
+                  strength: 0.8,
+                  xFactor: 0, // X رو کاملاً به موج دستی زیر می‌سپاریم (تداخل نکنه)
                 },
               },
             },
@@ -136,7 +133,7 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
       // شیدر اصلی pan/zoom camera نداشت (فقط بولج موضعی سلول هاورشده).
       // این uniformهای uCameraZoom/uCameraOffset رو مستقیم توی pCoords()
       // شیدر تزریق کردیم که کل صحنه رو تحت تأثیر بذاره.
-      let zoom = 1
+      let zoom = 2.2
       let offsetX = 0
       let offsetY = 0
       const minZoom = 0.5
@@ -182,11 +179,34 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
       }
 
       const canvasEl = containerRef.current.querySelector('canvas')
+      applyCamera() // مقدار اولیه‌ی زوم (۲.۲) رو همون اول اعمال کن
       canvasEl?.addEventListener('wheel', onWheel, { passive: false })
       canvasEl?.addEventListener('pointerdown', onPointerDown)
       window.addEventListener('pointermove', onPointerMove)
       window.addEventListener('pointerup', onPointerUp)
+
+      // --- موج افقی ردیف‌به‌ردیف (اضافه‌شده برای گالری Cinefilio) ---
+      // به‌جای فیزیک پیچیده‌ی omni-force (که کنترل دقیقش سخته)، مستقیم
+      // موقعیت x هر سلول رو حول ix (موقعیت اصلی‌اش توی گرید) نوسان می‌دیم.
+      // ردیف‌های زوج و فرد در جهت مخالف حرکت می‌کنن.
+      let waveRunning = true
+      const WAVE_AMPLITUDE = 0.15 // نسبت به فاصله‌ی سلول‌ها (spacing ≈ 1 واحد)
+      const WAVE_SPEED = 0.0006 // رادیان بر میلی‌ثانیه
+      const waveLoop = (t) => {
+        if (!waveRunning) return
+        const cells = vf.cells || vf.simulation?.sharedCellData?.cells
+        if (cells) {
+          for (let i = 0; i < cells.length; i++) {
+            const cell = cells[i]
+            const dir = cell.row % 2 === 0 ? 1 : -1
+            cell.x = cell.ix + dir * WAVE_AMPLITUDE * Math.sin(t * WAVE_SPEED + cell.row * 0.3)
+          }
+        }
+        requestAnimationFrame(waveLoop)
+      }
+      requestAnimationFrame(waveLoop)
       vf._cameraCleanup = () => {
+        waveRunning = false
         canvasEl?.removeEventListener('wheel', onWheel)
         canvasEl?.removeEventListener('pointerdown', onPointerDown)
         window.removeEventListener('pointermove', onPointerMove)
