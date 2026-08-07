@@ -100,7 +100,10 @@ async function buildAtlas(items, tileSize, onProgress, concurrency = 32) {
       const col = i % cols
       const row = Math.floor(i / cols)
       try {
-        const img = await loadImage(items[i].poster, 5000)
+        // به‌جای گرفتن مستقیم از media-amazon.com (که CORS نمی‌ده)، از
+        // پراکسی خود Worker رد می‌شیم — همون origin، بدون مشکل CORS.
+        const proxiedUrl = '/api/image-proxy?url=' + encodeURIComponent(items[i].poster)
+        const img = await loadImage(proxiedUrl, 8000)
         ctx.drawImage(img, col * tileSize, row * tileSize, tileSize, tileSize)
       } catch {
         // خالی می‌مونه (خاکستری تیره) — لینک شکسته، CORS، یا timeout
