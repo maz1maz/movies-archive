@@ -147,7 +147,7 @@ export default function FolderNav({
                 <span className="folder-icon">
                   <IconSparkles width={32} height={32} />
                 </span>
-                <h2>گالری</h2>
+                <h2>Gallery</h2>
                 <p>Visual poster wall</p>
               </button>
             </div>
