@@ -29,9 +29,17 @@ async function fetchPosterBuffer(url) {
 async function main() {
   const films = JSON.parse(await readFile(FILMS_JSON, 'utf-8'))
   const LIMIT = process.env.GALLERY_LIMIT ? Number(process.env.GALLERY_LIMIT) : Infinity
+  const seenPosters = new Set()
   const withPoster = films
     .filter((f) => f.poster)
     .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+    // یکتاسازی بر اساس آدرس پوستر — دقیقاً همون منطقی که GalleryPanel.jsx
+    // سمت کلاینت اجرا می‌کنه، تا index دو طرف هماهنگ بمونه.
+    .filter((f) => {
+      if (seenPosters.has(f.poster)) return false
+      seenPosters.add(f.poster)
+      return true
+    })
     .slice(0, LIMIT)
   const cols = Math.ceil(Math.sqrt(withPoster.length))
   const rows = Math.ceil(withPoster.length / cols)

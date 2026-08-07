@@ -43,12 +43,20 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
   }, [])
 
   // مهم: باید دقیقاً همون ترتیبی باشه که scripts/build-gallery-media.mjs
-  // موقع ساخت اطلس استفاده کرده (sort بر اساس id) — وگرنه index هر سلول
-  // به پوستر اشتباهی اشاره می‌کنه.
+  // موقع ساخت اطلس استفاده کرده (sort بر اساس id، بعد یکتاسازی بر اساس
+  // آدرس پوستر) — وگرنه index هر سلول به پوستر اشتباهی اشاره می‌کنه.
+  // یکتاسازی لازمه چون یه فیلم می‌تونه هم نسخه‌ی فیزیکی هم دیجیتال داشته
+  // باشه (دو ردیف جدا توی دیتابیس، همون پوستر) که باعث تکرار توی گالری می‌شد.
+  const seenPosters = new Set()
   const postersOnly = films
     .filter((f) => f.poster)
     .slice()
     .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+    .filter((f) => {
+      if (seenPosters.has(f.poster)) return false
+      seenPosters.add(f.poster)
+      return true
+    })
 
   useEffect(() => {
     if (!containerRef.current || postersOnly.length === 0 || mediaStatus === 'loading') return
@@ -108,8 +116,8 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
                   fBorderThicknessMod: { value: 0.15 },
                   fBorderSmoothnessMod: { value: 1 },
                   fMediaBboxScale: { value: 1.15 },
-                  fCenterForceBulgeStrength: { value: 0.25 },
-                  fCenterForceBulgeRadius: { value: 0.25 },
+                  fCenterForceBulgeStrength: { value: 0 }, // بولج تک‌سلولی موقع کلیک/هاور رو خاموش کردیم
+                  fCenterForceBulgeRadius: { value: 0 },
                   fWeightOffsetScaleMod: { value: 0.25 },
                   fWeightOffsetScaleMediaMod: { value: 1 },
                   fUnweightedEffectMod: { value: 0 },
