@@ -7,6 +7,7 @@ import EditModal from './components/EditModal.jsx'
 import PersonModal from './components/PersonModal.jsx'
 import FolderNav from './components/FolderNav.jsx'
 import DashboardPanel from './components/DashboardPanel.jsx'
+import GalleryPanel from './components/GalleryPanel.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
@@ -677,6 +678,7 @@ export default function App() {
             onSelectDigitalType={(type) => changeSection(type === 'series' ? 'digital-series' : 'digital-movie')}
             onSelectSpecialCollections={() => changeSection('special-collections')}
             onSelectDashboard={() => changeSection('dashboard')}
+            onSelectGallery={() => changeSection('gallery')}
           />
           {selected && (
             <FilmModal
@@ -726,6 +728,32 @@ export default function App() {
             </div>
           </div>
         </div>
+      ) : section === 'gallery' ? (
+        <>
+          <GalleryPanel
+            films={allFilmsUnfiltered}
+            onBack={() => changeSection(null)}
+            onOpenFilm={(film) => setSelected(film)}
+          />
+          {selected && (
+            <FilmModal
+              film={selected}
+              films={allFilmsUnfiltered}
+              hasBluray={hasBlurayCopy(selected)}
+              hasDigital={hasDigitalCopy(selected)}
+              onNavigate={(film) => setSelected(film)}
+              onSelectPerson={(name) => {
+                setSelected(null)
+                setSelectedPerson(name)
+              }}
+              onManageLoan={(film) => setLoanFilm(film)}
+              onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
+              onSaveSeasonDrive={(film, seasonDrives) => handleSaveFilm(film.id, { seasonDrives })}
+              onEdit={setEditing}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </>
       ) : section === 'dashboard' ? (
         <>
           <DashboardPanel
