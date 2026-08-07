@@ -85,7 +85,8 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
                   type: 'origin',
                   enabled: true,
                   strength: 0.8,
-                  xFactor: 0, // X رو کاملاً به موج دستی زیر می‌سپاریم (تداخل نکنه)
+                  xFactor: 0, // X و Y رو کاملاً به موج دستی زیر می‌سپاریم (تداخل نکنه)
+                  yFactor: 0,
                 },
               },
             },
@@ -203,14 +204,16 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
       window.addEventListener('pointermove', onPointerMove)
       window.addEventListener('pointerup', onPointerUp)
 
-      // --- موج افقی ردیف‌به‌ردیف (اضافه‌شده برای گالری Cinefilio) ---
-      // به‌جای فیزیک پیچیده‌ی omni-force (که کنترل دقیقش سخته)، مستقیم
-      // موقعیت x هر سلول رو حول ix (موقعیت اصلی‌اش توی گرید) نوسان می‌دیم.
-      // ردیف‌های زوج و فرد در جهت مخالف حرکت می‌کنن.
+      // --- حرکت آلی (اضافه‌شده برای گالری Cinefilio) ---
+      // نسخه‌ی قبلی یه موج ساده‌ی افقی ردیف‌به‌ردیف بود. این نسخه چند لایه
+      // ترکیب می‌کنه تا حس «زنده» و کمتر مکانیکی بده:
+      //  ۱) موج افقی که فاز هر سلول هم به row هم به col بستگی داره (نه فقط
+      //     ردیف‌ها با هم حرکت کنن، بلکه یه موج مورب/سیال روی کل گرید بره)
+      //  ۲) یه نوسان عمودی ملایم با فرکانس متفاوت (تا مسیر حرکت هر سلول
+      //     یه بیضی/لوپ باشه، نه فقط یه خط راست)
+      //  ۳) دامنه و فاز هرکدوم کمی per-cell شبه‌تصادفی (seed از index) تا
+      //     همه‌ی سلول‌ها دقیقاً هم‌فاز/هم‌دامنه نباشن و طبیعی‌تر به‌نظر برسه
       let waveRunning = true
-      // دامنه‌ی موج رو به‌جای عدد ثابت حدسی (که قبلاً با مقیاس واقعی
-      // مختصات هم‌خونی نداشت و خیلی کم‌اثر بود)، از خود فاصله‌ی واقعی
-      // بین دو سلول مجاور محاسبه می‌کنیم — همیشه متناسب می‌مونه.
       let WAVE_AMPLITUDE = 20
       {
         const cellsForSpacing = vf.cells || vf.simulation?.sharedCellData?.cells
@@ -219,7 +222,16 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
           WAVE_AMPLITUDE = spacing * 0.4
         }
       }
-      const WAVE_SPEED = 0.0011 // رادیان بر میلی‌ثانیه
+      const WAVE_SPEED = 0.0011 // رادیان بر میلی‌ثانیه (فرکانس افقی پایه)
+      const VERTICAL_SPEED = 0.0017 // یه‌کم سریع‌تر از افقی تا مسیر بیضی‌شکل بشه
+      const VERTICAL_AMPLITUDE_RATIO = 0.35 // نسبت به دامنه‌ی افقی
+
+      // شبه‌تصادفی ثابت بر اساس index (بدون کتابخونه‌ی اضافه، deterministic)
+      function pseudoRandom(seed) {
+        const x = Math.sin(seed * 12.9898) * 43758.5453
+        return x - Math.floor(x)
+      }
+
       const waveLoop = (t) => {
         if (!waveRunning) return
         const cells = vf.cells || vf.simulation?.sharedCellData?.cells
@@ -227,7 +239,18 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
           for (let i = 0; i < cells.length; i++) {
             const cell = cells[i]
             const dir = cell.row % 2 === 0 ? 1 : -1
-            cell.x = cell.ix + dir * WAVE_AMPLITUDE * Math.sin(t * WAVE_SPEED + cell.row * 0.3)
+            // فاز پایه از row+col: باعث می‌شه موج به‌جای حرکت یکنواخت هر
+            // ردیف، یه شیب/جهت مورب هم روی کل صحنه داشته باشه.
+            const basePhase = cell.row * 0.3 + (cell.col ?? 0) * 0.12
+            // تنوع per-cell (کوچیک، فقط برای طبیعی‌تر شدن، نه بی‌نظمی زیاد)
+            const ampJitter = 0.8 + pseudoRandom(i) * 0.4 // بین ۰.۸ تا ۱.۲
+            const phaseJitter = pseudoRandom(i * 7.31) * 1.2
+
+            const amp = WAVE_AMPLITUDE * ampJitter
+            cell.x = cell.ix + dir * amp * Math.sin(t * WAVE_SPEED + basePhase + phaseJitter)
+            cell.y =
+              cell.iy +
+              dir * amp * VERTICAL_AMPLITUDE_RATIO * Math.cos(t * VERTICAL_SPEED + basePhase + phaseJitter)
           }
         }
         requestAnimationFrame(waveLoop)
