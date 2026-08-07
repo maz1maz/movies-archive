@@ -91,6 +91,12 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
               },
             },
           },
+          controls: {
+            // پیش‌فرض موتور zoom رو بین ۱ تا ۱.۵ محدود می‌کنه (طراحی‌شده برای
+            // سیستم چندسطحی کیفیت پروژه‌ی اصلی). برای ما که فقط یک سطح
+            // داریم، این محدوده اونقدر کمه که اصلاً حس نمی‌شه. بازش می‌کنیم.
+            zoom: { enabled: true, min: 1, max: 6 },
+          },
         })
         vfRef.current = vf
       } catch (err) {

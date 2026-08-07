@@ -16,8 +16,8 @@ const ROOT = path.resolve(import.meta.dirname, '..')
 const FILMS_JSON = path.join(ROOT, 'films.json')
 const OUT_DIR = path.join(ROOT, 'public/gallery-media')
 
-const TILE_W = 32
-const TILE_H = 48
+const TILE_W = 64
+const TILE_H = 96
 const CONCURRENCY = 16
 
 async function fetchPosterBuffer(url) {
