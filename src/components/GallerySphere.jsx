@@ -42,19 +42,35 @@ const fragment = /* glsl */ `
   }
 `;
 
-function loadImage(src) {
+function loadImage(src, timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
     const img = new Image()
+    let settled = false
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
+      reject(new Error('timeout: ' + src))
+    }, timeoutMs)
     img.crossOrigin = 'anonymous'
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('load failed: ' + src))
+    img.onload = () => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(img)
+    }
+    img.onerror = () => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      reject(new Error('load failed: ' + src))
+    }
     img.src = src
   })
 }
 
 // همه‌ی پوسترها رو توی یه تکسچر بزرگ (اطلس) می‌چینه — یه بار در شروع،
 // کاملاً در مرورگر، بدون نیاز به build step یا فرمت فشرده‌ی خاص.
-async function buildAtlas(items, tileSize, onProgress, concurrency = 24) {
+async function buildAtlas(items, tileSize, onProgress, concurrency = 32) {
   const cols = Math.ceil(Math.sqrt(items.length))
   const size = cols * tileSize
   const canvas = document.createElement('canvas')
@@ -84,16 +100,23 @@ async function buildAtlas(items, tileSize, onProgress, concurrency = 24) {
       const col = i % cols
       const row = Math.floor(i / cols)
       try {
-        const img = await loadImage(items[i].poster)
+        const img = await loadImage(items[i].poster, 5000)
         ctx.drawImage(img, col * tileSize, row * tileSize, tileSize, tileSize)
       } catch {
-        // خالی می‌مونه (خاکستری تیره)
+        // خالی می‌مونه (خاکستری تیره) — لینک شکسته، CORS، یا timeout
       }
       loaded++
       if (onProgress) onProgress(loaded, items.length)
     }
   }
-  await Promise.all(Array.from({ length: concurrency }, worker))
+
+  // سقف زمانی کلی: اگه به هر دلیلی (خیلی لینک کند/شکسته) کل فرایند خیلی
+  // طول کشید، به‌جای گیرکردن ابدی روی صفحه‌ی لودینگ، با هرچی تا الان
+  // آماده شده ادامه می‌دیم.
+  const workersPromise = Promise.all(Array.from({ length: concurrency }, worker))
+  const overallTimeout = new Promise((resolve) => setTimeout(resolve, 60000))
+  await Promise.race([workersPromise, overallTimeout])
+
   return { canvas, uvRects }
 }
 
