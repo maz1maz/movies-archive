@@ -27,10 +27,17 @@
       "database_id": "fcc3c3a7-2550-417e-92a2-2ba53ad97a6e"
     }
   ],
-  // هر روز ساعت ۳ بامداد UTC، خودکار یه دسته از enrichment رو انجام می‌ده
-  // (تا سهمیه‌ی رایگان روزانه‌ی OMDb تموم بشه) — بدون نیاز به کلیک دستی.
+  "kv_namespaces": [
+    {
+      "binding": "BACKUPS",
+      "id": "3d0be28e236842fbba40b8bacbf91da2"
+    }
+  ],
+  // دو کرون: ساعت ۳ بامداد UTC برای enrichment خودکار، ساعت ۴ بامداد UTC
+  // برای بکاپ روزانه‌ی کامل جدول films در KV (نگه‌داری ۳۰ روز اخیر).
+  // scheduled() در worker.js با event.cron تشخیص می‌ده کدوم اجرا شده.
   "triggers": {
-    "crons": ["0 3 * * *"]
+    "crons": ["0 3 * * *", "0 4 * * *"]
   }
   // OMDB_API_KEY is set as a secret (wrangler secret put OMDB_API_KEY), not here —
   // a plain "vars" entry with the same name would overwrite the secret on every deploy.
