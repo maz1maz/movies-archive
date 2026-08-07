@@ -133,11 +133,11 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
       // شیدر اصلی pan/zoom camera نداشت (فقط بولج موضعی سلول هاورشده).
       // این uniformهای uCameraZoom/uCameraOffset رو مستقیم توی pCoords()
       // شیدر تزریق کردیم که کل صحنه رو تحت تأثیر بذاره.
-      let zoom = 2.2
+      let zoom = 6.6
       let offsetX = 0
       let offsetY = 0
       const minZoom = 0.5
-      const maxZoom = 8
+      const maxZoom = 10
 
       const applyCamera = () => {
         const uniforms = vf.display?.scene?.mainProgram?.uniforms
@@ -191,7 +191,7 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
       // ردیف‌های زوج و فرد در جهت مخالف حرکت می‌کنن.
       let waveRunning = true
       const WAVE_AMPLITUDE = 0.15 // نسبت به فاصله‌ی سلول‌ها (spacing ≈ 1 واحد)
-      const WAVE_SPEED = 0.0006 // رادیان بر میلی‌ثانیه
+      const WAVE_SPEED = 0.0011 // رادیان بر میلی‌ثانیه
       const waveLoop = (t) => {
         if (!waveRunning) return
         const cells = vf.cells || vf.simulation?.sharedCellData?.cells
