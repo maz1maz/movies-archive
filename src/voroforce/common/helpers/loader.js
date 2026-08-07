@@ -247,4 +247,10 @@ export class Loader extends CustomEventTarget {
       onLoad?.(mediaElement)
     }
   }
+
+  dispose() {
+    // چیزی برای cleanup سختگیرانه نیست (fetch/Image درخواست‌های در حال
+    // اجرا هستن که با unmount شدن container بی‌اثر می‌شن)، ولی voroforce.js
+    // بدون قید و شرط dispose() رو صدا می‌زنه، پس باید وجود داشته باشه.
+  }
 }

@@ -184,9 +184,14 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
     return () => {
       cancelled = true
       if (vf) {
-        vf.controls.unlisten('selected', vf._onCellSelected)
-        vf._cameraCleanup?.()
-        vf.dispose?.()
+        try {
+          vf.controls.unlisten('selected', vf._onCellSelected)
+          vf._cameraCleanup?.()
+          vf.dispose?.()
+        } catch (err) {
+          // نباید کل اپ رو با یه خطای cleanup بکشونیم (مثلاً موقع زدن Back)
+          console.error('Voroforce cleanup error (non-fatal):', err)
+        }
       }
       if (containerRef.current) containerRef.current.innerHTML = ''
     }

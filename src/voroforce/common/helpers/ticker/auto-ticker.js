@@ -81,4 +81,9 @@ export class AutoTicker extends CustomEventTarget {
   unfreeze() {
     this.start()
   }
+
+  dispose() {
+    this.stop()
+    this.kill()
+  }
 }

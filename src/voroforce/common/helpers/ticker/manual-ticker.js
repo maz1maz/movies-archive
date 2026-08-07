@@ -75,4 +75,8 @@ export class ManualTicker extends CustomEventTarget {
   unfreeze() {
     this.start()
   }
+
+  dispose() {
+    this.kill()
+  }
 }
