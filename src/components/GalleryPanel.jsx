@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Voroforce } from '../voroforce/index'
+import mainFrag from '../voroforce-shaders/main.frag'
 
 // پنل «گالری» — نمای بصری voronoi از پوسترها با موتور واقعی Voroforce.
 // از همون allFilmsUnfiltered که بقیه‌ی اپ استفاده می‌کنه تغذیه می‌شه،
@@ -59,6 +60,37 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
           // گرید ۱×۱ سقوط می‌کنه — دقیقاً همون چیزی که باعث خطای
           // "Invalid index" / "out of grid bounds (1x1)" می‌شد.
           lattice: { aspect: 2 / 3 }, // نسبت استاندارد پوستر فیلم (عرض/ارتفاع)
+          display: {
+            scene: {
+              main: {
+                // شیدر واقعی رندر voronoi از پروژه‌ی nothing-to-watch (منبع باز،
+                // CC-BY-NC-SA — برای آرشیو شخصی/غیرتجاری مشکلی نداره).
+                // مقادیر uniform پایین، نسخه‌ی ساده‌شده‌ی (بدون سیستم
+                // mode/theme پیچیده‌ی پروژه‌ی اصلی) تنظیمات پیش‌فرض «حالت عادی»شونه.
+                fragmentShader: mainFrag,
+                uniforms: {
+                  iForcedMaxNeighborLevel: { value: 0 },
+                  fPixelSearchRadiusMod: { value: 1 },
+                  bMediaDistortion: { value: false },
+                  fMediaBboxScale: { value: 1 },
+                  fBaseColor: { value: [0, 0, 0] },
+                  fBorderRoundnessMod: { value: 0.75 },
+                  fBorderThicknessMod: { value: 1 },
+                  fBorderSmoothnessMod: { value: 1 },
+                  fCenterForceBulgeStrength: { value: 0.25 },
+                  fCenterForceBulgeRadius: { value: 0.25 },
+                  fWeightOffsetScaleMod: { value: 0.25 },
+                  fWeightOffsetScaleMediaMod: { value: 1 },
+                  fUnweightedEffectMod: { value: 0 },
+                  fBaseXDistScale: { value: 1.5 },
+                  fWeightedXDistScale: { value: 1.5 },
+                  fRippleMod: { value: 1 },
+                  fNoiseOctaveMod: { value: 1 },
+                  fNoiseCenterOffsetMod: { value: 1 },
+                },
+              },
+            },
+          },
         })
         vfRef.current = vf
       } catch (err) {
