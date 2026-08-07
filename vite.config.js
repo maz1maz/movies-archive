@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import glsl from 'vite-plugin-glsl'
 
 // ریشه پروژه همون پوشه اصلیه؛ خروجی ساخته‌شده در dist ذخیره می‌شه
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), glsl()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,
