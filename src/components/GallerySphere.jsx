@@ -119,6 +119,23 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       return true
     })
 
+  // --- نوارهای مارکی پشت کره: چند ردیف پوستر که از چپ/راست میان و
+  // پشت کره محو می‌شن. عکس‌ها مستقیم (بدون پراکسی) لود می‌شن چون فقط
+  // <img> ساده‌ست، نه canvas — CORS اینجا مشکلی ایجاد نمی‌کنه.
+  const MARQUEE_ROWS = 5
+  const marqueeRows = []
+  {
+    const sampleSize = 70
+    const step = Math.max(1, Math.floor(postersOnly.length / sampleSize))
+    const sample = []
+    for (let i = 0; i < postersOnly.length && sample.length < sampleSize; i += step) {
+      sample.push(postersOnly[i])
+    }
+    for (let r = 0; r < MARQUEE_ROWS; r++) {
+      marqueeRows.push(sample.filter((_, i) => i % MARQUEE_ROWS === r))
+    }
+  }
+
   useEffect(() => {
     if (!containerRef.current || postersOnly.length === 0) return
     let disposed = false
@@ -126,9 +143,9 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
 
     async function init() {
       const container = containerRef.current
-      const renderer = new Renderer({ dpr: Math.min(window.devicePixelRatio, 2), alpha: false })
+      const renderer = new Renderer({ dpr: Math.min(window.devicePixelRatio, 2), alpha: true })
       const gl = renderer.gl
-      gl.clearColor(0.04, 0.04, 0.05, 1)
+      gl.clearColor(0, 0, 0, 0) // شفاف — تا نوارهای پوستر پشت صحنه (مارکی) دیده بشن
       container.appendChild(gl.canvas)
 
       const camera = new Camera(gl, { fov: 45, near: 0.1, far: 100 })
@@ -353,6 +370,66 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
 
   return (
     <div className="folder-nav" style={{ overflow: 'hidden' }}>
+      <style>{`
+        @keyframes marqueeLTR { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+        @keyframes marqueeRTL { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+      `}</style>
+
+      {/* نوارهای مارکی: پشت کره، یه ردیف تصویر که پیوسته از چپ/راست رد می‌شن
+          و وسط صفحه (پشت کره) محو می‌شن — با mask-image شفاف در وسط */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 6,
+        }}
+      >
+        {marqueeRows.map((rowItems, r) => {
+          if (rowItems.length === 0) return null
+          const reverse = r % 2 === 1
+          const duration = 42 + r * 9
+          return (
+            <div
+              key={r}
+              style={{
+                width: '100%',
+                overflow: 'hidden',
+                WebkitMaskImage:
+                  'linear-gradient(to right, black 0%, black 30%, transparent 46%, transparent 54%, black 70%, black 100%)',
+                maskImage:
+                  'linear-gradient(to right, black 0%, black 30%, transparent 46%, transparent 54%, black 70%, black 100%)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  width: 'max-content',
+                  gap: 10,
+                  animation: `${reverse ? 'marqueeRTL' : 'marqueeLTR'} ${duration}s linear infinite`,
+                  opacity: 0.55,
+                }}
+              >
+                {[...rowItems, ...rowItems].map((f, i) => (
+                  <img
+                    key={i}
+                    src={f.poster}
+                    alt=""
+                    style={{ height: 64, width: 43, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
+                    loading="lazy"
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
       <button
         className="btn btn-ghost"
         onClick={onBack}
@@ -414,7 +491,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
           <div style={{ fontSize: 12, opacity: 0.5, marginTop: 8 }}>{loadError}</div>
         </div>
       )}
-      <div ref={containerRef} style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh' }} />
+      <div ref={containerRef} style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', zIndex: 2 }} />
     </div>
   )
 }
