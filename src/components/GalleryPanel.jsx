@@ -60,22 +60,6 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
           // گرید ۱×۱ سقوط می‌کنه — دقیقاً همون چیزی که باعث خطای
           // "Invalid index" / "out of grid bounds (1x1)" می‌شد.
           lattice: { aspect: 2 / 3 }, // نسبت استاندارد پوستر فیلم (عرض/ارتفاع)
-          simulation: {
-            steps: {
-              force: {
-                // پیش‌فرض موتور از انواع نیروی 'lattice'/'push' استفاده می‌کنه
-                // که اصلاً در forces/index.js ثبت نشدن (فقط 'origin' و 'omni'
-                // واقعاً وجود دارن) — یعنی عملاً هیچ حرکتی تولید نمی‌شد.
-                // 'omni' نیروی جامع پروژه‌ی اصلیه؛ breathing رو روشن می‌کنیم
-                // تا همون حس زنده/نفس‌کشیدن سلول‌ها رو داشته باشیم.
-                forces: {
-                  type: 'omni',
-                  enabled: true,
-                  breathing: { enabled: true, cycleDuration: 6000, variability: 0.15 },
-                },
-              },
-            },
-          },
           display: {
             scene: {
               main: {

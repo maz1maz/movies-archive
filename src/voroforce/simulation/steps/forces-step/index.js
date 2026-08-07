@@ -139,7 +139,15 @@ export default class ForcesSimulationStep extends BaseSimulationStep {
     }
 
     for (let i = 0; i < this.forces.length; i++) {
-      this.forces[i](this.parameters.alpha)
+      try {
+        this.forces[i](this.parameters.alpha)
+      } catch (err) {
+        // یه خطای runtime توی یه force نباید کل حلقه‌ی رندر رو فریز کنه
+        // (که قبلاً دقیقاً همین اتفاق افتاد و باعث شد zoom/motion هم بی‌اثر
+        // به‌نظر برسن، چون کل تیک شبیه‌سازی+رندر متوقف می‌شد).
+        console.error('[voroforce/forces-step] force threw, disabling it:', err)
+        this.forces[i] = () => {}
+      }
     }
 
     this.handleMediaVersionLayerLoadRequests()
