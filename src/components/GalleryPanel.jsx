@@ -190,7 +190,17 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
       // موقعیت x هر سلول رو حول ix (موقعیت اصلی‌اش توی گرید) نوسان می‌دیم.
       // ردیف‌های زوج و فرد در جهت مخالف حرکت می‌کنن.
       let waveRunning = true
-      const WAVE_AMPLITUDE = 0.4 // نسبت به فاصله‌ی سلول‌ها (spacing ≈ 1 واحد) — قبلاً ۰.۱۵ بود، خیلی کم‌اثر بود
+      // دامنه‌ی موج رو به‌جای عدد ثابت حدسی (که قبلاً با مقیاس واقعی
+      // مختصات هم‌خونی نداشت و خیلی کم‌اثر بود)، از خود فاصله‌ی واقعی
+      // بین دو سلول مجاور محاسبه می‌کنیم — همیشه متناسب می‌مونه.
+      let WAVE_AMPLITUDE = 20
+      {
+        const cellsForSpacing = vf.cells || vf.simulation?.sharedCellData?.cells
+        if (cellsForSpacing && cellsForSpacing.length > 1) {
+          const spacing = Math.abs(cellsForSpacing[1].ix - cellsForSpacing[0].ix) || 20
+          WAVE_AMPLITUDE = spacing * 0.4
+        }
+      }
       const WAVE_SPEED = 0.0011 // رادیان بر میلی‌ثانیه
       const waveLoop = (t) => {
         if (!waveRunning) return
