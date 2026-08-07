@@ -122,17 +122,21 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
   // --- نوارهای مارکی پشت کره: چند ردیف پوستر که از چپ/راست میان و
   // پشت کره محو می‌شن. عکس‌ها مستقیم (بدون پراکسی) لود می‌شن چون فقط
   // <img> ساده‌ست، نه canvas — CORS اینجا مشکلی ایجاد نمی‌کنه.
-  const MARQUEE_ROWS = 5
+  const MARQUEE_ROWS = 26
   const marqueeRows = []
   {
-    const sampleSize = 70
+    // قبلاً فقط ۷۰ تا پوستر نمونه بود که بین ۲۶ ردیف تقسیم بشه (~۳ تا هر
+    // ردیف) — عرض واقعیش خیلی کمتر از عرض صفحه بود، برای همون سمت راست
+    // خالی می‌موند. این بار از کل پوسترها استفاده می‌کنیم.
+    const sampleSize = Math.min(postersOnly.length, MARQUEE_ROWS * 40)
     const step = Math.max(1, Math.floor(postersOnly.length / sampleSize))
     const sample = []
     for (let i = 0; i < postersOnly.length && sample.length < sampleSize; i += step) {
       sample.push(postersOnly[i])
     }
     for (let r = 0; r < MARQUEE_ROWS; r++) {
-      marqueeRows.push(sample.filter((_, i) => i % MARQUEE_ROWS === r))
+      const rowItems = sample.filter((_, i) => i % MARQUEE_ROWS === r)
+      marqueeRows.push([...rowItems, ...rowItems]) // دو نسخه، برای لوپ بی‌درز با translateX(-50%)
     }
   }
 
@@ -319,7 +323,10 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
             best = i
           }
         }
-        if (best >= 0 && bestDist < 0.03) {
+        if (best >= 0) {
+          console.log('[GallerySphere] click best index', best, 'dist', bestDist.toFixed(4))
+        }
+        if (best >= 0 && bestDist < 0.15) {
           const filmId = atlas.ids[best]
           const film = filmId != null ? filmsById.get(String(filmId)) : undefined
           if (film) {
@@ -339,7 +346,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       })
 
       let raf
-      const AUTO_SPEED = 0.00004 // قبلاً 0.00012 بود، حدود یک‌سوم کندتر شد
+      const AUTO_SPEED = 0.00002 // دوباره نصف شد
       function loop(t) {
         raf = requestAnimationFrame(loop)
         autoRotation = t * AUTO_SPEED
@@ -386,14 +393,14 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
           pointerEvents: 'none',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
-          gap: 6,
+          justifyContent: 'space-evenly',
+          gap: 2,
         }}
       >
         {marqueeRows.map((rowItems, r) => {
           if (rowItems.length === 0) return null
           const reverse = r % 2 === 1
-          const duration = 42 + r * 9
+          const duration = 55 + r * 4
           return (
             <div
               key={r}
@@ -410,17 +417,17 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
                 style={{
                   display: 'flex',
                   width: 'max-content',
-                  gap: 10,
+                  gap: 4,
                   animation: `${reverse ? 'marqueeRTL' : 'marqueeLTR'} ${duration}s linear infinite`,
                   opacity: 0.55,
                 }}
               >
-                {[...rowItems, ...rowItems].map((f, i) => (
+                {rowItems.map((f, i) => (
                   <img
                     key={i}
                     src={f.poster}
                     alt=""
-                    style={{ height: 64, width: 43, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
+                    style={{ height: 26, width: 18, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }}
                     loading="lazy"
                   />
                 ))}
