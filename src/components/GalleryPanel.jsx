@@ -54,6 +54,11 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
           media: mediaConfig ?? { enabled: false },
           multiThreading: { enabled: false },
           ticker: { mode: 'auto' },
+          // بدون این، calculateOptimalLattice داخل موتور به NaN می‌رسه
+          // (cellWidth / cellAspect با cellAspect==undefined) و همیشه به یه
+          // گرید ۱×۱ سقوط می‌کنه — دقیقاً همون چیزی که باعث خطای
+          // "Invalid index" / "out of grid bounds (1x1)" می‌شد.
+          lattice: { aspect: 2 / 3 }, // نسبت استاندارد پوستر فیلم (عرض/ارتفاع)
         })
         vfRef.current = vf
       } catch (err) {
