@@ -10,11 +10,14 @@ import {
   IconCheck,
   IconUser,
   IconArchive,
+  IconSparkles,
+  IconTV,
+  IconBuilding,
 } from './icons.jsx'
 
 // Overview tab of the Dashboard — same stats as the old Stats modal, shown
 // inline as the landing view instead of jumping straight to Oscars.
-export default function DashboardOverview({ films }) {
+export default function DashboardOverview({ films, onOpenFilm, onOpenPerson }) {
   const totalFilms = films.length
   const totalRuntimeMins = films.reduce((acc, f) => acc + (f.runtime || 0), 0)
   const totalHours = Math.round(totalRuntimeMins / 60)
@@ -136,6 +139,76 @@ export default function DashboardOverview({ films }) {
   ].map(([label, test]) => [label, ratedFilms.filter((f) => test(f.rating)).length])
   const maxBucket = ratingBuckets.reduce((m, [, c]) => Math.max(m, c), 1)
 
+  // چند فیلم/ماه به آرشیو اضافه شده — برای دیدن روند رشد جمع‌آوری، آخرین
+  // ۱۲ ماهی که واقعاً چیزی اضافه شده (نه ۱۲ ماه تقویمی خالی)
+  const monthCounts = {}
+  films.forEach((f) => {
+    if (f.createdAt) {
+      const m = String(f.createdAt).slice(0, 7)
+      if (/^\d{4}-\d{2}$/.test(m)) monthCounts[m] = (monthCounts[m] || 0) + 1
+    }
+  })
+  const monthEntries = Object.entries(monthCounts)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-12)
+  const maxMonthCount = monthEntries.reduce((m, [, c]) => Math.max(m, c), 1)
+  const monthLabel = (m) => {
+    const [y, mo] = m.split('-')
+    return new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString('en-US', { month: 'short' }) + ` '${y.slice(2)}`
+  }
+
+  // پخش‌شدن فیلم‌های دیجیتال روی هارددرایوها (یه فیلم می‌تونه چند درایو
+  // داشته باشه، مثل "Drive 2, Drive 5")
+  const driveCounts = {}
+  films.forEach((f) => {
+    if (f.mediaType === 'digital' && f.driveNumber) {
+      String(f.driveNumber)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .forEach((d) => {
+          driveCounts[d] = (driveCounts[d] || 0) + 1
+        })
+    }
+  })
+  const topDrives = Object.entries(driveCounts).sort((a, b) =>
+    a[0].localeCompare(b[0], undefined, { numeric: true })
+  )
+
+  const studioCounts = {}
+  films.forEach((f) => {
+    const s = f.studio && f.studio.trim()
+    if (s) studioCounts[s] = (studioCounts[s] || 0) + 1
+  })
+  const topStudios = Object.entries(studioCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+
+  // بالاترین امتیازی که هنوز ندیدی — یه پیشنهاد عملی برای «امشب چی ببینم»
+  const upNext = films
+    .filter((f) => !f.watched && typeof f.rating === 'number')
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 5)
+
+  const withCreated = films.filter((f) => f.createdAt)
+  const mostRecentAdd = withCreated.length
+    ? withCreated.reduce((a, b) => (new Date(a.createdAt) > new Date(b.createdAt) ? a : b))
+    : null
+
+  // اختلاف امتیاز خودت (از ۵) با امتیاز IMDb (از ۱۰، نرمال‌شده به ۵) —
+  // کدوم فیلم رو بیشتر از منتقدها دوست داشتی، کدوم رو کمتر
+  const bothRated = films.filter((f) => typeof f.rating === 'number' && f.myRating > 0)
+  let lovedMore = null
+  let lovedLess = null
+  bothRated.forEach((f) => {
+    const diff = f.myRating * 2 - f.rating
+    if (!lovedMore || diff > lovedMore.myRating * 2 - lovedMore.rating) lovedMore = f
+    if (!lovedLess || diff < lovedLess.myRating * 2 - lovedLess.rating) lovedLess = f
+  })
+
+  const openPerson = (name) => onOpenPerson && name && onOpenPerson(name)
+  const openFilm = (film) => onOpenFilm && onOpenFilm(film)
+
   return (
     <div className="dashboard-overview">
       <div className="stats-cards-grid stats-cards-grid-6">
@@ -176,6 +249,23 @@ export default function DashboardOverview({ films }) {
         </div>
       </div>
 
+      {upNext.length > 0 && (
+        <div className="stats-box stats-box-spotlight">
+          <h3><IconSparkles width={15} height={15} /> Up Next — Highest-Rated You Haven't Watched</h3>
+          <div className="spotlight-row">
+            {upNext.map((f) => (
+              <button key={f.id} type="button" className="spotlight-item" onClick={() => openFilm(f)}>
+                <div className="spotlight-poster">
+                  {f.poster ? <img src={f.poster} alt="" /> : <span className="spotlight-poster-empty" />}
+                  <span className="spotlight-rating"><IconStar width={10} height={10} /> {f.rating.toFixed(1)}</span>
+                </div>
+                <span className="spotlight-title">{f.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {decadeEntries.length > 1 && (
         <div className="stats-box">
           <h3><IconClock width={15} height={15} /> Decade Timeline</h3>
@@ -188,6 +278,24 @@ export default function DashboardOverview({ films }) {
                   style={{ height: `${Math.max(6, Math.round((count / maxDecadeCount) * 100))}%` }}
                 />
                 <span className="timeline-label">{decade}s</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {monthEntries.length > 1 && (
+        <div className="stats-box">
+          <h3><IconClock width={15} height={15} /> Collection Growth (last {monthEntries.length} months)</h3>
+          <div className="stats-timeline stats-timeline-sm">
+            {monthEntries.map(([m, count]) => (
+              <div key={m} className="timeline-col">
+                <span className="timeline-count">{count}</span>
+                <div
+                  className="timeline-bar"
+                  style={{ height: `${Math.max(6, Math.round((count / maxMonthCount) * 100))}%` }}
+                />
+                <span className="timeline-label">{monthLabel(m)}</span>
               </div>
             ))}
           </div>
@@ -321,11 +429,11 @@ export default function DashboardOverview({ films }) {
               <div className="cine-empty">No cast data yet</div>
             ) : (
               topActors.map(([actor, count], idx) => (
-                <div key={actor} className="dir-stat-row">
+                <button key={actor} type="button" className="dir-stat-row dir-stat-row-clickable" onClick={() => openPerson(actor)}>
                   <span className="dir-stat-rank">#{idx + 1}</span>
                   <span className="dir-stat-name">{actor}</span>
                   <span className="dir-stat-count">{count} films</span>
-                </div>
+                </button>
               ))
             )}
           </div>
@@ -336,12 +444,16 @@ export default function DashboardOverview({ films }) {
         <div className="stats-box">
           <h3><IconBookshelf width={15} height={15} /> Closet Storage Breakdown</h3>
           <div className="stats-shelf-pills">
-            {topShelves.map(([sh, count]) => (
-              <div key={sh} className="shelf-stat-pill">
-                <span className="shelf-stat-name">{sh}</span>
-                <span className="shelf-stat-badge">{count} films</span>
-              </div>
-            ))}
+            {topShelves.length === 0 ? (
+              <div className="cine-empty">No closet data yet</div>
+            ) : (
+              topShelves.map(([sh, count]) => (
+                <div key={sh} className="shelf-stat-pill">
+                  <span className="shelf-stat-name">{sh}</span>
+                  <span className="shelf-stat-badge">{count} films</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -349,15 +461,60 @@ export default function DashboardOverview({ films }) {
           <h3><IconClapper width={15} height={15} /> Top Directors in Collection</h3>
           <div className="stats-directors-list">
             {topDirectors.map(([dir, count], idx) => (
-              <div key={dir} className="dir-stat-row">
+              <button key={dir} type="button" className="dir-stat-row dir-stat-row-clickable" onClick={() => openPerson(dir)}>
                 <span className="dir-stat-rank">#{idx + 1}</span>
                 <span className="dir-stat-name">{dir}</span>
                 <span className="dir-stat-count">{count} movies</span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
       </div>
+
+      {(topDrives.length > 0 || topStudios.length > 0) && (
+        <div className="stats-section-row">
+          <div className="stats-box">
+            <h3><IconTV width={15} height={15} /> Digital Drive Breakdown</h3>
+            <div className="stats-shelf-pills">
+              {topDrives.length === 0 ? (
+                <div className="cine-empty">No digital drive data yet</div>
+              ) : (
+                topDrives.map(([d, count]) => (
+                  <div key={d} className="shelf-stat-pill">
+                    <span className="shelf-stat-name">{d}</span>
+                    <span className="shelf-stat-badge">{count} items</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="stats-box">
+            <h3><IconBuilding width={15} height={15} /> Top Studios &amp; Networks</h3>
+            <div className="stats-bars">
+              {topStudios.length === 0 ? (
+                <div className="cine-empty">No studio data yet</div>
+              ) : (
+                topStudios.map(([studio, count]) => {
+                  const maxS = topStudios[0][1]
+                  const pct = Math.round((count / maxS) * 100)
+                  return (
+                    <div key={studio} className="stats-bar-item">
+                      <div className="stats-bar-meta">
+                        <span className="stats-bar-name">{studio}</span>
+                        <span className="stats-bar-val">{count} films</span>
+                      </div>
+                      <div className="stats-bar-track">
+                        <div className="stats-bar-fill country-fill" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="stats-box">
         <h3><IconStar width={15} height={15} /> Fun Facts</h3>
@@ -423,6 +580,24 @@ export default function DashboardOverview({ films }) {
               <span className="fact-lbl">Busiest decade</span>
               <span className="fact-val">{busiestDecade[0]}s ({busiestDecade[1]} films)</span>
             </div>
+          )}
+          {mostRecentAdd && (
+            <button type="button" className="fact-item fact-item-clickable" onClick={() => openFilm(mostRecentAdd)}>
+              <span className="fact-lbl">Most recently added</span>
+              <span className="fact-val">{mostRecentAdd.title}</span>
+            </button>
+          )}
+          {lovedMore && lovedMore.myRating * 2 > lovedMore.rating && (
+            <button type="button" className="fact-item fact-item-clickable" onClick={() => openFilm(lovedMore)}>
+              <span className="fact-lbl">You loved it more than critics</span>
+              <span className="fact-val">{lovedMore.title} (you {lovedMore.myRating}/5 · IMDb {lovedMore.rating.toFixed(1)})</span>
+            </button>
+          )}
+          {lovedLess && lovedLess.myRating * 2 < lovedLess.rating && (
+            <button type="button" className="fact-item fact-item-clickable" onClick={() => openFilm(lovedLess)}>
+              <span className="fact-lbl">Critics loved it more than you</span>
+              <span className="fact-val">{lovedLess.title} (you {lovedLess.myRating}/5 · IMDb {lovedLess.rating.toFixed(1)})</span>
+            </button>
           )}
         </div>
       </div>

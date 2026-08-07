@@ -67,7 +67,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
             )
           })}
         </nav>
-        {tab === 'overview' && <DashboardOverview films={films} />}
+        {tab === 'overview' && <DashboardOverview films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
         {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
         {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'crafts' && <CraftsPanel films={films} onOpenFilm={onOpenFilm} />}
