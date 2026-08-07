@@ -274,6 +274,41 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         e.preventDefault()
         camDistance = Math.min(maxDist, Math.max(minDist, camDistance * Math.exp(e.deltaY * 0.001)))
       }
+
+      // --- پینچ دو انگشتی برای زوم روی موبایل (wheel روی تاچ وجود نداره) ---
+      let pinchStartDist = null
+      let pinchStartCamDistance = camDistance
+      function touchDist(touches) {
+        const dx = touches[0].clientX - touches[1].clientX
+        const dy = touches[0].clientY - touches[1].clientY
+        return Math.hypot(dx, dy)
+      }
+      function onTouchStart(e) {
+        if (e.touches.length === 2) {
+          isDragging = false // موقع پینچ، چرخش با انگشت اول رو خاموش کن
+          pinchStartDist = touchDist(e.touches)
+          pinchStartCamDistance = camDistance
+        }
+      }
+      function onTouchMove(e) {
+        if (e.touches.length === 2 && pinchStartDist) {
+          e.preventDefault()
+          const dist = touchDist(e.touches)
+          const scale = pinchStartDist / dist
+          camDistance = Math.min(maxDist, Math.max(minDist, pinchStartCamDistance * scale))
+        }
+      }
+      function onTouchEnd(e) {
+        if (e.touches.length < 2) pinchStartDist = null
+      }
+      gl.canvas.addEventListener('touchstart', onTouchStart, { passive: true })
+      gl.canvas.addEventListener('touchmove', onTouchMove, { passive: false })
+      gl.canvas.addEventListener('touchend', onTouchEnd, { passive: true })
+      cleanupFns.push(() => {
+        gl.canvas.removeEventListener('touchstart', onTouchStart)
+        gl.canvas.removeEventListener('touchmove', onTouchMove)
+        gl.canvas.removeEventListener('touchend', onTouchEnd)
+      })
       gl.canvas.addEventListener('pointerdown', onPointerDown)
       window.addEventListener('pointermove', onPointerMove)
       window.addEventListener('pointerup', onPointerUp)
