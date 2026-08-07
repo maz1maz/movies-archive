@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Renderer, Camera, Transform, Program, Mesh, Geometry, Texture } from 'ogl'
+import { Renderer, Camera, Transform, Program, Mesh, Geometry, Texture, Vec3 } from 'ogl'
 
 // گالری کروی سه‌بعدی — پوسترها دور یه کره چیده می‌شن، کره خودش می‌چرخه،
 // با درگ هم می‌شه چرخوندش، با اسکرول زوم می‌کنه. کاملاً مستقل از موتور
@@ -10,6 +10,7 @@ const vertex = /* glsl */ `
   attribute vec2 corner;
   attribute vec2 uv;
   varying vec2 vUv;
+  varying float vWorldY;
 
   uniform mat4 modelViewMatrix;
   uniform mat4 projectionMatrix;
@@ -25,6 +26,7 @@ const vertex = /* glsl */ `
       center.y,
       center.x * s + center.z * c
     );
+    vWorldY = center.y; // قبل از چرخش کافیه، چون فقط دور Y می‌چرخیم و y عوض نمی‌شه
     vec4 mvPosition = modelViewMatrix * vec4(rotated, 1.0);
     // بعد از تبدیل model-view، آفست رو اضافه می‌کنیم؛ این باعث می‌شه
     // پوستر همیشه رو به دوربین باشه (billboard) بدون محاسبه‌ی جداگانه.
@@ -36,9 +38,19 @@ const vertex = /* glsl */ `
 const fragment = /* glsl */ `
   precision highp float;
   varying vec2 vUv;
+  varying float vWorldY;
   uniform sampler2D uAtlas;
+  uniform float uTime;
+  uniform float uRadius;
+
   void main() {
-    gl_FragColor = texture2D(uAtlas, vUv);
+    vec4 color = texture2D(uAtlas, vUv);
+    // نوار نوری طلایی که به‌آرومی از بالا به پایین کره رد می‌شه
+    float wave = sin(vWorldY * 0.9 - uTime * 0.6);
+    float band = smoothstep(0.94, 1.0, wave); // فقط نزدیک قله‌ی موج روشن بشه (نواری نازک)
+    vec3 gold = vec3(0.95, 0.75, 0.25);
+    color.rgb = mix(color.rgb, color.rgb + gold * 0.55, band);
+    gl_FragColor = color;
   }
 `;
 
@@ -196,6 +208,8 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
           uAtlas: { value: texture },
           uRotationY: { value: 0 },
           uBillboardSize: { value: [billboardSize * 0.66, billboardSize] },
+          uTime: { value: 0 },
+          uRadius: { value: RADIUS },
         },
         transparent: false,
       })
@@ -206,24 +220,31 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       // --- تعامل: چرخش خودکار + درگ برای چرخش دستی + اسکرول برای زوم ---
       let autoRotation = 0
       let dragRotation = 0
+      let camElevation = 0 // زاویه‌ی عمودی دوربین (بالا/پایین)
       let isDragging = false
       let lastX = 0
+      let lastY = 0
       let dragVelocity = 0
       let camDistance = RADIUS * 2.4
       const minDist = RADIUS * 1.3
       const maxDist = RADIUS * 5
+      const MAX_ELEVATION = 1.45 // کمی کمتر از ۹۰ درجه، تا کاملاً روی قطب گیر نکنه
 
       function onPointerDown(e) {
         isDragging = true
         lastX = e.clientX
+        lastY = e.clientY
         dragVelocity = 0
       }
       function onPointerMove(e) {
         if (!isDragging) return
         const dx = e.clientX - lastX
+        const dy = e.clientY - lastY
         lastX = e.clientX
+        lastY = e.clientY
         dragVelocity = dx * 0.005
         dragRotation += dragVelocity
+        camElevation = Math.min(MAX_ELEVATION, Math.max(-MAX_ELEVATION, camElevation + dy * 0.005))
       }
       function onPointerUp() {
         isDragging = false
@@ -259,29 +280,36 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         const totalRotation = autoRotation + dragRotation
         const c = Math.cos(totalRotation)
         const s = Math.sin(totalRotation)
+        // پروجکشن دقیق با خود ماتریس دوربین (به‌جای فرمول دستی قبلی که
+        // مطمئن نبودیم درست باشه) — camera.projectionViewMatrix بعد از هر
+        // renderer.render() آپدیت می‌شه، پس همیشه با آخرین فریم هماهنگه.
         let best = -1
         let bestDist = Infinity
+        const v = new Vec3()
         for (let i = 0; i < n; i++) {
           const [x, y, z] = positions[i]
           const rx = x * c - z * s
           const rz = x * s + z * c
-          // پروجکشن ساده به فضای دوربین (دوربین روی +Z نگاه می‌کنه به سمت مرکز)
-          const viewZ = camDistance - rz
-          if (viewZ <= 0.1) continue
-          const screenX = rx / viewZ
-          const screenY = y / viewZ
-          const dx = screenX - ndcX * viewZ * Math.tan((45 * Math.PI) / 360) * camera.aspect
-          const dy = screenY - ndcY * viewZ * Math.tan((45 * Math.PI) / 360)
+          v.set(rx, y, rz)
+          v.applyMatrix4(camera.projectionViewMatrix)
+          // v.x/v.y الان توی فضای NDC هستن (بین -۱ و ۱ اگه جلوی دوربین باشه)
+          if (v.z < -1 || v.z > 1) continue // پشت دوربین یا خارج از far/near
+          const dx = v.x - ndcX
+          const dy = v.y - ndcY
           const d = dx * dx + dy * dy
           if (d < bestDist) {
             bestDist = d
             best = i
           }
         }
-        if (best >= 0) {
+        if (best >= 0 && bestDist < 0.03) {
           const filmId = atlas.ids[best]
           const film = filmId != null ? filmsById.get(String(filmId)) : undefined
-          if (film) onOpenFilm(film)
+          if (film) {
+            onOpenFilm(film)
+          } else {
+            console.warn('[GallerySphere] click matched index', best, 'id', filmId, 'but no matching film in live data')
+          }
         }
       }
       gl.canvas.addEventListener('pointerdown', onPointerDownTrack)
@@ -299,7 +327,8 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         raf = requestAnimationFrame(loop)
         autoRotation = t * AUTO_SPEED
         program.uniforms.uRotationY.value = autoRotation + dragRotation
-        camera.position.set(0, 0, camDistance)
+        program.uniforms.uTime.value = t / 1000
+        camera.position.set(0, camDistance * Math.sin(camElevation), camDistance * Math.cos(camElevation))
         camera.lookAt([0, 0, 0])
         renderer.render({ scene, camera })
       }
