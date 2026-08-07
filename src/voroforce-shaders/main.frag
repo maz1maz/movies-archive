@@ -149,6 +149,10 @@ uniform float fRippleMod;
 uniform float fNoiseOctaveMod;
 uniform float fNoiseCenterOffsetMod;
 
+// --- Pan/Zoom (اضافه‌شده برای گالری Cinefilio، در main.frag اصلی وجود نداشت) ---
+uniform float uCameraZoom;
+uniform vec2 uCameraOffset;
+
 in vec2 vUv;
 
 layout(location = 0) out vec4 voroIndexBufferColor;
@@ -600,6 +604,12 @@ vec2 fragCoords() {
     vec2 fragCoord = gl_FragCoord.xy / iResolution.z;
     fragCoord.y /= Y_SCALE;
     fragCoord.x /= X_SCALE;
+    // --- Pan/Zoom (اضافه‌شده برای گالری Cinefilio) ---
+    // مرکز صفحه رو مبنا می‌گیریم، zoom می‌کنیم، بعد pan رو اضافه می‌کنیم.
+    // چون این تابع تنها نقطه‌ی ورودی موقعیت برای کل محاسبات voronoi/جستجوی
+    // همسایه‌هاست، همین یه تغییر کل صحنه رو pan/zoom می‌کنه.
+    vec2 center = iResolution.xy / (2.0 * iResolution.z);
+    fragCoord = center + (fragCoord - center) / uCameraZoom + uCameraOffset;
     return fragCoord;
 }
 

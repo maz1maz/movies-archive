@@ -87,6 +87,9 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
                   fRippleMod: { value: 1 },
                   fNoiseOctaveMod: { value: 1 },
                   fNoiseCenterOffsetMod: { value: 1 },
+                  // pan/zoom دستی (اضافه‌شده برای گالری، توی main.frog اصلی نبود)
+                  uCameraZoom: { value: 1 },
+                  uCameraOffset: { value: [0, 0] },
                 },
               },
             },
@@ -113,6 +116,67 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
       }
       vf.controls.listen('selected', onCellSelected)
       vf._onCellSelected = onCellSelected
+
+      // --- Pan/Zoom دستی (اسکرول = زوم، درگ = پن) ---
+      // شیدر اصلی pan/zoom camera نداشت (فقط بولج موضعی سلول هاورشده).
+      // این uniformهای uCameraZoom/uCameraOffset رو مستقیم توی pCoords()
+      // شیدر تزریق کردیم که کل صحنه رو تحت تأثیر بذاره.
+      let zoom = 1
+      let offsetX = 0
+      let offsetY = 0
+      const minZoom = 0.5
+      const maxZoom = 8
+
+      const applyCamera = () => {
+        const uniforms = vf.display?.scene?.mainProgram?.uniforms
+        if (!uniforms) return
+        if (uniforms.uCameraZoom) uniforms.uCameraZoom.value = zoom
+        if (uniforms.uCameraOffset) uniforms.uCameraOffset.value = [offsetX, offsetY]
+      }
+
+      const onWheel = (e) => {
+        e.preventDefault()
+        const factor = Math.exp(-e.deltaY * 0.001)
+        zoom = Math.min(maxZoom, Math.max(minZoom, zoom * factor))
+        applyCamera()
+      }
+
+      let isDragging = false
+      let lastX = 0
+      let lastY = 0
+      const onPointerDown = (e) => {
+        isDragging = true
+        lastX = e.clientX
+        lastY = e.clientY
+      }
+      const onPointerMove = (e) => {
+        if (!isDragging || !containerRef.current) return
+        const dx = e.clientX - lastX
+        const dy = e.clientY - lastY
+        lastX = e.clientX
+        lastY = e.clientY
+        const { clientWidth, clientHeight } = containerRef.current
+        // مختصات شیدر بین ۰ و نسبت‌دار به iResolution است؛ حرکت پیکسلی رو
+        // با همون مقیاس (تقسیم بر zoom) به offset دنیای شیدر تبدیل می‌کنیم.
+        offsetX -= (dx / clientWidth) * (clientWidth / clientHeight) / zoom
+        offsetY += (dy / clientHeight) / zoom
+        applyCamera()
+      }
+      const onPointerUp = () => {
+        isDragging = false
+      }
+
+      const canvasEl = containerRef.current.querySelector('canvas')
+      canvasEl?.addEventListener('wheel', onWheel, { passive: false })
+      canvasEl?.addEventListener('pointerdown', onPointerDown)
+      window.addEventListener('pointermove', onPointerMove)
+      window.addEventListener('pointerup', onPointerUp)
+      vf._cameraCleanup = () => {
+        canvasEl?.removeEventListener('wheel', onWheel)
+        canvasEl?.removeEventListener('pointerdown', onPointerDown)
+        window.removeEventListener('pointermove', onPointerMove)
+        window.removeEventListener('pointerup', onPointerUp)
+      }
     }
 
     init()
@@ -121,6 +185,7 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
       cancelled = true
       if (vf) {
         vf.controls.unlisten('selected', vf._onCellSelected)
+        vf._cameraCleanup?.()
         vf.dispose?.()
       }
       if (containerRef.current) containerRef.current.innerHTML = ''
