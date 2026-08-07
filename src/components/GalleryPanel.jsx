@@ -15,6 +15,24 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
   // خروجی scripts/build-gallery-media.mjs را می‌خواند.
   // اگر هنوز اجرا نشده، بدون تکسچر (فقط سلول‌های رنگی voronoi) نشون می‌ده.
   useEffect(() => {
+    // بعضی مرورگرها (به‌طور مشخص Safari/iOS) از فرمت فشرده‌سازی DXT1/S3TC
+    // که استفاده کردیم پشتیبانی نمی‌کنن. بدون این چک، موتور موقع ساخت
+    // تکسچر خطا می‌ده (بی‌صدا یا با کرش) و صفحه مشکی می‌مونه.
+    // اینجا از قبل چک می‌کنیم؛ اگه پشتیبانی نشد، مستقیم بدون مدیا می‌ریم.
+    const testCanvas = document.createElement('canvas')
+    const testGl = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl')
+    const s3tcSupported = !!testGl?.getExtension('WEBGL_compressed_texture_s3tc')
+
+    if (!s3tcSupported) {
+      console.warn(
+        '[Gallery] این مرورگر از فشرده‌سازی S3TC/DXT1 پشتیبانی نمی‌کنه ' +
+          '(معمولاً Safari/iOS) — بدون تکسچر پوستر ادامه می‌دیم.'
+      )
+      setMediaConfig(undefined)
+      setMediaStatus('unsupported')
+      return
+    }
+
     fetch('/gallery-media/vf-media-config.json')
       .then((r) => (r.ok ? r.json() : null))
       .then((cfg) => {
@@ -268,6 +286,12 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
       {mediaStatus === 'missing' && !engineError && (
         <div style={badgeStyle}>
           Poster texture not built yet — run <code>node scripts/build-gallery-media.mjs</code>
+        </div>
+      )}
+
+      {mediaStatus === 'unsupported' && !engineError && (
+        <div style={badgeStyle}>
+          این مرورگر از تکسچر فشرده پشتیبانی نمی‌کنه — بدون پوستر نمایش داده می‌شه
         </div>
       )}
 
