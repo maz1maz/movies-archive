@@ -7,7 +7,7 @@ import EditModal from './components/EditModal.jsx'
 import PersonModal from './components/PersonModal.jsx'
 import FolderNav from './components/FolderNav.jsx'
 import DashboardPanel from './components/DashboardPanel.jsx'
-import GalleryPanel from './components/GalleryPanel.jsx'
+import GallerySphere from './components/GallerySphere.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
@@ -730,7 +730,7 @@ export default function App() {
         </div>
       ) : section === 'gallery' ? (
         <>
-          <GalleryPanel
+          <GallerySphere
             films={allFilmsUnfiltered}
             onBack={() => changeSection(null)}
             onOpenFilm={(film) => setSelected(film)}
