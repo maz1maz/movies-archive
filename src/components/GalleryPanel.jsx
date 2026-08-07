@@ -60,6 +60,21 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
           // گرید ۱×۱ سقوط می‌کنه — دقیقاً همون چیزی که باعث خطای
           // "Invalid index" / "out of grid bounds (1x1)" می‌شد.
           lattice: { aspect: 2 / 3 }, // نسبت استاندارد پوستر فیلم (عرض/ارتفاع)
+          simulation: {
+            steps: {
+              force: {
+                // تلاش دوم: این بار forces-step/index.js یه try/catch داره،
+                // پس اگه omni باز خطا بده، دیگه کل رندر رو فریز نمی‌کنه —
+                // فقط لاگ می‌ده و خودش رو غیرفعال می‌کنه. اگه بازم حرکتی
+                // ندیدی، از Console خط قرمز رو برام بفرست.
+                forces: {
+                  type: 'omni',
+                  enabled: true,
+                  breathing: { enabled: true, cycleDuration: 6000, variability: 0.15 },
+                },
+              },
+            },
+          },
           display: {
             scene: {
               main: {
