@@ -72,7 +72,7 @@ async function loadStaticAtlas(onProgress) {
       v1: (row + 1) / rows,
     }
   }
-  return { image: img, uvRects, count: config.count }
+  return { image: img, uvRects, count: config.count, ids: config.ids || [] }
 }
 
 // چیدمان یکنواخت نقاط روی سطح کره (الگوریتم Fibonacci sphere)
@@ -140,12 +140,18 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       if (disposed) return
       setReady(true)
 
-      const texture = new Texture(gl, { generateMipmaps: false })
+      const texture = new Texture(gl, { generateMipmaps: false, flipY: false })
       texture.image = atlas.image
       texture.needsUpdate = true
 
       const n = atlas.count
       const positions = fibonacciSphere(n, RADIUS)
+      // اطلس بر اساس films.json (یه snapshot ثابت) ساخته شده، ولی این
+      // کامپوننت دیتای زنده (allFilmsUnfiltered) رو می‌گیره که ممکنه فرق
+      // داشته باشه (فیلم جدید اضافه شده و...). به‌جای match با ایندکس آرایه
+      // (که قبلاً باعث می‌شد کلیک روی یه پوستر، اطلاعات فیلم اشتباه رو نشون
+      // بده)، از id واقعی هر فیلم استفاده می‌کنیم که همیشه درست باشه.
+      const filmsById = new Map(films.map((f) => [String(f.id), f]))
       const centerArr = new Float32Array(n * 6 * 3)
       const cornerArr = new Float32Array(n * 6 * 2)
       const uvArr = new Float32Array(n * 6 * 2)
@@ -181,7 +187,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         uv: { size: 2, data: uvArr },
       })
 
-      const billboardSize = (RADIUS * 2 * Math.PI) / Math.sqrt(n) / 2.2 // اندازه‌ی تخمینی هر پوستر بر اساس چگالی کره
+      const billboardSize = ((RADIUS * 2 * Math.PI) / Math.sqrt(n) / 2.2) * 0.55 // قبلاً خیلی بزرگ بود، تقریباً نصفش کردیم
 
       const program = new Program(gl, {
         vertex,
@@ -272,7 +278,11 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
             best = i
           }
         }
-        if (best >= 0) onOpenFilm(postersOnly[best])
+        if (best >= 0) {
+          const filmId = atlas.ids[best]
+          const film = filmId != null ? filmsById.get(String(filmId)) : undefined
+          if (film) onOpenFilm(film)
+        }
       }
       gl.canvas.addEventListener('pointerdown', onPointerDownTrack)
       window.addEventListener('pointermove', onPointerMoveTrack)

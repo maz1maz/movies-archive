@@ -17,8 +17,8 @@ const ROOT = path.resolve(import.meta.dirname, '..')
 const FILMS_JSON = path.join(ROOT, 'films.json')
 const OUT_DIR = path.join(ROOT, 'public/sphere-media')
 
-const TILE_W = 32
-const TILE_H = 48
+const TILE_W = 48
+const TILE_H = 72
 const CONCURRENCY = 10 // ملایم، چون بازم از یه IP واحده — نه اونقدر که Amazon شاکی بشه
 
 async function fetchPosterBuffer(url) {
@@ -85,7 +85,7 @@ async function main() {
     .jpeg({ quality: 82 })
     .toFile(path.join(OUT_DIR, 'atlas.jpg'))
 
-  const config = { cols, rows, count: withPoster.length }
+  const config = { cols, rows, count: withPoster.length, ids: withPoster.map((f) => f.id) }
   await writeFile(path.join(OUT_DIR, 'atlas-config.json'), JSON.stringify(config, null, 2))
 
   console.log('✅ public/sphere-media/atlas.jpg')
