@@ -122,7 +122,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
   // --- نوارهای مارکی پشت کره: چند ردیف پوستر که از چپ/راست میان و
   // پشت کره محو می‌شن. عکس‌ها مستقیم (بدون پراکسی) لود می‌شن چون فقط
   // <img> ساده‌ست، نه canvas — CORS اینجا مشکلی ایجاد نمی‌کنه.
-  const MARQUEE_ROWS = 26
+  const MARQUEE_ROWS = 12
   const marqueeRows = []
   {
     // قبلاً فقط ۷۰ تا پوستر نمونه بود که بین ۲۶ ردیف تقسیم بشه (~۳ تا هر
@@ -435,7 +435,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         {marqueeRows.map((rowItems, r) => {
           if (rowItems.length === 0) return null
           const reverse = r % 2 === 1
-          const duration = 55 + r * 4
+          const duration = 110 + r * 8 // قبلاً 55+r*4 بود، تقریباً دو برابر کندتر
           return (
             <div
               key={r}
