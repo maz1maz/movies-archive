@@ -84,11 +84,11 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
                   iForcedMaxNeighborLevel: { value: 0 },
                   fPixelSearchRadiusMod: { value: 1 },
                   bMediaDistortion: { value: false },
-                  fMediaBboxScale: { value: 1 },
                   fBaseColor: { value: [0, 0, 0] },
-                  fBorderRoundnessMod: { value: 0.75 },
-                  fBorderThicknessMod: { value: 1 },
+                  fBorderRoundnessMod: { value: 0.4 },
+                  fBorderThicknessMod: { value: 0.15 },
                   fBorderSmoothnessMod: { value: 1 },
+                  fMediaBboxScale: { value: 1.15 },
                   fCenterForceBulgeStrength: { value: 0.25 },
                   fCenterForceBulgeRadius: { value: 0.25 },
                   fWeightOffsetScaleMod: { value: 0.25 },
@@ -190,7 +190,7 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
       // موقعیت x هر سلول رو حول ix (موقعیت اصلی‌اش توی گرید) نوسان می‌دیم.
       // ردیف‌های زوج و فرد در جهت مخالف حرکت می‌کنن.
       let waveRunning = true
-      const WAVE_AMPLITUDE = 0.15 // نسبت به فاصله‌ی سلول‌ها (spacing ≈ 1 واحد)
+      const WAVE_AMPLITUDE = 0.4 // نسبت به فاصله‌ی سلول‌ها (spacing ≈ 1 واحد) — قبلاً ۰.۱۵ بود، خیلی کم‌اثر بود
       const WAVE_SPEED = 0.0011 // رادیان بر میلی‌ثانیه
       const waveLoop = (t) => {
         if (!waveRunning) return
