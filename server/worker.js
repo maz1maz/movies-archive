@@ -650,6 +650,48 @@ export default {
         }
       }
 
+      // ---- GET /api/link-lookup (paste an IMDb or Letterboxd URL for the "Add Film"
+      // autofill — extracts the IMDb id (directly, or by scraping the Letterboxd page
+      // for its IMDb link) and pulls full metadata from OMDb) ----
+      if (method === 'GET' && pathname === '/api/link-lookup') {
+        const key = env.OMDB_API_KEY
+        if (!key) return json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار وجود نداره' }, 400, corsHeaders)
+        const link = (url.searchParams.get('url') || '').trim()
+        if (!link) return json({ error: 'لینک IMDb یا Letterboxd رو بچسبون' }, 400, corsHeaders)
+
+        let imdbId = null
+        const directMatch = link.match(/imdb\.com\/title\/(tt\d+)/i)
+        if (directMatch) {
+          imdbId = directMatch[1]
+        } else if (/letterboxd\.com/i.test(link)) {
+          const slugMatch = link.match(/letterboxd\.com\/film\/([^/?#]+)/i)
+          if (!slugMatch) return json({ error: 'لینک Letterboxd باید صفحه‌ی یک فیلم باشه (letterboxd.com/film/...)' }, 400, corsHeaders)
+          try {
+            const pageRes = await fetch(`https://letterboxd.com/film/${slugMatch[1]}/`, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' },
+            })
+            if (!pageRes.ok) return json({ error: 'صفحه‌ی Letterboxd پیدا نشد' }, 404, corsHeaders)
+            const html = await pageRes.text()
+            const imdbMatch = html.match(/imdb\.com\/title\/(tt\d+)/i)
+            if (!imdbMatch) return json({ error: 'لینک IMDb توی صفحه‌ی Letterboxd پیدا نشد' }, 404, corsHeaders)
+            imdbId = imdbMatch[1]
+          } catch (e) {
+            return json({ error: 'خطا در ارتباط با Letterboxd' }, 502, corsHeaders)
+          }
+        } else {
+          return json({ error: 'لینک باید از IMDb یا Letterboxd باشه' }, 400, corsHeaders)
+        }
+
+        try {
+          const found = await enrichFilm({ imdbId }, key)
+          if (!found.title) return json({ error: 'فیلمی با این لینک توی IMDb پیدا نشد' }, 404, corsHeaders)
+          return json(found, 200, corsHeaders)
+        } catch (e) {
+          if (e.code === 'OMDB_QUOTA_EXCEEDED') return json({ error: 'سهمیه‌ی روزانه‌ی OMDb تموم شده — فردا دوباره امتحان کن' }, 429, corsHeaders)
+          return json({ error: 'خطا در ارتباط با OMDb' }, 502, corsHeaders)
+        }
+      }
+
       // ---- GET /api/actor-photo (photo + bio + age/height/spouse/children, cached in D1) ----
       if (method === 'GET' && pathname === '/api/actor-photo') {
         const name = (url.searchParams.get('name') || '').trim()

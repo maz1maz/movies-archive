@@ -46,6 +46,8 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
   const [form, setForm] = useState(() => toForm(film))
   const [autofilling, setAutofilling] = useState(false)
   const [lookupError, setLookupError] = useState('')
+  const [linkUrl, setLinkUrl] = useState('')
+  const [linkLoading, setLinkLoading] = useState(false)
 
   const lookupNewFilmFromImdb = async () => {
     if (!form.title.trim()) {
@@ -58,6 +60,33 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'یافت نشد')
     return data
+  }
+
+  const lookupFromLink = async () => {
+    if (!linkUrl.trim()) {
+      setLookupError('لینک IMDb یا Letterboxd رو بچسبون')
+      return
+    }
+    setLookupError('')
+    setLinkLoading(true)
+    try {
+      const qs = new URLSearchParams({ url: linkUrl.trim() })
+      const res = await fetch(`/api/link-lookup?${qs.toString()}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'یافت نشد')
+      setForm((prev) => ({
+        ...toForm(data),
+        closet: prev.closet,
+        shelf: prev.shelf,
+        row: prev.row,
+        mediaType: prev.mediaType,
+        driveNumber: prev.driveNumber,
+      }))
+    } catch (e) {
+      setLookupError(e.message)
+    } finally {
+      setLinkLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -153,6 +182,23 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
         <h2 className="edit-title">{isNew ? 'Add Film' : 'Edit Film'}</h2>
 
         <div className="edit-form">
+          {isNew && (
+            <label className="edit-field full">
+              <span>IMDb or Letterboxd Link (optional — auto-fills everything below)</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), lookupFromLink())}
+                  placeholder="https://www.imdb.com/title/tt.../ or https://letterboxd.com/film/.../"
+                />
+                <button type="button" className="btn btn-ghost" onClick={lookupFromLink} disabled={linkLoading}>
+                  {linkLoading ? '...' : <IconSearch width={14} height={14} />}
+                </button>
+              </div>
+            </label>
+          )}
+
           <label className="edit-field full">
             <span>Title</span>
             <input value={form.title} onChange={set('title')} />

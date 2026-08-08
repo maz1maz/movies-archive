@@ -79,6 +79,7 @@ export async function enrichFilm(baseFilm, key) {
     if (!Number.isNaN(year)) fillMissing(out, 'year', year)
   }
   if (data.Title && data.Title !== 'N/A') fillMissing(out, 'originalTitle', data.Title)
+  if (data.Title && data.Title !== 'N/A') fillMissing(out, 'title', data.Title)
   if (data.Director && data.Director !== 'N/A') fillMissing(out, 'director', data.Director)
   if (data.Actors && data.Actors !== 'N/A') {
     fillMissing(
@@ -107,6 +108,9 @@ export async function enrichFilm(baseFilm, key) {
   if (data.Production && data.Production !== 'N/A') fillMissing(out, 'studio', data.Production)
   if (data.imdbVotes && data.imdbVotes !== 'N/A') fillMissing(out, 'imdbVotes', data.imdbVotes)
   if (data.imdbID) fillMissing(out, 'imdbId', data.imdbID)
+  if (data.Type && data.Type !== 'N/A') {
+    fillMissing(out, 'itemType', data.Type === 'series' ? 'series' : 'movie')
+  }
 
   return out
 }
