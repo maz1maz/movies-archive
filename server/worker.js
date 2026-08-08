@@ -663,6 +663,9 @@ export default {
 
         let imdbId = null
         let base = {}
+        // اگه از همون اول لینک Letterboxd باشه، اسلاگش رو نگه می‌داریم تا لازم
+        // نباشه بعداً دوباره از روی عنوان حدس بزنیم.
+        let letterboxdSlug = null
         const directMatch = link.match(/imdb\.com\/title\/(tt\d+)/i)
         if (directMatch) {
           imdbId = directMatch[1]
@@ -674,8 +677,9 @@ export default {
           // و گاهی هم یه عدد تعداد بازبینی در آخرش (.../film/slug/2/).
           const slugMatch = link.match(/\/film\/([^/?#]+)/i)
           if (!slugMatch) return json({ error: 'لینک Letterboxd باید صفحه‌ی یک فیلم باشه (شامل film/...)' }, 400, corsHeaders)
+          letterboxdSlug = slugMatch[1]
           try {
-            const pageRes = await fetch(`https://letterboxd.com/film/${slugMatch[1]}/`, {
+            const pageRes = await fetch(`https://letterboxd.com/film/${letterboxdSlug}/`, {
               headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' },
             })
             if (!pageRes.ok) return json({ error: 'صفحه‌ی Letterboxd پیدا نشد' }, 404, corsHeaders)
@@ -691,12 +695,6 @@ export default {
         } else {
           return json({ error: 'لینک باید از IMDb یا Letterboxd باشه' }, 400, corsHeaders)
         }
-
-        // پوستر Letterboxd (og:image) رو دیگه به‌عنوان جایگزین استفاده نمی‌کنیم — این
-        // فقط یه بک‌دراپ/عکس تبلیغاتی برای اشتراک‌گذاریه (نه پوستر واقعی)، و پوستر
-        // واقعی روی خودِ صفحه از طریق جاوااسکریپت لود می‌شه که با fetch ساده گرفته
-        // نمی‌شه. اگه TMDB_API_KEY تنظیم شده باشه، ازش هم برای پوستر و هم به عنوان
-        // یه منبع کامل جایگزین (وقتی OMDb اصلاً چیزی نداره) استفاده می‌کنیم.
         delete base._letterboxdImageFallback
 
         async function tmdbFind(imdbId) {
@@ -751,33 +749,79 @@ export default {
           }
         }
 
-        if (!key) {
-          if (base.title) return json(await addTmdbPosterFallback(base), 200, corsHeaders)
-          const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
-          if (tmdbFallback) return json(tmdbFallback, 200, corsHeaders)
-          return json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار از روی لینک IMDb وجود نداره' }, 400, corsHeaders)
+        // آخرین مرحله، صرف‌نظر از اینکه اطلاعات از کدوم منبع اومده (OMDb یا TMDB):
+        // اگه director/cast هنوز خالیه، همون کاری که برای امتیاز Letterboxd
+        // می‌کنیم رو تکرار می‌کنیم — از روی عنوان+سال اسلاگ Letterboxd رو حدس
+        // می‌زنیم (یا اگه از همون اول لینک Letterboxd بود، مستقیم همون صفحه رو)
+        // و هر فیلد خالی رو از اونجا پر می‌کنیم. فقط جای‌خالی‌ها رو پر می‌کنه،
+        // چیزی که از OMDb/TMDB اومده رو دست نمی‌زنه.
+        const fillMissingFromLetterboxd = async (film) => {
+          const needsMore = !film.director || !Array.isArray(film.cast) || film.cast.length === 0 || !film.synopsis
+          if (!needsMore) return film
+          const headers = { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' }
+          const slugCandidates = letterboxdSlug
+            ? [letterboxdSlug]
+            : (() => {
+                const guessed = titleToLetterboxdSlug(film.title)
+                if (!guessed) return []
+                return film.year ? [guessed, `${guessed}-${film.year}`] : [guessed]
+              })()
+          for (const slug of slugCandidates) {
+            try {
+              const pageRes = await fetch(`https://letterboxd.com/film/${slug}/`, { headers })
+              if (!pageRes.ok) continue
+              const html = await pageRes.text()
+              const scraped = parseLetterboxdBasic(html)
+              if (!scraped.title) continue
+              if (!film.director && scraped.director) film.director = scraped.director
+              if ((!Array.isArray(film.cast) || film.cast.length === 0) && scraped.cast) film.cast = scraped.cast
+              if (!film.synopsis && scraped.synopsis) film.synopsis = scraped.synopsis
+              if (!film.year && scraped.year) film.year = scraped.year
+              break
+            } catch {
+              // این اسلاگ جواب نداد؛ اسلاگ بعدی رو امتحان می‌کنیم
+            }
+          }
+          return film
         }
 
-        try {
-          const found = await enrichFilm(base, key)
-          if (!found.title) {
+        let result = null
+        let errorResponse = null
+
+        if (!key) {
+          if (base.title) {
+            result = base
+          } else {
             const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
-            if (tmdbFallback) return json(tmdbFallback, 200, corsHeaders)
-            return json({ error: 'این فیلم هنوز توی دیتابیس OMDb نیست (معمولاً برای فیلم‌های خیلی جدید یا مستقل پیش میاد) — عنوان/سال رو دستی وارد کن' }, 404, corsHeaders)
+            if (tmdbFallback) result = tmdbFallback
+            else errorResponse = json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار از روی لینک IMDb وجود نداره' }, 400, corsHeaders)
           }
-          return json(await addTmdbPosterFallback(found), 200, corsHeaders)
-        } catch (e) {
-          if (e.code === 'OMDB_QUOTA_EXCEEDED') {
-            if (base.title) return json(await addTmdbPosterFallback(base), 200, corsHeaders)
-            const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
-            if (tmdbFallback) return json(tmdbFallback, 200, corsHeaders)
-            return json({ error: 'سهمیه‌ی روزانه‌ی OMDb تموم شده — فردا دوباره امتحان کن' }, 429, corsHeaders)
+        } else {
+          try {
+            const found = await enrichFilm(base, key)
+            if (found.title) {
+              result = found
+            } else {
+              const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
+              if (tmdbFallback) result = tmdbFallback
+              else errorResponse = json({ error: 'این فیلم هنوز توی دیتابیس OMDb یا TMDB نیست — عنوان/سال رو دستی وارد کن' }, 404, corsHeaders)
+            }
+          } catch (e) {
+            if (base.title) {
+              result = base
+            } else {
+              const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
+              if (tmdbFallback) result = tmdbFallback
+              else if (e.code === 'OMDB_QUOTA_EXCEEDED') errorResponse = json({ error: 'سهمیه‌ی روزانه‌ی OMDb تموم شده — فردا دوباره امتحان کن' }, 429, corsHeaders)
+              else errorResponse = json({ error: 'خطا در ارتباط با OMDb' }, 502, corsHeaders)
+            }
           }
-          if (base.title) return json(await addTmdbPosterFallback(base), 200, corsHeaders)
-          const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
-          if (tmdbFallback) return json(tmdbFallback, 200, corsHeaders)
-          return json({ error: 'خطا در ارتباط با OMDb' }, 502, corsHeaders)
         }
+
+        if (errorResponse) return errorResponse
+        result = await addTmdbPosterFallback(result)
+        result = await fillMissingFromLetterboxd(result)
+        return json(result, 200, corsHeaders)
       }
 
       // ---- GET /api/actor-photo (photo + bio + age/height/spouse/children, cached in D1) ----
