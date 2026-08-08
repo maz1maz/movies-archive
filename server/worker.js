@@ -819,8 +819,10 @@ export default {
         }
 
         if (errorResponse) return errorResponse
-        result = await addTmdbPosterFallback(result)
-        result = await fillMissingFromLetterboxd(result)
+        // این دو مرحله مستقل از همدیگه‌ن (یکی پوستر رو از TMDB می‌گیره، اون یکی
+        // director/cast/synopsis رو از Letterboxd) — موازی اجراشون می‌کنیم تا
+        // زمان کل درخواست کمتر بشه و به سقف زمانی Worker نخوریم.
+        await Promise.all([addTmdbPosterFallback(result), fillMissingFromLetterboxd(result)])
         return json(result, 200, corsHeaders)
       }
 

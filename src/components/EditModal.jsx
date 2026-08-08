@@ -37,6 +37,8 @@ function toForm(film) {
       Array.isArray(film.seasonDrives) && film.seasonDrives.length > 0
         ? film.seasonDrives
         : [{ seasons: '', drive: '' }],
+    imdbId: film.imdbId || '',
+    imdbVotes: film.imdbVotes || '',
   }
 }
 
@@ -147,6 +149,8 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
         form.mediaType === 'digital' && form.itemType === 'series'
           ? form.seasonDrives.filter((sd) => sd.seasons.trim() || sd.drive.trim())
           : undefined,
+      imdbId: form.imdbId || undefined,
+      imdbVotes: form.imdbVotes || undefined,
     }
     onSave(patch)
   }
