@@ -65,8 +65,8 @@ const fragment = /* glsl */ `
     // فرکانس قبلاً 0.9 بود که باعث می‌شد بیش از یک دور کامل sin() توی
     // ارتفاع کره جا بشه (یعنی دو تا نوار هم‌زمان دیده بشه). با فرکانس
     // کمتر، فقط یه دور کامل (یه نوار) توی کل ارتفاع کره جا می‌شه.
-    float wave = sin(vWorldY * 0.35 - uTime * 0.6);
-    float band = smoothstep(0.94, 1.0, wave); // فقط نزدیک قله‌ی موج روشن بشه (نواری نازک)
+    float wave = sin(vWorldY * 0.35 - uTime * 0.15); // خیلی کندتر شد (0.6 -> 0.15)
+    float band = smoothstep(0.985, 1.0, wave); // خیلی نازک‌تر شد (0.94-1.0 -> 0.985-1.0)
     vec3 gold = vec3(0.95, 0.75, 0.25);
     color.rgb = mix(color.rgb, color.rgb + gold * 0.55, band);
 
@@ -543,13 +543,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
                     key={i}
                     src={f.poster}
                     alt=""
-                    style={{
-                      height: '100%',
-                      width: 'auto',
-                      objectFit: 'cover',
-                      flexShrink: 0,
-                      filter: 'blur(1.5px) saturate(1.4) brightness(1.15)', // حس نوارهای کهکشانی/محو به‌جای تصاویر تیز
-                    }}
+                    style={{ height: '100%', width: 'auto', objectFit: 'cover', flexShrink: 0 }}
                     loading="lazy"
                   />
                 ))}
