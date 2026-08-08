@@ -5,7 +5,10 @@
 //   نیازی به JWT_SECRET یا وابستگی خارجی نیست.
 
 const SESSION_TTL_DAYS = 30
-const PBKDF2_ITERATIONS = 150000
+// نکته: ران‌تایم Cloudflare Workers برای PBKDF2 حداکثر ۱۰۰٬۰۰۰ iteration
+// رو پشتیبانی می‌کنه؛ عدد بالاتر با خطای "iteration counts above 100000
+// are not supported" رد می‌شه.
+const PBKDF2_ITERATIONS = 100000
 
 function bufToHex(buf) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("")
