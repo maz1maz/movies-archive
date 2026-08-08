@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { IconClose, IconSave, IconSearch } from './icons.jsx'
+import { useEffect, useRef, useState } from 'react'
+import { IconClose, IconSave, IconSearch, IconLink } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 
 function toForm(film) {
@@ -40,7 +40,7 @@ function toForm(film) {
   }
 }
 
-export default function EditModal({ film, onClose, onSave, onAutofill, onDelete }) {
+export default function EditModal({ film, onClose, onSave, onAutofill, onDelete, startWithLink }) {
   const isNew = !film.id
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [form, setForm] = useState(() => toForm(film))
@@ -48,6 +48,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
   const [lookupError, setLookupError] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
   const [linkLoading, setLinkLoading] = useState(false)
+  const linkInputRef = useRef(null)
 
   const lookupNewFilmFromImdb = async () => {
     if (!form.title.trim()) {
@@ -88,6 +89,10 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
       setLinkLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (startWithLink && linkInputRef.current) linkInputRef.current.focus()
+  }, [startWithLink])
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -183,17 +188,18 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete 
 
         <div className="edit-form">
           {isNew && (
-            <label className="edit-field full">
-              <span>IMDb or Letterboxd Link (optional — auto-fills everything below)</span>
+            <label className="edit-field full edit-link-field">
+              <span><IconLink width={13} height={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> Fill from IMDb / Letterboxd link</span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
+                  ref={linkInputRef}
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), lookupFromLink())}
                   placeholder="https://www.imdb.com/title/tt.../ or https://letterboxd.com/film/.../"
                 />
                 <button type="button" className="btn btn-ghost" onClick={lookupFromLink} disabled={linkLoading}>
-                  {linkLoading ? '...' : <IconSearch width={14} height={14} />}
+                  {linkLoading ? '...' : 'Fetch'}
                 </button>
               </div>
             </label>

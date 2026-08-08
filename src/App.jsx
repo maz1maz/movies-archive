@@ -838,7 +838,8 @@ export default function App() {
         section={section}
         onImport={handleImport}
         onImportRatings={handleImportRatings}
-        onAddFilm={() => setAdding(true)}
+        onAddFilm={() => setAdding('blank')}
+        onAddFilmFromLink={() => setAdding('link')}
         onEnrichCatalog={handleEnrichCatalog}
         enrichScopeLabel={enrichScopeLabel(section)}
         enrichingCatalog={enrichingCatalog}
@@ -977,6 +978,7 @@ export default function App() {
             mediaType: section === 'digital-movie' || section === 'digital-series' ? 'digital' : 'physical',
             itemType: section === 'digital-series' || section === 'physical-series' ? 'series' : 'movie',
           }}
+          startWithLink={adding === 'link'}
           onClose={() => setAdding(false)}
           onSave={handleAddFilm}
         />

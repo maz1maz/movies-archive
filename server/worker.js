@@ -652,17 +652,21 @@ export default {
 
       // ---- GET /api/link-lookup (paste an IMDb or Letterboxd URL for the "Add Film"
       // autofill — extracts the IMDb id (directly, or by scraping the Letterboxd page
-      // for its IMDb link) and pulls full metadata from OMDb) ----
+      // for its IMDb link) and pulls full metadata from OMDb. For very new releases
+      // OMDb often has no record yet, so for Letterboxd links we also scrape basic
+      // metadata (title/year/director/cast/synopsis/poster) straight off the page as
+      // a fallback/base, and let OMDb fill in whatever it can on top of that.) ----
       if (method === 'GET' && pathname === '/api/link-lookup') {
         const key = env.OMDB_API_KEY
-        if (!key) return json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار وجود نداره' }, 400, corsHeaders)
         const link = (url.searchParams.get('url') || '').trim()
         if (!link) return json({ error: 'لینک IMDb یا Letterboxd رو بچسبون' }, 400, corsHeaders)
 
         let imdbId = null
+        let base = {}
         const directMatch = link.match(/imdb\.com\/title\/(tt\d+)/i)
         if (directMatch) {
           imdbId = directMatch[1]
+          base = { imdbId }
         } else if (/letterboxd\.com/i.test(link)) {
           const slugMatch = link.match(/letterboxd\.com\/film\/([^/?#]+)/i)
           if (!slugMatch) return json({ error: 'لینک Letterboxd باید صفحه‌ی یک فیلم باشه (letterboxd.com/film/...)' }, 400, corsHeaders)
@@ -673,8 +677,10 @@ export default {
             if (!pageRes.ok) return json({ error: 'صفحه‌ی Letterboxd پیدا نشد' }, 404, corsHeaders)
             const html = await pageRes.text()
             const imdbMatch = html.match(/imdb\.com\/title\/(tt\d+)/i)
-            if (!imdbMatch) return json({ error: 'لینک IMDb توی صفحه‌ی Letterboxd پیدا نشد' }, 404, corsHeaders)
-            imdbId = imdbMatch[1]
+            imdbId = imdbMatch ? imdbMatch[1] : null
+            base = parseLetterboxdBasic(html)
+            if (imdbId) base.imdbId = imdbId
+            if (!base.title) return json({ error: 'اطلاعاتی از این صفحه‌ی Letterboxd استخراج نشد' }, 404, corsHeaders)
           } catch (e) {
             return json({ error: 'خطا در ارتباط با Letterboxd' }, 502, corsHeaders)
           }
@@ -682,12 +688,23 @@ export default {
           return json({ error: 'لینک باید از IMDb یا Letterboxd باشه' }, 400, corsHeaders)
         }
 
+        if (!key) {
+          if (base.title) return json(base, 200, corsHeaders)
+          return json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار از روی لینک IMDb وجود نداره' }, 400, corsHeaders)
+        }
+
         try {
-          const found = await enrichFilm({ imdbId }, key)
-          if (!found.title) return json({ error: 'فیلمی با این لینک توی IMDb پیدا نشد' }, 404, corsHeaders)
+          const found = await enrichFilm(base, key)
+          if (!found.title) {
+            return json({ error: 'این فیلم هنوز توی دیتابیس OMDb نیست (معمولاً برای فیلم‌های خیلی جدید پیش میاد) — عنوان/سال رو دستی وارد کن' }, 404, corsHeaders)
+          }
           return json(found, 200, corsHeaders)
         } catch (e) {
-          if (e.code === 'OMDB_QUOTA_EXCEEDED') return json({ error: 'سهمیه‌ی روزانه‌ی OMDb تموم شده — فردا دوباره امتحان کن' }, 429, corsHeaders)
+          if (e.code === 'OMDB_QUOTA_EXCEEDED') {
+            if (base.title) return json(base, 200, corsHeaders)
+            return json({ error: 'سهمیه‌ی روزانه‌ی OMDb تموم شده — فردا دوباره امتحان کن' }, 429, corsHeaders)
+          }
+          if (base.title) return json(base, 200, corsHeaders)
           return json({ error: 'خطا در ارتباط با OMDb' }, 502, corsHeaders)
         }
       }
@@ -1226,6 +1243,48 @@ function parseLetterboxdRss(xml) {
 // صفحه‌ی سرچ Letterboxd با جاوااسکریپت رندر می‌شه (توی HTML خام چیزی نیست)،
 // برای همین به‌جاش مستقیم از روی عنوان، اسلاگ صفحه‌ی فیلم رو می‌سازیم — که
 // خودِ صفحه‌ی فیلم (بر خلاف صفحه‌ی سرچ) سمت سرور رندر می‌شه و تگ متا داره.
+function metaContent(html, prop) {
+  const patterns = [
+    new RegExp(`<meta[^>]+property=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i'),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${prop}["']`, 'i'),
+    new RegExp(`<meta[^>]+name=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i'),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+name=["']${prop}["']`, 'i'),
+  ]
+  for (const re of patterns) {
+    const m = html.match(re)
+    if (m) return decodeHtmlEntities(m[1])
+  }
+  return null
+}
+
+// روی خودِ HTML صفحه‌ی فیلم Letterboxd (نه از طریق API) پارس می‌کنه تا یه پایه‌ی
+// اولیه از عنوان/سال/کارگردان/بازیگرها/خلاصه/پوستر بسازه. برای فیلم‌های خیلی جدید
+// که هنوز توی OMDb نیستن، این تنها منبعیه که داریم.
+function parseLetterboxdBasic(html) {
+  const out = {}
+  const ogTitle = metaContent(html, 'og:title')
+  if (ogTitle) {
+    const yearMatch = ogTitle.match(/\((\d{4})\)\s*$/)
+    if (yearMatch) out.year = parseInt(yearMatch[1], 10)
+    out.title = ogTitle.replace(/\s*\(\d{4}\)\s*$/, '').trim()
+  }
+  const desc = metaContent(html, 'og:description') || metaContent(html, 'description')
+  if (desc) out.synopsis = desc.trim()
+  const poster = metaContent(html, 'og:image')
+  if (poster) out.poster = poster
+
+  const directorMatch = html.match(/\/director\/[^"']+["'][^>]*>([^<]+)</i)
+  if (directorMatch) out.director = decodeHtmlEntities(directorMatch[1].trim())
+
+  const castMatches = [...html.matchAll(/\/actor\/[^"']+["'][^>]*>([^<]+)</gi)]
+  if (castMatches.length) {
+    const names = [...new Set(castMatches.map((m) => decodeHtmlEntities(m[1].trim())).filter(Boolean))]
+    out.cast = names.slice(0, 10)
+  }
+
+  return out
+}
+
 function titleToLetterboxdSlug(title) {
   return (title || '')
     .toLowerCase()
