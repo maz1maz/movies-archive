@@ -35,10 +35,10 @@ const vertex = /* glsl */ `
     vWorldY = center.y; // قبل از چرخش کافیه، چون فقط دور Y می‌چرخیم و y عوض نمی‌شه
 
     // پوستری که موس روشه، یه‌کم به سمت بیرون کره فاصله بگیره (برجسته بشه)
-    if (abs(posterIndex - uHoverIndex) < 0.5) {
-      vec3 outward = normalize(rotated);
-      rotated += outward * 0.9;
-    }
+    // -- حذف شد: باعث می‌شد موقعیت واقعی پوستر با محاسبه‌ی کلیک (که روی
+    // موقعیت اصلی/غیر-پاپ‌شده حساب می‌شه) فرق کنه و یه حلقه‌ی ناپایدار
+    // (پرش/عدم امکان کلیک) ایجاد می‌کرد. فقط حاشیه‌ی سفید (توی فرگمنت
+    // شیدر) کافیه و مشکلی نداره چون موقعیت رو عوض نمی‌کنه.
 
     vec4 mvPosition = modelViewMatrix * vec4(rotated, 1.0);
     // بعد از تبدیل model-view، آفست رو اضافه می‌کنیم؛ این باعث می‌شه
@@ -132,6 +132,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
   const [progress, setProgress] = useState({ loaded: 0, total: 0 })
   const [ready, setReady] = useState(false)
   const [loadError, setLoadError] = useState(null)
+  const marqueeTrackRefs = useRef([])
 
   const seenPosters = new Set()
   const postersOnly = films
@@ -433,7 +434,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       // خیلی کندتر شد (نسبت به قبل ~۴ برابر) — چرخش هیچ‌وقت متوقف نمی‌شه
       // (طبق خواسته‌ی کاربر)، ولی اونقدر آروم که موقع نشونه‌گرفتن و کلیک،
       // پوستر عملاً جابه‌جا نشه.
-      const AUTO_SPEED = 0.00006 // خیلی محسوس‌تر شد (قبلاً 0.000009 اصلاً حس نمی‌شد)
+      const AUTO_SPEED = 0.00002 // بین «اصلاً حس نمی‌شد» (0.000009) و «خیلی زیاد» (0.00006)
       function loop(t) {
         raf = requestAnimationFrame(loop)
         autoRotation = t * AUTO_SPEED
@@ -460,30 +461,49 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postersOnly.length])
 
+  // انیمیشن مارکی با JS مستقیم (نه CSS keyframe) — کنترل کامل روی pixel
+  // واقعی، بدون وابستگی به اینکه ancestor transform داره یا نه، و بدون
+  // نیاز به حدس زدن مقدار درصدی که با CSS جواب نمی‌داد.
+  useEffect(() => {
+    let raf
+    let running = true
+    function loop() {
+      if (!running) return
+      raf = requestAnimationFrame(loop)
+      const now = performance.now() / 1000
+      marqueeTrackRefs.current.forEach((el, r) => {
+        if (!el) return
+        const half = el.scrollWidth / 2
+        if (!half) return
+        const speed = 40 + r * 4 // پیکسل بر ثانیه، هر ردیف کمی متفاوت
+        const offset = (now * speed) % half
+        const reverse = r % 2 === 1
+        // reverse=false: از -half به 0 (وارد از چپ) | reverse=true: از 0 به -half (وارد از راست)
+        el.style.transform = reverse ? `translateX(${-offset}px)` : `translateX(${offset - half}px)`
+      })
+    }
+    raf = requestAnimationFrame(loop)
+    return () => {
+      running = false
+      cancelAnimationFrame(raf)
+    }
+  }, [marqueeRows.length])
+
   const pct = progress.total ? Math.round((progress.loaded / progress.total) * 100) : 0
 
   return (
     <div className="folder-nav" style={{ overflow: 'hidden' }}>
-      <style>{`
-        @keyframes marqueeLTR { from { transform: translateX(-50%); } to { transform: translateX(0); } }
-        @keyframes marqueeRTL { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-      `}</style>
-
       {/* نوارهای مارکی: پشت کره، یه ردیف تصویر که پیوسته رد می‌شن و خودِ
           کره (که z-index بالاتر و مات‌ـه) طبیعتاً هرجا روش قرار بگیره
-          محوشون می‌کنه — دیگه نیازی به mask-gradient دستی نیست.
-          نصف ردیف‌ها به راست حرکت می‌کنن (وارد از چپ)، نصف دیگه به چپ
-          (وارد از راست) تا از هر دو طرف پر بشه. */}
+          محوشون می‌کنه. با JS (نه CSS keyframe) کنترل می‌شه — چون قبلاً
+          چندبار امتحان شد و مطمئن نبودیم چرا سمت راست همیشه خالی می‌موند؛
+          این‌جوری مستقیم روی pixel واقعی کنترل داریم، بدون حدس. */}
       <div
         style={{
           position: 'fixed',
           top: '50%',
           left: 0,
-          width: '100vw', // به‌جای left:0/right:0 — اگه یه پدر بالادست transform داشته باشه
-          // (که توی این اپ برای صفحات دیگه معموله)، position:fixed دیگه نسبت
-          // به viewport واقعی محاسبه نمی‌شه، نسبت به همون پدر. واحد vw همیشه
-          // نسبت به viewport واقعیه، مستقل از این مشکل — همین باعث می‌شد
-          // سمت راست به‌درستی پر نشه.
+          width: '100vw',
           transform: 'translateY(-50%)',
           zIndex: 1,
           overflow: 'hidden',
@@ -494,17 +514,18 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       >
         {marqueeRows.map((rowItems, r) => {
           if (rowItems.length === 0) return null
-          const reverse = r % 2 === 1
-          const duration = 26 + r * 2 // دوباره تندتر شد
           return (
             <div key={r} style={{ width: '100%', height: 26, overflow: 'hidden' }}>
               <div
+                ref={(el) => {
+                  marqueeTrackRefs.current[r] = el
+                }}
                 style={{
                   display: 'flex',
                   width: 'max-content',
                   height: '100%',
-                  animation: `${reverse ? 'marqueeRTL' : 'marqueeLTR'} ${duration}s linear infinite`,
                   opacity: 0.55,
+                  willChange: 'transform',
                 }}
               >
                 {rowItems.map((f, i) => (
