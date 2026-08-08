@@ -390,7 +390,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       // خیلی کندتر شد (نسبت به قبل ~۴ برابر) — چرخش هیچ‌وقت متوقف نمی‌شه
       // (طبق خواسته‌ی کاربر)، ولی اونقدر آروم که موقع نشونه‌گرفتن و کلیک،
       // پوستر عملاً جابه‌جا نشه.
-      const AUTO_SPEED = 0.000005
+      const AUTO_SPEED = 0.000009 // یه‌کم بیشتر از قبل (0.000005)
       function loop(t) {
         raf = requestAnimationFrame(loop)
         autoRotation = t * AUTO_SPEED
@@ -434,10 +434,10 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       <div
         style={{
           position: 'fixed',
-          top: '8%',
+          top: '50%',
           left: 0,
           right: 0,
-          height: '84%', // تقریباً همون بازه‌ای که کره (با تنظیمات پیش‌فرض زوم) اشغال می‌کنه
+          transform: 'translateY(-50%)',
           zIndex: 1,
           overflow: 'hidden',
           pointerEvents: 'none',
@@ -448,9 +448,9 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         {marqueeRows.map((rowItems, r) => {
           if (rowItems.length === 0) return null
           const reverse = r % 2 === 1
-          const duration = 110 + r * 8
+          const duration = 55 + r * 4 // تقریباً دو برابر سریع‌تر از قبل
           return (
-            <div key={r} style={{ width: '100%', flex: '1 1 0', overflow: 'hidden' }}>
+            <div key={r} style={{ width: '100%', height: 26, overflow: 'hidden' }}>
               <div
                 style={{
                   display: 'flex',
