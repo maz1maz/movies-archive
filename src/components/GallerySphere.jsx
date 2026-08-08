@@ -154,7 +154,14 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
     // قبلاً فقط ۷۰ تا پوستر نمونه بود که بین ۲۶ ردیف تقسیم بشه (~۳ تا هر
     // ردیف) — عرض واقعیش خیلی کمتر از عرض صفحه بود، برای همون سمت راست
     // خالی می‌موند. این بار از کل پوسترها استفاده می‌کنیم.
-    const sampleSize = Math.min(postersOnly.length, MARQUEE_ROWS * 40)
+    // چون هر تصویر مارکی خیلی باریکه (~۱۷px)، اگه هر ردیف تعداد کمی
+    // پوستر داشته باشه (قبلاً ۴۰تا)، عرض واقعی track خیلی کمتر از عرض
+    // صفحه می‌شه — و چون حرکت با translateX بین 0 و -نصف‌عرض track در
+    // نوسانه، هیچ‌وقت به سمت راست صفحه نمی‌رسه (این ریشه‌ی واقعی مشکل
+    // «سمت راست خالیه» بود، نه جهت انیمیشن). با ~۲۵۰ پوستر هر ردیف
+    // (۲۵۰*۱۷px ≈ ۴۲۵۰px) عرض track از هر صفحه‌ای بیشتره.
+    const perRow = 250
+    const sampleSize = Math.min(postersOnly.length, MARQUEE_ROWS * perRow)
     const step = Math.max(1, Math.floor(postersOnly.length / sampleSize))
     const sample = []
     for (let i = 0; i < postersOnly.length && sample.length < sampleSize; i += step) {
