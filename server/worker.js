@@ -701,18 +701,28 @@ export default {
         delete base._letterboxdImageFallback
         const addTmdbPosterFallback = async (film) => {
           if (film.poster || !film.imdbId || !env.TMDB_API_KEY) return film
-          try {
-            const tmdbRes = await fetch(
-              `https://api.themoviedb.org/3/find/${film.imdbId}?external_source=imdb_id`,
-              { headers: { Authorization: `Bearer ${env.TMDB_API_KEY}`, accept: 'application/json' } }
-            )
-            if (tmdbRes.ok) {
-              const tmdbData = await tmdbRes.json()
-              const hit = (tmdbData.movie_results || [])[0] || (tmdbData.tv_results || [])[0]
-              if (hit?.poster_path) film.poster = `https://image.tmdb.org/t/p/w500${hit.poster_path}`
+          const tmdbKey = env.TMDB_API_KEY
+          // پشتیبانی از هر دو نوع کلید TMDB: کلید کلاسیک v3 (پارامتر api_key توی URL)
+          // و توکن جدید v4 Read Access (هدر Authorization: Bearer) — از اونجا که
+          // نمی‌دونیم کاربر کدومش رو گرفته، هر دو رو امتحان می‌کنیم.
+          const attempts = [
+            { url: `https://api.themoviedb.org/3/find/${film.imdbId}?external_source=imdb_id&api_key=${encodeURIComponent(tmdbKey)}`, headers: { accept: 'application/json' } },
+            { url: `https://api.themoviedb.org/3/find/${film.imdbId}?external_source=imdb_id`, headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
+          ]
+          for (const attempt of attempts) {
+            try {
+              const tmdbRes = await fetch(attempt.url, { headers: attempt.headers })
+              if (tmdbRes.ok) {
+                const tmdbData = await tmdbRes.json()
+                const hit = (tmdbData.movie_results || [])[0] || (tmdbData.tv_results || [])[0]
+                if (hit?.poster_path) {
+                  film.poster = `https://image.tmdb.org/t/p/w500${hit.poster_path}`
+                  break
+                }
+              }
+            } catch {
+              // این روش جواب نداد؛ روش بعدی رو امتحان می‌کنیم
             }
-          } catch {
-            // TMDB در دسترس نبود؛ بی‌خیالش می‌شیم، پوستر خالی می‌مونه
           }
           return film
         }
