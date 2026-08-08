@@ -383,11 +383,37 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         gl.canvas.removeEventListener('click', onClick)
       })
 
+      let isHovering = false
+      function onPointerEnter() {
+        isHovering = true
+      }
+      function onPointerLeave() {
+        isHovering = false
+      }
+      gl.canvas.addEventListener('pointerenter', onPointerEnter)
+      gl.canvas.addEventListener('pointerleave', onPointerLeave)
+      cleanupFns.push(() => {
+        gl.canvas.removeEventListener('pointerenter', onPointerEnter)
+        gl.canvas.removeEventListener('pointerleave', onPointerLeave)
+      })
+
       let raf
-      const AUTO_SPEED = 0.00002 // دوباره نصف شد
+      const AUTO_SPEED = 0.00002
+      let autoRotationAccum = 0
+      let lastT = null
       function loop(t) {
         raf = requestAnimationFrame(loop)
-        autoRotation = t * AUTO_SPEED
+        if (lastT === null) lastT = t
+        const dt = t - lastT
+        lastT = t
+        // وقتی موس روی کره‌ست (یا داره درگ می‌شه)، چرخش خودکار متوقف می‌شه
+        // تا بشه دقیق روی یه پوستر نشونه گرفت — قبلاً چون کره مدام می‌چرخید،
+        // تا لحظه‌ی کلیک واقعی پوستر جابه‌جا شده بود و کلیک روی پوستر
+        // مجاور می‌خورد (نه باگ محاسبه؛ خود چرخش مقصر بود).
+        if (!isHovering && !isDragging) {
+          autoRotationAccum += dt * AUTO_SPEED
+        }
+        autoRotation = autoRotationAccum
         program.uniforms.uRotationY.value = autoRotation + dragRotation
         program.uniforms.uTime.value = t / 1000
         camera.position.set(0, camDistance * Math.sin(camElevation), camDistance * Math.cos(camElevation))
