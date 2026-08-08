@@ -449,8 +449,8 @@ export default {
           closet: body.closet || '',
           shelf: body.shelf || '',
           row: body.row || '',
-          cast: Array.isArray(body.cast) ? JSON.stringify(body.cast) : (body.cast || ''),
-          genre: Array.isArray(body.genre) ? JSON.stringify(body.genre) : (body.genre || ''),
+          cast: Array.isArray(body.cast) ? body.cast : (body.cast ? [body.cast] : []),
+          genre: Array.isArray(body.genre) ? body.genre : (body.genre ? [body.genre] : []),
           watched: body.watched ? 1 : 0,
           rating: body.rating ? parseFloat(body.rating) : null,
           year: body.year ? parseInt(body.year, 10) : null,
@@ -1481,8 +1481,8 @@ async function insertFilm(db, film) {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, title || null, originalTitle || null, closet || null, shelf || null, row || null,
-    director || null, producer || null, cast ? JSON.stringify(cast) : null,
-    year || null, genre ? JSON.stringify(genre) : null,
+    director || null, producer || null, cast ? (Array.isArray(cast) ? JSON.stringify(cast) : cast) : null,
+    year || null, genre ? (Array.isArray(genre) ? JSON.stringify(genre) : genre) : null,
     rating || null, runtime || null, country || null,
     synopsis || null, poster || null, studio || null, rated || null,
     format || null, borrowedTo || null, borrowedDate || null,
