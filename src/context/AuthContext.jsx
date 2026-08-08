@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginError, setLoginError] = useState('')
+  const [adminOpen, setAdminOpen] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -71,6 +72,8 @@ export function AuthProvider({ children }) {
     setLoginOpen,
     loginError,
     openLogin,
+    adminOpen,
+    setAdminOpen,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

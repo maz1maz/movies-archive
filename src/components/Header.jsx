@@ -81,7 +81,7 @@ export default function Header({
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [azOpen, setAzOpen] = useState(false)
   const [condensed, setCondensed] = useState(false)
-  const { user, isGuest, isAdmin, logout, openLogin } = useAuth()
+  const { user, isGuest, isAdmin, logout, openLogin, setAdminOpen } = useAuth()
 
   // برای مهمان‌ها، به‌جای اجرای عملیات نوشتنی، مدال ورود باز می‌شه.
   const guarded = (fn) => () => {
@@ -370,6 +370,11 @@ export default function Header({
                     <div style={{ padding: '4px 12px', color: 'var(--muted)', fontSize: 13 }}>
                       {user.username} {isAdmin ? '(ادمین)' : ''}
                     </div>
+                    {isAdmin && (
+                      <button type="button" onClick={() => { setAdminOpen(true); setMenuOpen(false) }}>
+                        مدیریت کاربران
+                      </button>
+                    )}
                     <button type="button" onClick={() => { logout(); setMenuOpen(false) }}>
                       خروج
                     </button>
