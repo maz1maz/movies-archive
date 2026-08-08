@@ -77,14 +77,30 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       const res = await fetch(`/api/link-lookup?${qs.toString()}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'یافت نشد')
-      setForm((prev) => ({
-        ...toForm(data),
-        closet: prev.closet,
-        shelf: prev.shelf,
-        row: prev.row,
-        mediaType: prev.mediaType,
-        driveNumber: prev.driveNumber,
-      }))
+      const fetched = toForm(data)
+      setForm((prev) => {
+        if (isNew) {
+          // فیلم جدید، فرم خالیه — همه‌چیز رو از لینک پر می‌کنیم به‌جز محل فیزیکی/نوع رسانه
+          return {
+            ...fetched,
+            closet: prev.closet,
+            shelf: prev.shelf,
+            row: prev.row,
+            mediaType: prev.mediaType,
+            driveNumber: prev.driveNumber,
+          }
+        }
+        // فیلم موجود — فقط جای‌خالی‌ها رو از لینک پر می‌کنیم، چیزی که قبلاً پر
+        // بوده (حتی اگه با اطلاعات لینک فرق داشته باشه) دست‌نخورده می‌مونه.
+        const merged = { ...prev }
+        for (const key of Object.keys(fetched)) {
+          if (['closet', 'shelf', 'row', 'mediaType', 'driveNumber', 'itemType', 'watched', 'watchlisted', 'myRating', 'criterion', 'copies', 'seasonsEpisodes', 'seasonDrives', 'letterboxdRating'].includes(key)) continue
+          const current = prev[key]
+          const isEmpty = current === '' || current === null || current === undefined || (Array.isArray(current) && current.length === 0)
+          if (isEmpty && fetched[key] !== '' && fetched[key] != null) merged[key] = fetched[key]
+        }
+        return merged
+      })
     } catch (e) {
       setLookupError(e.message)
     } finally {
@@ -191,23 +207,21 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
         <h2 className="edit-title">{isNew ? 'Add Film' : 'Edit Film'}</h2>
 
         <div className="edit-form">
-          {isNew && (
-            <label className="edit-field full edit-link-field">
-              <span><IconLink width={13} height={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> Fill from IMDb / Letterboxd link</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  ref={linkInputRef}
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), lookupFromLink())}
-                  placeholder="https://www.imdb.com/title/tt.../ or https://letterboxd.com/film/.../"
-                />
-                <button type="button" className="btn btn-ghost" onClick={lookupFromLink} disabled={linkLoading}>
-                  {linkLoading ? '...' : 'Fetch'}
-                </button>
-              </div>
-            </label>
-          )}
+          <label className="edit-field full edit-link-field">
+            <span><IconLink width={13} height={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> {isNew ? 'Fill from IMDb / Letterboxd link' : 'Complete missing fields from IMDb / Letterboxd link'}</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                ref={linkInputRef}
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), lookupFromLink())}
+                placeholder="https://www.imdb.com/title/tt.../ or https://letterboxd.com/film/.../"
+              />
+              <button type="button" className="btn btn-ghost" onClick={lookupFromLink} disabled={linkLoading}>
+                {linkLoading ? '...' : 'Fetch'}
+              </button>
+            </div>
+          </label>
 
           <label className="edit-field full">
             <span>Title</span>
