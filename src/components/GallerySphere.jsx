@@ -19,6 +19,7 @@ const vertex = /* glsl */ `
   uniform mat4 projectionMatrix;
   uniform float uRotationY;
   uniform vec2 uBillboardSize;
+  uniform float uHoverIndex;
 
   void main() {
     vUv = uv;
@@ -32,6 +33,13 @@ const vertex = /* glsl */ `
       center.x * s + center.z * c
     );
     vWorldY = center.y; // قبل از چرخش کافیه، چون فقط دور Y می‌چرخیم و y عوض نمی‌شه
+
+    // پوستری که موس روشه، یه‌کم به سمت بیرون کره فاصله بگیره (برجسته بشه)
+    if (abs(posterIndex - uHoverIndex) < 0.5) {
+      vec3 outward = normalize(rotated);
+      rotated += outward * 0.9;
+    }
+
     vec4 mvPosition = modelViewMatrix * vec4(rotated, 1.0);
     // بعد از تبدیل model-view، آفست رو اضافه می‌کنیم؛ این باعث می‌شه
     // پوستر همیشه رو به دوربین باشه (billboard) بدون محاسبه‌ی جداگانه.
@@ -425,7 +433,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       // خیلی کندتر شد (نسبت به قبل ~۴ برابر) — چرخش هیچ‌وقت متوقف نمی‌شه
       // (طبق خواسته‌ی کاربر)، ولی اونقدر آروم که موقع نشونه‌گرفتن و کلیک،
       // پوستر عملاً جابه‌جا نشه.
-      const AUTO_SPEED = 0.000009 // یه‌کم بیشتر از قبل (0.000005)
+      const AUTO_SPEED = 0.00006 // خیلی محسوس‌تر شد (قبلاً 0.000009 اصلاً حس نمی‌شد)
       function loop(t) {
         raf = requestAnimationFrame(loop)
         autoRotation = t * AUTO_SPEED
@@ -471,7 +479,11 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
           position: 'fixed',
           top: '50%',
           left: 0,
-          right: 0,
+          width: '100vw', // به‌جای left:0/right:0 — اگه یه پدر بالادست transform داشته باشه
+          // (که توی این اپ برای صفحات دیگه معموله)، position:fixed دیگه نسبت
+          // به viewport واقعی محاسبه نمی‌شه، نسبت به همون پدر. واحد vw همیشه
+          // نسبت به viewport واقعیه، مستقل از این مشکل — همین باعث می‌شد
+          // سمت راست به‌درستی پر نشه.
           transform: 'translateY(-50%)',
           zIndex: 1,
           overflow: 'hidden',
@@ -483,7 +495,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         {marqueeRows.map((rowItems, r) => {
           if (rowItems.length === 0) return null
           const reverse = r % 2 === 1
-          const duration = 55 + r * 4 // تقریباً دو برابر سریع‌تر از قبل
+          const duration = 26 + r * 2 // دوباره تندتر شد
           return (
             <div key={r} style={{ width: '100%', height: 26, overflow: 'hidden' }}>
               <div
