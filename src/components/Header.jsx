@@ -12,6 +12,7 @@ import {
   IconDisc,
   IconClapper,
   IconBookshelf,
+  IconPin,
 } from './icons.jsx'
 
 function IconHamburger(props) {
@@ -60,6 +61,7 @@ export default function Header({
   enrichRemaining,
   enrichScopeLabel,
   onOpenExport,
+  onOpenLocationBrowser,
   onSyncLetterboxd,
   onFetchSeasonCounts,
   fetchingSeasonCounts,
@@ -240,6 +242,22 @@ export default function Header({
               </div>
             </div>
           </div>
+
+          {(section === 'physical' || section === 'physical-series') && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                onOpenLocationBrowser()
+                setFiltersOpen(false)
+                setMenuOpen(false)
+                setAzOpen(false)
+              }}
+              title="Browse by closet / row / section"
+            >
+              <IconPin width={14} height={14} /> Location
+            </button>
+          )}
 
           <button
             className="btn btn-ghost theme-toggle"

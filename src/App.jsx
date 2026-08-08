@@ -10,6 +10,7 @@ import DashboardPanel from './components/DashboardPanel.jsx'
 import GallerySphere from './components/GallerySphere.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import ExportModal from './components/ExportModal.jsx'
+import LocationBrowserModal from './components/LocationBrowserModal.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
@@ -83,6 +84,7 @@ export default function App() {
   )
   const [selectedPerson, setSelectedPerson] = useState(null)
   const [showExport, setShowExport] = useState(false)
+  const [showLocationBrowser, setShowLocationBrowser] = useState(false)
   const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
@@ -847,6 +849,7 @@ export default function App() {
         onFetchSeasonCounts={handleFetchSeasonCounts}
         fetchingSeasonCounts={fetchingSeasonCounts}
         onOpenExport={() => setShowExport(true)}
+        onOpenLocationBrowser={() => setShowLocationBrowser(true)}
         view={view}
         setView={setView}
         alpha={alpha}
@@ -961,6 +964,14 @@ export default function App() {
 
       {showExport && (
         <ExportModal films={sectionFilms} section={section} onClose={() => setShowExport(false)} />
+      )}
+
+      {showLocationBrowser && (
+        <LocationBrowserModal
+          films={allFilmsUnfiltered}
+          onSelectFilm={(film) => setSelected(film)}
+          onClose={() => setShowLocationBrowser(false)}
+        />
       )}
 
       {loanFilm && (
