@@ -224,7 +224,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
                 <div className="person-film-meta">
                   <h4 className="person-film-title">{film.title}</h4>
                   <p className="person-film-year">
-                    {film.year || '—'} · {(film.genre || []).slice(0, 2).join(', ')}
+                    {film.year || '—'} · {(Array.isArray(film.genre) ? film.genre : (film.genre || '').split(',').map(g => g.trim()).filter(Boolean)).slice(0, 2).join(', ')}
                   </p>
                 </div>
               </button>

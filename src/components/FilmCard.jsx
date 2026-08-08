@@ -100,7 +100,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
           {film.copies > 1 && <span className="copies-badge">×{film.copies}</span>}
         </h3>
         <p className="card-meta">
-          {film.year || '—'} · {(film.genre || []).slice(0, 2).join(', ')}
+          {film.year || '—'} · {(Array.isArray(film.genre) ? film.genre : (film.genre || '').split(',').map(g => g.trim()).filter(Boolean)).slice(0, 2).join(', ')}
         </p>
         {film.myRating > 0 && <StarRating value={film.myRating} size={13} />}
       </div>

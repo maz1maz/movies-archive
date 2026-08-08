@@ -85,7 +85,8 @@ export async function buildShareCard(film) {
   // Year / genre / runtime
   ctx.fillStyle = '#8a8375'
   ctx.font = '500 32px "Segoe UI", sans-serif'
-  const metaLine = [film.year, (film.genre || [])[0], film.runtime ? `${film.runtime} min` : null].filter(Boolean).join('   ·   ')
+  const genreArr = Array.isArray(film.genre) ? film.genre : (film.genre || '').split(',').map(g => g.trim()).filter(Boolean)
+  const metaLine = [film.year, genreArr[0], film.runtime ? `${film.runtime} min` : null].filter(Boolean).join('   ·   ')
   ctx.fillText(metaLine, W / 2, afterPosterY + 74)
 
   // My rating (stars) if present
