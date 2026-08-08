@@ -692,18 +692,15 @@ export default {
           return json({ error: 'لینک باید از IMDb یا Letterboxd باشه' }, 400, corsHeaders)
         }
 
-        // پوستر Letterboxd (اگه پیدا شده) رو جدا نگه می‌داریم — فقط به عنوان
-        // آخرین راه‌حل استفاده می‌شه، وقتی OMDb هیچ پوستری برنگردونده باشه؛
-        // اولویت همیشه با پوستر واقعیِ OMDb ـه.
-        const letterboxdPosterFallback = base._letterboxdImageFallback || null
+        // پوستر Letterboxd (og:image) رو دیگه به‌عنوان جایگزین استفاده نمی‌کنیم — این
+        // فقط یه بک‌دراپ/عکس تبلیغاتی برای اشتراک‌گذاریه (نه پوستر واقعی)، و پوستر
+        // واقعی روی خودِ صفحه از طریق جاوااسکریپت لود می‌شه که با fetch ساده گرفته
+        // نمی‌شه. بهتره پوستر خالی بمونه (و کاربر دستی لینکش رو بچسبونه) تا اینکه
+        // یه عکس اشتباه نشون بدیم. اولویت همیشه با پوستر واقعیِ OMDb ـه.
         delete base._letterboxdImageFallback
-        const withFallbackPoster = (film) => {
-          if (!film.poster && letterboxdPosterFallback) film.poster = letterboxdPosterFallback
-          return film
-        }
 
         if (!key) {
-          if (base.title) return json(withFallbackPoster(base), 200, corsHeaders)
+          if (base.title) return json(base, 200, corsHeaders)
           return json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار از روی لینک IMDb وجود نداره' }, 400, corsHeaders)
         }
 
@@ -712,13 +709,13 @@ export default {
           if (!found.title) {
             return json({ error: 'این فیلم هنوز توی دیتابیس OMDb نیست (معمولاً برای فیلم‌های خیلی جدید پیش میاد) — عنوان/سال رو دستی وارد کن' }, 404, corsHeaders)
           }
-          return json(withFallbackPoster(found), 200, corsHeaders)
+          return json(found, 200, corsHeaders)
         } catch (e) {
           if (e.code === 'OMDB_QUOTA_EXCEEDED') {
-            if (base.title) return json(withFallbackPoster(base), 200, corsHeaders)
+            if (base.title) return json(base, 200, corsHeaders)
             return json({ error: 'سهمیه‌ی روزانه‌ی OMDb تموم شده — فردا دوباره امتحان کن' }, 429, corsHeaders)
           }
-          if (base.title) return json(withFallbackPoster(base), 200, corsHeaders)
+          if (base.title) return json(base, 200, corsHeaders)
           return json({ error: 'خطا در ارتباط با OMDb' }, 502, corsHeaders)
         }
       }
@@ -1284,11 +1281,6 @@ function parseLetterboxdBasic(html) {
   }
   const desc = metaContent(html, 'og:description') || metaContent(html, 'description')
   if (desc) out.synopsis = desc.trim()
-  // توجه: عمداً پوستر رو اینجا ست نمی‌کنیم — og:image توی Letterboxd معمولاً یه
-  // بک‌دراپ/عکس تبلیغاتی افقیه برای اشتراک‌گذاری توی شبکه‌های اجتماعی، نه پوستر
-  // واقعی فیلم. پوستر واقعی رو ترجیح می‌دیم از OMDb بگیریم؛ این فقط به عنوان
-  // آخرین راه‌حل (وقتی OMDb هیچی نداشت) جداگانه برگردونده می‌شه.
-  out._letterboxdImageFallback = metaContent(html, 'og:image') || null
 
   const directorMatch = html.match(/\/director\/[^"']+["'][^>]*>([^<]+)</i)
   if (directorMatch) out.director = decodeHtmlEntities(directorMatch[1].trim())
