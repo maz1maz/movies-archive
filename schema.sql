@@ -58,3 +58,23 @@ CREATE TABLE IF NOT EXISTS people_photos (
   children TEXT
 );
 
+-- کاربران برنامه. مهمان‌ها (بدون سشن) فقط دسترسی مشاهده دارن.
+-- role: 'admin' | 'user'
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  passwordHash TEXT NOT NULL,
+  passwordSalt TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'user',
+  createdAt TEXT DEFAULT (datetime('now'))
+);
+
+-- سشن‌های لاگین (توکن تصادفی سمت سرور؛ نیازی به JWT/secret خارجی نیست)
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  userId TEXT NOT NULL,
+  createdAt TEXT NOT NULL,
+  expiresAt TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_userId ON sessions(userId);
+

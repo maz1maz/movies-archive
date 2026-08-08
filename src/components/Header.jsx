@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import AlphabetBar from './AlphabetBar.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 import {
   IconSearch,
   IconUpload,
@@ -80,6 +81,16 @@ export default function Header({
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [azOpen, setAzOpen] = useState(false)
   const [condensed, setCondensed] = useState(false)
+  const { user, isGuest, isAdmin, logout, openLogin } = useAuth()
+
+  // برای مهمان‌ها، به‌جای اجرای عملیات نوشتنی، مدال ورود باز می‌شه.
+  const guarded = (fn) => () => {
+    if (isGuest) {
+      openLogin()
+      return
+    }
+    fn()
+  }
 
   // موقع اسکرول به پایین، هدر جمع‌وجورتر بشه (زیرعنوان‌ها مخفی، پدینگ کمتر)
   // تا فضای بیشتری به محتوا بده. همچنین اگه پنل فیلتر/منو/A-Z باز بود، با
@@ -258,10 +269,10 @@ export default function Header({
                 <button
                   type="button"
                   className="header-menu-primary"
-                  onClick={() => {
+                  onClick={guarded(() => {
                     onAddFilm()
                     setMenuOpen(false)
-                  }}
+                  })}
                 >
                   + Add Film
                 </button>
@@ -270,10 +281,10 @@ export default function Header({
                 <div className="header-menu-section-title">Tools</div>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={guarded(() => {
                     onEnrichCatalog()
                     setMenuOpen(false)
-                  }}
+                  })}
                   disabled={enrichingCatalog}
                   title={
                     enrichScopeLabel
@@ -290,20 +301,20 @@ export default function Header({
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={guarded(() => {
                     onSyncLetterboxd()
                     setMenuOpen(false)
-                  }}
+                  })}
                   title="Pull your own diary entries/reviews from your public Letterboxd RSS feed"
                 >
                   <IconSparkles width={15} height={15} /> Sync Letterboxd Reviews
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={guarded(() => {
                     onFetchSeasonCounts()
                     setMenuOpen(false)
-                  }}
+                  })}
                   disabled={fetchingSeasonCounts}
                   title="Look up how many seasons have been produced so far for series missing that number"
                 >
@@ -316,10 +327,10 @@ export default function Header({
                 <div className="header-menu-section-title">Import / Export</div>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={guarded(() => {
                     fileRef.current?.click()
                     setMenuOpen(false)
-                  }}
+                  })}
                 >
                   <IconUpload width={15} height={15} /> Import Excel
                 </button>
@@ -328,24 +339,42 @@ export default function Header({
                 </a>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={guarded(() => {
                     onOpenExport()
                     setMenuOpen(false)
-                  }}
+                  })}
                   title="Export Catalog / PDF / Excel Backup"
                 >
                   <IconDownload width={15} height={15} /> Export / Backup
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={guarded(() => {
                     ratingsFileRef.current?.click()
                     setMenuOpen(false)
-                  }}
+                  })}
                   title="Import ratings and watched status from a Letterboxd or IMDb export CSV"
                 >
                   <IconUpload width={15} height={15} /> Import Ratings (Letterboxd/IMDb)
                 </button>
+              </div>
+
+              <div className="header-menu-section">
+                <div className="header-menu-section-title">Account</div>
+                {isGuest ? (
+                  <button type="button" onClick={() => { openLogin(); setMenuOpen(false) }}>
+                    ورود
+                  </button>
+                ) : (
+                  <>
+                    <div style={{ padding: '4px 12px', color: 'var(--muted)', fontSize: 13 }}>
+                      {user.username} {isAdmin ? '(ادمین)' : ''}
+                    </div>
+                    <button type="button" onClick={() => { logout(); setMenuOpen(false) }}>
+                      خروج
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

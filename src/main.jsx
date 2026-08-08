@@ -2,6 +2,8 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
+import { AuthProvider } from './context/AuthContext.jsx'
+import LoginModal from './components/LoginModal.jsx'
 import './styles.css'
 
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
@@ -9,7 +11,10 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <AuthProvider>
+        <App />
+        <LoginModal />
+      </AuthProvider>
     </ErrorBoundary>
   </React.StrictMode>,
 )

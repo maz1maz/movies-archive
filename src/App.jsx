@@ -13,8 +13,10 @@ import ExportModal from './components/ExportModal.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
+import { useAuth } from './context/AuthContext.jsx'
 
 export default function App() {
+  const { isGuest, openLogin } = useAuth()
   const [films, setFilms] = useState([])
   // نسخه‌ی فیلترنشده و کامل آرشیو - فقط برای جستجوی «این بازیگر/کارگردان
   // چندتا فیلم داره» توی PersonModal، چون films (بالا) بسته به فیلترهای
@@ -431,6 +433,13 @@ export default function App() {
     setLoanFilm(null)
   }
 
+  // مهمان‌ها نمی‌تونن ویرایش/امانت/امتیازدهی کنن — به‌جای تلاش ناموفق برای
+  // ذخیره (که بک‌اند با 401 رد می‌کنه)، مستقیم مدال ورود باز می‌شه.
+  const guardedEdit = (film) => (isGuest ? openLogin() : setEditing(film))
+  const guardedLoan = (film) => (isGuest ? openLogin() : setLoanFilm(film))
+  const guardedRate = (film, rating) => (isGuest ? openLogin() : handleSaveFilm(film.id, { myRating: rating }))
+  const guardedSeasonDrive = (film, seasonDrives) => (isGuest ? openLogin() : handleSaveFilm(film.id, { seasonDrives }))
+
   const handleDeleteFilm = async (film) => {
     try {
       const res = await fetch('/api/films/' + film.id, { method: 'DELETE' })
@@ -691,10 +700,10 @@ export default function App() {
                 setSelected(null)
                 setSelectedPerson(name)
               }}
-              onManageLoan={(film) => setLoanFilm(film)}
-              onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
-              onSaveSeasonDrive={(film, seasonDrives) => handleSaveFilm(film.id, { seasonDrives })}
-              onEdit={setEditing}
+              onManageLoan={guardedLoan}
+              onRateFilm={guardedRate}
+              onSaveSeasonDrive={guardedSeasonDrive}
+              onEdit={guardedEdit}
               onClose={() => setSelected(null)}
             />
           )}
@@ -746,10 +755,10 @@ export default function App() {
                 setSelected(null)
                 setSelectedPerson(name)
               }}
-              onManageLoan={(film) => setLoanFilm(film)}
-              onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
-              onSaveSeasonDrive={(film, seasonDrives) => handleSaveFilm(film.id, { seasonDrives })}
-              onEdit={setEditing}
+              onManageLoan={guardedLoan}
+              onRateFilm={guardedRate}
+              onSaveSeasonDrive={guardedSeasonDrive}
+              onEdit={guardedEdit}
               onClose={() => setSelected(null)}
             />
           )}
@@ -779,10 +788,10 @@ export default function App() {
                 setSelected(null)
                 setSelectedPerson(name)
               }}
-              onManageLoan={(film) => setLoanFilm(film)}
-              onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
-              onSaveSeasonDrive={(film, seasonDrives) => handleSaveFilm(film.id, { seasonDrives })}
-              onEdit={setEditing}
+              onManageLoan={guardedLoan}
+              onRateFilm={guardedRate}
+              onSaveSeasonDrive={guardedSeasonDrive}
+              onEdit={guardedEdit}
               onClose={() => setSelected(null)}
             />
           )}
@@ -875,7 +884,7 @@ export default function App() {
             </p>
           </div>
         ) : view === 'list' ? (
-          <FilmList films={visibleFilms} onSelect={setSelected} onEdit={setEditing} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
+          <FilmList films={visibleFilms} onSelect={setSelected} onEdit={guardedEdit} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
         ) : useSplitView && selected ? (
           <div className="grid-split">
             <div className="grid-split-grid">
@@ -893,10 +902,10 @@ export default function App() {
                   setSelected(null)
                   setSelectedPerson(name)
                 }}
-                onManageLoan={(film) => setLoanFilm(film)}
-                onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
-                onSaveSeasonDrive={(film, seasonDrives) => handleSaveFilm(film.id, { seasonDrives })}
-                onEdit={setEditing}
+                onManageLoan={guardedLoan}
+                onRateFilm={guardedRate}
+                onSaveSeasonDrive={guardedSeasonDrive}
+                onEdit={guardedEdit}
                 onClose={() => setSelected(null)}
               />
             </div>
@@ -928,12 +937,10 @@ export default function App() {
             setSelected(null)
             setSelectedPerson(name)
           }}
-          onManageLoan={(film) => {
-            setLoanFilm(film)
-          }}
-          onRateFilm={(film, rating) => handleSaveFilm(film.id, { myRating: rating })}
-          onSaveSeasonDrive={(film, seasonDrives) => handleSaveFilm(film.id, { seasonDrives })}
-          onEdit={setEditing}
+          onManageLoan={guardedLoan}
+          onRateFilm={guardedRate}
+          onSaveSeasonDrive={guardedSeasonDrive}
+          onEdit={guardedEdit}
           onClose={() => setSelected(null)}
         />
       )}

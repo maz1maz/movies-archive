@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { IconClose } from './icons.jsx'
 import FilmModal from './FilmModal.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 
 const SCOPES = [
   { key: 'all', label: 'Everything' },
@@ -11,6 +12,7 @@ const SCOPES = [
 ]
 
 export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFilmsChanged }) {
+  const { isGuest, openLogin } = useAuth()
   const [scope, setScope] = useState('all')
   const [groups, setGroups] = useState(null)
   const [busyId, setBusyId] = useState(null)
@@ -30,6 +32,7 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
   }, [scope])
 
   const handleDelete = async (id) => {
+    if (isGuest) return openLogin()
     if (!window.confirm('Permanently delete this entry? This cannot be undone.')) return
     setBusyId(id)
     try {

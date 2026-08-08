@@ -4,6 +4,7 @@ import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMe
 import { enrichFilm } from './omdb.js'
 import { fetchTotalSeasons } from './tvmaze.js'
 import * as XLSX from 'xlsx'
+import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader } from './auth.js'
 
 export default {
   async fetch(request, env) {
@@ -11,11 +12,16 @@ export default {
     const { pathname } = url
     const method = request.method
 
-    // CORS headers for the frontend
+    // CORS headers for the frontend. Cookie-based auth requires the exact
+    // origin (not '*') plus Allow-Credentials so the browser sends/accepts
+    // the HttpOnly session cookie on cross-origin fetches (e.g. local dev).
+    const origin = request.headers.get('Origin')
     const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin || '*',
       'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Credentials': 'true',
+      Vary: 'Origin',
     }
     if (method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders })
@@ -23,7 +29,99 @@ export default {
 
     const db = env.DB // D1 binding
 
+    // کاربر لاگین‌شده‌ی فعلی (از روی کوکی سشن) — مهمان‌ها null می‌گیرن.
+    const currentUser = await getSessionUser(db, request)
+    const requireAuth = () => (currentUser ? null : json({ error: 'برای این کار باید وارد شوید' }, 401, corsHeaders))
+    const requireAdmin = () =>
+      !currentUser
+        ? json({ error: 'برای این کار باید وارد شوید' }, 401, corsHeaders)
+        : currentUser.role !== 'admin'
+        ? json({ error: 'این عملیات فقط برای ادمین مجاز است' }, 403, corsHeaders)
+        : null
+
     try {
+      // ---- Auth: login / logout / me ----
+      if (method === 'POST' && pathname === '/api/auth/login') {
+        const body = await request.json().catch(() => ({}))
+        const username = (body.username || '').trim().toLowerCase()
+        const password = body.password || ''
+        if (!username || !password) return json({ error: 'نام کاربری و رمز عبور الزامی است' }, 400, corsHeaders)
+        const user = await db.prepare('SELECT * FROM users WHERE lower(username) = ?').bind(username).first()
+        if (!user) return json({ error: 'نام کاربری یا رمز عبور اشتباه است' }, 401, corsHeaders)
+        const ok = await verifyPassword(password, user.passwordSalt, user.passwordHash)
+        if (!ok) return json({ error: 'نام کاربری یا رمز عبور اشتباه است' }, 401, corsHeaders)
+        const token = await createSession(db, user.id)
+        return json(
+          { id: user.id, username: user.username, role: user.role },
+          200,
+          { ...corsHeaders, 'Set-Cookie': sessionCookieHeader(token) }
+        )
+      }
+
+      if (method === 'POST' && pathname === '/api/auth/logout') {
+        const cookies = request.headers.get('Cookie') || ''
+        const match = cookies.match(/cf_session=([^;]+)/)
+        if (match) await destroySession(db, match[1])
+        return json({ ok: true }, 200, { ...corsHeaders, 'Set-Cookie': sessionCookieHeader('', { clear: true }) })
+      }
+
+      if (method === 'GET' && pathname === '/api/auth/me') {
+        return json({ user: currentUser }, 200, corsHeaders)
+      }
+
+      // ---- Admin: user management ----
+      if (method === 'GET' && pathname === '/api/auth/users') {
+        const denied = requireAdmin()
+        if (denied) return denied
+        const result = await db.prepare('SELECT id, username, role, createdAt FROM users ORDER BY createdAt ASC').all()
+        return json(result.results || [], 200, corsHeaders)
+      }
+
+      if (method === 'POST' && pathname === '/api/auth/users') {
+        const denied = requireAdmin()
+        if (denied) return denied
+        const body = await request.json().catch(() => ({}))
+        const username = (body.username || '').trim()
+        const password = body.password || ''
+        const role = body.role === 'admin' ? 'admin' : 'user'
+        if (!username || !password) return json({ error: 'نام کاربری و رمز عبور الزامی است' }, 400, corsHeaders)
+        if (password.length < 6) return json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, 400, corsHeaders)
+        const exists = await db.prepare('SELECT id FROM users WHERE lower(username) = ?').bind(username.toLowerCase()).first()
+        if (exists) return json({ error: 'این نام کاربری قبلاً استفاده شده' }, 409, corsHeaders)
+        const { hash, salt } = await hashPassword(password)
+        const id = crypto.randomUUID()
+        await db
+          .prepare('INSERT INTO users (id, username, passwordHash, passwordSalt, role, createdAt) VALUES (?, ?, ?, ?, ?, ?)')
+          .bind(id, username, hash, salt, role, new Date().toISOString())
+          .run()
+        return json({ id, username, role }, 201, corsHeaders)
+      }
+
+      const userMatch = pathname.match(/^\/api\/auth\/users\/([^/]+)$/)
+      if (userMatch) {
+        const denied = requireAdmin()
+        if (denied) return denied
+        const id = userMatch[1]
+        if (method === 'DELETE') {
+          if (id === currentUser.id) return json({ error: 'نمی‌توانید خودتان را حذف کنید' }, 400, corsHeaders)
+          await db.prepare('DELETE FROM sessions WHERE userId = ?').bind(id).run()
+          await db.prepare('DELETE FROM users WHERE id = ?').bind(id).run()
+          return json({ ok: true }, 200, corsHeaders)
+        }
+        if (method === 'PATCH') {
+          const body = await request.json().catch(() => ({}))
+          if (body.password) {
+            if (body.password.length < 6) return json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, 400, corsHeaders)
+            const { hash, salt } = await hashPassword(body.password)
+            await db.prepare('UPDATE users SET passwordHash = ?, passwordSalt = ? WHERE id = ?').bind(hash, salt, id).run()
+          }
+          if (body.role === 'admin' || body.role === 'user') {
+            await db.prepare('UPDATE users SET role = ? WHERE id = ?').bind(body.role, id).run()
+          }
+          return json({ ok: true }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/image-proxy?url=... (same-origin passthrough for external
       // poster images, so <canvas> can draw them without a CORS-tainted canvas —
       // used by the Share-to-Instagram feature) ----
@@ -53,6 +151,8 @@ export default {
       }
 
       if (method === 'POST' && pathname === '/api/watchlists') {
+        const denied = requireAuth()
+        if (denied) return denied
         const body = await request.json()
         const name = (body.name || '').trim()
         if (!name) return json({ error: 'name is required' }, 400, corsHeaders)
@@ -70,6 +170,8 @@ export default {
         const id = watchlistMatch[1]
 
         if (method === 'PATCH') {
+          const denied = requireAuth()
+          if (denied) return denied
           const body = await request.json()
           const existing = await db.prepare('SELECT * FROM watchlists WHERE id = ?').bind(id).first()
           if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
@@ -83,6 +185,8 @@ export default {
         }
 
         if (method === 'DELETE') {
+          const denied = requireAuth()
+          if (denied) return denied
           await db.prepare('DELETE FROM watchlists WHERE id = ?').bind(id).run()
           return json({ ok: true }, 200, corsHeaders)
         }
@@ -93,6 +197,8 @@ export default {
       // RSS/API for these, only a CSV export, so this reads the public HTML
       // pages directly) ----
       if (method === 'POST' && pathname === '/api/letterboxd-watchlist') {
+        const denied = requireAuth()
+        if (denied) return denied
         const body = await request.json()
         let input = (body.username || '').trim().replace(/^@/, '')
         const isReviews = /\/reviews\/?/i.test(input)
@@ -329,6 +435,8 @@ export default {
 
       // ---- POST /api/films (create) ----
       if (method === 'POST' && pathname === '/api/films') {
+        const denied = requireAuth()
+        if (denied) return denied
         const body = await request.json()
         if (!String(body.title || '').trim()) {
           return json({ error: 'title is required' }, 400, corsHeaders)
@@ -358,6 +466,8 @@ export default {
       // ---- PATCH /api/films/:id (update) ----
       const patchMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
       if (method === 'PATCH' && patchMatch) {
+        const denied = requireAuth()
+        if (denied) return denied
         const existing = await db.prepare('SELECT * FROM films WHERE id = ?').bind(patchMatch[1]).first()
         if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
         const body = await request.json()
@@ -384,6 +494,8 @@ export default {
       // ---- DELETE /api/films/:id (permanently remove a film) ----
       const deleteMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
       if (method === 'DELETE' && deleteMatch) {
+        const denied = requireAuth()
+        if (denied) return denied
         const existing = await db.prepare('SELECT id FROM films WHERE id = ?').bind(deleteMatch[1]).first()
         if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
         await db.prepare('DELETE FROM films WHERE id = ?').bind(deleteMatch[1]).run()
@@ -396,6 +508,8 @@ export default {
       // هیچی پر نمی‌کرد (فقط تو سرور لوکال کار می‌کرد).
       const enrichOneMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
       if (method === 'POST' && enrichOneMatch && enrichOneMatch[1] !== 'enrich') {
+        const denied = requireAuth()
+        if (denied) return denied
         const existing = await db.prepare('SELECT * FROM films WHERE id = ?').bind(enrichOneMatch[1]).first()
         if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
         const parsed = parseFilmRow(existing)
@@ -430,6 +544,8 @@ export default {
       // the batch to whichever section the user currently has open, so the
       // "Fill missing details" button only touches that section's films.
       if (method === 'POST' && pathname === '/api/films/enrich') {
+        const denied = requireAuth()
+        if (denied) return denied
         const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
         const result = await enrichBatch(db, env, limit, enrichScopeClause(url.searchParams))
@@ -439,6 +555,8 @@ export default {
       // ---- POST /api/films/season-counts (fetch "total seasons produced so
       // far" from TVMaze for series that don't have it yet) ----
       if (method === 'POST' && pathname === '/api/films/season-counts') {
+        const denied = requireAuth()
+        if (denied) return denied
         const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
 
@@ -633,6 +751,8 @@ export default {
       // محدودیت مهم: فید RSS لترباکس فقط ~۵۰ ورودی آخر دیاری رو می‌ده، نه کل
       // تاریخچه؛ هر بار sync فقط همین اواخر رو چک می‌کنه.
       if (method === 'POST' && pathname === '/api/letterboxd-sync') {
+        const denied = requireAuth()
+        if (denied) return denied
         let body = {}
         try {
           body = await request.json()
@@ -718,6 +838,8 @@ export default {
 
       // ---- POST /api/import (Excel import) ----
       if (method === 'POST' && pathname === '/api/import') {
+        const denied = requireAuth()
+        if (denied) return denied
         const form = await request.formData()
         const file = form.get('file')
         if (!file || typeof file.arrayBuffer !== 'function') {
@@ -801,6 +923,8 @@ export default {
 
       // ---- GET /api/export/json (optional ?mediaType=&itemType= to scope the backup) ----
       if (method === 'GET' && pathname === '/api/export/json') {
+        const denied = requireAuth()
+        if (denied) return denied
         const mediaType = url.searchParams.get('mediaType')
         const itemType = url.searchParams.get('itemType')
         let sql = 'SELECT * FROM films'
@@ -821,6 +945,8 @@ export default {
 
       // ---- GET /api/export/excel (optional ?mediaType=&itemType= to scope the backup) ----
       if (method === 'GET' && pathname === '/api/export/excel') {
+        const denied = requireAuth()
+        if (denied) return denied
         const mediaType = url.searchParams.get('mediaType')
         const itemType = url.searchParams.get('itemType')
         let sql = 'SELECT * FROM films'
@@ -907,6 +1033,8 @@ export default {
 
       // ---- GET /api/backups (list automatic daily backups stored in KV) ----
       if (method === 'GET' && pathname === '/api/backups') {
+        const denied = requireAdmin()
+        if (denied) return denied
         const list = await env.BACKUPS.list({ prefix: 'backup:' })
         const dates = list.keys
           .map((k) => k.name)
@@ -919,6 +1047,8 @@ export default {
 
       // ---- GET /api/backups/:date (download a specific daily backup, or "latest") ----
       if (method === 'GET' && pathname.startsWith('/api/backups/')) {
+        const denied = requireAdmin()
+        if (denied) return denied
         const dateParam = pathname.replace('/api/backups/', '')
         const key = dateParam === 'latest' ? 'backup:latest' : `backup:${dateParam}`
         const value = await env.BACKUPS.get(key)

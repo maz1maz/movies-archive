@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import JSZip from 'jszip'
 import DashboardPosterCard from './DashboardPosterCard.jsx'
 import { parseWatchlistCsv } from '../utils/csvImport.js'
+import { useAuth } from '../context/AuthContext.jsx'
 
 function findInArchive(films, title) {
   const t = (title || '').trim().toLowerCase()
@@ -10,6 +11,7 @@ function findInArchive(films, title) {
 }
 
 export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsChanged }) {
+  const { isGuest, openLogin } = useAuth()
   const [lists, setLists] = useState(null)
   const [activeId, setActiveId] = useState(null)
   const [newName, setNewName] = useState('')
@@ -71,6 +73,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
   }
 
   const handleCreate = async () => {
+    if (isGuest) return openLogin()
     const name = newName.trim()
     if (!name) return
     const res = await fetch('/api/watchlists', {
@@ -85,6 +88,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
   }
 
   const handleDelete = async (id) => {
+    if (isGuest) return openLogin()
     if (!window.confirm('Delete this watchlist?')) return
     await fetch(`/api/watchlists/${id}`, { method: 'DELETE' })
     setLists((prev) => prev.filter((l) => l.id !== id))
@@ -92,6 +96,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
   }
 
   const saveItems = async (id, items) => {
+    if (isGuest) return openLogin()
     await fetch(`/api/watchlists/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -115,6 +120,7 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
   }
 
   const handleImportFromLetterboxd = async () => {
+    if (isGuest) return openLogin()
     if (!activeList) return
     const input = window.prompt('Letterboxd username, watchlist/list/reviews URL:', 'https://letterboxd.com/USERNAME/watchlist/')
     if (!input || !input.trim()) return
