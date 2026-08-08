@@ -695,12 +695,30 @@ export default {
         // پوستر Letterboxd (og:image) رو دیگه به‌عنوان جایگزین استفاده نمی‌کنیم — این
         // فقط یه بک‌دراپ/عکس تبلیغاتی برای اشتراک‌گذاریه (نه پوستر واقعی)، و پوستر
         // واقعی روی خودِ صفحه از طریق جاوااسکریپت لود می‌شه که با fetch ساده گرفته
-        // نمی‌شه. بهتره پوستر خالی بمونه (و کاربر دستی لینکش رو بچسبونه) تا اینکه
-        // یه عکس اشتباه نشون بدیم. اولویت همیشه با پوستر واقعیِ OMDb ـه.
+        // نمی‌شه. اگه TMDB_API_KEY تنظیم شده باشه، به عنوان منبع دومِ پوستر (بعد از
+        // OMDb) امتحانش می‌کنیم — TMDB یه API تمیز و رسمی داره، بدون نیاز به رندر
+        // جاوااسکریپت.
         delete base._letterboxdImageFallback
+        const addTmdbPosterFallback = async (film) => {
+          if (film.poster || !film.imdbId || !env.TMDB_API_KEY) return film
+          try {
+            const tmdbRes = await fetch(
+              `https://api.themoviedb.org/3/find/${film.imdbId}?external_source=imdb_id`,
+              { headers: { Authorization: `Bearer ${env.TMDB_API_KEY}`, accept: 'application/json' } }
+            )
+            if (tmdbRes.ok) {
+              const tmdbData = await tmdbRes.json()
+              const hit = (tmdbData.movie_results || [])[0] || (tmdbData.tv_results || [])[0]
+              if (hit?.poster_path) film.poster = `https://image.tmdb.org/t/p/w500${hit.poster_path}`
+            }
+          } catch {
+            // TMDB در دسترس نبود؛ بی‌خیالش می‌شیم، پوستر خالی می‌مونه
+          }
+          return film
+        }
 
         if (!key) {
-          if (base.title) return json(base, 200, corsHeaders)
+          if (base.title) return json(await addTmdbPosterFallback(base), 200, corsHeaders)
           return json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار از روی لینک IMDb وجود نداره' }, 400, corsHeaders)
         }
 
@@ -709,13 +727,13 @@ export default {
           if (!found.title) {
             return json({ error: 'این فیلم هنوز توی دیتابیس OMDb نیست (معمولاً برای فیلم‌های خیلی جدید پیش میاد) — عنوان/سال رو دستی وارد کن' }, 404, corsHeaders)
           }
-          return json(found, 200, corsHeaders)
+          return json(await addTmdbPosterFallback(found), 200, corsHeaders)
         } catch (e) {
           if (e.code === 'OMDB_QUOTA_EXCEEDED') {
-            if (base.title) return json(base, 200, corsHeaders)
+            if (base.title) return json(await addTmdbPosterFallback(base), 200, corsHeaders)
             return json({ error: 'سهمیه‌ی روزانه‌ی OMDb تموم شده — فردا دوباره امتحان کن' }, 429, corsHeaders)
           }
-          if (base.title) return json(base, 200, corsHeaders)
+          if (base.title) return json(await addTmdbPosterFallback(base), 200, corsHeaders)
           return json({ error: 'خطا در ارتباط با OMDb' }, 502, corsHeaders)
         }
       }
