@@ -84,7 +84,7 @@ async function loadStaticAtlas(onProgress) {
       v1: (row + 1) / rows,
     }
   }
-  return { image: img, uvRects, count: config.count, ids: config.ids || [] }
+  return { image: img, uvRects, count: config.count, ids: config.ids || [], titles: config.titles || [] }
 }
 
 // چیدمان یکنواخت نقاط روی سطح کره (الگوریتم Fibonacci sphere)
@@ -359,12 +359,15 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
           }
         }
         if (best >= 0) {
-          console.log('[GallerySphere] click best index', best, 'dist', bestDist.toFixed(4))
+          console.log(
+            `[GallerySphere] click best index ${best} dist ${bestDist.toFixed(4)} atlasTitle="${atlas.titles[best] || '?'}"`,
+          )
         }
         if (best >= 0 && bestDist < 0.15) {
           const filmId = atlas.ids[best]
           const film = filmId != null ? filmsById.get(String(filmId)) : undefined
           if (film) {
+            console.log(`[GallerySphere] opening film title="${film.title}" id=${film.id}`)
             onOpenFilm(film)
           } else {
             console.warn('[GallerySphere] click matched index', best, 'id', filmId, 'but no matching film in live data')
@@ -429,7 +432,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-evenly',
-          gap: 2,
+          gap: 0,
         }}
       >
         {marqueeRows.map((rowItems, r) => {
@@ -452,7 +455,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
                 style={{
                   display: 'flex',
                   width: 'max-content',
-                  gap: 4,
+                  gap: 0,
                   animation: `${reverse ? 'marqueeRTL' : 'marqueeLTR'} ${duration}s linear infinite`,
                   opacity: 0.55,
                 }}

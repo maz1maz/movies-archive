@@ -85,7 +85,7 @@ async function main() {
     .jpeg({ quality: 82 })
     .toFile(path.join(OUT_DIR, 'atlas.jpg'))
 
-  const config = { cols, rows, count: withPoster.length, ids: withPoster.map((f) => f.id) }
+  const config = { cols, rows, count: withPoster.length, ids: withPoster.map((f) => f.id), titles: withPoster.map((f) => f.title) }
   await writeFile(path.join(OUT_DIR, 'atlas-config.json'), JSON.stringify(config, null, 2))
 
   console.log('✅ public/sphere-media/atlas.jpg')
