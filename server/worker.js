@@ -668,8 +668,12 @@ export default {
           imdbId = directMatch[1]
           base = { imdbId }
         } else if (/letterboxd\.com/i.test(link)) {
-          const slugMatch = link.match(/letterboxd\.com\/film\/([^/?#]+)/i)
-          if (!slugMatch) return json({ error: 'لینک Letterboxd باید صفحه‌ی یک فیلم باشه (letterboxd.com/film/...)' }, 400, corsHeaders)
+          // اسلاگ فیلم رو از هر شکلی از لینک Letterboxd می‌گیره — چه صفحه‌ی
+          // مستقیم فیلم (letterboxd.com/film/slug/) چه لینک دایری/لاگ شخصی
+          // یک کاربر (letterboxd.com/username/film/slug/) که پیشوند یوزرنیم داره
+          // و گاهی هم یه عدد تعداد بازبینی در آخرش (.../film/slug/2/).
+          const slugMatch = link.match(/\/film\/([^/?#]+)/i)
+          if (!slugMatch) return json({ error: 'لینک Letterboxd باید صفحه‌ی یک فیلم باشه (شامل film/...)' }, 400, corsHeaders)
           try {
             const pageRes = await fetch(`https://letterboxd.com/film/${slugMatch[1]}/`, {
               headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' },
