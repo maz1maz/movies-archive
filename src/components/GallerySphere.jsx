@@ -426,42 +426,36 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         @keyframes marqueeRTL { from { transform: translateX(0); } to { transform: translateX(-50%); } }
       `}</style>
 
-      {/* نوارهای مارکی: پشت کره، یه ردیف تصویر که پیوسته از چپ/راست رد می‌شن
-          و وسط صفحه (پشت کره) محو می‌شن — با mask-image شفاف در وسط */}
+      {/* نوارهای مارکی: پشت کره، یه ردیف تصویر که پیوسته رد می‌شن و خودِ
+          کره (که z-index بالاتر و مات‌ـه) طبیعتاً هرجا روش قرار بگیره
+          محوشون می‌کنه — دیگه نیازی به mask-gradient دستی نیست.
+          نصف ردیف‌ها به راست حرکت می‌کنن (وارد از چپ)، نصف دیگه به چپ
+          (وارد از راست) تا از هر دو طرف پر بشه. */}
       <div
         style={{
           position: 'fixed',
-          inset: 0,
+          top: '8%',
+          left: 0,
+          right: 0,
+          height: '84%', // تقریباً همون بازه‌ای که کره (با تنظیمات پیش‌فرض زوم) اشغال می‌کنه
           zIndex: 1,
           overflow: 'hidden',
           pointerEvents: 'none',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-evenly',
-          gap: 0,
         }}
       >
         {marqueeRows.map((rowItems, r) => {
           if (rowItems.length === 0) return null
           const reverse = r % 2 === 1
-          const duration = 110 + r * 8 // قبلاً 55+r*4 بود، تقریباً دو برابر کندتر
+          const duration = 110 + r * 8
           return (
-            <div
-              key={r}
-              style={{
-                width: '100%',
-                overflow: 'hidden',
-                WebkitMaskImage:
-                  'linear-gradient(to right, black 0%, black 30%, transparent 46%, transparent 54%, black 70%, black 100%)',
-                maskImage:
-                  'linear-gradient(to right, black 0%, black 30%, transparent 46%, transparent 54%, black 70%, black 100%)',
-              }}
-            >
+            <div key={r} style={{ width: '100%', flex: '1 1 0', overflow: 'hidden' }}>
               <div
                 style={{
                   display: 'flex',
                   width: 'max-content',
-                  gap: 0,
+                  height: '100%',
                   animation: `${reverse ? 'marqueeRTL' : 'marqueeLTR'} ${duration}s linear infinite`,
                   opacity: 0.55,
                 }}
@@ -471,7 +465,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
                     key={i}
                     src={f.poster}
                     alt=""
-                    style={{ height: 26, width: 18, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }}
+                    style={{ height: '100%', width: 'auto', objectFit: 'cover', flexShrink: 0 }}
                     loading="lazy"
                   />
                 ))}
