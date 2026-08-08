@@ -60,8 +60,9 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson }) {
   const loanedFilms = films.filter((f) => f.borrowedTo)
 
   const genreCounts = {}
+  const toArr = (g) => (Array.isArray(g) ? g : (g || '').split(',').map((x) => x.trim()).filter(Boolean))
   films.forEach((f) => {
-    ;(f.genre || []).forEach((g) => {
+    toArr(f.genre).forEach((g) => {
       genreCounts[g] = (genreCounts[g] || 0) + 1
     })
   })

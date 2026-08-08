@@ -61,11 +61,12 @@ function pick(films, mode) {
 
 function findSimilar(films, target, limit = 12) {
   if (!target) return []
-  const targetGenres = new Set(target.genre || [])
+  const toArr = (g) => (Array.isArray(g) ? g : (g || '').split(',').map((x) => x.trim()).filter(Boolean))
+  const targetGenres = new Set(toArr(target.genre))
   return films
     .filter((f) => f.id !== target.id)
     .map((f) => {
-      const shared = (f.genre || []).filter((g) => targetGenres.has(g)).length
+      const shared = toArr(f.genre).filter((g) => targetGenres.has(g)).length
       const sameDirector = f.director && f.director === target.director ? 1 : 0
       return { film: f, score: shared * 2 + sameDirector }
     })
