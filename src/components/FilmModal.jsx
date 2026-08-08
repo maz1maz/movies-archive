@@ -347,8 +347,15 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                   </button>
                 )}
                 {film.copies > 1 && (
-                  <div className="copies-under-lend" title={`You own ${film.copies} copies of this title`}>
-                    {film.copies} COPIES
+                  <div
+                    className="copies-under-lend"
+                    title={
+                      film.borrowedTo
+                        ? `${film.copies - 1} of ${film.copies} copies available (1 loaned to ${film.borrowedTo})`
+                        : `You own ${film.copies} copies of this title`
+                    }
+                  >
+                    {film.borrowedTo ? `${film.copies - 1} / ${film.copies}` : film.copies} COPIES
                   </div>
                 )}
                 <button
