@@ -281,7 +281,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       // --- تعامل: چرخش خودکار + درگ برای چرخش دستی + اسکرول برای زوم ---
       let autoRotation = 0
       let dragRotation = 0
-      let camElevation = 0 // زاویه‌ی عمودی دوربین (بالا/پایین)
+      let camElevation = 1.1 // دیفالت رو به همون زاویه‌ی از بالا (نزدیک قطب شمال) که پسندیده شد گذاشتیم
       let isDragging = false
       let lastX = 0
       let lastY = 0
