@@ -695,55 +695,87 @@ export default {
         // پوستر Letterboxd (og:image) رو دیگه به‌عنوان جایگزین استفاده نمی‌کنیم — این
         // فقط یه بک‌دراپ/عکس تبلیغاتی برای اشتراک‌گذاریه (نه پوستر واقعی)، و پوستر
         // واقعی روی خودِ صفحه از طریق جاوااسکریپت لود می‌شه که با fetch ساده گرفته
-        // نمی‌شه. اگه TMDB_API_KEY تنظیم شده باشه، به عنوان منبع دومِ پوستر (بعد از
-        // OMDb) امتحانش می‌کنیم — TMDB یه API تمیز و رسمی داره، بدون نیاز به رندر
-        // جاوااسکریپت.
+        // نمی‌شه. اگه TMDB_API_KEY تنظیم شده باشه، ازش هم برای پوستر و هم به عنوان
+        // یه منبع کامل جایگزین (وقتی OMDb اصلاً چیزی نداره) استفاده می‌کنیم.
         delete base._letterboxdImageFallback
-        const addTmdbPosterFallback = async (film) => {
-          if (film.poster || !film.imdbId || !env.TMDB_API_KEY) return film
+
+        async function tmdbFind(imdbId) {
+          if (!imdbId || !env.TMDB_API_KEY) return null
           const tmdbKey = env.TMDB_API_KEY
           // پشتیبانی از هر دو نوع کلید TMDB: کلید کلاسیک v3 (پارامتر api_key توی URL)
           // و توکن جدید v4 Read Access (هدر Authorization: Bearer) — از اونجا که
           // نمی‌دونیم کاربر کدومش رو گرفته، هر دو رو امتحان می‌کنیم.
           const attempts = [
-            { url: `https://api.themoviedb.org/3/find/${film.imdbId}?external_source=imdb_id&api_key=${encodeURIComponent(tmdbKey)}`, headers: { accept: 'application/json' } },
-            { url: `https://api.themoviedb.org/3/find/${film.imdbId}?external_source=imdb_id`, headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
+            { url: `https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id&api_key=${encodeURIComponent(tmdbKey)}`, headers: { accept: 'application/json' } },
+            { url: `https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id`, headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
           ]
           for (const attempt of attempts) {
             try {
               const tmdbRes = await fetch(attempt.url, { headers: attempt.headers })
               if (tmdbRes.ok) {
                 const tmdbData = await tmdbRes.json()
-                const hit = (tmdbData.movie_results || [])[0] || (tmdbData.tv_results || [])[0]
-                if (hit?.poster_path) {
-                  film.poster = `https://image.tmdb.org/t/p/w500${hit.poster_path}`
-                  break
-                }
+                const movieHit = (tmdbData.movie_results || [])[0]
+                const tvHit = (tmdbData.tv_results || [])[0]
+                if (movieHit) return { hit: movieHit, itemType: 'movie' }
+                if (tvHit) return { hit: tvHit, itemType: 'series' }
               }
             } catch {
               // این روش جواب نداد؛ روش بعدی رو امتحان می‌کنیم
             }
           }
+          return null
+        }
+
+        const addTmdbPosterFallback = async (film) => {
+          if (film.poster || !film.imdbId) return film
+          const result = await tmdbFind(film.imdbId)
+          if (result?.hit?.poster_path) film.poster = `https://image.tmdb.org/t/p/w500${result.hit.poster_path}`
           return film
+        }
+
+        // وقتی OMDb هیچی برای این imdbId نداره (رایج برای فیلم‌های کوچیک/مستقل که
+        // OMDb پوشش نمی‌ده)، از TMDB به عنوان منبع کامل جایگزین استفاده می‌کنیم —
+        // عنوان، سال، خلاصه و پوستر رو از همونجا می‌گیریم تا فیلم اصلاً اضافه بشه.
+        const tmdbAsFullFallback = async (imdbId) => {
+          const result = await tmdbFind(imdbId)
+          if (!result?.hit?.title && !result?.hit?.name) return null
+          const hit = result.hit
+          const releaseDate = hit.release_date || hit.first_air_date || ''
+          return {
+            imdbId,
+            title: hit.title || hit.name,
+            year: releaseDate ? parseInt(releaseDate.slice(0, 4), 10) : undefined,
+            synopsis: hit.overview || undefined,
+            poster: hit.poster_path ? `https://image.tmdb.org/t/p/w500${hit.poster_path}` : undefined,
+            itemType: result.itemType,
+          }
         }
 
         if (!key) {
           if (base.title) return json(await addTmdbPosterFallback(base), 200, corsHeaders)
+          const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
+          if (tmdbFallback) return json(tmdbFallback, 200, corsHeaders)
           return json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار از روی لینک IMDb وجود نداره' }, 400, corsHeaders)
         }
 
         try {
           const found = await enrichFilm(base, key)
           if (!found.title) {
-            return json({ error: 'این فیلم هنوز توی دیتابیس OMDb نیست (معمولاً برای فیلم‌های خیلی جدید پیش میاد) — عنوان/سال رو دستی وارد کن' }, 404, corsHeaders)
+            const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
+            if (tmdbFallback) return json(tmdbFallback, 200, corsHeaders)
+            return json({ error: 'این فیلم هنوز توی دیتابیس OMDb نیست (معمولاً برای فیلم‌های خیلی جدید یا مستقل پیش میاد) — عنوان/سال رو دستی وارد کن' }, 404, corsHeaders)
           }
           return json(await addTmdbPosterFallback(found), 200, corsHeaders)
         } catch (e) {
           if (e.code === 'OMDB_QUOTA_EXCEEDED') {
             if (base.title) return json(await addTmdbPosterFallback(base), 200, corsHeaders)
+            const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
+            if (tmdbFallback) return json(tmdbFallback, 200, corsHeaders)
             return json({ error: 'سهمیه‌ی روزانه‌ی OMDb تموم شده — فردا دوباره امتحان کن' }, 429, corsHeaders)
           }
           if (base.title) return json(await addTmdbPosterFallback(base), 200, corsHeaders)
+          const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
+          if (tmdbFallback) return json(tmdbFallback, 200, corsHeaders)
           return json({ error: 'خطا در ارتباط با OMDb' }, 502, corsHeaders)
         }
       }
