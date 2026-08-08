@@ -71,7 +71,7 @@ const fragment = /* glsl */ `
     // (نه بقیه) تا کاربر قبل از کلیک مطمئن بشه دقیقاً کدوم رو نشونه گرفته
     if (abs(vPosterIndex - uHoverIndex) < 0.5) {
       float edge = max(abs(vCorner.x), abs(vCorner.y));
-      float border = smoothstep(0.78, 0.92, edge);
+      float border = smoothstep(0.88, 0.97, edge); // نازک‌تر شد (قبلاً 0.78-0.92)
       color.rgb = mix(color.rgb, vec3(1.0), border * 0.9);
     }
 
@@ -475,7 +475,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         if (!el) return
         const half = el.scrollWidth / 2
         if (!half) return
-        const speed = 40 + r * 4 // پیکسل بر ثانیه، هر ردیف کمی متفاوت
+        const speed = 22 + r * 2 // یه‌کم کندتر شد
         const offset = (now * speed) % half
         const reverse = r % 2 === 1
         // reverse=false: از -half به 0 (وارد از چپ) | reverse=true: از 0 به -half (وارد از راست)
