@@ -839,7 +839,6 @@ export default function App() {
         onImport={handleImport}
         onImportRatings={handleImportRatings}
         onAddFilm={() => setAdding('blank')}
-        onAddFilmFromLink={() => setAdding('link')}
         onEnrichCatalog={handleEnrichCatalog}
         enrichScopeLabel={enrichScopeLabel(section)}
         enrichingCatalog={enrichingCatalog}

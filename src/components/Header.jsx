@@ -12,7 +12,6 @@ import {
   IconDisc,
   IconClapper,
   IconBookshelf,
-  IconLink,
 } from './icons.jsx'
 
 function IconHamburger(props) {
@@ -56,7 +55,6 @@ export default function Header({
   onImport,
   onImportRatings,
   onAddFilm,
-  onAddFilmFromLink,
   onEnrichCatalog,
   enrichingCatalog,
   enrichRemaining,
@@ -277,18 +275,6 @@ export default function Header({
                   })}
                 >
                   + Add Film
-                </button>
-                <button
-                  type="button"
-                  className="header-menu-primary"
-                  onClick={guarded(() => {
-                    onAddFilmFromLink()
-                    setMenuOpen(false)
-                  })}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}
-                >
-                  <IconLink width={14} height={14} />
-                  Add from Link
                 </button>
               </div>
               <div className="header-menu-section">
