@@ -273,9 +273,21 @@ export default {
         }
         if (genre) { sql += ' AND genre LIKE ?'; params.push(`%"${genre}"%`) }
         if (q) {
-          const s = `%${q.toLowerCase()}%`
-          sql += ' AND (LOWER(title) LIKE ? OR LOWER(originalTitle) LIKE ? OR LOWER(director) LIKE ? OR LOWER("cast") LIKE ?)'
-          params.push(s, s, s, s)
+          const ql = q.toLowerCase()
+          const s = `%${ql}%`
+          // برای director/cast فقط اگه q ابتدای یه اسم باشه match کنیم (نه هر
+          // جای وسط اسم) — وگرنه یه سرچ کوتاه مثل "a fu" چون تصادفاً وسط اسم
+          // بازیگرهای بی‌ربطی مثل "Amanda Fuller" یا "Tatsuya Fujiwara" پیدا
+          // می‌شه، فیلم‌های کاملاً نامرتبط رو هم نشون می‌ده.
+          const startsWord = `${ql}%`
+          const afterSpace = `% ${ql}%`
+          const afterQuote = `%"${ql}%`
+          sql += ` AND (
+            LOWER(title) LIKE ? OR LOWER(originalTitle) LIKE ? OR
+            LOWER(director) LIKE ? OR LOWER(director) LIKE ? OR
+            LOWER("cast") LIKE ? OR LOWER("cast") LIKE ? OR LOWER("cast") LIKE ?
+          )`
+          params.push(s, s, startsWord, afterSpace, startsWord, afterSpace, afterQuote)
         }
         if (alpha) {
           // نادیده گرفتن «The» ابتدای عنوان موقع تعیین حرف الفبا، مثل مرتب‌سازی
