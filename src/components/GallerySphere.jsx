@@ -9,8 +9,11 @@ const vertex = /* glsl */ `
   attribute vec3 center;
   attribute vec2 corner;
   attribute vec2 uv;
+  attribute float posterIndex;
   varying vec2 vUv;
   varying float vWorldY;
+  varying float vPosterIndex;
+  varying vec2 vCorner;
 
   uniform mat4 modelViewMatrix;
   uniform mat4 projectionMatrix;
@@ -19,6 +22,8 @@ const vertex = /* glsl */ `
 
   void main() {
     vUv = uv;
+    vCorner = corner;
+    vPosterIndex = posterIndex;
     float c = cos(uRotationY);
     float s = sin(uRotationY);
     vec3 rotated = vec3(
@@ -39,9 +44,12 @@ const fragment = /* glsl */ `
   precision highp float;
   varying vec2 vUv;
   varying float vWorldY;
+  varying float vPosterIndex;
+  varying vec2 vCorner;
   uniform sampler2D uAtlas;
   uniform float uTime;
   uniform float uRadius;
+  uniform float uHoverIndex;
 
   void main() {
     vec4 color = texture2D(uAtlas, vUv);
@@ -50,6 +58,15 @@ const fragment = /* glsl */ `
     float band = smoothstep(0.94, 1.0, wave); // فقط نزدیک قله‌ی موج روشن بشه (نواری نازک)
     vec3 gold = vec3(0.95, 0.75, 0.25);
     color.rgb = mix(color.rgb, color.rgb + gold * 0.55, band);
+
+    // هایلایت پوستری که موس روشه — یه حاشیه‌ی سفید دور همون یه پوستر
+    // (نه بقیه) تا کاربر قبل از کلیک مطمئن بشه دقیقاً کدوم رو نشونه گرفته
+    if (abs(vPosterIndex - uHoverIndex) < 0.5) {
+      float edge = max(abs(vCorner.x), abs(vCorner.y));
+      float border = smoothstep(0.78, 0.92, edge);
+      color.rgb = mix(color.rgb, vec3(1.0), border * 0.9);
+    }
+
     gl_FragColor = color;
   }
 `;
@@ -188,6 +205,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       const centerArr = new Float32Array(n * 6 * 3)
       const cornerArr = new Float32Array(n * 6 * 2)
       const uvArr = new Float32Array(n * 6 * 2)
+      const indexArr = new Float32Array(n * 6)
 
       const corners = [
         [-1, -1], [1, -1], [1, 1],
@@ -198,7 +216,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         [0, 1], [1, 0], [0, 0],
       ]
 
-      let ci = 0, co = 0, ui = 0
+      let ci = 0, co = 0, ui = 0, ii = 0
       for (let i = 0; i < n; i++) {
         const [x, y, z] = positions[i]
         const rect = atlas.uvRects[i]
@@ -211,6 +229,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
           const [uc, vc] = uvCorners[v]
           uvArr[ui++] = uc === 0 ? rect.u0 : rect.u1
           uvArr[ui++] = vc === 0 ? rect.v0 : rect.v1
+          indexArr[ii++] = i
         }
       }
 
@@ -218,6 +237,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         center: { size: 3, data: centerArr },
         corner: { size: 2, data: cornerArr },
         uv: { size: 2, data: uvArr },
+        posterIndex: { size: 1, data: indexArr },
       })
 
       const billboardSize = ((RADIUS * 2 * Math.PI) / Math.sqrt(n) / 2.2) * 0.55 // قبلاً خیلی بزرگ بود، تقریباً نصفش کردیم
@@ -231,6 +251,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
           uBillboardSize: { value: [billboardSize * 0.66, billboardSize] },
           uTime: { value: 0 },
           uRadius: { value: RADIUS },
+          uHoverIndex: { value: -1 },
         },
         transparent: false,
       })
@@ -320,25 +341,17 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         gl.canvas.removeEventListener('wheel', onWheel)
       })
 
-      // کلیک (بدون درگ) = پیدا کردن نزدیک‌ترین پوستر به نقطه‌ی کلیک
-      let dragMoved = false
-      function onPointerDownTrack() {
-        dragMoved = false
-      }
-      function onPointerMoveTrack(e) {
-        if (isDragging && Math.abs(e.movementX) > 2) dragMoved = true
-      }
-      function onClick(e) {
-        if (dragMoved) return
+      // کلیک (بدون درگ) = پیدا کردن نزدیک‌ترین پوستر به نقطه‌ی کلیک.
+      // این تابع (findNearestPoster) هم برای کلیک هم برای هاور (هایلایت)
+      // استفاده می‌شه — تا کاربر قبل از کلیک ببینه دقیقاً کدوم پوستر رو
+      // نشونه گرفته (چون با هزاران پوستر ریز، چشم به‌تنهایی کافی نیست).
+      function findNearestPoster(clientX, clientY) {
         const rect = container.getBoundingClientRect()
-        const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1
-        const ndcY = -(((e.clientY - rect.top) / rect.height) * 2 - 1)
+        const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1
+        const ndcY = -(((clientY - rect.top) / rect.height) * 2 - 1)
         const totalRotation = autoRotation + dragRotation
         const c = Math.cos(totalRotation)
         const s = Math.sin(totalRotation)
-        // پروجکشن دقیق با خود ماتریس دوربین (به‌جای فرمول دستی قبلی که
-        // مطمئن نبودیم درست باشه) — camera.projectionViewMatrix بعد از هر
-        // renderer.render() آپدیت می‌شه، پس همیشه با آخرین فریم هماهنگه.
         let best = -1
         let bestDist = Infinity
         const v = new Vec3()
@@ -348,8 +361,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
           const rz = x * s + z * c
           v.set(rx, y, rz)
           v.applyMatrix4(camera.projectionViewMatrix)
-          // v.x/v.y الان توی فضای NDC هستن (بین -۱ و ۱ اگه جلوی دوربین باشه)
-          if (v.z < -1 || v.z > 1) continue // پشت دوربین یا خارج از far/near
+          if (v.z < -1 || v.z > 1) continue
           const dx = v.x - ndcX
           const dy = v.y - ndcY
           const d = dx * dx + dy * dy
@@ -358,6 +370,28 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
             best = i
           }
         }
+        return { best, bestDist }
+      }
+
+      let dragMoved = false
+      let hoverRaf = null
+      function onPointerDownTrack() {
+        dragMoved = false
+      }
+      function onPointerMoveTrack(e) {
+        if (isDragging && Math.abs(e.movementX) > 2) dragMoved = true
+        // throttle با requestAnimationFrame — این محاسبه روی هزاران نقطه
+        // انجام می‌شه، نباید هر پیکسل حرکت موس یه بار اجرا بشه
+        if (hoverRaf) return
+        hoverRaf = requestAnimationFrame(() => {
+          hoverRaf = null
+          const { best, bestDist } = findNearestPoster(e.clientX, e.clientY)
+          program.uniforms.uHoverIndex.value = best >= 0 && bestDist < 0.15 ? best : -1
+        })
+      }
+      function onClick(e) {
+        if (dragMoved) return
+        const { best, bestDist } = findNearestPoster(e.clientX, e.clientY)
         if (best >= 0) {
           console.log(
             `[GallerySphere] click best index ${best} dist ${bestDist.toFixed(4)} atlasTitle="${atlas.titles[best] || '?'}"`,
@@ -381,6 +415,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         gl.canvas.removeEventListener('pointerdown', onPointerDownTrack)
         window.removeEventListener('pointermove', onPointerMoveTrack)
         gl.canvas.removeEventListener('click', onClick)
+        if (hoverRaf) cancelAnimationFrame(hoverRaf)
       })
 
       // (قبلاً اینجا سعی شد چرخش خودکار موقع هاور متوقف بشه، ولی کاربر
