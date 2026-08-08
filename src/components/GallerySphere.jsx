@@ -383,37 +383,17 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         gl.canvas.removeEventListener('click', onClick)
       })
 
-      let isHovering = false
-      function onPointerEnter() {
-        isHovering = true
-      }
-      function onPointerLeave() {
-        isHovering = false
-      }
-      gl.canvas.addEventListener('pointerenter', onPointerEnter)
-      gl.canvas.addEventListener('pointerleave', onPointerLeave)
-      cleanupFns.push(() => {
-        gl.canvas.removeEventListener('pointerenter', onPointerEnter)
-        gl.canvas.removeEventListener('pointerleave', onPointerLeave)
-      })
+      // (قبلاً اینجا سعی شد چرخش خودکار موقع هاور متوقف بشه، ولی کاربر
+      // نمی‌خواست بایسته — به‌جاش سرعت به‌شدت کم شد، بالاتر در AUTO_SPEED)
 
       let raf
-      const AUTO_SPEED = 0.00002
-      let autoRotationAccum = 0
-      let lastT = null
+      // خیلی کندتر شد (نسبت به قبل ~۴ برابر) — چرخش هیچ‌وقت متوقف نمی‌شه
+      // (طبق خواسته‌ی کاربر)، ولی اونقدر آروم که موقع نشونه‌گرفتن و کلیک،
+      // پوستر عملاً جابه‌جا نشه.
+      const AUTO_SPEED = 0.000005
       function loop(t) {
         raf = requestAnimationFrame(loop)
-        if (lastT === null) lastT = t
-        const dt = t - lastT
-        lastT = t
-        // وقتی موس روی کره‌ست (یا داره درگ می‌شه)، چرخش خودکار متوقف می‌شه
-        // تا بشه دقیق روی یه پوستر نشونه گرفت — قبلاً چون کره مدام می‌چرخید،
-        // تا لحظه‌ی کلیک واقعی پوستر جابه‌جا شده بود و کلیک روی پوستر
-        // مجاور می‌خورد (نه باگ محاسبه؛ خود چرخش مقصر بود).
-        if (!isHovering && !isDragging) {
-          autoRotationAccum += dt * AUTO_SPEED
-        }
-        autoRotation = autoRotationAccum
+        autoRotation = t * AUTO_SPEED
         program.uniforms.uRotationY.value = autoRotation + dragRotation
         program.uniforms.uTime.value = t / 1000
         camera.position.set(0, camDistance * Math.sin(camElevation), camDistance * Math.cos(camElevation))
