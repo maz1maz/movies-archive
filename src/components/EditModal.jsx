@@ -15,7 +15,7 @@ function toForm(film) {
     cast: Array.isArray(film.cast)
       ? film.cast.map((x) => (typeof x === 'object' ? x.name : x)).join(', ')
       : film.cast || '',
-    genre: (film.genre || []).join(', '),
+    genre: Array.isArray(film.genre) ? film.genre.join(', ') : film.genre || '',
     rating: film.rating ?? '',
     runtime: film.runtime || '',
     country: film.country || '',
