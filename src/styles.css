@@ -464,8 +464,7 @@ body.light .header {
   color: var(--muted);
 }
 .rating-badge,
-.watched-badge,
-.location-badge {
+.watched-badge {
   position: absolute;
   z-index: 1;
   display: inline-flex;
@@ -508,8 +507,13 @@ body.light .header {
   border-color: rgba(255, 255, 255, 0.2);
 }
 .location-badge {
-  right: 7px;
-  bottom: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 800;
   background: rgba(8, 9, 12, 0.85);
   color: #fff;
 }
@@ -2640,9 +2644,6 @@ body.light .header {
   box-shadow: 0 0 0 1px rgba(217, 164, 65, 0.35);
 }
 .criterion-badge {
-  position: absolute;
-  bottom: 7px;
-  left: 7px;
   background: #d9a441;
   color: #1a1305;
   font-size: 9.5px;
@@ -2650,7 +2651,6 @@ body.light .header {
   letter-spacing: 0.6px;
   padding: 3px 6px;
   border-radius: 5px;
-  z-index: 1;
 }
 .criterion-badge-modal {
   position: static;
@@ -2674,9 +2674,6 @@ body.light .header {
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
 }
 .bluray-badge {
-  position: absolute;
-  bottom: 7px;
-  left: 7px;
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -2687,12 +2684,8 @@ body.light .header {
   letter-spacing: 0.5px;
   padding: 3px 6px;
   border-radius: 5px;
-  z-index: 2;
 }
 .digital-badge {
-  position: absolute;
-  bottom: 7px;
-  right: 7px;
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -2703,7 +2696,27 @@ body.light .header {
   letter-spacing: 0.5px;
   padding: 3px 6px;
   border-radius: 5px;
+}
+.poster-badge-stack {
+  position: absolute;
+  bottom: 7px;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: calc(50% - 10px);
+}
+.poster-badge-stack > * {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+.poster-badge-stack-left {
+  left: 7px;
+  align-items: flex-start;
+}
+.poster-badge-stack-right {
+  right: 7px;
+  align-items: flex-end;
 }
 .bluray-badge-list {
   position: static;
