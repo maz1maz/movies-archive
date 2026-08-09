@@ -77,7 +77,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
 
   const lookupFromLink = async () => {
     if (!linkUrl.trim()) {
-      setLookupError('Paste an IMDb or Letterboxd link')
+      setLookupError('Paste an IMDb, Letterboxd, or TVMaze link')
       return
     }
     setLookupError('')
@@ -89,7 +89,9 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       if (!res.ok) throw new Error(data.error || 'Not found')
       const fetched = toForm(data)
       if (isNew) {
-        // فیلم جدید، فرم خالیه — همه‌چیز رو از لینک پر می‌کنیم به‌جز محل فیزیکی/نوع رسانه
+        // فیلم جدید، فرم خالیه — همه‌چیز رو از لینک پر می‌کنیم به‌جز محل فیزیکی/نوع رسانه.
+        // itemType (فیلم/سریال) رو فقط وقتی از لینک اومده باشه (data.itemType) عوض
+        // می‌کنیم، وگرنه همون چیزی که از قبل توی بخش (فیلم/سریال) انتخاب شده می‌مونه.
         setForm((prev) => ({
           ...fetched,
           closet: prev.closet,
@@ -97,6 +99,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
           row: prev.row,
           mediaType: prev.mediaType,
           driveNumber: prev.driveNumber,
+          itemType: data.itemType || prev.itemType,
         }))
         return
       }
@@ -247,14 +250,14 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
 
         <div className="edit-form">
           <label className="edit-field full edit-link-field">
-            <span><IconLink width={13} height={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> {isNew ? 'Fill from IMDb / Letterboxd link' : 'Update from IMDb / Letterboxd link'}</span>
+            <span><IconLink width={13} height={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> {isNew ? 'Fill from IMDb / Letterboxd / TVMaze link' : 'Update from IMDb / Letterboxd / TVMaze link'}</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 ref={linkInputRef}
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), lookupFromLink())}
-                placeholder="https://www.imdb.com/title/tt.../ or https://letterboxd.com/film/.../ or boxd.it/..."
+                placeholder="https://www.imdb.com/title/tt.../ or letterboxd.com/film/.../ or boxd.it/... or tvmaze.com/shows/..."
               />
               <button type="button" className="btn btn-ghost" onClick={lookupFromLink} disabled={linkLoading}>
                 {linkLoading ? '...' : 'Fetch'}

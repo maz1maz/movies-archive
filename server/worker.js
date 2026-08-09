@@ -2,7 +2,7 @@
 // Handles all /api/* routes using D1 for persistent storage.
 import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMetadata, countSeasonsFromText, decodeHtmlEntities } from './helpers.js'
 import { enrichFilm } from './omdb.js'
-import { fetchTotalSeasons } from './tvmaze.js'
+import { fetchTotalSeasons, enrichSeriesFromTVMazeById } from './tvmaze.js'
 import * as XLSX from 'xlsx'
 import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader } from './auth.js'
 
@@ -677,8 +677,21 @@ export default {
             const shortRes = await fetch(link, { redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' } })
             if (shortRes.url) link = shortRes.url
           } catch (e) {
-            return json({ error: 'لینک کوتاه‌شده باز نشد' }, 502, corsHeaders)
+            return json({ error: 'Short link could not be opened' }, 502, corsHeaders)
           }
+        }
+
+        // لینک مستقیم TVMaze (tvmaze.com/shows/{id}/...) — مخصوص سریال‌ها،
+        // مسیر جدایی از IMDb/Letterboxd داره چون شناسه‌ی TVMaze نیازی به
+        // OMDb/TMDB نداره؛ مستقیم از خودِ TVMaze همه‌چیز رو می‌گیریم.
+        const tvmazeMatch = link.match(/tvmaze\.com\/shows\/(\d+)/i)
+        if (tvmazeMatch) {
+          const tvResult = await enrichSeriesFromTVMazeById(tvmazeMatch[1], {})
+          if (!tvResult || !tvResult.title) {
+            return json({ error: 'Could not find this show on TVMaze' }, 404, corsHeaders)
+          }
+          tvResult.itemType = 'series'
+          return json(tvResult, 200, corsHeaders)
         }
 
         let imdbId = null
