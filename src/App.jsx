@@ -631,6 +631,21 @@ export default function App() {
   )
   const hasDigitalCopy = (f) =>
     f.mediaType !== 'digital' && digitalKeys.has(`${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
+
+  // نسخه‌ی مقابل (فیزیکی/دیجیتال) همون فیلم رو برمی‌گردونه — برای نشون‌دادن
+  // لوکیشن نسخه‌ی دیگه (قفسه یا هارد) کنار بج «هم داره»، نه فقط خود بولین.
+  const physicalByKey = {}
+  const digitalByKey = {}
+  for (const f of allFilmsUnfiltered) {
+    const key = `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`
+    if (f.mediaType === 'digital') digitalByKey[key] = f
+    else physicalByKey[key] = f
+  }
+  const findSiblingFilm = (f) => {
+    if (!f) return null
+    const key = `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`
+    return f.mediaType === 'digital' ? physicalByKey[key] || null : digitalByKey[key] || null
+  }
   // نمای تقسیم‌شده (پنل جزئیات + گرید) فقط توی حالت Thumbnails و روی صفحه‌ی
   // عریض (دسکتاپ/تبلت)؛ توی موبایل و حالت List همون مودال قبلی می‌مونه.
   // نمای «split» (پنل جزئیات نصفه‌صفحه کنار گرید) به درخواست کاربر غیرفعال شد؛
@@ -700,6 +715,7 @@ export default function App() {
               film={selected}
               films={allFilmsUnfiltered}
               hasBluray={hasBlurayCopy(selected)}
+              siblingFilm={findSiblingFilm(selected)}
               hasDigital={hasDigitalCopy(selected)}
               onNavigate={(film) => setSelected(film)}
               onSelectPerson={(name) => {
@@ -755,6 +771,7 @@ export default function App() {
               film={selected}
               films={allFilmsUnfiltered}
               hasBluray={hasBlurayCopy(selected)}
+              siblingFilm={findSiblingFilm(selected)}
               hasDigital={hasDigitalCopy(selected)}
               onNavigate={(film) => setSelected(film)}
               onSelectPerson={(name) => {
@@ -788,6 +805,7 @@ export default function App() {
               film={selected}
               films={allFilmsUnfiltered}
               hasBluray={hasBlurayCopy(selected)}
+              siblingFilm={findSiblingFilm(selected)}
               hasDigital={hasDigitalCopy(selected)}
               onNavigate={(film) => setSelected(film)}
               onSelectPerson={(name) => {
@@ -903,6 +921,7 @@ export default function App() {
                 film={selected}
                 films={sectionFilms}
                 hasBluray={hasBlurayCopy(selected)}
+              siblingFilm={findSiblingFilm(selected)}
                 hasDigital={hasDigitalCopy(selected)}
                 onNavigate={(film) => setSelected(film)}
                 onSelectPerson={(name) => {
@@ -953,6 +972,7 @@ export default function App() {
           film={selected}
           films={sectionFilms}
           hasBluray={hasBlurayCopy(selected)}
+              siblingFilm={findSiblingFilm(selected)}
           hasDigital={hasDigitalCopy(selected)}
           onNavigate={(film) => setSelected(film)}
           onSelectPerson={(name) => {

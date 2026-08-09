@@ -4,7 +4,7 @@ import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { shareFilmCard } from '../utils/shareCard.js'
 
-export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false, onSaveSeasonDrive }) {
+export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false, siblingFilm = null, onSaveSeasonDrive }) {
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
   const [actorPhotos, setActorPhotos] = useState({})
@@ -236,16 +236,75 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 <span className="cine-original-title"> ({film.originalTitle})</span>
               )}
             </h2>
-            {/* Format Badge */}
-            <span className={`format-badge ${mediaFormat.toLowerCase().includes('4k') ? 'fmt-4k' : mediaFormat.toLowerCase().replace(/[^a-z0-9]/g, '')}`}>
-              {mediaFormat}
-            </span>
             {film.criterion && <span className="criterion-badge criterion-badge-modal">CRITERION</span>}
           </div>
           {metaSubParts.length > 0 && (
             <p className="cine-subtitle">{metaSubParts.join(' | ')}</p>
           )}
         </div>
+
+        {/* Physical (left) / Digital (right) row: physical badge + shelf location
+            always on the left, digital badge + drive always on the right —
+            whichever record you're viewing, plus the sibling copy if you also
+            own it. Kept outside the synopsis box on purpose. */}
+        {(() => {
+          const isPhysical = film.mediaType !== 'digital'
+          const physicalRecord = isPhysical ? film : hasBluray ? siblingFilm : null
+          const digitalRecord = !isPhysical ? film : hasDigital ? siblingFilm : null
+          const physicalFormat = isPhysical ? mediaFormat : physicalRecord?.format || 'Blu-ray'
+          return (
+            (physicalRecord || digitalRecord) && (
+              <div className="cine-format-location-row">
+                {physicalRecord && (
+                  <div className="cine-format-location-col">
+                    <span className={`format-badge ${physicalFormat.toLowerCase().includes('4k') ? 'fmt-4k' : physicalFormat.toLowerCase().replace(/[^a-z0-9]/g, '')}`}>
+                      {physicalFormat}
+                    </span>
+                    {!isPhysical && (
+                      <span className="bluray-badge bluray-badge-modal" title="Blu-ray copy also owned">
+                        <IconDisc width={12} height={12} /> OWNED
+                      </span>
+                    )}
+                    {(physicalRecord.closet || physicalRecord.shelf || physicalRecord.row) && (
+                      <div className="cine-shelf-badge">
+                        <span className="shelf-icon">
+                          <IconPin width={13} height={13} />
+                        </span>
+                        <span>
+                          Closet <strong>{physicalRecord.closet || '—'}</strong> / Row{' '}
+                          <strong>{physicalRecord.row || '—'}</strong> / Section{' '}
+                          <strong>{physicalRecord.shelf || '—'}</strong>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {digitalRecord && (
+                  <div className="cine-format-location-col cine-format-location-col-right">
+                    <span className="digital-badge digital-badge-modal" title={isPhysical ? 'Digital copy also owned' : undefined}>
+                      <IconClapper width={12} height={12} /> {isPhysical ? 'DIGITAL OWNED' : 'DIGITAL'}
+                    </span>
+                    <div className="cine-shelf-badge cine-drive-badge">
+                      <span className="shelf-icon">
+                        <IconPin width={13} height={13} />
+                      </span>
+                      <span>
+                        {/^drive\b/i.test(digitalRecord.driveNumber || '') ? (
+                          <strong>{digitalRecord.driveNumber}</strong>
+                        ) : (
+                          <>
+                            Drive <strong>{digitalRecord.driveNumber || '—'}</strong>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          )
+        })()}
 
         {/* Main Body: Poster + Rearranged Gray Info Card */}
         <div className="cine-main-row">
@@ -272,7 +331,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
           </div>
 
           <div className="cine-info-card">
-            {/* Top Row: Synopsis (Left) & Archive Location / Loan Badge (Top Right) */}
+            {/* Top Row: Synopsis (Left) & Loan/Share Column (Right) */}
             <div className="cine-info-top-row">
               <div className="cine-synopsis-box">
                 <div className="cine-section-label">SYNOPSIS</div>
@@ -285,54 +344,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
 
               <div className="cine-top-badges-column">
-                {(hasBluray || hasDigital) && (
-                  <div className="cine-ownership-badges">
-                    {hasBluray && (
-                      <span className="bluray-badge bluray-badge-modal" title="Blu-ray copy also owned">
-                        <IconDisc width={12} height={12} /> BLU-RAY OWNED
-                      </span>
-                    )}
-                    {hasDigital && (
-                      <span className="digital-badge digital-badge-modal" title="Digital copy also owned">
-                        <IconClapper width={12} height={12} /> DIGITAL OWNED
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {(film.closet || film.shelf || film.row) && film.mediaType !== 'digital' && (
-                  <div className="cine-shelf-badge">
-                    <span className="shelf-icon">
-                      <IconPin width={13} height={13} />
-                    </span>
-                    <span>
-                      Closet <strong>{film.closet || '—'}</strong> / Row{' '}
-                      <strong>{film.row || '—'}</strong> / Section{' '}
-                      <strong>{film.shelf || '—'}</strong>
-                    </span>
-                  </div>
-                )}
-
-                {film.mediaType === 'digital' && (
-                  <div className="cine-shelf-badge cine-drive-badge">
-                    <span className="shelf-icon">
-                      <IconPin width={13} height={13} />
-                    </span>
-                    <span>
-                      {/* driveNumber معمولاً از قبل کلمه‌ی "Drive" رو داره (مثل
-                          "Drive 4" یا "Drive 1, Drive 4")؛ اضافه‌کردن دوباره‌ی
-                          پیشوند "Drive" باعث می‌شد بج بنویسه "Drive Drive 4". */}
-                      {/^drive\b/i.test(film.driveNumber || '') ? (
-                        <strong>{film.driveNumber}</strong>
-                      ) : (
-                        <>
-                          Drive <strong>{film.driveNumber || '—'}</strong>
-                        </>
-                      )}
-                    </span>
-                  </div>
-                )}
-
                 {/* Loan Status Indicator */}
                 {film.borrowedTo ? (
                   <button
