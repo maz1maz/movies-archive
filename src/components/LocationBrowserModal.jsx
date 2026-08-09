@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload } from './icons.jsx'
 
 const CLOSET_COUNT = 8
-const ROW_COUNT = 5
+const ROW_COUNT = 10
 const SHELF_COUNT = 3
 
 function sortKey(title) {
