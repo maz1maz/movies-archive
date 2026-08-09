@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload } from './icons.jsx'
 
 const CLOSET_COUNT = 8
@@ -15,6 +15,16 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
   const [closet, setCloset] = useState(null)
   const [row, setRow] = useState(null)
   const [shelf, setShelf] = useState(null)
+
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [onClose])
 
   const physical = useMemo(
     () => films.filter((f) => f.mediaType !== 'digital' && (f.closet || f.row || f.shelf)),
@@ -92,8 +102,8 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
           <title>Location Catalog ${locationLabel} - ${new Date().toLocaleDateString()}</title>
           <style>
             body { font-family: system-ui, sans-serif; padding: 20px; color: #111; }
-            .catalog-header { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 14px; }
-            .catalog-header-text { text-align: right; }
+            .catalog-header { display: flex; justify-content: flex-start; align-items: center; gap: 12px; margin-bottom: 14px; }
+            .catalog-header-text { text-align: left; }
             .catalog-header-logo { font-size: 32px; line-height: 1; }
             h1 { font-size: 20px; margin: 0 0 4px; }
             .catalog-header p { font-size: 12px; color: #666; margin: 0; }
@@ -112,11 +122,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
         </head>
         <body>
           <div class="catalog-header">
+            <div class="catalog-header-logo">🎬</div>
             <div class="catalog-header-text">
               <h1>Location Catalog — ${locationLabel}</h1>
               <p>Total Items: ${visibleFilms.length} · Generated on ${new Date().toLocaleString()}</p>
             </div>
-            <div class="catalog-header-logo">🎬</div>
           </div>
           <button onclick="window.print()" style="padding:10px 18px; margin-bottom:15px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
           <table>

@@ -72,6 +72,7 @@ export default function App() {
     // بود، بسته می‌شد ولی state=selected پاک نمی‌شد؛ برای همین همون فیلم
     // قبلی رو نگه می‌داشت و انگار صفحه عوض نشده بود.
     setSelected(null)
+    setForceFilmOverlay(false)
     setSection(next)
   }
 
@@ -85,6 +86,7 @@ export default function App() {
   const [selectedPerson, setSelectedPerson] = useState(null)
   const [showExport, setShowExport] = useState(false)
   const [showLocationBrowser, setShowLocationBrowser] = useState(false)
+  const [forceFilmOverlay, setForceFilmOverlay] = useState(false)
   const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
@@ -936,12 +938,15 @@ export default function App() {
       {showLocationBrowser && (
         <LocationBrowserModal
           films={allFilmsUnfiltered}
-          onSelectFilm={(film) => setSelected(film)}
+          onSelectFilm={(film) => {
+            setForceFilmOverlay(true)
+            setSelected(film)
+          }}
           onClose={() => setShowLocationBrowser(false)}
         />
       )}
 
-      {selected && !useSplitView && (
+      {selected && (!useSplitView || forceFilmOverlay) && (
         <FilmModal
           film={selected}
           films={sectionFilms}
@@ -950,13 +955,17 @@ export default function App() {
           onNavigate={(film) => setSelected(film)}
           onSelectPerson={(name) => {
             setSelected(null)
+            setForceFilmOverlay(false)
             setSelectedPerson(name)
           }}
           onManageLoan={guardedLoan}
           onRateFilm={guardedRate}
           onSaveSeasonDrive={guardedSeasonDrive}
           onEdit={guardedEdit}
-          onClose={() => setSelected(null)}
+          onClose={() => {
+            setSelected(null)
+            setForceFilmOverlay(false)
+          }}
         />
       )}
 
