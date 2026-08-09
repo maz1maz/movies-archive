@@ -88,7 +88,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
         <td class="cell-nowrap">★ ${f.rating ? f.rating.toFixed(1) : '—'}</td>
         <td class="cell-nowrap">C${f.closet || '—'} R${f.row || '—'} S${f.shelf || '—'}</td>
         <td class="cell-nowrap">${f.format || 'Blu-ray'}</td>
-        <td class="cell-nowrap">${f.criterion ? `Criterion${f.copies > 1 ? ` ×${f.copies}` : ''}` : '—'}</td>
+        <td class="cell-nowrap">${f.criterion ? `Criterion${f.criterionCopies > 1 ? ` ×${f.criterionCopies}` : ''}` : '—'}</td>
         <td class="cell-nowrap">${f.copies > 1 ? f.copies : 1}</td>
       </tr>
     `
@@ -296,7 +296,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
                     <span className="location-title-loc">
                       C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}
                     </span>
-                    {f.criterion && <span className="criterion-badge criterion-badge-list">CRITERION</span>}
+                    {f.criterion && (
+                      <span className="criterion-badge criterion-badge-list">
+                        CRITERION{f.criterionCopies > 1 ? ` ×${f.criterionCopies}` : ''}
+                      </span>
+                    )}
                     {f.copies > 1 && <span className="copies-badge">×{f.copies}</span>}
                   </button>
                 </li>

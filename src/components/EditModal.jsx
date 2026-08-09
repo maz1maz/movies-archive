@@ -28,6 +28,7 @@ function toForm(film) {
     watchlisted: film.watchlisted === true,
     myRating: film.myRating || 0,
     criterion: film.criterion === true,
+    criterionCopies: film.criterionCopies || 1,
     copies: film.copies || 1,
     mediaType: film.mediaType === 'digital' ? 'digital' : 'physical',
     driveNumber: film.driveNumber || '',
@@ -60,7 +61,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
     letterboxdRating: 'Letterboxd Rating', poster: 'Poster', synopsis: 'Synopsis',
     imdbId: 'IMDb ID', imdbVotes: 'IMDb Votes',
   }
-  const SKIP_KEYS = ['closet', 'shelf', 'row', 'mediaType', 'driveNumber', 'itemType', 'watched', 'watchlisted', 'myRating', 'criterion', 'copies', 'seasonsEpisodes', 'seasonDrives']
+  const SKIP_KEYS = ['closet', 'shelf', 'row', 'mediaType', 'driveNumber', 'itemType', 'watched', 'watchlisted', 'myRating', 'criterion', 'criterionCopies', 'copies', 'seasonsEpisodes', 'seasonDrives']
 
   const lookupNewFilmFromImdb = async () => {
     if (!form.title.trim()) {
@@ -198,6 +199,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       watchlisted: form.watchlisted,
       myRating: form.myRating,
       criterion: form.criterion,
+      criterionCopies: form.criterion ? (form.criterionCopies ? parseInt(form.criterionCopies, 10) : 1) : undefined,
       copies: form.copies ? parseInt(form.copies, 10) : 1,
       mediaType: form.mediaType,
       driveNumber: form.mediaType === 'digital' ? form.driveNumber || undefined : undefined,
@@ -529,6 +531,21 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                 }
               />
               Criterion Collection
+              {form.criterion && (
+                <span className="criterion-copies-inline">
+                  ×
+                  <input
+                    type="number"
+                    min="1"
+                    className="criterion-copies-input"
+                    value={form.criterionCopies}
+                    onChange={(event) =>
+                      setForm((previous) => ({ ...previous, criterionCopies: event.target.value }))
+                    }
+                  />
+                  {' '}Criterion cop{form.criterionCopies == 1 ? 'y' : 'ies'}
+                </span>
+              )}
             </span>
           </label>
           <label className="edit-field full">

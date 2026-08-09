@@ -169,7 +169,7 @@ export const EDITABLE = [
   "title", "originalTitle", "closet", "shelf", "row", "director", "cast",
   "year", "genre", "rating", "runtime", "country", "synopsis",
   "poster", "studio", "rated", "format", "borrowedTo", "borrowedDate",
-  "watched", "myRating", "criterion",
+  "watched", "myRating", "criterion", "criterionCopies",
   "copies", "mediaType", "driveNumber", "itemType", "seasonsEpisodes",
   "letterboxdRating", "watchlisted", "letterboxdVotes", "seasonDrives", "producer",
   "personalReview", "personalReviewUrl", "personalReviewDate", "reviews",

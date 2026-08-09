@@ -236,7 +236,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 <span className="cine-original-title"> ({film.originalTitle})</span>
               )}
             </h2>
-            {film.criterion && <span className="criterion-badge criterion-badge-modal">CRITERION</span>}
+            {film.criterion && (
+              <span className="criterion-badge criterion-badge-modal">
+                CRITERION{film.criterionCopies > 1 ? ` ×${film.criterionCopies}` : ''}
+              </span>
+            )}
           </div>
           {metaSubParts.length > 0 && (
             <p className="cine-subtitle">{metaSubParts.join(' | ')}</p>

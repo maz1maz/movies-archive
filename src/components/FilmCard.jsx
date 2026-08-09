@@ -98,7 +98,11 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         )}
         {(film.criterion || hasBluray) && (
           <div className="poster-badge-stack poster-badge-stack-left">
-            {film.criterion && <span className="criterion-badge">CRITERION</span>}
+            {film.criterion && (
+              <span className="criterion-badge">
+                CRITERION{film.criterionCopies > 1 ? ` ×${film.criterionCopies}` : ''}
+              </span>
+            )}
             {hasBluray && (
               <span className="bluray-badge" title="Blu-ray copy also owned">
                 <IconDisc width={11} height={11} /> BLU-RAY
