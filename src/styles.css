@@ -677,6 +677,65 @@ body.light .header {
   font-size: 12px;
   font-weight: 700;
 }
+.link-conflicts-panel {
+  border: 1px solid var(--warning, #d9a441);
+  background: rgba(217, 164, 65, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+}
+.link-conflicts-panel > span:first-child {
+  color: var(--warning, #d9a441);
+  font-size: 12px;
+  font-weight: 700;
+}
+.link-conflicts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.link-conflict-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.link-conflict-row input[type='checkbox'] {
+  margin-top: 3px;
+  flex: none;
+}
+.link-conflict-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.link-conflict-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.link-conflict-values {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  flex-wrap: wrap;
+  word-break: break-word;
+}
+.link-conflict-old {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.link-conflict-arrow {
+  color: var(--muted);
+}
+.link-conflict-new {
+  color: var(--accent, #d9a441);
+  font-weight: 600;
+}
 .edit-field input,
 .edit-field select,
 .edit-field textarea {
