@@ -658,8 +658,19 @@ export default {
       // a fallback/base, and let OMDb fill in whatever it can on top of that.) ----
       if (method === 'GET' && pathname === '/api/link-lookup') {
         const key = env.OMDB_API_KEY
-        const link = (url.searchParams.get('url') || '').trim()
+        let link = (url.searchParams.get('url') || '').trim()
         if (!link) return json({ error: 'لینک IMDb یا Letterboxd رو بچسبون' }, 400, corsHeaders)
+
+        // لینک‌های کوتاه‌شده‌ی موبایلِ Letterboxd (boxd.it/xxxx) رو باز می‌کنیم تا
+        // به آدرس کامل letterboxd.com/film/slug/ برسیم.
+        if (/boxd\.it\//i.test(link)) {
+          try {
+            const shortRes = await fetch(link, { redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' } })
+            if (shortRes.url) link = shortRes.url
+          } catch (e) {
+            return json({ error: 'لینک کوتاه‌شده باز نشد' }, 502, corsHeaders)
+          }
+        }
 
         let imdbId = null
         let base = {}

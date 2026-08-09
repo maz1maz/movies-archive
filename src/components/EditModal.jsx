@@ -215,7 +215,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), lookupFromLink())}
-                placeholder="https://www.imdb.com/title/tt.../ or https://letterboxd.com/film/.../"
+                placeholder="https://www.imdb.com/title/tt.../ or https://letterboxd.com/film/.../ or boxd.it/..."
               />
               <button type="button" className="btn btn-ghost" onClick={lookupFromLink} disabled={linkLoading}>
                 {linkLoading ? '...' : 'Fetch'}
