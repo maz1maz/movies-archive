@@ -184,12 +184,25 @@ export async function enrichSeriesFromTVMaze(film) {
   const show = await findShow(title)
   if (!show || !show.id) return film
 
+  return applyShowData(film, show)
+}
+
+// وقتی مستقیم لینک TVMaze داریم (tvmaze.com/shows/{id}/...)، به‌جای سرچ روی
+// عنوان، مستقیم با شناسه‌ی TVMaze می‌گیریمش — دقیق‌تر و بدون ابهام.
+export async function enrichSeriesFromTVMazeById(showId, film) {
+  const show = await fetchJson(`${BASE}/shows/${showId}`)
+  if (!show || !show.id) return null
+  return applyShowData(film || {}, show)
+}
+
+async function applyShowData(film, show) {
   const [crew, cast] = await Promise.all([
     fetchJson(`${BASE}/shows/${show.id}/crew`),
     fetchJson(`${BASE}/shows/${show.id}/cast`),
   ])
 
   const out = { ...film }
+  if (!out.title) out.title = show.name
   const showFields = extractShowFields(show)
   for (const [field, value] of Object.entries(showFields)) {
     fillMissing(out, field, value)
