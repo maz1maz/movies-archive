@@ -141,7 +141,7 @@ app.get('/api/films', (req, res) => {
 
 app.get('/api/films/:id', (req, res) => {
   const film = readFilms().find((f) => f.id === req.params.id)
-  if (!film) return res.status(404).json({ error: 'یافت نشد' })
+  if (!film) return res.status(404).json({ error: 'Not found' })
   res.json(film)
 })
 
@@ -284,10 +284,10 @@ app.get('/api/decades', (req, res) => {
 app.get('/api/omdb-lookup', async (req, res) => {
   const key = process.env.OMDB_API_KEY
   if (!key) {
-    return res.status(400).json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار از IMDb وجود نداره' })
+    return res.status(400).json({ error: 'OMDB_API_KEY is not set — automatic IMDb lookup unavailable' })
   }
   const title = (req.query.title || '').toString().trim()
-  if (!title) return res.status(400).json({ error: 'عنوان فیلم رو وارد کن' })
+  if (!title) return res.status(400).json({ error: 'Enter the film title' })
   const year = (req.query.year || '').toString().trim()
 
   try {
@@ -297,11 +297,11 @@ app.get('/api/omdb-lookup', async (req, res) => {
       (k) => !(k in before) || found[k] !== before[k]
     )
     if (!gotNewData) {
-      return res.status(404).json({ error: 'فیلمی با این عنوان توی IMDb پیدا نشد' })
+      return res.status(404).json({ error: 'No film with this title found on IMDb' })
     }
     res.json(found)
   } catch (e) {
-    res.status(502).json({ error: 'خطا در ارتباط با OMDb' })
+    res.status(502).json({ error: 'Error connecting to OMDb' })
   }
 })
 
@@ -504,11 +504,11 @@ app.get('/api/letterboxd-rating', async (req, res) => {
 // ایمپورت اکسل (ادغام با داده‌های قبلی بر اساس نام فیلم)
 app.post('/api/import', upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'فایل ارسال نشد' })
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
     const wb = XLSX.read(req.file.buffer, { type: 'buffer' })
     const ws = wb.Sheets[wb.SheetNames[0]]
     const rows = XLSX.utils.sheet_to_json(ws, { defval: '' })
-    if (!rows.length) return res.status(400).json({ error: 'فایل خالیه' })
+    if (!rows.length) return res.status(400).json({ error: 'File is empty' })
 
     let imported = rows.map((r, i) => rowToFilm(r, i))
 
@@ -589,7 +589,7 @@ app.get('/api/template', (req, res) => {
     ],
   ])
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'فیلم‌ها')
+  XLSX.utils.book_append_sheet(wb, ws, 'Films')
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx', compression: false })
   res.setHeader(
     'Content-Disposition',
@@ -672,7 +672,7 @@ app.get('/api/export/excel', (req, res) => {
   })
   const ws = XLSX.utils.json_to_sheet(rows)
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'آرشیو فیلم‌ها')
+  XLSX.utils.book_append_sheet(wb, ws, 'Film Archive')
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx', compression: false })
   const scope = itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : ''
   res.setHeader('Content-Disposition', `attachment; filename="${scope}movies-archive-export.xlsx"`)

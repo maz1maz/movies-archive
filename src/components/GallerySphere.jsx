@@ -88,14 +88,14 @@ const fragment = /* glsl */ `
 async function loadStaticAtlas(onProgress) {
   onProgress?.(10, 100)
   const configRes = await fetch('/sphere-media/atlas-config.json')
-  if (!configRes.ok) throw new Error('atlas-config.json پیدا نشد')
+  if (!configRes.ok) throw new Error('atlas-config.json not found')
   const config = await configRes.json()
   onProgress?.(30, 100)
 
   const img = await new Promise((resolve, reject) => {
     const image = new Image()
     image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error('atlas.jpg لود نشد'))
+    image.onerror = () => reject(new Error('atlas.jpg failed to load'))
     image.src = '/sphere-media/atlas.jpg?v=' + config.count // کش‌باستینگ ساده
   })
   onProgress?.(100, 100)
@@ -586,7 +586,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
             zIndex: 10,
           }}
         >
-          <div>در حال بارگذاری گالری کروی…</div>
+          <div>Loading spherical gallery…</div>
           <div style={{ width: 240, height: 6, background: '#333', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pct}%`, background: '#c0392b', transition: 'width 0.15s linear' }} />
           </div>
@@ -609,7 +609,7 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
             padding: 20,
           }}
         >
-          <div>اطلس گالری هنوز ساخته نشده.</div>
+          <div>Gallery atlas not built yet.</div>
           <code style={{ opacity: 0.7 }}>node scripts/build-sphere-atlas.mjs</code>
           <div style={{ fontSize: 12, opacity: 0.5, marginTop: 8 }}>{loadError}</div>
         </div>

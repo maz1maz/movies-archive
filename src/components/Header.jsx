@@ -12,6 +12,7 @@ import {
   IconDisc,
   IconClapper,
   IconBookshelf,
+  IconPin,
 } from './icons.jsx'
 
 function IconHamburger(props) {
@@ -20,6 +21,24 @@ function IconHamburger(props) {
       <path d="M4 6h16M4 12h16M4 18h16" />
     </svg>
   )
+}
+
+function getPageNumbers(page, pageCount) {
+  const delta = 1
+  const range = []
+  const withDots = []
+  for (let i = 1; i <= pageCount; i++) {
+    if (i === 1 || i === pageCount || (i >= page - delta && i <= page + delta)) {
+      range.push(i)
+    }
+  }
+  let prev
+  for (const i of range) {
+    if (prev !== undefined && i - prev > 1) withDots.push('…')
+    withDots.push(i)
+    prev = i
+  }
+  return withDots
 }
 
 function IconFilter(props) {
@@ -60,6 +79,7 @@ export default function Header({
   enrichRemaining,
   enrichScopeLabel,
   onOpenExport,
+  onOpenLocationBrowser,
   onSyncLetterboxd,
   onFetchSeasonCounts,
   fetchingSeasonCounts,
@@ -81,6 +101,7 @@ export default function Header({
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [azOpen, setAzOpen] = useState(false)
   const [condensed, setCondensed] = useState(false)
+  const [jumpValue, setJumpValue] = useState('')
   const { user, isGuest, isAdmin, logout, openLogin, setAdminOpen } = useAuth()
 
   // برای مهمان‌ها، به‌جای اجرای عملیات نوشتنی، مدال ورود باز می‌شه.
@@ -241,6 +262,22 @@ export default function Header({
             </div>
           </div>
 
+          {(section === 'physical' || section === 'physical-series') && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                onOpenLocationBrowser()
+                setFiltersOpen(false)
+                setMenuOpen(false)
+                setAzOpen(false)
+              }}
+              title="Browse by closet / row / section"
+            >
+              <IconPin width={14} height={14} /> Location
+            </button>
+          )}
+
           <button
             className="btn btn-ghost theme-toggle"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -363,20 +400,20 @@ export default function Header({
                 <div className="header-menu-section-title">Account</div>
                 {isGuest ? (
                   <button type="button" onClick={() => { openLogin(); setMenuOpen(false) }}>
-                    ورود
+                    Log in
                   </button>
                 ) : (
                   <>
                     <div style={{ padding: '4px 12px', color: 'var(--muted)', fontSize: 13 }}>
-                      {user.username} {isAdmin ? '(ادمین)' : ''}
+                      {user.username} {isAdmin ? '(Admin)' : ''}
                     </div>
                     {isAdmin && (
                       <button type="button" onClick={() => { setAdminOpen(true); setMenuOpen(false) }}>
-                        مدیریت کاربران
+                        Manage Users
                       </button>
                     )}
                     <button type="button" onClick={() => { logout(); setMenuOpen(false) }}>
-                      خروج
+                      Log out
                     </button>
                   </>
                 )}
@@ -431,7 +468,41 @@ export default function Header({
       {showPagination && (
         <div className="container pagination pagination-top">
           <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Previous</button>
-          <span>Page {page} of {pageCount}</span>
+          <div className="pagination-numbers">
+            {getPageNumbers(page, pageCount).map((p, idx) =>
+              p === '…' ? (
+                <span key={`dots-${idx}`} className="pagination-dots">…</span>
+              ) : (
+                <button
+                  key={p}
+                  type="button"
+                  className={p === page ? 'pagination-num pagination-num-active' : 'pagination-num'}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              )
+            )}
+          </div>
+          <form
+            className="pagination-jump"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const n = parseInt(jumpValue, 10)
+              if (n >= 1 && n <= pageCount) setPage(n)
+              setJumpValue('')
+            }}
+          >
+            <input
+              type="number"
+              min={1}
+              max={pageCount}
+              placeholder={`Go to…`}
+              value={jumpValue}
+              onChange={(e) => setJumpValue(e.target.value)}
+              className="pagination-jump-input"
+            />
+          </form>
           <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next →</button>
         </div>
       )}

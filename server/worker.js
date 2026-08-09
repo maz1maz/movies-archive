@@ -31,12 +31,12 @@ export default {
 
     // کاربر لاگین‌شده‌ی فعلی (از روی کوکی سشن) — مهمان‌ها null می‌گیرن.
     const currentUser = await getSessionUser(db, request)
-    const requireAuth = () => (currentUser ? null : json({ error: 'برای این کار باید وارد شوید' }, 401, corsHeaders))
+    const requireAuth = () => (currentUser ? null : json({ error: 'You need to log in for this action' }, 401, corsHeaders))
     const requireAdmin = () =>
       !currentUser
-        ? json({ error: 'برای این کار باید وارد شوید' }, 401, corsHeaders)
+        ? json({ error: 'You need to log in for this action' }, 401, corsHeaders)
         : currentUser.role !== 'admin'
-        ? json({ error: 'این عملیات فقط برای ادمین مجاز است' }, 403, corsHeaders)
+        ? json({ error: 'This action is admin-only' }, 403, corsHeaders)
         : null
 
     try {
@@ -45,11 +45,11 @@ export default {
         const body = await request.json().catch(() => ({}))
         const username = (body.username || '').trim().toLowerCase()
         const password = body.password || ''
-        if (!username || !password) return json({ error: 'نام کاربری و رمز عبور الزامی است' }, 400, corsHeaders)
+        if (!username || !password) return json({ error: 'Username and password are required' }, 400, corsHeaders)
         const user = await db.prepare('SELECT * FROM users WHERE lower(username) = ?').bind(username).first()
-        if (!user) return json({ error: 'نام کاربری یا رمز عبور اشتباه است' }, 401, corsHeaders)
+        if (!user) return json({ error: 'Incorrect username or password' }, 401, corsHeaders)
         const ok = await verifyPassword(password, user.passwordSalt, user.passwordHash)
-        if (!ok) return json({ error: 'نام کاربری یا رمز عبور اشتباه است' }, 401, corsHeaders)
+        if (!ok) return json({ error: 'Incorrect username or password' }, 401, corsHeaders)
         const token = await createSession(db, user.id)
         return json(
           { id: user.id, username: user.username, role: user.role },
@@ -84,10 +84,10 @@ export default {
         const username = (body.username || '').trim()
         const password = body.password || ''
         const role = body.role === 'admin' ? 'admin' : 'user'
-        if (!username || !password) return json({ error: 'نام کاربری و رمز عبور الزامی است' }, 400, corsHeaders)
-        if (password.length < 6) return json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, 400, corsHeaders)
+        if (!username || !password) return json({ error: 'Username and password are required' }, 400, corsHeaders)
+        if (password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400, corsHeaders)
         const exists = await db.prepare('SELECT id FROM users WHERE lower(username) = ?').bind(username.toLowerCase()).first()
-        if (exists) return json({ error: 'این نام کاربری قبلاً استفاده شده' }, 409, corsHeaders)
+        if (exists) return json({ error: 'This username is already taken' }, 409, corsHeaders)
         const { hash, salt } = await hashPassword(password)
         const id = crypto.randomUUID()
         await db
@@ -103,7 +103,7 @@ export default {
         if (denied) return denied
         const id = userMatch[1]
         if (method === 'DELETE') {
-          if (id === currentUser.id) return json({ error: 'نمی‌توانید خودتان را حذف کنید' }, 400, corsHeaders)
+          if (id === currentUser.id) return json({ error: 'You cannot delete yourself' }, 400, corsHeaders)
           await db.prepare('DELETE FROM sessions WHERE userId = ?').bind(id).run()
           await db.prepare('DELETE FROM users WHERE id = ?').bind(id).run()
           return json({ ok: true }, 200, corsHeaders)
@@ -111,7 +111,7 @@ export default {
         if (method === 'PATCH') {
           const body = await request.json().catch(() => ({}))
           if (body.password) {
-            if (body.password.length < 6) return json({ error: 'رمز عبور باید حداقل ۶ کاراکتر باشد' }, 400, corsHeaders)
+            if (body.password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400, corsHeaders)
             const { hash, salt } = await hashPassword(body.password)
             await db.prepare('UPDATE users SET passwordHash = ?, passwordSalt = ? WHERE id = ?').bind(hash, salt, id).run()
           }
@@ -429,7 +429,7 @@ export default {
       const detailMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
       if (method === 'GET' && detailMatch) {
         const film = await db.prepare('SELECT * FROM films WHERE id = ?').bind(detailMatch[1]).first()
-        if (!film) return json({ error: 'یافت نشد' }, 404, corsHeaders)
+        if (!film) return json({ error: 'Not found' }, 404, corsHeaders)
         return json(parseFilmRow(film), 200, corsHeaders)
       }
 
@@ -460,6 +460,9 @@ export default {
           film = await enrichFilm(film, key)
         } catch {}
         await insertFilm(db, film)
+        try {
+          await syncSharedMetadataToSibling(db, film)
+        } catch {}
         return json(film, 201, corsHeaders)
       }
 
@@ -488,6 +491,9 @@ export default {
           }
         }
         await updateFilm(db, updated)
+        try {
+          await syncSharedMetadataToSibling(db, updated)
+        } catch {}
         return json(parseFilmRow(updated), 200, corsHeaders)
       }
 
@@ -523,6 +529,9 @@ export default {
           )
           enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
           await updateFilm(db, enriched)
+          try {
+            await syncSharedMetadataToSibling(db, enriched)
+          } catch {}
         } catch {
           return json({ ...parsed, _enrichment: { enabled: Boolean(key), fields: [] } }, 200, corsHeaders)
         }
@@ -635,18 +644,18 @@ export default {
       // ---- GET /api/omdb-lookup (single-title search for the "Add Film" autofill) ----
       if (method === 'GET' && pathname === '/api/omdb-lookup') {
         const key = env.OMDB_API_KEY
-        if (!key) return json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار از IMDb وجود نداره' }, 400, corsHeaders)
+        if (!key) return json({ error: 'OMDB_API_KEY is not set — automatic IMDb lookup unavailable' }, 400, corsHeaders)
         const title = (url.searchParams.get('title') || '').trim()
-        if (!title) return json({ error: 'عنوان فیلم رو وارد کن' }, 400, corsHeaders)
+        if (!title) return json({ error: 'Enter the film title' }, 400, corsHeaders)
         const yearParam = url.searchParams.get('year')
         const before = { title, year: yearParam ? parseInt(yearParam, 10) : undefined }
         try {
           const found = await enrichFilm(before, key)
           const gotNewData = Object.keys(found).some((k) => !(k in before) || found[k] !== before[k])
-          if (!gotNewData) return json({ error: 'فیلمی با این عنوان توی IMDb پیدا نشد' }, 404, corsHeaders)
+          if (!gotNewData) return json({ error: 'No film with this title found on IMDb' }, 404, corsHeaders)
           return json(found, 200, corsHeaders)
         } catch (e) {
-          return json({ error: 'خطا در ارتباط با OMDb' }, 502, corsHeaders)
+          return json({ error: 'Error connecting to OMDb' }, 502, corsHeaders)
         }
       }
 
@@ -659,7 +668,7 @@ export default {
       if (method === 'GET' && pathname === '/api/link-lookup') {
         const key = env.OMDB_API_KEY
         let link = (url.searchParams.get('url') || '').trim()
-        if (!link) return json({ error: 'لینک IMDb یا Letterboxd رو بچسبون' }, 400, corsHeaders)
+        if (!link) return json({ error: 'Paste an IMDb or Letterboxd link' }, 400, corsHeaders)
 
         // لینک‌های کوتاه‌شده‌ی موبایلِ Letterboxd (boxd.it/xxxx) رو باز می‌کنیم تا
         // به آدرس کامل letterboxd.com/film/slug/ برسیم.
@@ -687,24 +696,24 @@ export default {
           // یک کاربر (letterboxd.com/username/film/slug/) که پیشوند یوزرنیم داره
           // و گاهی هم یه عدد تعداد بازبینی در آخرش (.../film/slug/2/).
           const slugMatch = link.match(/\/film\/([^/?#]+)/i)
-          if (!slugMatch) return json({ error: 'لینک Letterboxd باید صفحه‌ی یک فیلم باشه (شامل film/...)' }, 400, corsHeaders)
+          if (!slugMatch) return json({ error: 'Letterboxd link must be a film page (containing film/...)' }, 400, corsHeaders)
           letterboxdSlug = slugMatch[1]
           try {
             const pageRes = await fetch(`https://letterboxd.com/film/${letterboxdSlug}/`, {
               headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' },
             })
-            if (!pageRes.ok) return json({ error: 'صفحه‌ی Letterboxd پیدا نشد' }, 404, corsHeaders)
+            if (!pageRes.ok) return json({ error: 'Letterboxd page not found' }, 404, corsHeaders)
             const html = await pageRes.text()
             const imdbMatch = html.match(/imdb\.com\/title\/(tt\d+)/i)
             imdbId = imdbMatch ? imdbMatch[1] : null
             base = parseLetterboxdBasic(html)
             if (imdbId) base.imdbId = imdbId
-            if (!base.title) return json({ error: 'اطلاعاتی از این صفحه‌ی Letterboxd استخراج نشد' }, 404, corsHeaders)
+            if (!base.title) return json({ error: 'Could not extract data from this Letterboxd page' }, 404, corsHeaders)
           } catch (e) {
-            return json({ error: 'خطا در ارتباط با Letterboxd' }, 502, corsHeaders)
+            return json({ error: 'Error connecting to Letterboxd' }, 502, corsHeaders)
           }
         } else {
-          return json({ error: 'لینک باید از IMDb یا Letterboxd باشه' }, 400, corsHeaders)
+          return json({ error: 'Link must be from IMDb or Letterboxd' }, 400, corsHeaders)
         }
         delete base._letterboxdImageFallback
 
@@ -805,7 +814,7 @@ export default {
           } else {
             const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
             if (tmdbFallback) result = tmdbFallback
-            else errorResponse = json({ error: 'OMDB_API_KEY تنظیم نشده — امکان جستجوی خودکار از روی لینک IMDb وجود نداره' }, 400, corsHeaders)
+            else errorResponse = json({ error: 'OMDB_API_KEY is not set — automatic lookup from IMDb link unavailable' }, 400, corsHeaders)
           }
         } else {
           try {
@@ -815,7 +824,7 @@ export default {
             } else {
               const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
               if (tmdbFallback) result = tmdbFallback
-              else errorResponse = json({ error: 'این فیلم هنوز توی دیتابیس OMDb یا TMDB نیست — عنوان/سال رو دستی وارد کن' }, 404, corsHeaders)
+              else errorResponse = json({ error: 'This film isn\'t in OMDb or TMDB yet — enter title/year manually' }, 404, corsHeaders)
             }
           } catch (e) {
             if (base.title) {
@@ -823,8 +832,8 @@ export default {
             } else {
               const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
               if (tmdbFallback) result = tmdbFallback
-              else if (e.code === 'OMDB_QUOTA_EXCEEDED') errorResponse = json({ error: 'سهمیه‌ی روزانه‌ی OMDb تموم شده — فردا دوباره امتحان کن' }, 429, corsHeaders)
-              else errorResponse = json({ error: 'خطا در ارتباط با OMDb' }, 502, corsHeaders)
+              else if (e.code === 'OMDB_QUOTA_EXCEEDED') errorResponse = json({ error: 'OMDb daily quota reached — try again tomorrow' }, 429, corsHeaders)
+              else errorResponse = json({ error: 'Error connecting to OMDb' }, 502, corsHeaders)
             }
           }
         }
@@ -944,20 +953,20 @@ export default {
         try {
           body = await request.json()
         } catch {
-          return json({ error: 'بدنه‌ی درخواست نامعتبره' }, 400, corsHeaders)
+          return json({ error: 'Invalid request body' }, 400, corsHeaders)
         }
         const username = (body.username || '').trim().replace(/^@/, '')
-        if (!username) return json({ error: 'یوزرنیم لترباکس لازمه' }, 400, corsHeaders)
+        if (!username) return json({ error: 'Letterboxd username is required' }, 400, corsHeaders)
 
         let xml
         try {
           const res = await fetch(`https://letterboxd.com/${encodeURIComponent(username)}/rss/`, {
             headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0)' },
           })
-          if (!res.ok) return json({ error: `یوزرنیم لترباکس پیدا نشد یا فید در دسترس نیست (${res.status})` }, 400, corsHeaders)
+          if (!res.ok) return json({ error: `Letterboxd username not found or feed unavailable (${res.status})` }, 400, corsHeaders)
           xml = await res.text()
         } catch {
-          return json({ error: 'اتصال به لترباکس ناموفق بود' }, 502, corsHeaders)
+          return json({ error: 'Failed to connect to Letterboxd' }, 502, corsHeaders)
         }
 
         const entries = parseLetterboxdRss(xml)
@@ -1030,17 +1039,17 @@ export default {
         const form = await request.formData()
         const file = form.get('file')
         if (!file || typeof file.arrayBuffer !== 'function') {
-          return json({ error: 'فایل ارسال نشد' }, 400, corsHeaders)
+          return json({ error: 'No file uploaded' }, 400, corsHeaders)
         }
         const buffer = await file.arrayBuffer()
         if (!buffer || buffer.byteLength === 0) {
-          return json({ error: 'فایل ارسال نشد' }, 400, corsHeaders)
+          return json({ error: 'No file uploaded' }, 400, corsHeaders)
         }
 
         const wb = XLSX.read(buffer, { type: 'array' })
         const ws = wb.Sheets[wb.SheetNames[0]]
         const rows = XLSX.utils.sheet_to_json(ws, { defval: '' })
-        if (!rows.length) return json({ error: 'فایل خالیه' }, 400, corsHeaders)
+        if (!rows.length) return json({ error: 'File is empty' }, 400, corsHeaders)
 
         let imported = rows.map((r, i) => rowToFilm(r, i))
 
@@ -1130,17 +1139,23 @@ export default {
         })
       }
 
-      // ---- GET /api/export/excel (optional ?mediaType=&itemType= to scope the backup) ----
+      // ---- GET /api/export/excel (optional ?mediaType=&itemType=&closet=&row=&shelf= to scope the backup) ----
       if (method === 'GET' && pathname === '/api/export/excel') {
         const denied = requireAuth()
         if (denied) return denied
         const mediaType = url.searchParams.get('mediaType')
         const itemType = url.searchParams.get('itemType')
+        const closetParam = url.searchParams.get('closet')
+        const rowParam = url.searchParams.get('row')
+        const shelfParam = url.searchParams.get('shelf')
         let sql = 'SELECT * FROM films'
         const conditions = []
         const params = []
         if (mediaType) { conditions.push('mediaType = ?'); params.push(mediaType) }
         if (itemType) { conditions.push('itemType = ?'); params.push(itemType) }
+        if (closetParam) { conditions.push('closet = ?'); params.push(closetParam) }
+        if (rowParam) { conditions.push('row = ?'); params.push(rowParam) }
+        if (shelfParam) { conditions.push('shelf = ?'); params.push(shelfParam) }
         if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ')
         sql += ' ORDER BY title'
         const result = await db.prepare(sql).bind(...params).all()
@@ -1180,6 +1195,8 @@ export default {
                 Shelf: f.shelf || '',
                 Row: f.row || '',
                 Format: f.format || '',
+                Criterion: f.criterion ? `Yes${f.copies > 1 ? ` ×${f.copies}` : ''}` : 'No',
+                Copies: f.copies || 1,
                 Watched: f.watched === true ? 'Yes' : 'No',
                 'Borrowed To': f.borrowedTo || '',
                 'Borrowed Date': f.borrowedDate || '',
@@ -1205,9 +1222,10 @@ export default {
         )
         const ws = XLSX.utils.json_to_sheet(rows)
         const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, 'آرشیو فیلم‌ها')
+        XLSX.utils.book_append_sheet(wb, ws, 'Film Archive')
         const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: false })
-        const excelFilenameScope = itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : ''
+        const locationScope = [closetParam ? `C${closetParam}` : '', rowParam ? `R${rowParam}` : '', shelfParam ? `S${shelfParam}` : ''].join('')
+        const excelFilenameScope = locationScope || (itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : '')
         return new Response(buf, {
           status: 200,
           headers: {
@@ -1655,6 +1673,9 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
     if (fields.length) updated++
     enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
     await updateFilm(db, enriched)
+    try {
+      await syncSharedMetadataToSibling(db, enriched)
+    } catch {}
   }
 
   const remaining = await db
@@ -1686,3 +1707,46 @@ async function updateFilm(db, film) {
     reviews ? (Array.isArray(reviews) ? JSON.stringify(reviews) : reviews) : null, id
   ).run()
 }
+
+// فیلدهای «توصیفیِ» فیلم که مستقل از فرمت (فیزیکی/دیجیتال) هستن و باید بین
+// دو نسخه‌ی هم‌نام (بلوری + دیجیتالِ همون فیلم) یکسان بمونن. فیلدهای مخصوص
+// فرمت (closet/shelf/row/driveNumber/format/criterion/copies/watched/...)
+// عمداً اینجا نیستن، چون طبیعتاً بین دو نسخه فرق دارن.
+const SHARED_METADATA_FIELDS = [
+  'originalTitle', 'director', 'producer', 'cast', 'genre', 'rating',
+  'runtime', 'country', 'synopsis', 'poster', 'studio', 'rated',
+  'imdbId', 'imdbVotes', 'letterboxdRating', 'letterboxdVotes',
+]
+
+// بعد از هر آپدیت/enrich روی یه فیلم، اگه همون فیلم (با عنوان+سال یکسان) هم
+// به‌صورت فیزیکی هم دیجیتال توی آرشیو باشه، فیلدهای توصیفی مشترک رو از رکورد
+// تازه‌آپدیت‌شده روی نسخه‌ی دیگه هم می‌ریزیم — تا دیگه سینوپسیس/کست/امتیاز
+// بین دو نسخه فرق نکنه. دیتای تازه‌تر (همینی که الان آپدیت شد) همیشه ارجحیت داره.
+async function syncSharedMetadataToSibling(db, film) {
+  if (!film.title || !film.mediaType) return
+  const otherMediaType = film.mediaType === 'digital' ? 'physical' : 'digital'
+  const sibling = await db
+    .prepare(
+      `SELECT * FROM films WHERE id != ? AND mediaType = ? AND LOWER(TRIM(REPLACE(title, char(8217), char(39)))) = LOWER(TRIM(REPLACE(?, char(8217), char(39)))) AND (year IS ? OR year = ?) LIMIT 1`
+    )
+    .bind(film.id, otherMediaType, film.title, film.year ?? null, film.year ?? null)
+    .first()
+  if (!sibling) return
+  const siblingParsed = parseFilmRow(sibling)
+  let changed = false
+  for (const key of SHARED_METADATA_FIELDS) {
+    const incoming = film[key]
+    const isIncomingEmpty = incoming == null || (Array.isArray(incoming) ? incoming.length === 0 : String(incoming).trim() === '')
+    if (isIncomingEmpty) continue
+    const current = siblingParsed[key]
+    const same = Array.isArray(incoming) && Array.isArray(current)
+      ? JSON.stringify(incoming) === JSON.stringify(current)
+      : incoming === current
+    if (!same) {
+      siblingParsed[key] = incoming
+      changed = true
+    }
+  }
+  if (changed) await updateFilm(db, siblingParsed)
+}
+

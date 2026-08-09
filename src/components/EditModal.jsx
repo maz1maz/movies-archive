@@ -50,24 +50,34 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   const [lookupError, setLookupError] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
   const [linkLoading, setLinkLoading] = useState(false)
+  const [linkConflicts, setLinkConflicts] = useState(null) // [{key, label, oldVal, newVal, checked}] | null
   const linkInputRef = useRef(null)
+
+  const FIELD_LABELS = {
+    title: 'Title', originalTitle: 'Original Title', year: 'Year', director: 'Director',
+    producer: 'Producer', cast: 'Cast', genre: 'Genre', rating: 'IMDb Rating',
+    runtime: 'Runtime', country: 'Country', studio: 'Studio', rated: 'MPA Rating',
+    letterboxdRating: 'Letterboxd Rating', poster: 'Poster', synopsis: 'Synopsis',
+    imdbId: 'IMDb ID', imdbVotes: 'IMDb Votes',
+  }
+  const SKIP_KEYS = ['closet', 'shelf', 'row', 'mediaType', 'driveNumber', 'itemType', 'watched', 'watchlisted', 'myRating', 'criterion', 'copies', 'seasonsEpisodes', 'seasonDrives']
 
   const lookupNewFilmFromImdb = async () => {
     if (!form.title.trim()) {
-      setLookupError('اول عنوان فیلم رو بنویس')
+      setLookupError('Enter the film title first')
       return null
     }
     const qs = new URLSearchParams({ title: form.title.trim() })
     if (form.year) qs.set('year', form.year)
     const res = await fetch(`/api/omdb-lookup?${qs.toString()}`)
     const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'یافت نشد')
+    if (!res.ok) throw new Error(data.error || 'Not found')
     return data
   }
 
   const lookupFromLink = async () => {
     if (!linkUrl.trim()) {
-      setLookupError('لینک IMDb یا Letterboxd رو بچسبون')
+      setLookupError('Paste an IMDb or Letterboxd link')
       return
     }
     setLookupError('')
@@ -76,37 +86,66 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       const qs = new URLSearchParams({ url: linkUrl.trim() })
       const res = await fetch(`/api/link-lookup?${qs.toString()}`)
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'یافت نشد')
+      if (!res.ok) throw new Error(data.error || 'Not found')
       const fetched = toForm(data)
-      setForm((prev) => {
-        if (isNew) {
-          // فیلم جدید، فرم خالیه — همه‌چیز رو از لینک پر می‌کنیم به‌جز محل فیزیکی/نوع رسانه
-          return {
-            ...fetched,
-            closet: prev.closet,
-            shelf: prev.shelf,
-            row: prev.row,
-            mediaType: prev.mediaType,
-            driveNumber: prev.driveNumber,
-          }
+      if (isNew) {
+        // فیلم جدید، فرم خالیه — همه‌چیز رو از لینک پر می‌کنیم به‌جز محل فیزیکی/نوع رسانه
+        setForm((prev) => ({
+          ...fetched,
+          closet: prev.closet,
+          shelf: prev.shelf,
+          row: prev.row,
+          mediaType: prev.mediaType,
+          driveNumber: prev.driveNumber,
+        }))
+        return
+      }
+      // فیلم موجود — دیتای لینک نسبت به دیتای قبلی ارجحیت داره، ولی هر جا با
+      // چیزی که از قبل پر بوده فرق داشت، اول نشون می‌دیم و تایید می‌گیریم.
+      const conflicts = []
+      const autoFillOnly = {}
+      for (const key of Object.keys(fetched)) {
+        if (SKIP_KEYS.includes(key)) continue
+        const current = form[key]
+        const incoming = fetched[key]
+        const isEmpty = current === '' || current === null || current === undefined || (Array.isArray(current) && current.length === 0)
+        const isIncomingEmpty = incoming === '' || incoming === null || incoming === undefined
+        if (isIncomingEmpty) continue
+        if (isEmpty) {
+          autoFillOnly[key] = incoming
+        } else if (String(current) !== String(incoming)) {
+          conflicts.push({ key, label: FIELD_LABELS[key] || key, oldVal: current, newVal: incoming, checked: true })
         }
-        // فیلم موجود — فقط جای‌خالی‌ها رو از لینک پر می‌کنیم، چیزی که قبلاً پر
-        // بوده (حتی اگه با اطلاعات لینک فرق داشته باشه) دست‌نخورده می‌مونه.
-        const merged = { ...prev }
-        for (const key of Object.keys(fetched)) {
-          if (['closet', 'shelf', 'row', 'mediaType', 'driveNumber', 'itemType', 'watched', 'watchlisted', 'myRating', 'criterion', 'copies', 'seasonsEpisodes', 'seasonDrives', 'letterboxdRating'].includes(key)) continue
-          const current = prev[key]
-          const isEmpty = current === '' || current === null || current === undefined || (Array.isArray(current) && current.length === 0)
-          if (isEmpty && fetched[key] !== '' && fetched[key] != null) merged[key] = fetched[key]
-        }
-        return merged
-      })
+      }
+      if (Object.keys(autoFillOnly).length) {
+        setForm((prev) => ({ ...prev, ...autoFillOnly }))
+      }
+      if (conflicts.length) {
+        setLinkConflicts(conflicts)
+      }
     } catch (e) {
       setLookupError(e.message)
     } finally {
       setLinkLoading(false)
     }
   }
+
+  const toggleConflict = (key) => {
+    setLinkConflicts((prev) => prev.map((c) => (c.key === key ? { ...c, checked: !c.checked } : c)))
+  }
+
+  const applyLinkConflicts = () => {
+    setForm((prev) => {
+      const next = { ...prev }
+      for (const c of linkConflicts) {
+        if (c.checked) next[c.key] = c.newVal
+      }
+      return next
+    })
+    setLinkConflicts(null)
+  }
+
+  const dismissLinkConflicts = () => setLinkConflicts(null)
 
   useEffect(() => {
     if (startWithLink && linkInputRef.current) linkInputRef.current.focus()
@@ -208,7 +247,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
 
         <div className="edit-form">
           <label className="edit-field full edit-link-field">
-            <span><IconLink width={13} height={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> {isNew ? 'Fill from IMDb / Letterboxd link' : 'Complete missing fields from IMDb / Letterboxd link'}</span>
+            <span><IconLink width={13} height={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> {isNew ? 'Fill from IMDb / Letterboxd link' : 'Update from IMDb / Letterboxd link'}</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 ref={linkInputRef}
@@ -222,6 +261,31 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
               </button>
             </div>
           </label>
+
+          {linkConflicts && linkConflicts.length > 0 && (
+            <div className="edit-field full link-conflicts-panel">
+              <span>These fields already had values — the link data differs. Which should be replaced?</span>
+              <div className="link-conflicts-list">
+                {linkConflicts.map((c) => (
+                  <label key={c.key} className="link-conflict-row">
+                    <input type="checkbox" checked={c.checked} onChange={() => toggleConflict(c.key)} />
+                    <div className="link-conflict-body">
+                      <div className="link-conflict-label">{c.label}</div>
+                      <div className="link-conflict-values">
+                        <span className="link-conflict-old">{String(c.oldVal)}</span>
+                        <span className="link-conflict-arrow">→</span>
+                        <span className="link-conflict-new">{String(c.newVal)}</span>
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button type="button" className="btn btn-primary" onClick={applyLinkConflicts}>Apply selected</button>
+                <button type="button" className="btn btn-ghost" onClick={dismissLinkConflicts}>Cancel</button>
+              </div>
+            </div>
+          )}
 
           <label className="edit-field full">
             <span>Title</span>

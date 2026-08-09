@@ -21,10 +21,10 @@ export default class ErrorBoundary extends Component {
     if (this.state.error) {
       return (
         <div className="crash-screen">
-          <h2>یه مشکلی پیش اومد</h2>
-          <p>صفحه با خطا مواجه شد. می‌تونی دوباره امتحان کنی.</p>
+          <h2>Something went wrong</h2>
+          <p>The page hit an error. You can try again.</p>
           <button className="btn btn-primary" onClick={() => window.location.reload()}>
-            بارگذاری مجدد صفحه
+            Reload page
           </button>
           <pre className="crash-details">{String(this.state.error?.message || this.state.error)}</pre>
         </div>

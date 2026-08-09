@@ -10,6 +10,7 @@ import DashboardPanel from './components/DashboardPanel.jsx'
 import GallerySphere from './components/GallerySphere.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import ExportModal from './components/ExportModal.jsx'
+import LocationBrowserModal from './components/LocationBrowserModal.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
@@ -71,6 +72,7 @@ export default function App() {
     // بود، بسته می‌شد ولی state=selected پاک نمی‌شد؛ برای همین همون فیلم
     // قبلی رو نگه می‌داشت و انگار صفحه عوض نشده بود.
     setSelected(null)
+    setForceFilmOverlay(false)
     setSection(next)
   }
 
@@ -83,6 +85,8 @@ export default function App() {
   )
   const [selectedPerson, setSelectedPerson] = useState(null)
   const [showExport, setShowExport] = useState(false)
+  const [showLocationBrowser, setShowLocationBrowser] = useState(false)
+  const [forceFilmOverlay, setForceFilmOverlay] = useState(false)
   const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
@@ -200,7 +204,7 @@ export default function App() {
           // می‌داریم و فقط خطا رو نشون می‌دیم.
           console.error('Unexpected /api/films response:', data)
           setLoading(false)
-          showToast((data && data.error) || 'خطا در بارگذاری فیلم‌ها — لیست قبلی نگه داشته شد')
+          showToast((data && data.error) || 'Failed to load films — previous list kept')
           return
         }
         setFilms(data)
@@ -629,7 +633,9 @@ export default function App() {
     f.mediaType !== 'digital' && digitalKeys.has(`${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
   // نمای تقسیم‌شده (پنل جزئیات + گرید) فقط توی حالت Thumbnails و روی صفحه‌ی
   // عریض (دسکتاپ/تبلت)؛ توی موبایل و حالت List همون مودال قبلی می‌مونه.
-  const useSplitView = view === 'grid' && isWide
+  // نمای «split» (پنل جزئیات نصفه‌صفحه کنار گرید) به درخواست کاربر غیرفعال شد؛
+  // حالا همیشه از همون مودال کامل و وسط‌چین استفاده می‌شه، مثل جاهای دیگه‌ی اپ.
+  const useSplitView = false
 
   const folderCounts = {
     physical: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital' && f.itemType !== 'series').length,
@@ -847,6 +853,7 @@ export default function App() {
         onFetchSeasonCounts={handleFetchSeasonCounts}
         fetchingSeasonCounts={fetchingSeasonCounts}
         onOpenExport={() => setShowExport(true)}
+        onOpenLocationBrowser={() => setShowLocationBrowser(true)}
         view={view}
         setView={setView}
         alpha={alpha}
@@ -923,10 +930,25 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        Cinefilm Archive · Built with React and Node.js
+        Cinefilm Archive · © {new Date().getFullYear()} · @1hamid
       </footer>
 
-      {selected && !useSplitView && (
+      {showExport && (
+        <ExportModal films={sectionFilms} section={section} onClose={() => setShowExport(false)} />
+      )}
+
+      {showLocationBrowser && (
+        <LocationBrowserModal
+          films={allFilmsUnfiltered}
+          onSelectFilm={(film) => {
+            setForceFilmOverlay(true)
+            setSelected(film)
+          }}
+          onClose={() => setShowLocationBrowser(false)}
+        />
+      )}
+
+      {selected && (!useSplitView || forceFilmOverlay) && (
         <FilmModal
           film={selected}
           films={sectionFilms}
@@ -935,13 +957,17 @@ export default function App() {
           onNavigate={(film) => setSelected(film)}
           onSelectPerson={(name) => {
             setSelected(null)
+            setForceFilmOverlay(false)
             setSelectedPerson(name)
           }}
           onManageLoan={guardedLoan}
           onRateFilm={guardedRate}
           onSaveSeasonDrive={guardedSeasonDrive}
           onEdit={guardedEdit}
-          onClose={() => setSelected(null)}
+          onClose={() => {
+            setSelected(null)
+            setForceFilmOverlay(false)
+          }}
         />
       )}
 
@@ -957,10 +983,6 @@ export default function App() {
           }}
           onClose={() => setSelectedPerson(null)}
         />
-      )}
-
-      {showExport && (
-        <ExportModal films={sectionFilms} section={section} onClose={() => setShowExport(false)} />
       )}
 
       {loanFilm && (

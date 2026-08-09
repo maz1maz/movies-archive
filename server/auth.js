@@ -104,9 +104,9 @@ export async function getSessionUser(db, request) {
 }
 
 export function requireAuthResponse(json, corsHeaders) {
-  return json({ error: "برای این کار باید وارد شوید" }, 401, corsHeaders)
+  return json({ error: "You need to log in for this action" }, 401, corsHeaders)
 }
 
 export function requireAdminResponse(json, corsHeaders) {
-  return json({ error: "این عملیات فقط برای ادمین مجاز است" }, 403, corsHeaders)
+  return json({ error: "This action is admin-only" }, 403, corsHeaders)
 }

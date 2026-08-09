@@ -35,14 +35,14 @@ export function AuthProvider({ children }) {
       })
       const data = await res.json()
       if (!res.ok) {
-        setLoginError(data.error || 'ورود ناموفق بود')
+        setLoginError(data.error || 'Login failed')
         return false
       }
       setUser(data)
       setLoginOpen(false)
       return true
     } catch {
-      setLoginError('اتصال به سرور ناموفق بود')
+      setLoginError('Failed to connect to server')
       return false
     }
   }, [])

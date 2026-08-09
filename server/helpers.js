@@ -137,7 +137,7 @@ export function rowToFilm(row, index) {
     if (v === "" || v === undefined) continue
     film[field] = v
   }
-  if (!film.title) film.title = "بدون نام"
+  if (!film.title) film.title = "Untitled"
   // کل مجموعه‌ی فیزیکی این کاربر بلوریه؛ اگه اکسل ستون format نداشته باشه،
   // به‌جای خالی موندن (که باعث می‌شد بج بلوری نیاد)، خودش Blu-ray بشه.
   if (film.mediaType !== "digital" && !film.format) film.format = "Blu-ray"

@@ -327,7 +327,7 @@ body.light .header {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   padding: 5px 0;
   margin-top: 3px;
   background: var(--bg);
@@ -336,6 +336,50 @@ body.light .header {
 }
 .pagination button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; padding: 3px 8px; font-size: 12px; cursor: pointer; }
 .pagination button:disabled { opacity: .4; cursor: not-allowed; }
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.pagination-num {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+  min-width: 24px;
+  padding: 3px 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pagination-num-active {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+  font-weight: 800;
+}
+.pagination-dots {
+  padding: 0 1px;
+  color: var(--muted);
+}
+.pagination-jump {
+  display: flex;
+  align-items: center;
+  margin-inline-start: 4px;
+}
+.pagination-jump-input {
+  width: 66px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+.pagination-jump-input::-webkit-outer-spin-button,
+.pagination-jump-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 .pagination-top {
   position: relative;
   padding: 6px 0 3px;
@@ -420,8 +464,7 @@ body.light .header {
   color: var(--muted);
 }
 .rating-badge,
-.watched-badge,
-.location-badge {
+.watched-badge {
   position: absolute;
   z-index: 1;
   display: inline-flex;
@@ -464,8 +507,13 @@ body.light .header {
   border-color: rgba(255, 255, 255, 0.2);
 }
 .location-badge {
-  right: 7px;
-  bottom: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 800;
   background: rgba(8, 9, 12, 0.85);
   color: #fff;
 }
@@ -677,6 +725,76 @@ body.light .header {
   font-size: 12px;
   font-weight: 700;
 }
+.link-conflicts-panel {
+  border: 1px solid var(--warning, #d9a441);
+  background: rgba(217, 164, 65, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.link-conflicts-panel > span:first-child {
+  display: block;
+  color: var(--warning, #d9a441);
+  font-size: 12px;
+  font-weight: 700;
+}
+.link-conflicts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  width: 100%;
+}
+.link-conflict-row {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  width: 100%;
+  box-sizing: border-box;
+}
+.link-conflict-row input[type='checkbox'] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+}
+.link-conflict-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+}
+.link-conflict-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.link-conflict-values {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+  width: 100%;
+}
+.link-conflict-old {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.link-conflict-arrow {
+  color: var(--muted);
+  flex: none;
+}
+.link-conflict-new {
+  color: var(--accent, #d9a441);
+  font-weight: 600;
+}
 .edit-field input,
 .edit-field select,
 .edit-field textarea {
@@ -850,6 +968,12 @@ body.light .header {
   align-items: flex-end;
   gap: 8px;
   flex: 0 0 auto;
+}
+.cine-ownership-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 /* Loan Badges */
@@ -1125,6 +1249,183 @@ body.light .header {
   line-height: 1.4;
 }
 
+/* ---------- Location Browser Modal ---------- */
+.modal-location {
+  width: min(680px, 92vw);
+  max-height: 86vh;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--text);
+  overflow: hidden;
+}
+.location-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.location-tree {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--surface-3);
+}
+.location-tree-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 120px;
+}
+.location-tree-label {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.location-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 110px;
+  overflow-y: auto;
+}
+.location-chip {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.location-chip:hover {
+  border-color: var(--accent);
+}
+.location-chip-active {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+}
+.location-chip-empty {
+  opacity: 0.45;
+}
+.location-chip-count {
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+.location-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  flex: 1;
+}
+.location-result-label {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.location-result-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.location-export-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.btn-sm {
+  padding: 4px 9px;
+  font-size: 11.5px;
+  border-radius: 7px;
+}
+.location-title-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.location-title-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--surface-3);
+  padding: 8px 4px;
+  cursor: pointer;
+  color: var(--text);
+  text-align: left;
+  font-size: 13px;
+}
+.location-title-row:hover {
+  background: var(--surface);
+}
+.location-title-icon {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.location-title-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.location-title-line1 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.location-title-text {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.location-title-year {
+  color: var(--muted);
+  font-size: 11.5px;
+  flex-shrink: 0;
+}
+.location-title-director {
+  color: var(--muted);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.location-title-loc {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
 .loan-status-box {
   border-radius: 10px;
   padding: 14px;
@@ -1220,6 +1521,10 @@ body.light .header {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
 }
 
 .cine-section-label {
@@ -2349,9 +2654,6 @@ body.light .header {
   box-shadow: 0 0 0 1px rgba(217, 164, 65, 0.35);
 }
 .criterion-badge {
-  position: absolute;
-  bottom: 7px;
-  left: 7px;
   background: #d9a441;
   color: #1a1305;
   font-size: 9.5px;
@@ -2359,12 +2661,16 @@ body.light .header {
   letter-spacing: 0.6px;
   padding: 3px 6px;
   border-radius: 5px;
-  z-index: 1;
 }
 .criterion-badge-modal {
   position: static;
   background: #d9a441;
   color: #1a1305;
+}
+.criterion-badge-list {
+  position: static;
+  margin-inline-start: 6px;
+  padding: 2px 5px;
 }
 
 /* ---------- Digital item that also has a physical Blu-ray copy ---------- */
@@ -2378,9 +2684,6 @@ body.light .header {
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
 }
 .bluray-badge {
-  position: absolute;
-  bottom: 7px;
-  left: 7px;
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -2391,12 +2694,8 @@ body.light .header {
   letter-spacing: 0.5px;
   padding: 3px 6px;
   border-radius: 5px;
-  z-index: 2;
 }
 .digital-badge {
-  position: absolute;
-  bottom: 7px;
-  right: 7px;
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -2407,7 +2706,27 @@ body.light .header {
   letter-spacing: 0.5px;
   padding: 3px 6px;
   border-radius: 5px;
+}
+.poster-badge-stack {
+  position: absolute;
+  bottom: 7px;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: calc(50% - 10px);
+}
+.poster-badge-stack > * {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+.poster-badge-stack-left {
+  left: 7px;
+  align-items: flex-start;
+}
+.poster-badge-stack-right {
+  right: 7px;
+  align-items: flex-end;
 }
 .bluray-badge-list {
   position: static;

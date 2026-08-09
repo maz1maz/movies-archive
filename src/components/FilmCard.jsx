@@ -77,21 +77,34 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
           {statusLabel}
         </span>
         {hasLocation && (
-          <span className="location-badge">
-            <IconPin width={11} height={11} />{' '}
-            {isDigital ? film.driveNumber : `C${film.closet || '–'} R${film.row || '–'} S${film.shelf || '–'}`}
-          </span>
+          <div className="poster-badge-stack poster-badge-stack-right">
+            <span className="location-badge">
+              <IconPin width={11} height={11} />{' '}
+              {isDigital ? film.driveNumber : `C${film.closet || '–'} R${film.row || '–'} S${film.shelf || '–'}`}
+            </span>
+            {hasDigital && (
+              <span className="digital-badge" title="Digital copy also owned">
+                <IconClapper width={11} height={11} /> DIGITAL
+              </span>
+            )}
+          </div>
         )}
-        {film.criterion && <span className="criterion-badge">CRITERION</span>}
-        {hasBluray && (
-          <span className="bluray-badge" title="Blu-ray copy also owned">
-            <IconDisc width={11} height={11} /> BLU-RAY
-          </span>
+        {!hasLocation && hasDigital && (
+          <div className="poster-badge-stack poster-badge-stack-right">
+            <span className="digital-badge" title="Digital copy also owned">
+              <IconClapper width={11} height={11} /> DIGITAL
+            </span>
+          </div>
         )}
-        {hasDigital && (
-          <span className="digital-badge" title="Digital copy also owned">
-            <IconClapper width={11} height={11} /> DIGITAL
-          </span>
+        {(film.criterion || hasBluray) && (
+          <div className="poster-badge-stack poster-badge-stack-left">
+            {film.criterion && <span className="criterion-badge">CRITERION</span>}
+            {hasBluray && (
+              <span className="bluray-badge" title="Blu-ray copy also owned">
+                <IconDisc width={11} height={11} /> BLU-RAY
+              </span>
+            )}
+          </div>
         )}
       </div>
       <div className="card-body">
