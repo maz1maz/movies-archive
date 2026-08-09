@@ -241,16 +241,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               {mediaFormat}
             </span>
             {film.criterion && <span className="criterion-badge criterion-badge-modal">CRITERION</span>}
-            {hasBluray && (
-              <span className="bluray-badge bluray-badge-modal" title="Blu-ray copy also owned">
-                <IconDisc width={12} height={12} /> BLU-RAY OWNED
-              </span>
-            )}
-            {hasDigital && (
-              <span className="digital-badge digital-badge-modal" title="Digital copy also owned">
-                <IconClapper width={12} height={12} /> DIGITAL OWNED
-              </span>
-            )}
           </div>
           {metaSubParts.length > 0 && (
             <p className="cine-subtitle">{metaSubParts.join(' | ')}</p>
@@ -295,6 +285,21 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
 
               <div className="cine-top-badges-column">
+                {(hasBluray || hasDigital) && (
+                  <div className="cine-ownership-badges">
+                    {hasBluray && (
+                      <span className="bluray-badge bluray-badge-modal" title="Blu-ray copy also owned">
+                        <IconDisc width={12} height={12} /> BLU-RAY OWNED
+                      </span>
+                    )}
+                    {hasDigital && (
+                      <span className="digital-badge digital-badge-modal" title="Digital copy also owned">
+                        <IconClapper width={12} height={12} /> DIGITAL OWNED
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {(film.closet || film.shelf || film.row) && film.mediaType !== 'digital' && (
                   <div className="cine-shelf-badge">
                     <span className="shelf-icon">

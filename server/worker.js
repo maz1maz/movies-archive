@@ -460,6 +460,9 @@ export default {
           film = await enrichFilm(film, key)
         } catch {}
         await insertFilm(db, film)
+        try {
+          await syncSharedMetadataToSibling(db, film)
+        } catch {}
         return json(film, 201, corsHeaders)
       }
 
@@ -488,6 +491,9 @@ export default {
           }
         }
         await updateFilm(db, updated)
+        try {
+          await syncSharedMetadataToSibling(db, updated)
+        } catch {}
         return json(parseFilmRow(updated), 200, corsHeaders)
       }
 
@@ -523,6 +529,9 @@ export default {
           )
           enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
           await updateFilm(db, enriched)
+          try {
+            await syncSharedMetadataToSibling(db, enriched)
+          } catch {}
         } catch {
           return json({ ...parsed, _enrichment: { enabled: Boolean(key), fields: [] } }, 200, corsHeaders)
         }
@@ -1653,6 +1662,9 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
     if (fields.length) updated++
     enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
     await updateFilm(db, enriched)
+    try {
+      await syncSharedMetadataToSibling(db, enriched)
+    } catch {}
   }
 
   const remaining = await db
@@ -1684,3 +1696,46 @@ async function updateFilm(db, film) {
     reviews ? (Array.isArray(reviews) ? JSON.stringify(reviews) : reviews) : null, id
   ).run()
 }
+
+// فیلدهای «توصیفیِ» فیلم که مستقل از فرمت (فیزیکی/دیجیتال) هستن و باید بین
+// دو نسخه‌ی هم‌نام (بلوری + دیجیتالِ همون فیلم) یکسان بمونن. فیلدهای مخصوص
+// فرمت (closet/shelf/row/driveNumber/format/criterion/copies/watched/...)
+// عمداً اینجا نیستن، چون طبیعتاً بین دو نسخه فرق دارن.
+const SHARED_METADATA_FIELDS = [
+  'originalTitle', 'director', 'producer', 'cast', 'genre', 'rating',
+  'runtime', 'country', 'synopsis', 'poster', 'studio', 'rated',
+  'imdbId', 'imdbVotes', 'letterboxdRating', 'letterboxdVotes',
+]
+
+// بعد از هر آپدیت/enrich روی یه فیلم، اگه همون فیلم (با عنوان+سال یکسان) هم
+// به‌صورت فیزیکی هم دیجیتال توی آرشیو باشه، فیلدهای توصیفی مشترک رو از رکورد
+// تازه‌آپدیت‌شده روی نسخه‌ی دیگه هم می‌ریزیم — تا دیگه سینوپسیس/کست/امتیاز
+// بین دو نسخه فرق نکنه. دیتای تازه‌تر (همینی که الان آپدیت شد) همیشه ارجحیت داره.
+async function syncSharedMetadataToSibling(db, film) {
+  if (!film.title || !film.mediaType) return
+  const otherMediaType = film.mediaType === 'digital' ? 'physical' : 'digital'
+  const sibling = await db
+    .prepare(
+      `SELECT * FROM films WHERE id != ? AND mediaType = ? AND LOWER(TRIM(REPLACE(title, char(8217), char(39)))) = LOWER(TRIM(REPLACE(?, char(8217), char(39)))) AND (year IS ? OR year = ?) LIMIT 1`
+    )
+    .bind(film.id, otherMediaType, film.title, film.year ?? null, film.year ?? null)
+    .first()
+  if (!sibling) return
+  const siblingParsed = parseFilmRow(sibling)
+  let changed = false
+  for (const key of SHARED_METADATA_FIELDS) {
+    const incoming = film[key]
+    const isIncomingEmpty = incoming == null || (Array.isArray(incoming) ? incoming.length === 0 : String(incoming).trim() === '')
+    if (isIncomingEmpty) continue
+    const current = siblingParsed[key]
+    const same = Array.isArray(incoming) && Array.isArray(current)
+      ? JSON.stringify(incoming) === JSON.stringify(current)
+      : incoming === current
+    if (!same) {
+      siblingParsed[key] = incoming
+      changed = true
+    }
+  }
+  if (changed) await updateFilm(db, siblingParsed)
+}
+
