@@ -270,10 +270,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
                 <li key={f.id}>
                   <button
                     className="location-title-row"
-                    onClick={() => {
-                      onSelectFilm(f)
-                      onClose()
-                    }}
+                    onClick={() => onSelectFilm(f)}
                   >
                     <span className="location-title-icon">
                       {f.itemType === 'series' ? <IconBookshelf width={13} height={13} /> : <IconFilm width={13} height={13} />}
@@ -283,7 +280,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
                     <span className="location-title-loc">
                       C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}
                     </span>
-                    {f.criterion && <span className="criterion-badge">CRITERION</span>}
+                    {f.criterion && <span className="criterion-badge criterion-badge-list">CRITERION</span>}
                     {f.copies > 1 && <span className="copies-badge">×{f.copies}</span>}
                   </button>
                 </li>

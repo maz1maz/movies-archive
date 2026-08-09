@@ -929,6 +929,18 @@ export default function App() {
         Cinefilm Archive · Built with React and Node.js
       </footer>
 
+      {showExport && (
+        <ExportModal films={sectionFilms} section={section} onClose={() => setShowExport(false)} />
+      )}
+
+      {showLocationBrowser && (
+        <LocationBrowserModal
+          films={allFilmsUnfiltered}
+          onSelectFilm={(film) => setSelected(film)}
+          onClose={() => setShowLocationBrowser(false)}
+        />
+      )}
+
       {selected && !useSplitView && (
         <FilmModal
           film={selected}
@@ -959,18 +971,6 @@ export default function App() {
             setSelected(film)
           }}
           onClose={() => setSelectedPerson(null)}
-        />
-      )}
-
-      {showExport && (
-        <ExportModal films={sectionFilms} section={section} onClose={() => setShowExport(false)} />
-      )}
-
-      {showLocationBrowser && (
-        <LocationBrowserModal
-          films={allFilmsUnfiltered}
-          onSelectFilm={(film) => setSelected(film)}
-          onClose={() => setShowLocationBrowser(false)}
         />
       )}
 

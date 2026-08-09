@@ -2618,6 +2618,11 @@ body.light .header {
   background: #d9a441;
   color: #1a1305;
 }
+.criterion-badge-list {
+  position: static;
+  margin-inline-start: 6px;
+  padding: 2px 5px;
+}
 
 /* ---------- Digital item that also has a physical Blu-ray copy ---------- */
 .card-has-bluray {
