@@ -327,7 +327,7 @@ body.light .header {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   padding: 5px 0;
   margin-top: 3px;
   background: var(--bg);
@@ -339,15 +339,15 @@ body.light .header {
 .pagination-numbers {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 .pagination-num {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
   border-radius: 6px;
-  min-width: 26px;
-  padding: 3px 6px;
+  min-width: 24px;
+  padding: 3px 5px;
   font-size: 12px;
   cursor: pointer;
 }
@@ -358,7 +358,7 @@ body.light .header {
   font-weight: 800;
 }
 .pagination-dots {
-  padding: 0 2px;
+  padding: 0 1px;
   color: var(--muted);
 }
 .pagination-top {
