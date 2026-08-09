@@ -23,6 +23,24 @@ function IconHamburger(props) {
   )
 }
 
+function getPageNumbers(page, pageCount) {
+  const delta = 1
+  const range = []
+  const withDots = []
+  for (let i = 1; i <= pageCount; i++) {
+    if (i === 1 || i === pageCount || (i >= page - delta && i <= page + delta)) {
+      range.push(i)
+    }
+  }
+  let prev
+  for (const i of range) {
+    if (prev !== undefined && i - prev > 1) withDots.push('…')
+    withDots.push(i)
+    prev = i
+  }
+  return withDots
+}
+
 function IconFilter(props) {
   return (
     <svg width={props.width || 15} height={props.height || 15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -449,7 +467,22 @@ export default function Header({
       {showPagination && (
         <div className="container pagination pagination-top">
           <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Previous</button>
-          <span>Page {page} of {pageCount}</span>
+          <div className="pagination-numbers">
+            {getPageNumbers(page, pageCount).map((p, idx) =>
+              p === '…' ? (
+                <span key={`dots-${idx}`} className="pagination-dots">…</span>
+              ) : (
+                <button
+                  key={p}
+                  type="button"
+                  className={p === page ? 'pagination-num pagination-num-active' : 'pagination-num'}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              )
+            )}
+          </div>
           <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next →</button>
         </div>
       )}

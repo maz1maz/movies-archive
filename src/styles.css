@@ -336,6 +336,31 @@ body.light .header {
 }
 .pagination button { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; padding: 3px 8px; font-size: 12px; cursor: pointer; }
 .pagination button:disabled { opacity: .4; cursor: not-allowed; }
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pagination-num {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+  min-width: 26px;
+  padding: 3px 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pagination-num-active {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+  font-weight: 800;
+}
+.pagination-dots {
+  padding: 0 2px;
+  color: var(--muted);
+}
 .pagination-top {
   position: relative;
   padding: 6px 0 3px;
