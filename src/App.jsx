@@ -928,7 +928,7 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        Cinefilm Archive · Built with React and Node.js
+        Cinefilm Archive · © {new Date().getFullYear()} · @1hamid
       </footer>
 
       {showExport && (
