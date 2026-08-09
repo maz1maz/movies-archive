@@ -1175,7 +1175,7 @@ export default {
                 Shelf: f.shelf || '',
                 Row: f.row || '',
                 Format: f.format || '',
-                Criterion: f.criterion ? 'Yes' : 'No',
+                Criterion: f.criterion ? `Yes${f.copies > 1 ? ` ×${f.copies}` : ''}` : 'No',
                 Copies: f.copies || 1,
                 Watched: f.watched === true ? 'Yes' : 'No',
                 'Borrowed To': f.borrowedTo || '',

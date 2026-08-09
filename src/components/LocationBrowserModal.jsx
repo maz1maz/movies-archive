@@ -69,12 +69,13 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
 
     const rows = visibleFilms
       .map(
-        (f) => `
+        (f, idx) => `
       <tr>
+        <td class="cell-nowrap">${idx + 1}</td>
         <td class="cell-title">${f.title}${f.originalTitle && f.originalTitle !== f.title ? ` <span class="cell-orig">(${f.originalTitle})</span>` : ''}</td>
         <td class="cell-nowrap">C${f.closet || '—'} R${f.row || '—'} S${f.shelf || '—'}</td>
         <td class="cell-nowrap">${f.format || 'Blu-ray'}</td>
-        <td class="cell-nowrap">${f.criterion ? 'Criterion' : '—'}</td>
+        <td class="cell-nowrap">${f.criterion ? `Criterion${f.copies > 1 ? ` ×${f.copies}` : ''}` : '—'}</td>
         <td class="cell-nowrap">${f.copies > 1 ? f.copies : 1}</td>
         <td class="cell-nowrap">${f.year || '—'}</td>
         <td class="cell-nowrap">${f.director || '—'}</td>
@@ -112,17 +113,19 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
           <button onclick="window.print()" style="padding:10px 18px; margin-bottom:15px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
           <table>
             <colgroup>
-              <col style="width:32%">
+              <col style="width:4%">
+              <col style="width:29%">
               <col style="width:13%">
-              <col style="width:10%">
-              <col style="width:10%">
-              <col style="width:8%">
+              <col style="width:9%">
+              <col style="width:11%">
+              <col style="width:7%">
               <col style="width:7%">
               <col style="width:14%">
               <col style="width:6%">
             </colgroup>
             <thead>
               <tr>
+                <th>#</th>
                 <th>Title</th>
                 <th>Location</th>
                 <th>Format</th>
