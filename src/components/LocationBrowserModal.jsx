@@ -276,8 +276,13 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
                     <span className="location-title-icon">
                       {f.itemType === 'series' ? <IconBookshelf width={13} height={13} /> : <IconFilm width={13} height={13} />}
                     </span>
-                    <span className="location-title-text">{f.title}</span>
-                    {f.year && <span className="location-title-year">{f.year}</span>}
+                    <span className="location-title-main">
+                      <span className="location-title-line1">
+                        <span className="location-title-text">{f.title}</span>
+                        {f.year && <span className="location-title-year">{f.year}</span>}
+                      </span>
+                      {f.director && <span className="location-title-director">{f.director}</span>}
+                    </span>
                     <span className="location-title-loc">
                       C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}
                     </span>

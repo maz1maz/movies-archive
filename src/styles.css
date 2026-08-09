@@ -1378,8 +1378,20 @@ body.light .header {
   color: var(--muted);
   flex-shrink: 0;
 }
-.location-title-text {
+.location-title-main {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.location-title-line1 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.location-title-text {
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1388,6 +1400,14 @@ body.light .header {
 .location-title-year {
   color: var(--muted);
   font-size: 11.5px;
+  flex-shrink: 0;
+}
+.location-title-director {
+  color: var(--muted);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .location-title-loc {
   color: var(--muted);
