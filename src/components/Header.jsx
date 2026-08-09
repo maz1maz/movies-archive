@@ -400,20 +400,20 @@ export default function Header({
                 <div className="header-menu-section-title">Account</div>
                 {isGuest ? (
                   <button type="button" onClick={() => { openLogin(); setMenuOpen(false) }}>
-                    ورود
+                    Log in
                   </button>
                 ) : (
                   <>
                     <div style={{ padding: '4px 12px', color: 'var(--muted)', fontSize: 13 }}>
-                      {user.username} {isAdmin ? '(ادمین)' : ''}
+                      {user.username} {isAdmin ? '(Admin)' : ''}
                     </div>
                     {isAdmin && (
                       <button type="button" onClick={() => { setAdminOpen(true); setMenuOpen(false) }}>
-                        مدیریت کاربران
+                        Manage Users
                       </button>
                     )}
                     <button type="button" onClick={() => { logout(); setMenuOpen(false) }}>
-                      خروج
+                      Log out
                     </button>
                   </>
                 )}
@@ -497,7 +497,7 @@ export default function Header({
               type="number"
               min={1}
               max={pageCount}
-              placeholder={`رفتن به…`}
+              placeholder={`Go to…`}
               value={jumpValue}
               onChange={(e) => setJumpValue(e.target.value)}
               className="pagination-jump-input"

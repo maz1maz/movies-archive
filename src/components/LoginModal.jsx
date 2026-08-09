@@ -30,13 +30,13 @@ export default function LoginModal() {
   return (
     <div className="modal-overlay" onClick={close}>
       <div className="edit-modal" style={{ width: 'min(380px, 94vw)' }} onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="modal-close" onClick={close} aria-label="بستن">
+        <button type="button" className="modal-close" onClick={close} aria-label="Close">
           ✕
         </button>
-        <h2 className="edit-title">ورود به آرشیو</h2>
+        <h2 className="edit-title">Log in to the Archive</h2>
         <form onSubmit={submit} className="edit-form" style={{ gridTemplateColumns: '1fr' }}>
           <label className="edit-field full">
-            <span>نام کاربری</span>
+            <span>Username</span>
             <input
               autoFocus
               value={username}
@@ -45,7 +45,7 @@ export default function LoginModal() {
             />
           </label>
           <label className="edit-field full">
-            <span>رمز عبور</span>
+            <span>Password</span>
             <input
               type="password"
               value={password}
@@ -57,11 +57,11 @@ export default function LoginModal() {
             <p style={{ color: '#e2555b', fontSize: 13, margin: '0 0 4px' }}>{loginError}</p>
           )}
           <button type="submit" className="btn btn-primary" disabled={submitting} style={{ justifySelf: 'start' }}>
-            {submitting ? 'در حال ورود…' : 'ورود'}
+            {submitting ? 'Logging in…' : 'Log in'}
           </button>
         </form>
         <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: 14 }}>
-          بدون ورود هم می‌تونی همه‌ی آرشیو رو مرور و جستجو کنی — فقط ویرایش و افزودن نیاز به ورود داره.
+          You can browse and search the whole archive without logging in — only editing and adding require login.
         </p>
       </div>
     </div>

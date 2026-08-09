@@ -322,7 +322,7 @@ export default function GalleryPanel({ films, onBack, onOpenFilm }) {
 
       {mediaStatus === 'unsupported' && !engineError && (
         <div style={badgeStyle}>
-          این مرورگر از تکسچر فشرده پشتیبانی نمی‌کنه — بدون پوستر نمایش داده می‌شه
+          This browser doesn't support compressed textures — showing without posters
         </div>
       )}
 

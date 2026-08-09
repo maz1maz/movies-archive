@@ -202,7 +202,7 @@ export default function App() {
           // می‌داریم و فقط خطا رو نشون می‌دیم.
           console.error('Unexpected /api/films response:', data)
           setLoading(false)
-          showToast((data && data.error) || 'خطا در بارگذاری فیلم‌ها — لیست قبلی نگه داشته شد')
+          showToast((data && data.error) || 'Failed to load films — previous list kept')
           return
         }
         setFilms(data)

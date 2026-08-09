@@ -54,30 +54,30 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   const linkInputRef = useRef(null)
 
   const FIELD_LABELS = {
-    title: 'عنوان', originalTitle: 'عنوان اصلی', year: 'سال', director: 'کارگردان',
-    producer: 'تهیه‌کننده', cast: 'بازیگران', genre: 'ژانر', rating: 'امتیاز IMDb',
-    runtime: 'مدت زمان', country: 'کشور', studio: 'استودیو', rated: 'رده‌بندی سنی',
-    letterboxdRating: 'امتیاز Letterboxd', poster: 'پوستر', synopsis: 'خلاصه داستان',
-    imdbId: 'IMDb ID', imdbVotes: 'تعداد رای IMDb',
+    title: 'Title', originalTitle: 'Original Title', year: 'Year', director: 'Director',
+    producer: 'Producer', cast: 'Cast', genre: 'Genre', rating: 'IMDb Rating',
+    runtime: 'Runtime', country: 'Country', studio: 'Studio', rated: 'MPA Rating',
+    letterboxdRating: 'Letterboxd Rating', poster: 'Poster', synopsis: 'Synopsis',
+    imdbId: 'IMDb ID', imdbVotes: 'IMDb Votes',
   }
   const SKIP_KEYS = ['closet', 'shelf', 'row', 'mediaType', 'driveNumber', 'itemType', 'watched', 'watchlisted', 'myRating', 'criterion', 'copies', 'seasonsEpisodes', 'seasonDrives']
 
   const lookupNewFilmFromImdb = async () => {
     if (!form.title.trim()) {
-      setLookupError('اول عنوان فیلم رو بنویس')
+      setLookupError('Enter the film title first')
       return null
     }
     const qs = new URLSearchParams({ title: form.title.trim() })
     if (form.year) qs.set('year', form.year)
     const res = await fetch(`/api/omdb-lookup?${qs.toString()}`)
     const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'یافت نشد')
+    if (!res.ok) throw new Error(data.error || 'Not found')
     return data
   }
 
   const lookupFromLink = async () => {
     if (!linkUrl.trim()) {
-      setLookupError('لینک IMDb یا Letterboxd رو بچسبون')
+      setLookupError('Paste an IMDb or Letterboxd link')
       return
     }
     setLookupError('')
@@ -86,7 +86,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       const qs = new URLSearchParams({ url: linkUrl.trim() })
       const res = await fetch(`/api/link-lookup?${qs.toString()}`)
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'یافت نشد')
+      if (!res.ok) throw new Error(data.error || 'Not found')
       const fetched = toForm(data)
       if (isNew) {
         // فیلم جدید، فرم خالیه — همه‌چیز رو از لینک پر می‌کنیم به‌جز محل فیزیکی/نوع رسانه
@@ -264,7 +264,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
 
           {linkConflicts && linkConflicts.length > 0 && (
             <div className="edit-field full link-conflicts-panel">
-              <span>این فیلد‌ها از قبل مقدار داشتن — دیتای لینک باهاشون فرق داره. کدوم‌ها جایگزین بشن؟</span>
+              <span>These fields already had values — the link data differs. Which should be replaced?</span>
               <div className="link-conflicts-list">
                 {linkConflicts.map((c) => (
                   <label key={c.key} className="link-conflict-row">
