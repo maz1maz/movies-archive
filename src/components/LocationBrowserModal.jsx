@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { IconClose, IconPin, IconFilm, IconDisc, IconBookshelf } from './icons.jsx'
+import { IconClose, IconPin, IconFilm, IconBookshelf } from './icons.jsx'
 
 const CLOSET_COUNT = 8
 const ROW_COUNT = 5
@@ -170,11 +170,8 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
                     <span className="location-title-loc">
                       C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}
                     </span>
-                    {String(f.format || '').toLowerCase().includes('blu-ray') && (
-                      <span className="bluray-badge bluray-badge-list">
-                        <IconDisc width={9} height={9} /> BLU-RAY
-                      </span>
-                    )}
+                    {f.criterion && <span className="criterion-badge">CRITERION</span>}
+                    {f.copies > 1 && <span className="copies-badge">×{f.copies}</span>}
                   </button>
                 </li>
               ))}
