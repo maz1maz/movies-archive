@@ -101,6 +101,7 @@ export default function Header({
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [azOpen, setAzOpen] = useState(false)
   const [condensed, setCondensed] = useState(false)
+  const [jumpValue, setJumpValue] = useState('')
   const { user, isGuest, isAdmin, logout, openLogin, setAdminOpen } = useAuth()
 
   // برای مهمان‌ها، به‌جای اجرای عملیات نوشتنی، مدال ورود باز می‌شه.
@@ -483,6 +484,25 @@ export default function Header({
               )
             )}
           </div>
+          <form
+            className="pagination-jump"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const n = parseInt(jumpValue, 10)
+              if (n >= 1 && n <= pageCount) setPage(n)
+              setJumpValue('')
+            }}
+          >
+            <input
+              type="number"
+              min={1}
+              max={pageCount}
+              placeholder={`رفتن به…`}
+              value={jumpValue}
+              onChange={(e) => setJumpValue(e.target.value)}
+              className="pagination-jump-input"
+            />
+          </form>
           <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next →</button>
         </div>
       )}

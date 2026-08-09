@@ -361,6 +361,25 @@ body.light .header {
   padding: 0 1px;
   color: var(--muted);
 }
+.pagination-jump {
+  display: flex;
+  align-items: center;
+  margin-inline-start: 4px;
+}
+.pagination-jump-input {
+  width: 66px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+.pagination-jump-input::-webkit-outer-spin-button,
+.pagination-jump-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 .pagination-top {
   position: relative;
   padding: 6px 0 3px;
