@@ -1,17 +1,14 @@
 import { useMemo, useState } from 'react'
 import { IconClose, IconPin, IconFilm, IconDisc, IconBookshelf } from './icons.jsx'
 
+const CLOSET_COUNT = 8
+const ROW_COUNT = 5
+const SHELF_COUNT = 3
+
 function sortKey(title) {
   return String(title || '')
     .replace(/^the\s+/i, '')
     .toLowerCase()
-}
-
-function numSort(a, b) {
-  const na = parseFloat(a)
-  const nb = parseFloat(b)
-  if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb
-  return String(a).localeCompare(String(b))
 }
 
 export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
@@ -24,26 +21,17 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
     [films]
   )
 
-  const closets = useMemo(
-    () => [...new Set(physical.map((f) => String(f.closet || '–')))].sort(numSort),
-    [physical]
-  )
+  const closets = useMemo(() => Array.from({ length: CLOSET_COUNT }, (_, i) => String(i + 1)), [])
+  const rows = useMemo(() => Array.from({ length: ROW_COUNT }, (_, i) => String(i + 1)), [])
+  const shelves = useMemo(() => Array.from({ length: SHELF_COUNT }, (_, i) => String(i + 1)), [])
 
-  const rows = useMemo(() => {
-    if (!closet) return []
-    return [...new Set(physical.filter((f) => String(f.closet || '–') === closet).map((f) => String(f.row || '–')))].sort(numSort)
-  }, [physical, closet])
-
-  const shelves = useMemo(() => {
-    if (!closet || !row) return []
-    return [
-      ...new Set(
-        physical
-          .filter((f) => String(f.closet || '–') === closet && String(f.row || '–') === row)
-          .map((f) => String(f.shelf || '–'))
-      ),
-    ].sort(numSort)
-  }, [physical, closet, row])
+  const countFor = (c, r, s) =>
+    physical.filter(
+      (f) =>
+        (!c || String(f.closet || '–') === c) &&
+        (!r || String(f.row || '–') === r) &&
+        (!s || String(f.shelf || '–') === s)
+    ).length
 
   const visibleFilms = useMemo(() => {
     let list = physical
@@ -82,15 +70,21 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
           <div className="location-tree-col">
             <p className="location-tree-label">Closet</p>
             <div className="location-chip-list">
-              {closets.map((c) => (
-                <button
-                  key={c}
-                  className={c === closet ? 'location-chip location-chip-active' : 'location-chip'}
-                  onClick={() => pickCloset(c)}
-                >
-                  C{c}
-                </button>
-              ))}
+              {closets.map((c) => {
+                const n = countFor(c, null, null)
+                return (
+                  <button
+                    key={c}
+                    className={
+                      (c === closet ? 'location-chip location-chip-active' : 'location-chip') +
+                      (n === 0 ? ' location-chip-empty' : '')
+                    }
+                    onClick={() => pickCloset(c)}
+                  >
+                    C{c} <span className="location-chip-count">{n}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -98,15 +92,21 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
             <div className="location-tree-col">
               <p className="location-tree-label">Row</p>
               <div className="location-chip-list">
-                {rows.map((r) => (
-                  <button
-                    key={r}
-                    className={r === row ? 'location-chip location-chip-active' : 'location-chip'}
-                    onClick={() => pickRow(r)}
-                  >
-                    R{r}
-                  </button>
-                ))}
+                {rows.map((r) => {
+                  const n = countFor(closet, r, null)
+                  return (
+                    <button
+                      key={r}
+                      className={
+                        (r === row ? 'location-chip location-chip-active' : 'location-chip') +
+                        (n === 0 ? ' location-chip-empty' : '')
+                      }
+                      onClick={() => pickRow(r)}
+                    >
+                      R{r} <span className="location-chip-count">{n}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -115,15 +115,21 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
             <div className="location-tree-col">
               <p className="location-tree-label">Section</p>
               <div className="location-chip-list">
-                {shelves.map((s) => (
-                  <button
-                    key={s}
-                    className={s === shelf ? 'location-chip location-chip-active' : 'location-chip'}
-                    onClick={() => pickShelf(s)}
-                  >
-                    S{s}
-                  </button>
-                ))}
+                {shelves.map((s) => {
+                  const n = countFor(closet, row, s)
+                  return (
+                    <button
+                      key={s}
+                      className={
+                        (s === shelf ? 'location-chip location-chip-active' : 'location-chip') +
+                        (n === 0 ? ' location-chip-empty' : '')
+                      }
+                      onClick={() => pickShelf(s)}
+                    >
+                      S{s} <span className="location-chip-count">{n}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
