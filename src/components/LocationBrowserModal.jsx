@@ -94,14 +94,14 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
       .map(
         (f) => `
       <tr>
-        <td><strong>${f.title}</strong><br><small style="color:#666">${f.originalTitle || ''}</small></td>
-        <td>Closet ${f.closet || '—'} / Row ${f.row || '—'} / Section ${f.shelf || '—'}</td>
-        <td>${f.format || 'Blu-ray'}</td>
-        <td>${f.criterion ? 'Criterion' : '—'}</td>
-        <td>${f.copies > 1 ? f.copies : 1}</td>
-        <td>${f.year || '—'}</td>
-        <td>${f.director || '—'}</td>
-        <td>★ ${f.rating ? f.rating.toFixed(1) : '—'}</td>
+        <td class="cell-title">${f.title}${f.originalTitle && f.originalTitle !== f.title ? ` <span class="cell-orig">(${f.originalTitle})</span>` : ''}</td>
+        <td class="cell-nowrap">C${f.closet || '—'} R${f.row || '—'} S${f.shelf || '—'}</td>
+        <td class="cell-nowrap">${f.format || 'Blu-ray'}</td>
+        <td class="cell-nowrap">${f.criterion ? 'Criterion' : '—'}</td>
+        <td class="cell-nowrap">${f.copies > 1 ? f.copies : 1}</td>
+        <td class="cell-nowrap">${f.year || '—'}</td>
+        <td class="cell-nowrap">${f.director || '—'}</td>
+        <td class="cell-nowrap">★ ${f.rating ? f.rating.toFixed(1) : '—'}</td>
       </tr>
     `
       )
@@ -114,10 +114,13 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
           <title>Location Catalog ${locationLabel} - ${new Date().toLocaleDateString()}</title>
           <style>
             body { font-family: system-ui, sans-serif; padding: 20px; color: #111; }
-            h1 { font-size: 22px; margin-bottom: 4px; }
-            p { font-size: 13px; color: #666; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; font-size: 12px; }
-            th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: left; }
+            h1 { font-size: 20px; margin-bottom: 4px; }
+            p { font-size: 12px; color: #666; margin-bottom: 14px; }
+            table { width: 100%; border-collapse: collapse; font-size: 10.5px; table-layout: fixed; }
+            th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .cell-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+            .cell-orig { font-weight: 400; color: #777; }
+            .cell-nowrap { white-space: nowrap; }
             th { background: #f0f0f0; font-weight: bold; }
             tr:nth-child(even) { background: #f9f9f9; }
             @media print {
@@ -131,10 +134,20 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
           <p>Total Items: ${visibleFilms.length} · Generated on ${new Date().toLocaleString()}</p>
           <button onclick="window.print()" style="padding:10px 18px; margin-bottom:15px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
           <table>
+            <colgroup>
+              <col style="width:32%">
+              <col style="width:13%">
+              <col style="width:10%">
+              <col style="width:10%">
+              <col style="width:8%">
+              <col style="width:7%">
+              <col style="width:14%">
+              <col style="width:6%">
+            </colgroup>
             <thead>
               <tr>
                 <th>Title</th>
-                <th>Physical Storage</th>
+                <th>Location</th>
                 <th>Format</th>
                 <th>Criterion</th>
                 <th>Copies</th>
