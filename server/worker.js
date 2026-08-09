@@ -1161,6 +1161,7 @@ export default {
         const closetParam = url.searchParams.get('closet')
         const rowParam = url.searchParams.get('row')
         const shelfParam = url.searchParams.get('shelf')
+        const letterParam = (url.searchParams.get('letter') || '').toUpperCase()
         let sql = 'SELECT * FROM films'
         const conditions = []
         const params = []
@@ -1169,6 +1170,16 @@ export default {
         if (closetParam) { conditions.push('closet = ?'); params.push(closetParam) }
         if (rowParam) { conditions.push('row = ?'); params.push(rowParam) }
         if (shelfParam) { conditions.push('shelf = ?'); params.push(shelfParam) }
+        if (letterParam) {
+          // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The "/"A " ابتدای عنوان
+          const sortableTitle = `CASE WHEN title LIKE 'The %' THEN substr(title,5) WHEN title LIKE 'A %' THEN substr(title,3) ELSE title END`
+          if (letterParam === '#') {
+            conditions.push(`UPPER(SUBSTR(${sortableTitle}, 1, 1)) NOT BETWEEN 'A' AND 'Z'`)
+          } else {
+            conditions.push(`UPPER(SUBSTR(${sortableTitle}, 1, 1)) = ?`)
+            params.push(letterParam)
+          }
+        }
         if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ')
         sql += ' ORDER BY title'
         const result = await db.prepare(sql).bind(...params).all()
@@ -1238,7 +1249,8 @@ export default {
         XLSX.utils.book_append_sheet(wb, ws, 'Film Archive')
         const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: false })
         const locationScope = [closetParam ? `C${closetParam}` : '', rowParam ? `R${rowParam}` : '', shelfParam ? `S${shelfParam}` : ''].join('')
-        const excelFilenameScope = locationScope || (itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : '')
+        const letterScope = letterParam ? `${letterParam}-` : ''
+        const excelFilenameScope = locationScope || letterScope || (itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : '')
         return new Response(buf, {
           status: 200,
           headers: {

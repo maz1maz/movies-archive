@@ -1,7 +1,24 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { IconClose, IconDocument, IconPrinter, IconBarChart, IconDownload, IconSave } from './icons.jsx'
 
+const LETTERS = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))]
+
+function sortableTitle(title) {
+  const t = String(title || '')
+  if (/^the\s+/i.test(t)) return t.slice(4)
+  if (/^a\s+/i.test(t)) return t.slice(2)
+  return t
+}
+
+function firstLetterOf(title) {
+  const t = sortableTitle(title).trim()
+  const ch = (t[0] || '').toUpperCase()
+  return ch >= 'A' && ch <= 'Z' ? ch : '#'
+}
+
 export default function ExportModal({ films, section, onClose }) {
+  const [letter, setLetter] = useState(null)
+
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -11,6 +28,10 @@ export default function ExportModal({ films, section, onClose }) {
       document.body.style.overflow = ''
     }
   }, [onClose])
+
+  const scopedFilms = (letter ? films.filter((f) => firstLetterOf(f.title) === letter) : films)
+    .slice()
+    .sort((a, b) => sortableTitle(a.title).localeCompare(sortableTitle(b.title)))
 
   // فیلترهای بکاپ دیجیتال/سریال، بر اساس بخشی که کاربر الان توش هست
   const scopeParams = new URLSearchParams()
@@ -27,12 +48,16 @@ export default function ExportModal({ films, section, onClose }) {
     scopeParams.set('mediaType', 'physical')
     scopeLabel = 'physical collection'
   }
+  if (letter) scopeParams.set('letter', letter)
+  const excelScopeQuery = scopeParams.toString() ? `?${scopeParams.toString()}` : ''
+  scopeParams.delete('letter')
   const scopeQuery = scopeParams.toString() ? `?${scopeParams.toString()}` : ''
+  const letterLabel = letter ? ` (letter ${letter})` : ''
 
   const handleLetterboxdExport = () => {
     const esc = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
     const header = ['Name', 'Year', 'Directors', 'Rating10', 'Watched', 'Tags']
-    const rows = films.map((f) => [
+    const rows = scopedFilms.map((f) => [
       f.title,
       f.year || '',
       f.director || '',
@@ -45,7 +70,7 @@ export default function ExportModal({ films, section, onClose }) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'letterboxd-film-archive.csv'
+    link.download = letter ? `letterboxd-film-archive-${letter}.csv` : 'letterboxd-film-archive.csv'
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -54,10 +79,11 @@ export default function ExportModal({ films, section, onClose }) {
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
 
-    const rows = films
+    const rows = scopedFilms
       .map(
-        (f) => `
+        (f, idx) => `
       <tr>
+        <td>${idx + 1}</td>
         <td><strong>${f.title}</strong><br><small style="color:#666">${f.originalTitle || ''}</small></td>
         <td>Closet ${f.closet || '—'} / Row ${f.row || '—'} / Section ${f.shelf || '—'}</td>
         <td>${f.format || 'Blu-ray'}</td>
@@ -75,7 +101,7 @@ export default function ExportModal({ films, section, onClose }) {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Physical Film Archive Catalog - ${new Date().toLocaleDateString()}</title>
+          <title>Physical Film Archive Catalog${letterLabel} - ${new Date().toLocaleDateString()}</title>
           <style>
             body { font-family: system-ui, sans-serif; padding: 20px; color: #111; }
             h1 { font-size: 22px; margin-bottom: 4px; }
@@ -91,12 +117,13 @@ export default function ExportModal({ films, section, onClose }) {
           </style>
         </head>
         <body>
-          <h1>🎬 Physical Film Archive Catalog</h1>
-          <p>Total Items: ${films.length} movies · Generated on ${new Date().toLocaleString()}</p>
+          <h1>🎬 Physical Film Archive Catalog${letterLabel}</h1>
+          <p>Total Items: ${scopedFilms.length} movies · Generated on ${new Date().toLocaleString()}</p>
           <button onclick="window.print()" style="padding:10px 18px; margin-bottom:15px; font-weight:bold; cursor:pointer;">🖨️ Print Catalog / Save as PDF</button>
           <table>
             <thead>
               <tr>
+                <th>#</th>
                 <th>Title</th>
                 <th>Physical Storage</th>
                 <th>Format</th>
@@ -131,6 +158,32 @@ export default function ExportModal({ films, section, onClose }) {
           <p className="export-sub">Download your physical movie collection in multiple formats</p>
         </div>
 
+        <div className="export-letter-filter">
+          <span className="export-letter-label">Letter:</span>
+          <div className="export-letter-chips">
+            <button
+              type="button"
+              className={!letter ? 'export-letter-chip export-letter-chip-active' : 'export-letter-chip'}
+              onClick={() => setLetter(null)}
+            >
+              All
+            </button>
+            {LETTERS.map((l) => (
+              <button
+                key={l}
+                type="button"
+                className={letter === l ? 'export-letter-chip export-letter-chip-active' : 'export-letter-chip'}
+                onClick={() => setLetter(l)}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          {letter && (
+            <span className="export-letter-count">{scopedFilms.length} title{scopedFilms.length === 1 ? '' : 's'}</span>
+          )}
+        </div>
+
         <div className="export-options-grid">
           {/* Printable PDF Catalog */}
           <div className="export-card">
@@ -138,7 +191,7 @@ export default function ExportModal({ films, section, onClose }) {
               <IconDocument width={22} height={22} />
             </span>
             <h3>Printable PDF Catalog</h3>
-            <p>Generate a complete formatted physical inventory list suitable for printing or saving as PDF.</p>
+            <p>Generate a complete formatted physical inventory list{letterLabel} suitable for printing or saving as PDF.</p>
             <button className="btn btn-primary" onClick={handlePrintPDF}>
               <IconPrinter width={14} height={14} /> Generate PDF Catalog
             </button>
@@ -150,8 +203,8 @@ export default function ExportModal({ films, section, onClose }) {
               <IconBarChart width={22} height={22} />
             </span>
             <h3>Excel Spreadsheet (.xlsx)</h3>
-            <p>Export {section ? `your ${scopeLabel}` : `all ${films.length} films`} into an Excel spreadsheet with all columns and shelf/drive details.</p>
-            <a href={`/api/export/excel${scopeQuery}`} download className="btn btn-ghost">
+            <p>Export {section ? `your ${scopeLabel}` : `all ${films.length} films`}{letterLabel} into an Excel spreadsheet with all columns and shelf/drive details.</p>
+            <a href={`/api/export/excel${excelScopeQuery}`} download className="btn btn-ghost">
               <IconDownload width={14} height={14} /> Download Excel Export
             </a>
           </div>
@@ -159,7 +212,7 @@ export default function ExportModal({ films, section, onClose }) {
           <div className="export-card">
             <span className="export-icon">🎞️</span>
             <h3>Letterboxd CSV</h3>
-            <p>Download a CSV with titles, years, directors, ratings, watched status and genre tags.</p>
+            <p>Download a CSV with titles, years, directors, ratings, watched status and genre tags{letterLabel}.</p>
             <button className="btn btn-primary" onClick={handleLetterboxdExport}>
               ⬇️ Download Letterboxd CSV
             </button>
