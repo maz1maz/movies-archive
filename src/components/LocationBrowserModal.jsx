@@ -73,13 +73,13 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
       <tr>
         <td class="cell-nowrap">${idx + 1}</td>
         <td class="cell-title">${f.title}${f.originalTitle && f.originalTitle !== f.title ? ` <span class="cell-orig">(${f.originalTitle})</span>` : ''}</td>
+        <td class="cell-nowrap">${f.year || '—'}</td>
+        <td class="cell-nowrap">${f.director || '—'}</td>
+        <td class="cell-nowrap">★ ${f.rating ? f.rating.toFixed(1) : '—'}</td>
         <td class="cell-nowrap">C${f.closet || '—'} R${f.row || '—'} S${f.shelf || '—'}</td>
         <td class="cell-nowrap">${f.format || 'Blu-ray'}</td>
         <td class="cell-nowrap">${f.criterion ? `Criterion${f.copies > 1 ? ` ×${f.copies}` : ''}` : '—'}</td>
         <td class="cell-nowrap">${f.copies > 1 ? f.copies : 1}</td>
-        <td class="cell-nowrap">${f.year || '—'}</td>
-        <td class="cell-nowrap">${f.director || '—'}</td>
-        <td class="cell-nowrap">★ ${f.rating ? f.rating.toFixed(1) : '—'}</td>
       </tr>
     `
       )
@@ -92,8 +92,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
           <title>Location Catalog ${locationLabel} - ${new Date().toLocaleDateString()}</title>
           <style>
             body { font-family: system-ui, sans-serif; padding: 20px; color: #111; }
-            h1 { font-size: 20px; margin-bottom: 4px; }
-            p { font-size: 12px; color: #666; margin-bottom: 14px; }
+            .catalog-header { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 14px; }
+            .catalog-header-text { text-align: right; }
+            .catalog-header-logo { font-size: 32px; line-height: 1; }
+            h1 { font-size: 20px; margin: 0 0 4px; }
+            .catalog-header p { font-size: 12px; color: #666; margin: 0; }
             table { width: 100%; border-collapse: collapse; font-size: 10.5px; table-layout: fixed; }
             th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .cell-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
@@ -108,32 +111,37 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
           </style>
         </head>
         <body>
-          <h1>🎬 Location Catalog — ${locationLabel}</h1>
-          <p>Total Items: ${visibleFilms.length} · Generated on ${new Date().toLocaleString()}</p>
+          <div class="catalog-header">
+            <div class="catalog-header-text">
+              <h1>Location Catalog — ${locationLabel}</h1>
+              <p>Total Items: ${visibleFilms.length} · Generated on ${new Date().toLocaleString()}</p>
+            </div>
+            <div class="catalog-header-logo">🎬</div>
+          </div>
           <button onclick="window.print()" style="padding:10px 18px; margin-bottom:15px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
           <table>
             <colgroup>
               <col style="width:4%">
-              <col style="width:29%">
+              <col style="width:26%">
+              <col style="width:7%">
+              <col style="width:14%">
+              <col style="width:6%">
               <col style="width:13%">
               <col style="width:9%">
               <col style="width:11%">
               <col style="width:7%">
-              <col style="width:7%">
-              <col style="width:14%">
-              <col style="width:6%">
             </colgroup>
             <thead>
               <tr>
                 <th>#</th>
                 <th>Title</th>
+                <th>Year</th>
+                <th>Director</th>
+                <th>IMDb</th>
                 <th>Location</th>
                 <th>Format</th>
                 <th>Criterion</th>
                 <th>Copies</th>
-                <th>Year</th>
-                <th>Director</th>
-                <th>IMDb</th>
               </tr>
             </thead>
             <tbody>
