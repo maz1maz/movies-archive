@@ -682,8 +682,11 @@ body.light .header {
   background: rgba(217, 164, 65, 0.08);
   border-radius: 10px;
   padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .link-conflicts-panel > span:first-child {
+  display: block;
   color: var(--warning, #d9a441);
   font-size: 12px;
   font-weight: 700;
@@ -693,24 +696,30 @@ body.light .header {
   flex-direction: column;
   gap: 6px;
   margin-top: 8px;
+  width: 100%;
 }
 .link-conflict-row {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: start;
   gap: 8px;
   padding: 6px 8px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.03);
+  width: 100%;
+  box-sizing: border-box;
 }
 .link-conflict-row input[type='checkbox'] {
   margin-top: 3px;
-  flex: none;
+  width: 16px;
+  height: 16px;
 }
 .link-conflict-body {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  width: 100%;
 }
 .link-conflict-label {
   font-size: 11px;
@@ -723,7 +732,8 @@ body.light .header {
   gap: 6px;
   font-size: 13px;
   flex-wrap: wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
+  width: 100%;
 }
 .link-conflict-old {
   color: var(--muted);
@@ -731,6 +741,7 @@ body.light .header {
 }
 .link-conflict-arrow {
   color: var(--muted);
+  flex: none;
 }
 .link-conflict-new {
   color: var(--accent, #d9a441);
