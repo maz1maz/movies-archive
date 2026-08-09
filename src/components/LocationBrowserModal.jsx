@@ -102,9 +102,9 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
           <title>Location Catalog ${locationLabel} - ${new Date().toLocaleDateString()}</title>
           <style>
             body { font-family: system-ui, sans-serif; padding: 20px; color: #111; }
-            .catalog-header { display: flex; justify-content: flex-start; align-items: center; gap: 12px; margin-bottom: 14px; }
-            .catalog-header-text { text-align: left; }
-            .catalog-header-logo { font-size: 32px; line-height: 1; }
+            .catalog-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+            .catalog-header-logo { height: 46px; width: auto; flex-shrink: 0; }
+            .catalog-header-text { text-align: right; }
             h1 { font-size: 20px; margin: 0 0 4px; }
             .catalog-header p { font-size: 12px; color: #666; margin: 0; }
             table { width: 100%; border-collapse: collapse; font-size: 10.5px; table-layout: fixed; }
@@ -122,7 +122,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
         </head>
         <body>
           <div class="catalog-header">
-            <div class="catalog-header-logo">🎬</div>
+            <img class="catalog-header-logo" src="${window.location.origin}/logo.png" alt="Cinefilm Archive" />
             <div class="catalog-header-text">
               <h1>Location Catalog — ${locationLabel}</h1>
               <p>Total Items: ${visibleFilms.length} · Generated on ${new Date().toLocaleString()}</p>
