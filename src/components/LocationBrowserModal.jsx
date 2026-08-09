@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import * as XLSX from 'xlsx'
 import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload } from './icons.jsx'
 
 const CLOSET_COUNT = 8
@@ -55,35 +54,13 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
 
   const locationLabel = closet || row || shelf ? `${closet ? `C${closet}` : ''}${row ? `R${row}` : ''}${shelf ? `S${shelf}` : ''}` : 'all-locations'
 
-  const handleExcelExport = () => {
-    const rows = visibleFilms.map((f, idx) => ({
-      '#': idx + 1,
-      Title: f.title || '',
-      'Original Title': f.originalTitle || '',
-      Closet: f.closet || '',
-      Row: f.row || '',
-      Section: f.shelf || '',
-      Format: f.format || '',
-      Criterion: f.criterion ? 'Yes' : 'No',
-      Copies: f.copies || 1,
-      Watched: f.watched === true ? 'Yes' : 'No',
-      Director: f.director || '',
-      Year: f.year || '',
-      Genre: Array.isArray(f.genre) ? f.genre.join(', ') : f.genre || '',
-      Rating: f.rating || '',
-      Studio: f.studio || '',
-    }))
-    const ws = XLSX.utils.json_to_sheet(rows)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Location')
-    const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: false })
-    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${locationLabel}-films.xlsx`
-    link.click()
-    URL.revokeObjectURL(url)
+  const excelExportUrl = () => {
+    const params = new URLSearchParams()
+    if (closet) params.set('closet', closet)
+    if (row) params.set('row', row)
+    if (shelf) params.set('shelf', shelf)
+    const qs = params.toString()
+    return `/api/export/excel${qs ? `?${qs}` : ''}`
   }
 
   const handlePrintPDF = () => {
@@ -266,9 +243,9 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
                 <button type="button" className="btn btn-ghost btn-sm" onClick={handlePrintPDF} title="Print / Save as PDF">
                   <IconPrinter width={13} height={13} /> PDF
                 </button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={handleExcelExport} title="Download Excel">
+                <a href={excelExportUrl()} download className="btn btn-ghost btn-sm" title="Download Excel">
                   <IconDownload width={13} height={13} /> Excel
-                </button>
+                </a>
               </div>
             )}
           </div>

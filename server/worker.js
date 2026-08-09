@@ -1119,17 +1119,23 @@ export default {
         })
       }
 
-      // ---- GET /api/export/excel (optional ?mediaType=&itemType= to scope the backup) ----
+      // ---- GET /api/export/excel (optional ?mediaType=&itemType=&closet=&row=&shelf= to scope the backup) ----
       if (method === 'GET' && pathname === '/api/export/excel') {
         const denied = requireAuth()
         if (denied) return denied
         const mediaType = url.searchParams.get('mediaType')
         const itemType = url.searchParams.get('itemType')
+        const closetParam = url.searchParams.get('closet')
+        const rowParam = url.searchParams.get('row')
+        const shelfParam = url.searchParams.get('shelf')
         let sql = 'SELECT * FROM films'
         const conditions = []
         const params = []
         if (mediaType) { conditions.push('mediaType = ?'); params.push(mediaType) }
         if (itemType) { conditions.push('itemType = ?'); params.push(itemType) }
+        if (closetParam) { conditions.push('closet = ?'); params.push(closetParam) }
+        if (rowParam) { conditions.push('row = ?'); params.push(rowParam) }
+        if (shelfParam) { conditions.push('shelf = ?'); params.push(shelfParam) }
         if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ')
         sql += ' ORDER BY title'
         const result = await db.prepare(sql).bind(...params).all()
@@ -1169,6 +1175,8 @@ export default {
                 Shelf: f.shelf || '',
                 Row: f.row || '',
                 Format: f.format || '',
+                Criterion: f.criterion ? 'Yes' : 'No',
+                Copies: f.copies || 1,
                 Watched: f.watched === true ? 'Yes' : 'No',
                 'Borrowed To': f.borrowedTo || '',
                 'Borrowed Date': f.borrowedDate || '',
@@ -1196,7 +1204,8 @@ export default {
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, 'آرشیو فیلم‌ها')
         const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: false })
-        const excelFilenameScope = itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : ''
+        const locationScope = [closetParam ? `C${closetParam}` : '', rowParam ? `R${rowParam}` : '', shelfParam ? `S${shelfParam}` : ''].join('')
+        const excelFilenameScope = locationScope || (itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : '')
         return new Response(buf, {
           status: 200,
           headers: {
