@@ -633,7 +633,9 @@ export default function App() {
     f.mediaType !== 'digital' && digitalKeys.has(`${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
   // نمای تقسیم‌شده (پنل جزئیات + گرید) فقط توی حالت Thumbnails و روی صفحه‌ی
   // عریض (دسکتاپ/تبلت)؛ توی موبایل و حالت List همون مودال قبلی می‌مونه.
-  const useSplitView = view === 'grid' && isWide
+  // نمای «split» (پنل جزئیات نصفه‌صفحه کنار گرید) به درخواست کاربر غیرفعال شد؛
+  // حالا همیشه از همون مودال کامل و وسط‌چین استفاده می‌شه، مثل جاهای دیگه‌ی اپ.
+  const useSplitView = false
 
   const folderCounts = {
     physical: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital' && f.itemType !== 'series').length,
