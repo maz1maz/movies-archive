@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconDisc, IconShare, IconClapper } from './icons.jsx'
+import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconShare } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { shareFilmCard } from '../utils/shareCard.js'
@@ -260,11 +260,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     <span className={`format-badge ${physicalFormat.toLowerCase().includes('4k') ? 'fmt-4k' : physicalFormat.toLowerCase().replace(/[^a-z0-9]/g, '')}`}>
                       {physicalFormat}
                     </span>
-                    {!isPhysical && (
-                      <span className="bluray-badge bluray-badge-modal" title="Blu-ray copy also owned">
-                        <IconDisc width={12} height={12} /> OWNED
-                      </span>
-                    )}
                     {(physicalRecord.closet || physicalRecord.shelf || physicalRecord.row) && (
                       <div className="cine-shelf-badge">
                         <span className="shelf-icon">
@@ -282,8 +277,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
                 {digitalRecord && (
                   <div className="cine-format-location-col cine-format-location-col-right">
-                    <span className="digital-badge digital-badge-modal" title={isPhysical ? 'Digital copy also owned' : undefined}>
-                      <IconClapper width={12} height={12} /> {isPhysical ? 'DIGITAL OWNED' : 'DIGITAL'}
+                    <span className="format-badge digital">
+                      DIGITAL
                     </span>
                     <div className="cine-shelf-badge cine-drive-badge">
                       <span className="shelf-icon">
