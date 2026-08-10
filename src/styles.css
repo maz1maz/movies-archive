@@ -1591,6 +1591,45 @@ body.light .header {
 .shelf-film-list .location-title-row {
   padding: 10px 6px;
 }
+.shelf-film-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.shelf-film-item .location-title-row {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.shelf-remove-btn {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.shelf-remove-btn:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.shelf-remove-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.shelf-view-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
 
 .location-browser-top {
   display: flex;

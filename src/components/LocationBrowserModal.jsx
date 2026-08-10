@@ -124,6 +124,26 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     }
   }
 
+  // حذف تکی: مکان یک فیلم را خالی می‌کند تا به «بی‌آدرس» منتقل شود
+  const [removingId, setRemovingId] = useState(null)
+  const removeFromLocation = async (f) => {
+    if (removingId) return
+    setRemovingId(f.id)
+    try {
+      const res = await fetch('/api/films/' + f.id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ closet: '', row: '', shelf: '' }),
+      })
+      if (!res.ok) throw new Error('remove failed')
+      if (onFilmsChanged) onFilmsChanged()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setRemovingId(null)
+    }
+  }
+
   const closets = useMemo(() => Array.from({ length: CLOSET_COUNT }, (_, i) => String(i + 1)), [])
   const rows = useMemo(() => Array.from({ length: ROW_COUNT }, (_, i) => String(i + 1)), [])
 
@@ -497,6 +517,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   <div className="shelf-view-title">
                     {currentSection.label} <span className="shelf-view-cap">(capacity {currentSection.capacity})</span>
                   </div>
+                  {canEdit && <div className="shelf-view-hint">Use ✕ to remove a film from this section (moves it to unassigned)</div>}
                 </div>
                 <div className="shelf-view-actions">
                   <button type="button" className="btn btn-ghost btn-sm" onClick={handlePrintPDF} title="Print / Save as PDF">
@@ -528,7 +549,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
               ) : (
                 <ul className="shelf-film-list">
                   {shelfFilms.map((f) => (
-                    <li key={f.id}>
+                    <li key={f.id} className="shelf-film-item">
                       <button className="location-title-row" onClick={() => onSelectFilm(f)}>
                         <span className="location-title-icon">
                           {f.itemType === 'series' ? <IconBookshelf width={13} height={13} /> : <IconFilm width={13} height={13} />}
@@ -548,6 +569,17 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                         )}
                         {f.copies > 1 && <span className="copies-badge">×{f.copies}</span>}
                       </button>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          className="shelf-remove-btn"
+                          onClick={() => removeFromLocation(f)}
+                          disabled={removingId === f.id}
+                          title="Remove from this location (moves to unassigned)"
+                        >
+                          {removingId === f.id ? '…' : '✕'}
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
