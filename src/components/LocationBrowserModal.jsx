@@ -53,15 +53,32 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     [physicalAll]
   )
 
+  // آیا یک فیلم در مکان هدفِ (کاملاً) انتخاب‌شده هست؟ اگر بله، از لیست انتخاب حذفش می‌کنیم
+  // تا فیلمی که همین حالا در اون گروه هست دوباره نشون داده نشه.
+  const atTarget = (f) =>
+    closet && row && shelf &&
+    String(f.closet || '') === closet &&
+    String(f.row || '') === row &&
+    String(f.shelf || '') === shelf
+
   const filteredFilms = useMemo(() => {
     const q = filmQuery.trim().toLowerCase()
-    if (!q) return physicalSorted
-    return physicalSorted.filter(
+    let base = physicalSorted
+    if (closet && row && shelf) {
+      base = base.filter((f) => !atTarget(f))
+    }
+    if (!q) return base
+    return base.filter(
       (f) =>
         String(f.title || '').toLowerCase().includes(q) ||
         String(f.year || '').includes(q)
     )
-  }, [physicalSorted, filmQuery])
+  }, [physicalSorted, filmQuery, closet, row, shelf])
+
+  const targetExcludedCount = useMemo(() => {
+    if (!(closet && row && shelf)) return 0
+    return physicalSorted.filter((f) => atTarget(f)).length
+  }, [physicalSorted, closet, row, shelf])
 
   const selectedCount = selectedIds.size
 
@@ -543,7 +560,10 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
             <div className="film-selector-head">
               <div className="film-selector-title">
                 <h3>Film list</h3>
-                <span className="film-selector-sub">Select films, then pick a Closet / Row / Section above and move them there</span>
+                <span className="film-selector-sub">
+                  Select films, then pick a Closet / Row / Section above and move them there.
+                  {targetExcludedCount > 0 && <> Films already in {targetLabel} are hidden.</>}
+                </span>
               </div>
               <input
                 className="film-selector-search"
