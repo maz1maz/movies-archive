@@ -959,10 +959,12 @@ export default function App() {
       {showLocationBrowser && (
         <LocationBrowserModal
           films={allFilmsUnfiltered}
+          canEdit={!isGuest}
           onSelectFilm={(film) => {
             setForceFilmOverlay(true)
             setSelected(film)
           }}
+          onFilmsChanged={loadAllFilmsUnfiltered}
           onClose={() => setShowLocationBrowser(false)}
         />
       )}

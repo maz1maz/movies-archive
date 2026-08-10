@@ -497,6 +497,27 @@ export default {
         return json(parseFilmRow(updated), 200, corsHeaders)
       }
 
+      // ---- POST /api/films/bulk-move (assign the same location to many films) ----
+      if (method === 'POST' && pathname === '/api/films/bulk-move') {
+        const denied = requireAuth()
+        if (denied) return denied
+        const body = await request.json().catch(() => ({}))
+        const ids = Array.isArray(body.ids) ? body.ids.map((x) => String(x)).filter(Boolean) : []
+        if (!ids.length) return json({ error: 'ids are required' }, 400, corsHeaders)
+        const closet = String(body.closet || '').trim()
+        const row = String(body.row || '').trim()
+        const shelf = String(body.shelf || '').trim()
+        if (!closet || !row || !shelf) {
+          return json({ error: 'closet, row and shelf are required' }, 400, corsHeaders)
+        }
+        const stmt = db.prepare(
+          "UPDATE films SET closet = ?, row = ?, shelf = ?, updatedAt = datetime('now') WHERE id = ?"
+        )
+        const batch = ids.map((id) => stmt.bind(closet, row, shelf, id))
+        await db.batch(batch)
+        return json({ moved: ids.length }, 200, corsHeaders)
+      }
+
       // ---- DELETE /api/films/:id (permanently remove a film) ----
       const deleteMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
       if (method === 'DELETE' && deleteMatch) {

@@ -19,10 +19,13 @@ function sortKey(title) {
     .toLowerCase()
 }
 
-export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
+export default function LocationBrowserModal({ films, onSelectFilm, onClose, canEdit = false, onFilmsChanged }) {
   const [closet, setCloset] = useState('')
   const [row, setRow] = useState('')
   const [shelf, setShelf] = useState('')
+  const [selectedIds, setSelectedIds] = useState(() => new Set())
+  const [filmQuery, setFilmQuery] = useState('')
+  const [moving, setMoving] = useState(false)
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -34,10 +37,75 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
     }
   }, [onClose])
 
-  const physical = useMemo(
-    () => films.filter((f) => f.mediaType !== 'digital' && (f.closet || f.row || f.shelf)),
+  // همه فیلم‌های فیزیکی (بلوری) — برای لیست انتخاب
+  const physicalAll = useMemo(
+    () => films.filter((f) => f.mediaType !== 'digital'),
     [films]
   )
+  // فقط فیلم‌هایی که مکان دارند — برای شمارش و نقشه‌ی کمد
+  const physical = useMemo(
+    () => physicalAll.filter((f) => f.closet || f.row || f.shelf),
+    [physicalAll]
+  )
+
+  const physicalSorted = useMemo(
+    () => [...physicalAll].sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title))),
+    [physicalAll]
+  )
+
+  const filteredFilms = useMemo(() => {
+    const q = filmQuery.trim().toLowerCase()
+    if (!q) return physicalSorted
+    return physicalSorted.filter(
+      (f) =>
+        String(f.title || '').toLowerCase().includes(q) ||
+        String(f.year || '').includes(q)
+    )
+  }, [physicalSorted, filmQuery])
+
+  const selectedCount = selectedIds.size
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const selectAllFiltered = () => {
+    setSelectedIds(new Set(filteredFilms.map((f) => f.id)))
+  }
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const hasTarget = Boolean(closet && row && shelf)
+  const targetLabel = hasTarget ? `C${closet}R${row}S${shelf}` : ''
+
+  const moveSelected = async () => {
+    if (!hasTarget || !selectedCount || moving) return
+    setMoving(true)
+    try {
+      const res = await fetch('/api/films/bulk-move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          closet,
+          row,
+          shelf,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'move failed')
+      setSelectedIds(new Set())
+      if (onFilmsChanged) onFilmsChanged()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setMoving(false)
+    }
+  }
 
   const closets = useMemo(() => Array.from({ length: CLOSET_COUNT }, (_, i) => String(i + 1)), [])
   const rows = useMemo(() => Array.from({ length: ROW_COUNT }, (_, i) => String(i + 1)), [])
@@ -292,6 +360,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
         </div>
 
         <div className="location-browser-body">
+          <div className="location-browser-top">
           {!closet && (
             <div className="closet-grid-wrap">
               <div className="closet-grid">
@@ -468,6 +537,78 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
               )}
             </div>
           )}
+          </div>
+
+          <div className="film-selector">
+            <div className="film-selector-head">
+              <div className="film-selector-title">
+                <h3>Film list</h3>
+                <span className="film-selector-sub">Select films, then pick a Closet / Row / Section above and move them there</span>
+              </div>
+              <input
+                className="film-selector-search"
+                type="text"
+                placeholder="Search films…"
+                value={filmQuery}
+                onChange={(e) => setFilmQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="film-selector-actions">
+              <span className="film-selector-count">{selectedCount} selected</span>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={selectAllFiltered} disabled={!filteredFilms.length}>
+                Select all ({filteredFilms.length})
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={clearSelection} disabled={!selectedCount}>
+                Clear
+              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm film-selector-move"
+                  onClick={moveSelected}
+                  disabled={!selectedCount || !hasTarget || moving}
+                >
+                  {moving ? 'Moving…' : `Move ${selectedCount} selected → ${targetLabel || '…'}`}
+                </button>
+              )}
+              {!canEdit && hasTarget && selectedCount > 0 && (
+                <span className="film-selector-login-hint">Log in to move films</span>
+              )}
+            </div>
+
+            <div className="film-selector-list">
+              {filteredFilms.length === 0 ? (
+                <div className="status empty-state">
+                  <p>No films match your search.</p>
+                </div>
+              ) : (
+                filteredFilms.map((f) => {
+                  const isSel = selectedIds.has(f.id)
+                  return (
+                    <label
+                      key={f.id}
+                      className={'film-selector-row' + (isSel ? ' film-selector-row-selected' : '')}
+                    >
+                      <input
+                        type="checkbox"
+                        className="film-selector-check"
+                        checked={isSel}
+                        onChange={() => toggleSelect(f.id)}
+                      />
+                      <span className="film-selector-title">
+                        <span className="film-selector-title-text">{f.title}</span>
+                        {f.year && <span className="film-selector-year">{f.year}</span>}
+                      </span>
+                      <span className="film-selector-loc">
+                        C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}
+                      </span>
+                    </label>
+                  )
+                })
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
