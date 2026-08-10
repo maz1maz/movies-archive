@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload } from './icons.jsx'
+import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload, IconArchive } from './icons.jsx'
 
 const CLOSET_COUNT = 8
 const ROW_COUNT = 10
@@ -20,9 +20,9 @@ function sortKey(title) {
 }
 
 export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
-  const [closet, setCloset] = useState(null)
-  const [row, setRow] = useState(null)
-  const [shelf, setShelf] = useState(null)
+  const [closet, setCloset] = useState('')
+  const [row, setRow] = useState('')
+  const [shelf, setShelf] = useState('')
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -50,7 +50,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
         (!s || String(f.shelf || '–') === s)
     ).length
 
-  // ایندکس سریع: closet|row|shelf -> لیست فیلم‌ها (برای ساخت نقشه‌ی کمد و پیش‌نمایش عنوان‌ها)
+  // ایندکس سریع: closet|row|shelf -> لیست فیلم‌ها
   const sectionIndex = useMemo(() => {
     const map = {}
     for (const f of physical) {
@@ -64,20 +64,20 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
     return map
   }, [physical])
 
-  // نقشه‌ی کمد انتخاب‌شده: ۱۰ ردیف × ۲ بخش، هر بخش با تعداد فیلم و پیش‌نمایش عنوان
-  const cabinetMap = useMemo(() => {
+  // نقشه‌ی کمد انتخاب‌شده: ۱۰ ردیف × ۲ بخش
+  const cabinetRows = useMemo(() => {
     if (!closet) return []
     return rows.map((r) => {
       const sections = SECTIONS.map((sec) => {
-        const filmsIn = (sectionIndex[`${closet}|${r}|${sec.num}`] || [])
+        const list = (sectionIndex[`${closet}|${r}|${sec.num}`] || [])
           .slice()
           .sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
         return {
           num: sec.num,
           capacity: sec.capacity,
           label: sec.label,
-          count: filmsIn.length,
-          previews: filmsIn.slice(0, PREVIEW_TITLES),
+          count: list.length,
+          previews: list.slice(0, PREVIEW_TITLES),
         }
       })
       return {
@@ -88,35 +88,36 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
     })
   }, [closet, rows, sectionIndex])
 
-  const closetTotal = closet ? countFor(closet, null, null) : 0
+  // فیلم‌های قفسه‌ی (بخش) انتخاب‌شده
+  const shelfFilms = useMemo(() => {
+    if (!closet || !row || !shelf) return []
+    return (sectionIndex[`${closet}|${row}|${shelf}`] || [])
+      .slice()
+      .sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
+  }, [closet, row, shelf, sectionIndex])
 
-  const visibleFilms = useMemo(() => {
-    let list = physical
-    if (closet) list = list.filter((f) => String(f.closet || '–') === closet)
-    if (closet && row) list = list.filter((f) => String(f.row || '–') === row)
-    if (closet && row && shelf) list = list.filter((f) => String(f.shelf || '–') === shelf)
-    return [...list].sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
-  }, [physical, closet, row, shelf])
+  const currentSection = SECTIONS.find((s) => s.num === shelf) || null
 
-  const pickCloset = (c) => {
-    setCloset(c === closet ? null : c)
-    setRow(null)
-    setShelf(null)
+  const selectCloset = (v) => {
+    setCloset(v)
+    setRow('')
+    setShelf('')
+  }
+  const selectRow = (v) => {
+    setRow(v)
+    setShelf('')
+  }
+  const selectShelf = (v) => setShelf(v)
+
+  // کلیک روی بخش‌های نقشه‌ی کمد => همون ردیف/بخش رو انتخاب می‌کنه و قفسه رو نشون می‌ده
+  const pickFromMap = (r, s) => {
+    setRow(r)
+    setShelf(s)
   }
 
-  // کلیک روی یک بخش از نقشه‌ی کمد => همان بخش را در لیست جزئیات پایین باز می‌کند.
-  // کلیک دوباره روی همان بخش، انتخاب را برمی‌دارد (نمایش کل کمد).
-  const pickSection = (r, s) => {
-    if (row === r && shelf === s) {
-      setRow(null)
-      setShelf(null)
-    } else {
-      setRow(r)
-      setShelf(s)
-    }
-  }
-
-  const locationLabel = closet || row || shelf ? `${closet ? `C${closet}` : ''}${row ? `R${row}` : ''}${shelf ? `S${shelf}` : ''}` : 'all-locations'
+  const locationLabel = closet || row || shelf
+    ? `${closet ? `C${closet}` : ''}${row ? `R${row}` : ''}${shelf ? `S${shelf}` : ''}`
+    : 'all-locations'
 
   const excelExportUrl = () => {
     const params = new URLSearchParams()
@@ -131,7 +132,8 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
 
-    const rows = visibleFilms
+    const list = shelfFilms.length ? shelfFilms : (closet ? physical.filter((f) => String(f.closet || '–') === closet) : physical)
+    const rows = list
       .map(
         (f, idx) => `
       <tr>
@@ -168,10 +170,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
             .cell-nowrap { white-space: nowrap; }
             th { background: #f0f0f0; font-weight: bold; }
             tr:nth-child(even) { background: #f9f9f9; }
-            @media print {
-              body { padding: 0; }
-              button { display: none; }
-            }
+            @media print { body { padding: 0; } button { display: none; } }
           </style>
         </head>
         <body>
@@ -179,38 +178,22 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
             <img class="catalog-header-logo" src="${window.location.origin}/logo.png" alt="Cinefilm Archive" />
             <div class="catalog-header-text">
               <h1>🎬 Location Catalog — ${locationLabel}</h1>
-              <p>Total Items: ${visibleFilms.length} · Generated on ${new Date().toLocaleString()}</p>
+              <p>Total Items: ${list.length} · Generated on ${new Date().toLocaleString()}</p>
             </div>
           </div>
           <button onclick="window.print()" style="padding:10px 18px; margin-bottom:15px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
           <table>
             <colgroup>
-              <col style="width:4%">
-              <col style="width:26%">
-              <col style="width:7%">
-              <col style="width:14%">
-              <col style="width:6%">
-              <col style="width:13%">
-              <col style="width:9%">
-              <col style="width:11%">
-              <col style="width:7%">
+              <col style="width:4%"><col style="width:26%"><col style="width:7%"><col style="width:14%">
+              <col style="width:6%"><col style="width:13%"><col style="width:9%"><col style="width:11%"><col style="width:7%">
             </colgroup>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Title</th>
-                <th>Year</th>
-                <th>Director</th>
-                <th>IMDb</th>
-                <th>Location</th>
-                <th>Format</th>
-                <th>Criterion</th>
-                <th>Copies</th>
+                <th>#</th><th>Title</th><th>Year</th><th>Director</th><th>IMDb</th>
+                <th>Location</th><th>Format</th><th>Criterion</th><th>Copies</th>
               </tr>
             </thead>
-            <tbody>
-              ${rows}
-            </tbody>
+            <tbody>${rows}</tbody>
           </table>
         </body>
       </html>
@@ -220,190 +203,239 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-location" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
-          <IconClose width={16} height={16} />
-        </button>
-
-        <div className="location-header">
-          <h2>
-            <IconPin width={18} height={18} /> Browse by Location
-          </h2>
-          <p className="export-sub">
-            {closet
-              ? `Cabinet Map — Closet ${closet} · ${closetTotal} films`
-              : 'Pick a closet to see its cabinet map, then click a section for the full list'}
-          </p>
-        </div>
-
-        <div className="location-tree">
-          <div className="location-tree-col">
-            <p className="location-tree-label">Closet</p>
-            <div className="location-chip-list">
-              {closets.map((c) => {
-                const n = countFor(c, null, null)
-                return (
-                  <button
-                    key={c}
-                    className={
-                      (c === closet ? 'location-chip location-chip-active' : 'location-chip') +
-                      (n === 0 ? ' location-chip-empty' : '')
-                    }
-                    onClick={() => pickCloset(c)}
-                  >
-                    C{c} <span className="location-chip-count">{n}</span>
-                  </button>
-                )
-              })}
-            </div>
+      <div className="location-browser" onClick={(e) => e.stopPropagation()}>
+        <header className="location-browser-head">
+          <div className="location-browser-title">
+            <h2>
+              <IconPin width={18} height={18} /> Browse by Location
+            </h2>
+            <p className="export-sub">Choose a closet, row and section — the shelf will appear below</p>
           </div>
+          <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
+            <IconClose width={16} height={16} />
+          </button>
+        </header>
 
-          {closet && (
-            <div className="location-tree-col location-tree-col-map">
-              <p className="location-tree-label">Row / Section</p>
-              <div className="location-tree-map-hint">
-                Click any section in the cabinet map below to open its list
-              </div>
-            </div>
+        <div className="location-browser-selectors">
+          <label className="location-browser-selector">
+            <span>Closet</span>
+            <select value={closet} onChange={(e) => selectCloset(e.target.value)}>
+              <option value="">— choose —</option>
+              {closets.map((c) => (
+                <option key={c} value={c}>
+                  C{c} · {countFor(c, null, null)} films
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="location-browser-selector">
+            <span>Row</span>
+            <select value={row} onChange={(e) => selectRow(e.target.value)} disabled={!closet}>
+              <option value="">— choose —</option>
+              {rows.map((r) => (
+                <option key={r} value={r}>
+                  R{r} · {countFor(closet, r, null)} films
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="location-browser-selector">
+            <span>Section</span>
+            <select value={shelf} onChange={(e) => selectShelf(e.target.value)} disabled={!row}>
+              <option value="">— choose —</option>
+              {SECTIONS.map((s) => (
+                <option key={s.num} value={s.num}>
+                  S{s.num} · cap {s.capacity} · {countFor(closet, row, s.num)} films
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {(closet || row || shelf) && (
+            <button type="button" className="btn btn-ghost btn-sm location-browser-clear" onClick={() => { setRow(''); setShelf(''); setCloset('') }}>
+              ✕ Clear
+            </button>
           )}
         </div>
 
-        {closet && (
-          <div className="cabinet-map">
-            <div className="cabinet-map-head">
-              <span className="cabinet-map-title">Cabinet {closet}</span>
-              <span className="cabinet-map-meta">
-                {cabinetMap.length} rows · {SECTIONS.length} sections per row · {closetTotal} films
-              </span>
+        <div className="location-browser-body">
+          {!closet && (
+            <div className="closet-grid-wrap">
+              <div className="closet-grid">
+                {closets.map((c) => {
+                  const n = countFor(c, null, null)
+                  return (
+                    <button key={c} className="closet-card" onClick={() => selectCloset(c)}>
+                      <span className="closet-card-idx">C{c}</span>
+                      <span className="closet-card-count">{n} films</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-            <div className="cabinet-map-legend">
-              <span className="cabinet-map-legend-item">
-                <span className="cabinet-map-legend-swatch cabinet-map-legend-swatch-s1" /> Section 1 · capacity {SECTIONS[0].capacity}
-              </span>
-              <span className="cabinet-map-legend-item">
-                <span className="cabinet-map-legend-swatch cabinet-map-legend-swatch-s2" /> Section 2 · capacity {SECTIONS[1].capacity}
-              </span>
-            </div>
-            <div className="cabinet-map-body">
-              {cabinetMap.map((r) => (
-                <div className="cabinet-row" key={r.row}>
-                  <div className="cabinet-row-label">
-                    <span className="cabinet-row-num">R{r.row}</span>
-                    <span className="cabinet-row-total">{r.total}</span>
-                  </div>
-                  <div className="cabinet-row-shelves">
-                    {r.sections.map((sec) => {
-                      const isActive = row === r.row && shelf === sec.num
-                      const pct = Math.min(100, Math.round((sec.count / sec.capacity) * 100))
-                      return (
-                        <button
-                          key={sec.num}
-                          className={
-                            'cabinet-section' +
-                            (sec.num === '1' ? ' cabinet-section-s1' : ' cabinet-section-s2') +
-                            (isActive ? ' cabinet-section-active' : '') +
-                            (sec.count === 0 ? ' cabinet-section-empty' : '')
-                          }
-                          onClick={() => pickSection(r.row, sec.num)}
-                          title={`${sec.label} · ${sec.count} of ${sec.capacity}`}
-                        >
-                          <div className="cabinet-section-top">
-                            <span className="cabinet-section-label">S{sec.num}</span>
-                            <span className="cabinet-section-cap">
-                              {sec.count}<span className="cabinet-section-cap-slash">/{sec.capacity}</span>
-                            </span>
-                          </div>
-                          <div className="cabinet-section-track">
-                            <div
-                              className="cabinet-section-fill"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <div className="cabinet-section-previews">
-                            {sec.previews.length === 0 ? (
-                              <span className="cabinet-section-preview-empty">Empty section</span>
-                            ) : (
-                              sec.previews.map((f) => (
-                                <span className="cabinet-section-preview" key={f.id}>
-                                  <IconFilm width={9} height={9} /> {f.title}
-                                </span>
-                              ))
-                            )}
-                            {sec.count > sec.previews.length && (
-                              <span className="cabinet-section-preview-more">
-                                +{sec.count - sec.previews.length} more
+          )}
+
+          {closet && !row && (
+            <div className="cabinet-map cabinet-map-full">
+              <div className="cabinet-map-head">
+                <span className="cabinet-map-title">Cabinet {closet} — pick a row or section</span>
+                <span className="cabinet-map-meta">{cabinetRows.length} rows · {countFor(closet, null, null)} films</span>
+              </div>
+              <div className="cabinet-map-legend">
+                <span className="cabinet-map-legend-item">
+                  <span className="cabinet-map-legend-swatch cabinet-map-legend-swatch-s1" /> Section 1 · cap {SECTIONS[0].capacity}
+                </span>
+                <span className="cabinet-map-legend-item">
+                  <span className="cabinet-map-legend-swatch cabinet-map-legend-swatch-s2" /> Section 2 · cap {SECTIONS[1].capacity}
+                </span>
+              </div>
+              <div className="cabinet-map-body">
+                {cabinetRows.map((r) => (
+                  <div className="cabinet-row" key={r.row}>
+                    <div className="cabinet-row-label">
+                      <span className="cabinet-row-num">R{r.row}</span>
+                      <span className="cabinet-row-total">{r.total}</span>
+                    </div>
+                    <div className="cabinet-row-shelves">
+                      {r.sections.map((sec) => {
+                        const pct = Math.min(100, Math.round((sec.count / sec.capacity) * 100))
+                        return (
+                          <button
+                            key={sec.num}
+                            className={
+                              'cabinet-section' +
+                              (sec.num === '1' ? ' cabinet-section-s1' : ' cabinet-section-s2') +
+                              (sec.count === 0 ? ' cabinet-section-empty' : '')
+                            }
+                            onClick={() => pickFromMap(r.row, sec.num)}
+                            title={`${sec.label} · ${sec.count} of ${sec.capacity}`}
+                          >
+                            <div className="cabinet-section-top">
+                              <span className="cabinet-section-label">S{sec.num}</span>
+                              <span className="cabinet-section-cap">
+                                {sec.count}<span className="cabinet-section-cap-slash">/{sec.capacity}</span>
                               </span>
-                            )}
-                          </div>
-                        </button>
-                      )
-                    })}
+                            </div>
+                            <div className="cabinet-section-track">
+                              <div className="cabinet-section-fill" style={{ width: `${pct}%` }} />
+                            </div>
+                            <div className="cabinet-section-previews">
+                              {sec.previews.length === 0 ? (
+                                <span className="cabinet-section-preview-empty">Empty section</span>
+                              ) : (
+                                sec.previews.map((f) => (
+                                  <span className="cabinet-section-preview" key={f.id}>
+                                    <IconFilm width={9} height={9} /> {f.title}
+                                  </span>
+                                ))
+                              )}
+                              {sec.count > sec.previews.length && (
+                                <span className="cabinet-section-preview-more">+{sec.count - sec.previews.length} more</span>
+                              )}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {closet && row && !shelf && (
+            <div className="shelf-pick">
+              <p className="shelf-pick-label">Cabinet {closet} · Row {row} — choose a section</p>
+              <div className="shelf-pick-sections">
+                {SECTIONS.map((sec) => {
+                  const n = countFor(closet, row, sec.num)
+                  const pct = Math.min(100, Math.round((n / sec.capacity) * 100))
+                  return (
+                    <button
+                      key={sec.num}
+                      className={'shelf-pick-card' + (sec.num === '2' ? ' shelf-pick-card-s2' : '')}
+                      onClick={() => selectShelf(sec.num)}
+                    >
+                      <span className="shelf-pick-card-title">S{sec.num} · {sec.label}</span>
+                      <span className="shelf-pick-card-cap">{n} / {sec.capacity} films</span>
+                      <span className="shelf-pick-card-track">
+                        <span className="shelf-pick-card-fill" style={{ width: `${pct}%` }} />
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {closet && row && shelf && currentSection && (
+            <div className="shelf-view">
+              <div className="shelf-view-head">
+                <div className="shelf-view-head-left">
+                  <div className="shelf-view-loc">
+                    C{closet} <span className="shelf-view-sep">·</span> R{row} <span className="shelf-view-sep">·</span> S{shelf}
+                  </div>
+                  <div className="shelf-view-title">
+                    {currentSection.label} <span className="shelf-view-cap">(capacity {currentSection.capacity})</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="location-result">
-          <div className="location-result-bar">
-            <p className="location-result-label">
-              {closet || row || shelf ? (
-                <>
-                  {closet && `C${closet}`} {row && `R${row}`} {shelf && `S${shelf}`} — {visibleFilms.length} title
-                  {visibleFilms.length === 1 ? '' : 's'}
-                </>
-              ) : (
-                `All physical titles — ${visibleFilms.length} total`
-              )}
-            </p>
-            {visibleFilms.length > 0 && (
-              <div className="location-export-actions">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={handlePrintPDF} title="Print / Save as PDF">
-                  <IconPrinter width={13} height={13} /> PDF
-                </button>
-                <a href={excelExportUrl()} download className="btn btn-ghost btn-sm" title="Download Excel">
-                  <IconDownload width={13} height={13} /> Excel
-                </a>
-              </div>
-            )}
-          </div>
-
-          {visibleFilms.length === 0 ? (
-            <div className="status empty-state">
-              <p>Nothing shelved here yet.</p>
-            </div>
-          ) : (
-            <ul className="location-title-list">
-              {visibleFilms.map((f) => (
-                <li key={f.id}>
-                  <button
-                    className="location-title-row"
-                    onClick={() => onSelectFilm(f)}
-                  >
-                    <span className="location-title-icon">
-                      {f.itemType === 'series' ? <IconBookshelf width={13} height={13} /> : <IconFilm width={13} height={13} />}
-                    </span>
-                    <span className="location-title-main">
-                      <span className="location-title-line1">
-                        <span className="location-title-text">{f.title}</span>
-                        {f.year && <span className="location-title-year">{f.year}</span>}
-                      </span>
-                      {f.director && <span className="location-title-director">{f.director}</span>}
-                    </span>
-                    <span className="location-title-loc">
-                      C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}
-                    </span>
-                    {f.criterion && (
-                      <span className="criterion-badge criterion-badge-list">
-                        CRITERION{f.criterionCopies > 1 ? ` ×${f.criterionCopies}` : ''}
-                      </span>
-                    )}
-                    {f.copies > 1 && <span className="copies-badge">×{f.copies}</span>}
+                <div className="shelf-view-actions">
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={handlePrintPDF} title="Print / Save as PDF">
+                    <IconPrinter width={13} height={13} /> PDF
                   </button>
-                </li>
-              ))}
-            </ul>
+                  <a href={excelExportUrl()} download className="btn btn-ghost btn-sm" title="Download Excel">
+                    <IconDownload width={13} height={13} /> Excel
+                  </a>
+                </div>
+              </div>
+
+              <div className="shelf-view-meter">
+                <span className="shelf-view-meter-count">
+                  {shelfFilms.length} <span className="shelf-view-meter-total">/ {currentSection.capacity}</span> films
+                </span>
+                <span className="shelf-view-meter-track">
+                  <span
+                    className="shelf-view-meter-fill"
+                    style={{ width: `${Math.min(100, Math.round((shelfFilms.length / currentSection.capacity) * 100))}%` }}
+                  />
+                </span>
+              </div>
+
+              {shelfFilms.length === 0 ? (
+                <div className="status empty-state">
+                  <span className="empty-icon"><IconArchive width={22} height={22} /></span>
+                  <p>Nothing shelved here yet.</p>
+                </div>
+              ) : (
+                <ul className="shelf-film-list">
+                  {shelfFilms.map((f) => (
+                    <li key={f.id}>
+                      <button className="location-title-row" onClick={() => onSelectFilm(f)}>
+                        <span className="location-title-icon">
+                          {f.itemType === 'series' ? <IconBookshelf width={13} height={13} /> : <IconFilm width={13} height={13} />}
+                        </span>
+                        <span className="location-title-main">
+                          <span className="location-title-line1">
+                            <span className="location-title-text">{f.title}</span>
+                            {f.year && <span className="location-title-year">{f.year}</span>}
+                          </span>
+                          {f.director && <span className="location-title-director">{f.director}</span>}
+                        </span>
+                        <span className="location-title-loc">C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}</span>
+                        {f.criterion && (
+                          <span className="criterion-badge criterion-badge-list">
+                            CRITERION{f.criterionCopies > 1 ? ` ×${f.criterionCopies}` : ''}
+                          </span>
+                        )}
+                        {f.copies > 1 && <span className="copies-badge">×{f.copies}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
         </div>
       </div>
