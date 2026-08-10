@@ -17,7 +17,7 @@ import { IconArchive } from './components/icons.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 
 export default function App() {
-  const { isGuest, openLogin } = useAuth()
+  const { isGuest, isAdmin, openLogin } = useAuth()
   const [films, setFilms] = useState([])
   // نسخه‌ی فیلترنشده و کامل آرشیو - فقط برای جستجوی «این بازیگر/کارگردان
   // چندتا فیلم داره» توی PersonModal، چون films (بالا) بسته به فیلترهای
@@ -795,6 +795,7 @@ export default function App() {
             onOpenPerson={(name) => setSelectedPerson(name)}
             theme={theme}
             setTheme={setTheme}
+            isAdmin={isAdmin}
             onFilmsChanged={() => {
               loadFilms()
               loadAllFilmsUnfiltered()
@@ -959,10 +960,12 @@ export default function App() {
       {showLocationBrowser && (
         <LocationBrowserModal
           films={allFilmsUnfiltered}
+          canEdit={!isGuest}
           onSelectFilm={(film) => {
             setForceFilmOverlay(true)
             setSelected(film)
           }}
+          onFilmsChanged={loadAllFilmsUnfiltered}
           onClose={() => setShowLocationBrowser(false)}
         />
       )}
