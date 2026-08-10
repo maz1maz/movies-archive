@@ -497,6 +497,34 @@ export default {
         return json(parseFilmRow(updated), 200, corsHeaders)
       }
 
+      // ---- POST /api/films/reset-locations (admin) ----
+      // محل (closet/row/shelf) همه فیلم‌های فیزیکی را خالی می‌کند.
+      // قبل از ریست، یک بکاپ از کل جدول در KV ذخیره می‌شود (backup:reset-locations-<ts>)
+      // تا بتوان در صورت لزوم بازگردانی کرد. برگشت‌ناپذیر — نیاز به تأیید دارد.
+      if (method === 'POST' && pathname === '/api/films/reset-locations') {
+        const denied = requireAdmin()
+        if (denied) return denied
+
+        const result = await db.prepare('SELECT * FROM films').all()
+        const films = (result.results || []).map(parseFilmRow)
+        const physical = films.filter((f) => f.mediaType !== 'digital')
+        const hadLocation = physical.filter((f) => f.closet || f.row || f.shelf).length
+
+        // بکاپ قبل از تغییر (برای بازگردانی احتمالی)
+        if (env.BACKUPS) {
+          const ts = new Date().toISOString().replace(/[:.]/g, '-')
+          const payload = JSON.stringify({ backedUpAt: new Date().toISOString(), count: films.length, films })
+          await env.BACKUPS.put(`backup:reset-locations-${ts}`, payload).catch(() => {})
+        }
+
+        // خالی کردن مکان فیلم‌های فیزیکی
+        const updated = await db
+          .prepare("UPDATE films SET closet = '', row = '', shelf = '', updatedAt = datetime('now') WHERE mediaType != 'digital'")
+          .run()
+
+        return json({ reset: updated?.meta?.changes ?? physical.length, physicalCount: physical.length, hadLocation }, 200, corsHeaders)
+      }
+
       // ---- POST /api/films/bulk-move (assign the same location to many films) ----
       if (method === 'POST' && pathname === '/api/films/bulk-move') {
         const denied = requireAuth()

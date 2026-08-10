@@ -1725,6 +1725,59 @@ body.light .header {
   white-space: nowrap;
 }
 
+/* Admin danger zone: reset all physical film locations */
+.admin-reset-box {
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent);
+  border-left: 4px solid var(--danger);
+}
+.admin-reset-box h3 {
+  color: var(--danger) !important;
+}
+.admin-reset-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.admin-reset-desc code {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 11.5px;
+  font-family: var(--font-mono);
+}
+.admin-reset-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.admin-reset-input {
+  flex: 1 1 220px;
+  max-width: 300px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.admin-reset-input:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 20%, transparent);
+}
+.admin-reset-btn {
+  flex: 0 0 auto;
+}
+.admin-reset-msg {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
 @media (max-width: 560px) {
   .location-browser-head,
   .location-browser-selectors,

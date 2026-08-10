@@ -14,10 +14,15 @@ import {
   IconTV,
   IconBuilding,
 } from './icons.jsx'
+import { useRef, useState } from 'react'
 
 // Overview tab of the Dashboard — same stats as the old Stats modal, shown
 // inline as the landing view instead of jumping straight to Oscars.
-export default function DashboardOverview({ films, onOpenFilm, onOpenPerson }) {
+export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isAdmin, onFilmsChanged }) {
+  const [resetting, setResetting] = useState(false)
+  const [resetMsg, setResetMsg] = useState('')
+  const confirmResetRef = useRef('')
+  const [resetConfirm, setResetConfirm] = useState('')
   const totalFilms = films.length
   const totalRuntimeMins = films.reduce((acc, f) => acc + (f.runtime || 0), 0)
   const totalHours = Math.round(totalRuntimeMins / 60)
@@ -210,6 +215,31 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson }) {
   const openPerson = (name) => onOpenPerson && name && onOpenPerson(name)
   const openFilm = (film) => onOpenFilm && onOpenFilm(film)
 
+  const runResetLocations = async () => {
+    if (!isAdmin) return
+    if (resetConfirm !== 'RESET') {
+      setResetMsg('Type RESET (uppercase) to confirm.')
+      return
+    }
+    setResetting(true)
+    setResetMsg('')
+    try {
+      const res = await fetch('/api/films/reset-locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'reset failed')
+      setResetMsg(`Done — ${data.reset} physical films cleared, backup saved to KV.`)
+      setResetConfirm('')
+      if (onFilmsChanged) onFilmsChanged()
+    } catch (e) {
+      setResetMsg('Error: ' + e.message)
+    } finally {
+      setResetting(false)
+    }
+  }
+
   return (
     <div className="dashboard-overview">
       <div className="stats-cards-grid stats-cards-grid-6">
@@ -249,6 +279,35 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson }) {
           <div className="stats-card-lbl">Loaned Out</div>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="stats-box admin-reset-box">
+          <h3><IconArchive width={15} height={15} /> Danger zone — Reset all physical film locations</h3>
+          <p className="admin-reset-desc">
+            Clears <code>closet</code> / <code>row</code> / <code>shelf</code> for every physical film.
+            A backup of the whole table is saved to KV first (key <code>backup:reset-locations-*</code>).
+            This is <strong>irreversible</strong> unless restored from a backup.
+          </p>
+          <div className="admin-reset-controls">
+            <input
+              className="admin-reset-input"
+              type="text"
+              placeholder="Type RESET to confirm"
+              value={resetConfirm}
+              onChange={(e) => setResetConfirm(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn btn-danger admin-reset-btn"
+              onClick={runResetLocations}
+              disabled={resetting}
+            >
+              {resetting ? 'Resetting…' : 'Reset all physical locations'}
+            </button>
+          </div>
+          {resetMsg && <p className="admin-reset-msg">{resetMsg}</p>}
+        </div>
+      )}
 
       {upNext.length > 0 && (
         <div className="stats-box stats-box-spotlight">

@@ -22,7 +22,7 @@ const TABS = [
 
 const LAST_TAB_KEY = 'cinefilm-dashboard-last-tab'
 
-export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson, theme, setTheme, onFilmsChanged }) {
+export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson, theme, setTheme, onFilmsChanged, isAdmin }) {
   const [tab, setTab] = useState(() => {
     const saved = typeof window !== 'undefined' ? window.localStorage.getItem(LAST_TAB_KEY) : null
     return TABS.some((t) => t.key === saved) ? saved : 'overview'
@@ -67,7 +67,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
             )
           })}
         </nav>
-        {tab === 'overview' && <DashboardOverview films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
+        {tab === 'overview' && <DashboardOverview films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} isAdmin={isAdmin} />}
         {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
         {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'crafts' && <CraftsPanel films={films} onOpenFilm={onOpenFilm} />}
