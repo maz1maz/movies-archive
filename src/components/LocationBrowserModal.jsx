@@ -217,41 +217,72 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
         </header>
 
         <div className="location-browser-selectors">
-          <label className="location-browser-selector">
-            <span>Closet</span>
-            <select value={closet} onChange={(e) => selectCloset(e.target.value)}>
-              <option value="">— choose —</option>
-              {closets.map((c) => (
-                <option key={c} value={c}>
-                  C{c} · {countFor(c, null, null)} films
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="location-browser-selector-group">
+            <span className="location-browser-selector-label">Closet</span>
+            <div className="location-chip-list">
+              {closets.map((c) => {
+                const n = countFor(c, null, null)
+                return (
+                  <button
+                    key={c}
+                    className={
+                      (c === closet ? 'location-chip location-chip-active' : 'location-chip') +
+                      (n === 0 ? ' location-chip-empty' : '')
+                    }
+                    onClick={() => selectCloset(c)}
+                  >
+                    C{c} <span className="location-chip-count">{n}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
-          <label className="location-browser-selector">
-            <span>Row</span>
-            <select value={row} onChange={(e) => selectRow(e.target.value)} disabled={!closet}>
-              <option value="">— choose —</option>
-              {rows.map((r) => (
-                <option key={r} value={r}>
-                  R{r} · {countFor(closet, r, null)} films
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="location-browser-selector-group">
+            <span className="location-browser-selector-label">Row</span>
+            <div className={'location-chip-list' + (closet ? '' : ' location-chip-list-disabled')}>
+              {rows.map((r) => {
+                const n = countFor(closet, r, null)
+                return (
+                  <button
+                    key={r}
+                    className={
+                      (r === row ? 'location-chip location-chip-active' : 'location-chip') +
+                      (n === 0 ? ' location-chip-empty' : '') +
+                      (closet ? '' : ' location-chip-disabled')
+                    }
+                    disabled={!closet}
+                    onClick={() => selectRow(r)}
+                  >
+                    R{r} <span className="location-chip-count">{n}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
-          <label className="location-browser-selector">
-            <span>Section</span>
-            <select value={shelf} onChange={(e) => selectShelf(e.target.value)} disabled={!row}>
-              <option value="">— choose —</option>
-              {SECTIONS.map((s) => (
-                <option key={s.num} value={s.num}>
-                  S{s.num} · cap {s.capacity} · {countFor(closet, row, s.num)} films
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="location-browser-selector-group">
+            <span className="location-browser-selector-label">Section</span>
+            <div className={'location-chip-list' + (row ? '' : ' location-chip-list-disabled')}>
+              {SECTIONS.map((s) => {
+                const n = countFor(closet, row, s.num)
+                return (
+                  <button
+                    key={s.num}
+                    className={
+                      (s.num === shelf ? 'location-chip location-chip-active' : 'location-chip') +
+                      (n === 0 ? ' location-chip-empty' : '') +
+                      (row ? '' : ' location-chip-disabled')
+                    }
+                    disabled={!row}
+                    onClick={() => selectShelf(s.num)}
+                  >
+                    S{s.num} <span className="location-chip-count">{n}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
           {(closet || row || shelf) && (
             <button type="button" className="btn btn-ghost btn-sm location-browser-clear" onClick={() => { setRow(''); setShelf(''); setCloset('') }}>

@@ -1340,8 +1340,8 @@ body.light .header {
 
 .location-browser-selectors {
   display: flex;
-  align-items: flex-end;
-  gap: 14px;
+  align-items: flex-start;
+  gap: 18px;
   flex-wrap: wrap;
   padding: 14px 28px;
   border-bottom: 1px solid var(--border);
@@ -1350,43 +1350,38 @@ body.light .header {
   top: 0;
   z-index: 5;
 }
-.location-browser-selector {
+.location-browser-selector-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 180px;
-  flex: 1 1 180px;
+  gap: 7px;
 }
-.location-browser-selector > span {
+.location-browser-selector-label {
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.location-browser-selector select {
-  width: 100%;
-  min-height: 42px;
-  padding: 8px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 9px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: 13.5px;
-  cursor: pointer;
-  outline: none;
+.location-browser-selector-group .location-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 300px;
+  max-height: none;
+  overflow: visible;
 }
-.location-browser-selector select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
-}
-.location-browser-selector select:disabled {
+.location-chip-list-disabled {
   opacity: 0.45;
+}
+.location-chip-disabled {
+  cursor: not-allowed;
+}
+.location-chip-list-disabled .location-chip {
   cursor: not-allowed;
 }
 .location-browser-clear {
   flex: 0 0 auto;
+  align-self: center;
   margin-bottom: 2px;
 }
 
