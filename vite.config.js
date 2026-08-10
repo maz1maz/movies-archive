@@ -10,7 +10,9 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    host: true,
     port: 5173,
+    allowedHosts: true, // allow Cloudflare preview / tunnel hosts during dev
     // هنگام توسعه، درخواست‌های /api به سرور اکسپرس هدایت می‌شن
     proxy: {
       '/api': 'http://localhost:3001',

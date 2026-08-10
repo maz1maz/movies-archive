@@ -3,7 +3,15 @@ import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload 
 
 const CLOSET_COUNT = 8
 const ROW_COUNT = 10
-const SHELF_COUNT = 3
+const PREVIEW_TITLES = 3
+
+// هر ردیف دو بخش (shelf = بخش) داره:
+//   بخش ۱: ظرفیت ۵۵ بلوری
+//   بخش ۲: ظرفیت ۳۵ بلوری
+const SECTIONS = [
+  { num: '1', capacity: 55, label: 'Section 1' },
+  { num: '2', capacity: 35, label: 'Section 2' },
+]
 
 function sortKey(title) {
   return String(title || '')
@@ -33,7 +41,6 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
 
   const closets = useMemo(() => Array.from({ length: CLOSET_COUNT }, (_, i) => String(i + 1)), [])
   const rows = useMemo(() => Array.from({ length: ROW_COUNT }, (_, i) => String(i + 1)), [])
-  const shelves = useMemo(() => Array.from({ length: SHELF_COUNT }, (_, i) => String(i + 1)), [])
 
   const countFor = (c, r, s) =>
     physical.filter(
@@ -42,6 +49,46 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
         (!r || String(f.row || '–') === r) &&
         (!s || String(f.shelf || '–') === s)
     ).length
+
+  // ایندکس سریع: closet|row|shelf -> لیست فیلم‌ها (برای ساخت نقشه‌ی کمد و پیش‌نمایش عنوان‌ها)
+  const sectionIndex = useMemo(() => {
+    const map = {}
+    for (const f of physical) {
+      if (!f.closet) continue
+      const c = String(f.closet)
+      const r = String(f.row || '–')
+      const s = String(f.shelf || '–')
+      const key = `${c}|${r}|${s}`
+      ;(map[key] = map[key] || []).push(f)
+    }
+    return map
+  }, [physical])
+
+  // نقشه‌ی کمد انتخاب‌شده: ۱۰ ردیف × ۲ بخش، هر بخش با تعداد فیلم و پیش‌نمایش عنوان
+  const cabinetMap = useMemo(() => {
+    if (!closet) return []
+    return rows.map((r) => {
+      const sections = SECTIONS.map((sec) => {
+        const filmsIn = (sectionIndex[`${closet}|${r}|${sec.num}`] || [])
+          .slice()
+          .sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
+        return {
+          num: sec.num,
+          capacity: sec.capacity,
+          label: sec.label,
+          count: filmsIn.length,
+          previews: filmsIn.slice(0, PREVIEW_TITLES),
+        }
+      })
+      return {
+        row: r,
+        sections,
+        total: sections.reduce((sum, s) => sum + s.count, 0),
+      }
+    })
+  }, [closet, rows, sectionIndex])
+
+  const closetTotal = closet ? countFor(closet, null, null) : 0
 
   const visibleFilms = useMemo(() => {
     let list = physical
@@ -56,11 +103,18 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
     setRow(null)
     setShelf(null)
   }
-  const pickRow = (r) => {
-    setRow(r === row ? null : r)
-    setShelf(null)
+
+  // کلیک روی یک بخش از نقشه‌ی کمد => همان بخش را در لیست جزئیات پایین باز می‌کند.
+  // کلیک دوباره روی همان بخش، انتخاب را برمی‌دارد (نمایش کل کمد).
+  const pickSection = (r, s) => {
+    if (row === r && shelf === s) {
+      setRow(null)
+      setShelf(null)
+    } else {
+      setRow(r)
+      setShelf(s)
+    }
   }
-  const pickShelf = (s) => setShelf(s === shelf ? null : s)
 
   const locationLabel = closet || row || shelf ? `${closet ? `C${closet}` : ''}${row ? `R${row}` : ''}${shelf ? `S${shelf}` : ''}` : 'all-locations'
 
@@ -175,7 +229,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
           <h2>
             <IconPin width={18} height={18} /> Browse by Location
           </h2>
-          <p className="export-sub">Pick a closet, row, and section to see what's shelved there</p>
+          <p className="export-sub">
+            {closet
+              ? `Cabinet Map — Closet ${closet} · ${closetTotal} films`
+              : 'Pick a closet to see its cabinet map, then click a section for the full list'}
+          </p>
         </div>
 
         <div className="location-tree">
@@ -201,51 +259,91 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose }) {
           </div>
 
           {closet && (
-            <div className="location-tree-col">
-              <p className="location-tree-label">Row</p>
-              <div className="location-chip-list">
-                {rows.map((r) => {
-                  const n = countFor(closet, r, null)
-                  return (
-                    <button
-                      key={r}
-                      className={
-                        (r === row ? 'location-chip location-chip-active' : 'location-chip') +
-                        (n === 0 ? ' location-chip-empty' : '')
-                      }
-                      onClick={() => pickRow(r)}
-                    >
-                      R{r} <span className="location-chip-count">{n}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {closet && row && (
-            <div className="location-tree-col">
-              <p className="location-tree-label">Section</p>
-              <div className="location-chip-list">
-                {shelves.map((s) => {
-                  const n = countFor(closet, row, s)
-                  return (
-                    <button
-                      key={s}
-                      className={
-                        (s === shelf ? 'location-chip location-chip-active' : 'location-chip') +
-                        (n === 0 ? ' location-chip-empty' : '')
-                      }
-                      onClick={() => pickShelf(s)}
-                    >
-                      S{s} <span className="location-chip-count">{n}</span>
-                    </button>
-                  )
-                })}
+            <div className="location-tree-col location-tree-col-map">
+              <p className="location-tree-label">Row / Section</p>
+              <div className="location-tree-map-hint">
+                Click any section in the cabinet map below to open its list
               </div>
             </div>
           )}
         </div>
+
+        {closet && (
+          <div className="cabinet-map">
+            <div className="cabinet-map-head">
+              <span className="cabinet-map-title">Cabinet {closet}</span>
+              <span className="cabinet-map-meta">
+                {cabinetMap.length} rows · {SECTIONS.length} sections per row · {closetTotal} films
+              </span>
+            </div>
+            <div className="cabinet-map-legend">
+              <span className="cabinet-map-legend-item">
+                <span className="cabinet-map-legend-swatch cabinet-map-legend-swatch-s1" /> Section 1 · capacity {SECTIONS[0].capacity}
+              </span>
+              <span className="cabinet-map-legend-item">
+                <span className="cabinet-map-legend-swatch cabinet-map-legend-swatch-s2" /> Section 2 · capacity {SECTIONS[1].capacity}
+              </span>
+            </div>
+            <div className="cabinet-map-body">
+              {cabinetMap.map((r) => (
+                <div className="cabinet-row" key={r.row}>
+                  <div className="cabinet-row-label">
+                    <span className="cabinet-row-num">R{r.row}</span>
+                    <span className="cabinet-row-total">{r.total}</span>
+                  </div>
+                  <div className="cabinet-row-shelves">
+                    {r.sections.map((sec) => {
+                      const isActive = row === r.row && shelf === sec.num
+                      const pct = Math.min(100, Math.round((sec.count / sec.capacity) * 100))
+                      return (
+                        <button
+                          key={sec.num}
+                          className={
+                            'cabinet-section' +
+                            (sec.num === '1' ? ' cabinet-section-s1' : ' cabinet-section-s2') +
+                            (isActive ? ' cabinet-section-active' : '') +
+                            (sec.count === 0 ? ' cabinet-section-empty' : '')
+                          }
+                          onClick={() => pickSection(r.row, sec.num)}
+                          title={`${sec.label} · ${sec.count} of ${sec.capacity}`}
+                        >
+                          <div className="cabinet-section-top">
+                            <span className="cabinet-section-label">S{sec.num}</span>
+                            <span className="cabinet-section-cap">
+                              {sec.count}<span className="cabinet-section-cap-slash">/{sec.capacity}</span>
+                            </span>
+                          </div>
+                          <div className="cabinet-section-track">
+                            <div
+                              className="cabinet-section-fill"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <div className="cabinet-section-previews">
+                            {sec.previews.length === 0 ? (
+                              <span className="cabinet-section-preview-empty">Empty section</span>
+                            ) : (
+                              sec.previews.map((f) => (
+                                <span className="cabinet-section-preview" key={f.id}>
+                                  <IconFilm width={9} height={9} /> {f.title}
+                                </span>
+                              ))
+                            )}
+                            {sec.count > sec.previews.length && (
+                              <span className="cabinet-section-preview-more">
+                                +{sec.count - sec.previews.length} more
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="location-result">
           <div className="location-result-bar">
