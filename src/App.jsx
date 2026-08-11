@@ -11,6 +11,7 @@ import GallerySphere from './components/GallerySphere.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import LocationBrowserModal from './components/LocationBrowserModal.jsx'
+import BookshelfView from './components/BookshelfView.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
@@ -86,6 +87,7 @@ export default function App() {
   const [selectedPerson, setSelectedPerson] = useState(null)
   const [showExport, setShowExport] = useState(false)
   const [showLocationBrowser, setShowLocationBrowser] = useState(false)
+  const [showBookshelf, setShowBookshelf] = useState(false)
   const [forceFilmOverlay, setForceFilmOverlay] = useState(false)
   const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
@@ -425,16 +427,19 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
       })
-      if (!res.ok) throw new Error('save failed')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'save failed')
+      }
       const saved = await res.json()
       setFilms((prev) => prev.map((f) => (f.id === id ? saved : f)))
       if (selected && selected.id === id) setSelected(saved)
       showToast('Saved')
+      setEditing(null)
+      setLoanFilm(null)
     } catch (e) {
       showToast(e.message)
     }
-    setEditing(null)
-    setLoanFilm(null)
   }
 
   // مهمان‌ها نمی‌تونن ویرایش/امانت/امتیازدهی کنن — به‌جای تلاش ناموفق برای
@@ -707,6 +712,7 @@ export default function App() {
             onSelectPhysicalSeries={() => changeSection('physical-series')}
             onSelectDigitalType={(type) => changeSection(type === 'series' ? 'digital-series' : 'digital-movie')}
             onSelectSpecialCollections={() => changeSection('special-collections')}
+            onOpenBookshelf={() => setShowBookshelf(true)}
             onSelectDashboard={() => changeSection('dashboard')}
             onSelectGallery={() => changeSection('gallery')}
           />
@@ -873,6 +879,7 @@ export default function App() {
         fetchingSeasonCounts={fetchingSeasonCounts}
         onOpenExport={() => setShowExport(true)}
         onOpenLocationBrowser={() => setShowLocationBrowser(true)}
+        onOpenBookshelf={() => setShowBookshelf(true)}
         view={view}
         setView={setView}
         alpha={alpha}
@@ -967,6 +974,17 @@ export default function App() {
           }}
           onFilmsChanged={loadAllFilmsUnfiltered}
           onClose={() => setShowLocationBrowser(false)}
+        />
+      )}
+
+      {showBookshelf && (
+        <BookshelfView
+          films={allFilmsUnfiltered}
+          onSelectFilm={(film) => {
+            setForceFilmOverlay(true)
+            setSelected(film)
+          }}
+          onClose={() => setShowBookshelf(false)}
         />
       )}
 

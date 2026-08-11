@@ -195,6 +195,17 @@ app.post('/api/films', async (req, res) => {
     shelf: body.shelf || '',
     row: body.row || '',
   }
+  if (film.closet && film.row && film.shelf && film.mediaType !== 'digital') {
+    const existingCopies = films
+      .filter((f) => String(f.closet || '') === String(film.closet) && String(f.row || '') === String(film.row) && String(f.shelf || '') === String(film.shelf))
+      .reduce((sum, f) => sum + (Number(f.copies) || 1), 0)
+    const newCopies = Number(film.copies || 1)
+    if (existingCopies + newCopies > 60) {
+      return res.status(400).json({
+        error: `Section capacity exceeded (max 60 copies). C${film.closet} R${film.row} S${film.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
+      })
+    }
+  }
   const enrichment = await enrichMissingMetadata(film)
   films.push(enrichment.film)
   writeFilms(films)
@@ -209,6 +220,57 @@ app.post('/api/films', async (req, res) => {
 
 // Fill only missing public metadata for an existing film. This is useful for
 // items that were added before automatic enrichment was enabled.
+app.post('/api/films/bulk-move', (req, res) => {
+  const { ids, closet, row, shelf } = req.body || {}
+  const idList = Array.isArray(ids) ? ids.map((x) => String(x)).filter(Boolean) : []
+  if (!idList.length) return res.status(400).json({ error: 'ids are required' })
+  const c = String(closet || '').trim()
+  const r = String(row || '').trim()
+  const s = String(shelf || '').trim()
+  if (!c || !r || !s) {
+    return res.status(400).json({ error: 'closet, row and shelf are required' })
+  }
+  const films = readFilms()
+  const idSet = new Set(idList)
+  const existingCopies = films
+    .filter((f) => !idSet.has(String(f.id)) && String(f.closet || '') === c && String(f.row || '') === r && String(f.shelf || '') === s)
+    .reduce((sum, f) => sum + (Number(f.copies) || 1), 0)
+  const movingCopies = films
+    .filter((f) => idSet.has(String(f.id)))
+    .reduce((sum, f) => sum + (Number(f.copies) || 1), 0)
+  if (existingCopies + movingCopies > 60) {
+    return res.status(400).json({
+      error: `Section capacity exceeded (max 60 copies). C${c} R${r} S${s} currently has ${existingCopies} copies; moving ${movingCopies} would exceed 60.`,
+    })
+  }
+  let moved = 0
+  for (const f of films) {
+    if (idSet.has(String(f.id))) {
+      f.closet = c
+      f.row = r
+      f.shelf = s
+      moved++
+    }
+  }
+  writeFilms(films)
+  res.json({ moved })
+})
+
+app.post('/api/films/reset-locations', (req, res) => {
+  const films = readFilms()
+  let reset = 0
+  for (const f of films) {
+    if (f.mediaType !== 'digital' && (f.closet || f.row || f.shelf)) {
+      f.closet = ''
+      f.row = ''
+      f.shelf = ''
+      reset++
+    }
+  }
+  writeFilms(films)
+  res.json({ reset })
+})
+
 app.post('/api/films/:id', async (req, res) => {
   const films = readFilms()
   const i = films.findIndex((film) => film.id === req.params.id)
@@ -233,6 +295,17 @@ app.patch('/api/films/:id', (req, res) => {
   const updated = { ...films[i] }
   for (const k of EDITABLE) {
     if (k in req.body) updated[k] = req.body[k]
+  }
+  if (updated.closet && updated.row && updated.shelf && updated.mediaType !== 'digital') {
+    const existingCopies = films
+      .filter((f) => f.id !== req.params.id && String(f.closet || '') === String(updated.closet) && String(f.row || '') === String(updated.row) && String(f.shelf || '') === String(updated.shelf))
+      .reduce((sum, f) => sum + (Number(f.copies) || 1), 0)
+    const newCopies = Number(updated.copies || 1)
+    if (existingCopies + newCopies > 60) {
+      return res.status(400).json({
+        error: `Section capacity exceeded (max 60 copies). C${updated.closet} R${updated.row} S${updated.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
+      })
+    }
   }
   updated.id = films[i].id
   films[i] = updated
@@ -683,6 +756,12 @@ app.get('/api/export/excel', (req, res) => {
 // ---------- سرو کردن نسخه ساخته‌شده (production) ----------
 const dist = path.join(__dirname, '..', 'dist')
 if (fs.existsSync(dist)) {
+  app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0')
+    res.setHeader('Pragma', 'no-cache')
+    res.setHeader('Expires', '0')
+    next()
+  })
   app.use(express.static(dist))
   app.get('*', (req, res) => res.sendFile(path.join(dist, 'index.html')))
 }

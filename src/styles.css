@@ -1098,6 +1098,95 @@ body.light .header {
   color: var(--accent);
 }
 
+/* Dashboard Currently Loaned Out Section */
+.stats-box-loaned {
+  border-left: 4px solid #f5c518;
+}
+.stats-box-loaned-empty {
+  opacity: 0.85;
+}
+.loaned-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 6px;
+}
+.loaned-card-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: inherit;
+  font: inherit;
+}
+.loaned-card-item:hover {
+  border-color: #f5c518;
+  background: var(--surface-3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+.loaned-card-poster {
+  width: 46px;
+  height: 68px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-3);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+.loaned-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.loaned-card-poster-empty {
+  font-size: 20px;
+}
+.loaned-card-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.loaned-card-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.borrower-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #f5c518;
+  background: rgba(245, 197, 24, 0.14);
+  border: 1px solid rgba(245, 197, 24, 0.4);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+.loaned-card-date {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.loaned-card-loc {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+
 .stats-bars {
   display: flex;
   flex-direction: column;
@@ -1508,6 +1597,26 @@ body.light .header {
 }
 
 /* Single shelf view */
+.shelf-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  padding: 5px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.shelf-back-btn:hover {
+  background: var(--surface-3);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateX(-2px);
+}
 .shelf-view {
   display: flex;
   flex-direction: column;
@@ -1681,6 +1790,27 @@ body.light .header {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
 }
+.film-selector-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.film-selector-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.film-selector-toggle input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
 .film-selector-actions {
   display: flex;
   align-items: center;
@@ -1692,6 +1822,16 @@ body.light .header {
   font-weight: 800;
   color: var(--text);
   font-family: var(--font-mono);
+}
+.film-selector-capacity-error {
+  color: var(--danger, #ef4444);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.shelf-view-meter-sub {
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 12px;
 }
 .film-selector-move {
   margin-inline-start: auto;
@@ -1762,59 +1902,6 @@ body.light .header {
   color: var(--muted);
   font-family: var(--font-mono);
   white-space: nowrap;
-}
-
-/* Admin danger zone: reset all physical film locations */
-.admin-reset-box {
-  border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent);
-  border-left: 4px solid var(--danger);
-}
-.admin-reset-box h3 {
-  color: var(--danger) !important;
-}
-.admin-reset-desc {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: var(--muted);
-}
-.admin-reset-desc code {
-  background: var(--surface-3);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 1px 5px;
-  font-size: 11.5px;
-  font-family: var(--font-mono);
-}
-.admin-reset-controls {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-}
-.admin-reset-input {
-  flex: 1 1 220px;
-  max-width: 300px;
-  padding: 9px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: 13px;
-  outline: none;
-}
-.admin-reset-input:focus {
-  border-color: var(--danger);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 20%, transparent);
-}
-.admin-reset-btn {
-  flex: 0 0 auto;
-}
-.admin-reset-msg {
-  margin: 8px 0 0;
-  font-size: 12.5px;
-  color: var(--muted);
 }
 
 @media (max-width: 560px) {
@@ -4946,10 +5033,784 @@ body.light .dashboard-panel {
   }
 }
 
-.header-brand-group {
+/* =========================================================
+   ULTRA-REALISTIC 3D WOODEN BOOKSHELF (EXACT IMAGE.PNG)
+   ========================================================= */
+.cinema-wood-shelf-wrapper {
+  position: relative;
+  background: linear-gradient(180deg, #381e10 0%, #261309 100%);
+  border: 14px solid #3d2314;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.85),
+    inset 0 20px 40px rgba(0, 0, 0, 0.95);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+/* Left & Right dark wooden side walls of the bookshelf */
+.cinema-wood-shelf {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 36px 28px 0;
+  background: 
+    linear-gradient(90deg, rgba(0, 0, 0, 0.7) 0%, transparent 4%, transparent 96%, rgba(0, 0, 0, 0.7) 100%),
+    linear-gradient(180deg, #180d06 0%, #2b180d 100%);
+  min-height: calc(340px * var(--spine-scale, 1));
+  overflow: hidden;
+  width: 100%;
+}
+
+/* Overhead ambient spotlight and dust glow */
+.shelf-overhead-light {
+  position: absolute;
+  top: 0;
+  left: 5%;
+  right: 5%;
+  height: 90px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 230, 180, 0.22) 0%, transparent 80%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.shelf-inner-shadow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 25px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* All Blu-ray spines in one single continuous row */
+.bluray-shelf {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 2px;
+  flex-wrap: nowrap;
+  padding-bottom: 1px;
+  position: relative;
+  z-index: 10;
+  min-height: calc(310px * var(--spine-scale, 1));
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Individual 3D Spine Case - 0 min-width + flex 1 1 0% ensures 0 scrollbar */
+.bluray-case {
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: calc(34px * var(--spine-scale, 1));
+  height: calc(310px * var(--spine-scale, 1));
+  background: var(--case-bg, #1e3a8a);
+  color: var(--case-text, #fff);
+  border-radius: 4px 4px 1px 1px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 
+    inset 2px 0 0 rgba(255, 255, 255, 0.25),
+    inset -2px 0 0 rgba(0, 0, 0, 0.5),
+    inset 0 3px 0 rgba(255, 255, 255, 0.35),
+    1px 0 4px rgba(0, 0, 0, 0.6);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  transform-origin: bottom center;
+  overflow: hidden;
+  padding: 0;
+}
+
+.bluray-case:hover {
+  transform: translateY(-20px) translateZ(15px) scale(1.03);
+  z-index: 30;
+  box-shadow: 
+    0 22px 40px rgba(0, 0, 0, 0.85),
+    0 0 0 2px #38bdf8,
+    0 0 20px rgba(56, 189, 248, 0.35);
+}
+
+/* Translucent plastic case glare */
+.case-glare {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.05) 15%,
+    transparent 35%,
+    transparent 65%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Case top format header (Blu-ray blue curved top / Criterion C / Steelbook) */
+.case-header {
+  width: 100%;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font-size: 7.5px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 3;
+}
+
+.case-bluray .case-header {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  color: #eff6ff;
+  border-radius: 3px 3px 0 0;
+}
+.case-header .header-bluray {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  display: inline-block;
+}
+.case-criterion .case-header {
+  background: #f9fafb;
+  color: #111827;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 800;
+}
+.case-4k .case-header {
+  background: #09090b;
+  color: #eab308;
+  font-size: 7px;
+}
+.case-steelbook .case-header {
+  background: linear-gradient(180deg, #d1d5db 0%, #9ca3af 100%);
+  color: #111827;
+  font-size: 6.5px;
+}
+
+/* Vertical title along the spine */
+.case-spine {
+  flex: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 100%;
+  overflow: hidden;
+  padding: 8px 2px;
+  z-index: 3;
+}
+.spine-title {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: inherit;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.85);
+  max-height: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Colored Audio/Studio Footer Badge exactly like image.png! */
+.case-footer {
+  width: 100%;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 3;
+  position: relative;
+}
+.footer-dts { color: #f5c518; }
+.footer-st { color: #4ade80; }
+.footer-do { color: #60a5fa; }
+.footer-cin { color: #f8fafc; }
+.footer-me { color: #fb923c; }
+.footer-v { color: #38bdf8; }
+.footer-fa { color: #e2e8f0; }
+.footer-crit { color: #d4af37; }
+.footer-hdr { color: #eab308; }
+.footer-w { color: #94a3b8; }
+
+/* Thick Walnut Wooden Ledge at the bottom */
+.cinema-wood-ledge {
+  height: 24px;
+  background: 
+    linear-gradient(180deg, #5c3418 0%, #3a1f0d 50%, #1e1006 100%);
+  border-top: 3px solid #7c4826;
+  border-bottom: 5px solid #140a04;
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.85),
+    inset 0 2px 4px rgba(255, 255, 255, 0.15);
+  position: relative;
+  z-index: 20;
+}
+
+/* =========================================================
+   3D CINEMA PROPS ON THE LEDGE (EXACT IMAGE.PNG)
+   ========================================================= */
+.shelf-props-layer {
+  position: absolute;
+  bottom: 0;
+  left: 20px;
+  right: 20px;
+  height: 0;
+  pointer-events: none;
+  z-index: 25;
+}
+
+/* Vintage Ticket Stub (Left) */
+.prop-ticket-stub {
+  position: absolute;
+  bottom: 2px;
+  left: 5%;
+  width: 48px;
+  height: 22px;
+  background: #fef08a;
+  border: 1px dashed #ca8a04;
+  border-radius: 2px;
+  transform: rotate(-6deg);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.65);
+}
+.prop-ticket-stub::after {
+  content: 'CINEMA';
+  font-size: 7.5px;
+  font-weight: 900;
+  color: #854d0e;
+  display: grid;
+  place-items: center;
+  height: 100%;
+}
+
+/* Aide-Mémoire little leather book (Center-Left) */
+.prop-notebook {
+  position: absolute;
+  bottom: 2px;
+  left: 36%;
+  width: 44px;
+  height: 60px;
+  background: linear-gradient(135deg, #78350f 0%, #451a03 100%);
+  border: 1px solid #92400e;
+  border-radius: 2px 5px 5px 2px;
+  transform: rotate(3deg);
+  box-shadow: 4px 6px 16px rgba(0, 0, 0, 0.8);
+  display: grid;
+  place-items: center;
+}
+.prop-notebook span {
+  font-family: var(--font-serif);
+  font-size: 7.5px;
+  font-weight: 800;
+  color: #fde68a;
+  text-shadow: 0 1px 2px #000;
+  letter-spacing: 0.3px;
+}
+
+/* Clapperboard number 2 (Center-Right) */
+.prop-clapperboard {
+  position: absolute;
+  bottom: 2px;
+  right: 32%;
+  width: 46px;
+  height: 42px;
+  background: #18181b;
+  border: 1.5px solid #52525b;
+  border-radius: 3px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.clapper-top {
+  width: 100%;
+  height: 10px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #ffffff,
+    #ffffff 6px,
+    #18181b 6px,
+    #18181b 12px
+  );
+  border-bottom: 1.5px solid #52525b;
+}
+.clapper-number {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 900;
+  color: #e4e4e7;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+/* Folded Receipt Tickets (Right) */
+.prop-receipts {
+  position: absolute;
+  bottom: 2px;
+  right: 18%;
+  width: 58px;
+  height: 18px;
+  background: #f4f4f5;
+  border: 1px solid #d4d4d8;
+  transform: rotate(8deg);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+}
+.prop-receipts::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -8px;
+  width: 52px;
+  height: 18px;
+  background: #e4e4e7;
+  border: 1px solid #a1a1aa;
+  transform: rotate(-14deg);
+}
+
+/* Overhead LED Strip Glow */
+.spine-shelf-led-glow {
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 34px;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, 0.28) 0%, transparent 75%);
+  z-index: 5;
+}
+
+/* Wood Theme (Walnut / Oak) */
+.spine-theme-wood {
+  background: radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, 0.08) 0%, transparent 70%), #131418;
+}
+.spine-theme-wood .spine-shelf-board {
+  background: linear-gradient(180deg, #5c3a21 0%, #3d2312 45%, #2a170b 100%);
+  border-top: 2px solid #8b5a2b;
+  border-bottom: 5px solid #1a0e06;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.7);
+}
+body.light .spine-theme-wood {
+  background: radial-gradient(ellipse at 50% 0%, rgba(180, 120, 60, 0.12) 0%, transparent 70%), #f8fafc;
+}
+body.light .spine-theme-wood .spine-shelf-board {
+  background: linear-gradient(180deg, #b27a48 0%, #8c5828 50%, #683e1a 100%);
+  border-top: 2px solid #d4a373;
+  border-bottom: 4px solid #4a2b10;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+/* Slate Theme (Modern Brushed Steel) */
+.spine-theme-slate {
+  background: radial-gradient(ellipse at 50% 0%, rgba(56, 189, 248, 0.07) 0%, transparent 70%), #0f172a;
+}
+.spine-theme-slate .spine-shelf-board {
+  background: linear-gradient(180deg, #475569 0%, #334155 45%, #1e293b 100%);
+  border-top: 2px solid #94a3b8;
+  border-bottom: 5px solid #0f172a;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.7);
+}
+
+/* Cinema Theme (Dark Noir & Neon Gold) */
+.spine-theme-cinema {
+  background: radial-gradient(ellipse at 50% 0%, rgba(217, 164, 65, 0.12) 0%, transparent 70%), #09090b;
+}
+.spine-theme-cinema .spine-shelf-board {
+  background: linear-gradient(180deg, #27272a 0%, #18181b 100%);
+  border-top: 2px solid #d4af37;
+  border-bottom: 5px solid #000;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.8), 0 0 20px rgba(212, 175, 55, 0.15);
+}
+
+/* Plastic Case Glare overlay */
+.spine-case-glare {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    105deg,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.08) 18%,
+    transparent 25%,
+    transparent 75%,
+    rgba(0, 0, 0, 0.25) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Dedicated Live Inspector & Poster Preview Bar */
+.spine-inspector-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  box-shadow: var(--shadow);
+}
+.spine-inspector-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 14px;
+  width: 100%;
   flex-wrap: wrap;
+}
+.spine-inspector-poster {
+  width: 44px;
+  height: 64px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+.spine-inspector-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.spine-inspector-poster-fallback {
+  font-size: 18px;
+}
+.spine-inspector-details {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
+}
+.spine-inspector-line1 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.spine-inspector-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+.spine-inspector-orig {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.spine-inspector-year {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.spine-inspector-line2 {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.spine-inspector-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.spine-inspector-badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+}
+.spine-inspector-badge.badge-imdb {
+  background: rgba(245, 197, 24, 0.15);
+  border-color: rgba(245, 197, 24, 0.5);
+  color: #f5c518;
+}
+.spine-inspector-badge.badge-criterion {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.5);
+  color: #d4af37;
+}
+.spine-inspector-badge.badge-copies {
+  background: var(--accent);
+  color: var(--accent-ink, #000);
+  border-color: var(--accent);
+}
+.spine-inspector-cta {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.spine-inspector-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.spine-inspector-empty-icon {
+  font-size: 17px;
+}
+
+.shelf-theme-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  margin-inline-end: 8px;
+}
+.shelf-theme-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.shelf-theme-btn:hover {
+  color: var(--text);
+}
+.shelf-theme-btn.active {
+  background: var(--accent);
+  color: var(--accent-ink, #000);
+}
+
+/* Shelf Zoom Controller & Scale support */
+.shelf-zoom-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px 6px;
+  margin-inline-end: 8px;
+}
+.shelf-zoom-btn {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s;
+}
+.shelf-zoom-btn:hover {
+  background: var(--surface-3);
+  color: var(--accent);
+}
+.shelf-zoom-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  min-width: 38px;
+  text-align: center;
+}
+.spine-edition {
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: var(--accent);
+  opacity: 0.95;
+}
+.spine-case {
+  flex: 1 1 auto;
+  min-width: calc(14px * var(--spine-scale, 1));
+  max-width: calc(38px * var(--spine-scale, 1));
+  height: calc(215px * var(--spine-scale, 1));
+}
+
+/* =========================================================
+   Mobile Optimization for Browse by Location & Spine Shelf
+   ========================================================= */
+@media (max-width: 640px) {
+  /* 1. Modal header layout on small screens */
+  .location-browser-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 14px 12px;
+  }
+  .location-browser-head > div {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .shelf-back-btn {
+    padding: 7px 12px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  /* 2. Horizontal-swipe chips for Closet, Row, Section */
+  .location-browser-selectors {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  .location-browser-selectors-collapsed {
+    display: none !important;
+  }
+  .location-browser-selector-group {
+    width: 100%;
+    align-items: center;
+  }
+  .location-browser-selector-label {
+    min-width: 60px;
+    font-size: 11px;
+  }
+  .location-chip-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-height: none;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .location-chip-list::-webkit-scrollbar {
+    height: 4px;
+  }
+  .location-chip {
+    flex: 0 0 auto;
+    padding: 7px 13px;
+    font-size: 13px;
+    min-height: 36px;
+  }
+
+  /* 3. Shelf View header and controls on mobile */
+  .shelf-view-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .shelf-view-actions {
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    gap: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .shelf-zoom-control,
+  .shelf-theme-picker,
+  .view-toggle {
+    flex-shrink: 0;
+  }
+
+  /* 4. Spine Shelf and cases on mobile */
+  .spine-shelf-container {
+    padding: 16px 10px 20px;
+    gap: 20px;
+  }
+  .spine-shelf-ledge {
+    padding: 8px 10px 6px;
+    min-height: 195px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .spine-case {
+    height: calc(185px * var(--spine-scale, 1));
+    min-width: calc(16px * var(--spine-scale, 1));
+    max-width: calc(36px * var(--spine-scale, 1));
+  }
+  .spine-title-text {
+    font-size: 11px;
+    max-height: 130px;
+  }
+
+  /* 5. Live Inspector Bar touch-friendly mobile layout */
+  .spine-inspector-bar {
+    padding: 10px 12px;
+  }
+  .spine-inspector-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .spine-inspector-details {
+    width: 100%;
+  }
+  .spine-inspector-cta {
+    width: 100%;
+    text-align: right;
+  }
+
+  /* 6. Film Selector inventory table at bottom on mobile */
+  .film-selector-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .film-selector-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .film-selector-search {
+    width: 100%;
+    min-width: 0;
+  }
+  .film-selector-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .film-selector-move {
+    width: 100%;
+    margin-inline-start: 0;
+    min-height: 42px;
+    font-size: 13.5px;
+  }
+  .film-selector-row {
+    padding: 12px 10px;
+    min-height: 48px;
+  }
+  .film-selector-check {
+    width: 20px;
+    height: 20px;
+  }
 }

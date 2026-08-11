@@ -29,6 +29,7 @@ export default function FolderNav({
   onSelectPhysicalSeries,
   onSelectDigitalType,
   onSelectSpecialCollections,
+  onOpenBookshelf,
   onSelectDashboard,
   onSelectGallery,
   counts,
@@ -129,12 +130,12 @@ export default function FolderNav({
                 <h2>Digital Series</h2>
                 <p>Drive · {counts.digitalSeries} items</p>
               </button>
-              <button className="folder-card reveal-item reveal-8" onClick={onSelectSpecialCollections}>
+              <button className="folder-card reveal-item reveal-8" onClick={onOpenBookshelf}>
                 <span className="folder-icon">
-                  <IconStar width={32} height={32} />
+                  <IconBookshelf width={32} height={32} />
                 </span>
-                <h2>Special Collections</h2>
-                <p>Coming soon</p>
+                <h2>3D Bookshelf</h2>
+                <p>Physical · {counts.physical} items</p>
               </button>
               <button className="folder-card folder-card-dashboard reveal-item reveal-9" onClick={onSelectDashboard}>
                 <span className="folder-icon">

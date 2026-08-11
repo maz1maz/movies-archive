@@ -6,12 +6,16 @@ const ROW_COUNT = 10
 const PREVIEW_TITLES = 3
 
 // هر ردیف دو بخش (shelf = بخش) داره:
-//   بخش ۱: ظرفیت ۵۵ بلوری
-//   بخش ۲: ظرفیت ۳۵ بلوری
+//   بخش ۱: ظرفیت ۶۰ بلوری
+//   بخش ۲: ظرفیت ۶۰ بلوری
 const SECTIONS = [
-  { num: '1', capacity: 55, label: 'Section 1' },
-  { num: '2', capacity: 35, label: 'Section 2' },
+  { num: '1', capacity: 60, label: 'Section 1' },
+  { num: '2', capacity: 60, label: 'Section 2' },
 ]
+
+function countCopies(list) {
+  return list.reduce((sum, f) => sum + (Number(f.copies) || 1), 0)
+}
 
 function sortKey(title) {
   return String(title || '')
@@ -26,6 +30,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [filmQuery, setFilmQuery] = useState('')
   const [moving, setMoving] = useState(false)
+  const [hideShelved, setHideShelved] = useState(true)
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -53,6 +58,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     [physicalAll]
   )
 
+  const shelvedCount = useMemo(
+    () => physicalSorted.filter((f) => f.closet || f.row || f.shelf).length,
+    [physicalSorted]
+  )
+
   // آیا یک فیلم در مکان هدفِ (کاملاً) انتخاب‌شده هست؟ اگر بله، از لیست انتخاب حذفش می‌کنیم
   // تا فیلمی که همین حالا در اون گروه هست دوباره نشون داده نشه.
   const atTarget = (f) =>
@@ -64,7 +74,9 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const filteredFilms = useMemo(() => {
     const q = filmQuery.trim().toLowerCase()
     let base = physicalSorted
-    if (closet && row && shelf) {
+    if (hideShelved) {
+      base = base.filter((f) => !f.closet && !f.row && !f.shelf)
+    } else if (closet && row && shelf) {
       base = base.filter((f) => !atTarget(f))
     }
     if (!q) return base
@@ -73,7 +85,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
         String(f.title || '').toLowerCase().includes(q) ||
         String(f.year || '').includes(q)
     )
-  }, [physicalSorted, filmQuery, closet, row, shelf])
+  }, [physicalSorted, filmQuery, hideShelved, closet, row, shelf])
 
   const targetExcludedCount = useMemo(() => {
     if (!(closet && row && shelf)) return 0
@@ -99,8 +111,46 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const hasTarget = Boolean(closet && row && shelf)
   const targetLabel = hasTarget ? `C${closet}R${row}S${shelf}` : ''
 
+  const countFor = (c, r, s) =>
+    countCopies(
+      physical.filter(
+        (f) =>
+          (!c || String(f.closet || '–') === c) &&
+          (!r || String(f.row || '–') === r) &&
+          (!s || String(f.shelf || '–') === s)
+      )
+    )
+
+  const currentTargetCopies = useMemo(() => {
+    return countFor(closet, row, shelf)
+  }, [closet, row, shelf, physical])
+
+  const selectedCopiesCount = useMemo(() => {
+    const selectedSet = selectedIds
+    return countCopies(filteredFilms.filter((f) => selectedSet.has(f.id)))
+  }, [selectedIds, filteredFilms])
+
+  const targetCapacity = useMemo(() => {
+    if (!shelf) return 60
+    const sec = SECTIONS.find((s) => s.num === shelf)
+    return sec ? sec.capacity : 60
+  }, [shelf])
+
+  const wouldExceedCapacity = Boolean(
+    hasTarget && currentTargetCopies + selectedCopiesCount > targetCapacity
+  )
+
   const moveSelected = async () => {
     if (!hasTarget || !selectedCount || moving) return
+    if (currentTargetCopies + selectedCopiesCount > targetCapacity) {
+      alert(
+        `Cannot exceed section capacity of ${targetCapacity} copies. Currently ${currentTargetCopies}/${targetCapacity} copies in C${closet}R${row}S${shelf}, and you selected ${selectedCopiesCount} copies (${Math.max(
+          0,
+          targetCapacity - currentTargetCopies
+        )} spots left).`
+      )
+      return
+    }
     setMoving(true)
     try {
       const res = await fetch('/api/films/bulk-move', {
@@ -119,6 +169,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
       if (onFilmsChanged) onFilmsChanged()
     } catch (e) {
       console.error(e)
+      alert(e.message)
     } finally {
       setMoving(false)
     }
@@ -147,14 +198,6 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const closets = useMemo(() => Array.from({ length: CLOSET_COUNT }, (_, i) => String(i + 1)), [])
   const rows = useMemo(() => Array.from({ length: ROW_COUNT }, (_, i) => String(i + 1)), [])
 
-  const countFor = (c, r, s) =>
-    physical.filter(
-      (f) =>
-        (!c || String(f.closet || '–') === c) &&
-        (!r || String(f.row || '–') === r) &&
-        (!s || String(f.shelf || '–') === s)
-    ).length
-
   // ایندکس سریع: closet|row|shelf -> لیست فیلم‌ها
   const sectionIndex = useMemo(() => {
     const map = {}
@@ -177,11 +220,13 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
         const list = (sectionIndex[`${closet}|${r}|${sec.num}`] || [])
           .slice()
           .sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
+        const copiesCount = countCopies(list)
         return {
           num: sec.num,
           capacity: sec.capacity,
           label: sec.label,
-          count: list.length,
+          count: copiesCount,
+          filmCount: list.length,
           previews: list.slice(0, PREVIEW_TITLES),
         }
       })
@@ -200,6 +245,8 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
       .slice()
       .sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
   }, [closet, row, shelf, sectionIndex])
+
+  const shelfCopiesCount = useMemo(() => countCopies(shelfFilms), [shelfFilms])
 
   const currentSection = SECTIONS.find((s) => s.num === shelf) || null
 
@@ -283,7 +330,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
             <img class="catalog-header-logo" src="${window.location.origin}/logo.png" alt="Cinefilm Archive" />
             <div class="catalog-header-text">
               <h1>🎬 Location Catalog — ${locationLabel}</h1>
-              <p>Total Items: ${list.length} · Generated on ${new Date().toLocaleString()}</p>
+              <p>Total Items: ${list.length} titles (${countCopies(list)} copies) · Generated on ${new Date().toLocaleString()}</p>
             </div>
           </div>
           <button onclick="window.print()" style="padding:10px 18px; margin-bottom:15px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
@@ -309,19 +356,30 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="location-browser" onClick={(e) => e.stopPropagation()}>
-        <header className="location-browser-head">
-          <div className="location-browser-title">
-            <h2>
-              <IconPin width={18} height={18} /> Browse by Location
-            </h2>
-            <p className="export-sub">Choose a closet, row and section — the shelf will appear below</p>
+        <header className="location-browser-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="shelf-back-btn"
+              onClick={onClose}
+              title="Back to Posters / Library"
+              style={{ fontSize: '13px', padding: '6px 12px' }}
+            >
+              ← Back to Posters
+            </button>
+            <div className="location-browser-title">
+              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <IconPin width={18} height={18} /> Browse by Location
+              </h2>
+              <p className="export-sub" style={{ margin: '4px 0 0' }}>Choose a closet, row and section — the shelf will appear below</p>
+            </div>
           </div>
           <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
             <IconClose width={16} height={16} />
           </button>
         </header>
 
-        <div className="location-browser-selectors">
+        <div className={`location-browser-selectors ${closet && row && shelf ? 'location-browser-selectors-collapsed' : ''}`}>
           <div className="location-browser-selector-group">
             <span className="location-browser-selector-label">Closet</span>
             <div className="location-chip-list">
@@ -388,12 +446,6 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
               })}
             </div>
           </div>
-
-          {(closet || row || shelf) && (
-            <button type="button" className="btn btn-ghost btn-sm location-browser-clear" onClick={() => { setRow(''); setShelf(''); setCloset('') }}>
-              ✕ Clear
-            </button>
-          )}
         </div>
 
         <div className="location-browser-body">
@@ -406,7 +458,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   return (
                     <button key={c} className="closet-card" onClick={() => selectCloset(c)}>
                       <span className="closet-card-idx">C{c}</span>
-                      <span className="closet-card-count">{n} films</span>
+                      <span className="closet-card-count">{n} copies</span>
                     </button>
                   )
                 })}
@@ -417,8 +469,17 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
           {closet && !row && (
             <div className="cabinet-map cabinet-map-full">
               <div className="cabinet-map-head">
-                <span className="cabinet-map-title">Cabinet {closet} — pick a row or section</span>
-                <span className="cabinet-map-meta">{cabinetRows.length} rows · {countFor(closet, null, null)} films</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button
+                    type="button"
+                    className="shelf-back-btn"
+                    onClick={() => setCloset('')}
+                  >
+                    ← All Closets
+                  </button>
+                  <span className="cabinet-map-title">Cabinet {closet} — pick a row or section</span>
+                </div>
+                <span className="cabinet-map-meta">{cabinetRows.length} rows · {countFor(closet, null, null)} copies</span>
               </div>
               <div className="cabinet-map-legend">
                 <span className="cabinet-map-legend-item">
@@ -447,7 +508,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                               (sec.count === 0 ? ' cabinet-section-empty' : '')
                             }
                             onClick={() => pickFromMap(r.row, sec.num)}
-                            title={`${sec.label} · ${sec.count} of ${sec.capacity}`}
+                            title={`${sec.label} · ${sec.count} copies of ${sec.capacity} (${sec.filmCount} films)`}
                           >
                             <div className="cabinet-section-top">
                               <span className="cabinet-section-label">S{sec.num}</span>
@@ -468,8 +529,8 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                                   </span>
                                 ))
                               )}
-                              {sec.count > sec.previews.length && (
-                                <span className="cabinet-section-preview-more">+{sec.count - sec.previews.length} more</span>
+                              {sec.filmCount > sec.previews.length && (
+                                <span className="cabinet-section-preview-more">+{sec.filmCount - sec.previews.length} more</span>
                               )}
                             </div>
                           </button>
@@ -484,7 +545,16 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
 
           {closet && row && !shelf && (
             <div className="shelf-pick">
-              <p className="shelf-pick-label">Cabinet {closet} · Row {row} — choose a section</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <button
+                  type="button"
+                  className="shelf-back-btn"
+                  onClick={() => setRow('')}
+                >
+                  ← Back to C{closet}
+                </button>
+                <p className="shelf-pick-label" style={{ margin: 0 }}>Cabinet {closet} · Row {row} — choose a section</p>
+              </div>
               <div className="shelf-pick-sections">
                 {SECTIONS.map((sec) => {
                   const n = countFor(closet, row, sec.num)
@@ -496,7 +566,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                       onClick={() => selectShelf(sec.num)}
                     >
                       <span className="shelf-pick-card-title">S{sec.num} · {sec.label}</span>
-                      <span className="shelf-pick-card-cap">{n} / {sec.capacity} films</span>
+                      <span className="shelf-pick-card-cap">{n} / {sec.capacity} copies</span>
                       <span className="shelf-pick-card-track">
                         <span className="shelf-pick-card-fill" style={{ width: `${pct}%` }} />
                       </span>
@@ -511,8 +581,17 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
             <div className="shelf-view">
               <div className="shelf-view-head">
                 <div className="shelf-view-head-left">
-                  <div className="shelf-view-loc">
-                    C{closet} <span className="shelf-view-sep">·</span> R{row} <span className="shelf-view-sep">·</span> S{shelf}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                    <button
+                      type="button"
+                      className="shelf-back-btn"
+                      onClick={() => setShelf('')}
+                    >
+                      ← Back to C{closet} · R{row}
+                    </button>
+                    <div className="shelf-view-loc" style={{ margin: 0 }}>
+                      C{closet} <span className="shelf-view-sep">·</span> R{row} <span className="shelf-view-sep">·</span> S{shelf}
+                    </div>
                   </div>
                   <div className="shelf-view-title">
                     {currentSection.label} <span className="shelf-view-cap">(capacity {currentSection.capacity})</span>
@@ -520,6 +599,73 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   {canEdit && <div className="shelf-view-hint">Use ✕ to remove a film from this section (moves it to unassigned)</div>}
                 </div>
                 <div className="shelf-view-actions">
+                  {shelfViewMode === 'spine' && (
+                    <>
+                      <div className="shelf-zoom-control">
+                        <button
+                          type="button"
+                          className="shelf-zoom-btn"
+                          onClick={() => setShelfScale((s) => Math.max(0.7, Number((s - 0.15).toFixed(2))))}
+                          title="Zoom Out shelf cases"
+                        >
+                          −
+                        </button>
+                        <span className="shelf-zoom-label">{Math.round(shelfScale * 100)}%</span>
+                        <button
+                          type="button"
+                          className="shelf-zoom-btn"
+                          onClick={() => setShelfScale((s) => Math.min(1.45, Number((s + 0.15).toFixed(2))))}
+                          title="Zoom In shelf cases"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <div className="shelf-theme-picker">
+                        <button
+                          type="button"
+                          className={`shelf-theme-btn ${shelfTheme === 'wood' ? 'active' : ''}`}
+                          onClick={() => setShelfTheme('wood')}
+                          title="Classic Walnut Wood Shelf"
+                        >
+                          🪵 Wood
+                        </button>
+                        <button
+                          type="button"
+                          className={`shelf-theme-btn ${shelfTheme === 'slate' ? 'active' : ''}`}
+                          onClick={() => setShelfTheme('slate')}
+                          title="Modern Brushed Slate Shelf"
+                        >
+                          ⚙️ Slate
+                        </button>
+                        <button
+                          type="button"
+                          className={`shelf-theme-btn ${shelfTheme === 'cinema' ? 'active' : ''}`}
+                          onClick={() => setShelfTheme('cinema')}
+                          title="Dark Cinema Neon LED Shelf"
+                        >
+                          🎬 Cinema
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  <div className="view-toggle" style={{ marginInlineEnd: '6px' }}>
+                    <button
+                      type="button"
+                      className={shelfViewMode === 'spine' ? 'active' : ''}
+                      onClick={() => setShelfViewMode('spine')}
+                      title="Physical Spine Shelf View"
+                    >
+                      📚 Spine View
+                    </button>
+                    <button
+                      type="button"
+                      className={shelfViewMode === 'list' ? 'active' : ''}
+                      onClick={() => setShelfViewMode('list')}
+                      title="Table / List View"
+                    >
+                      ☰ List View
+                    </button>
+                  </div>
                   <button type="button" className="btn btn-ghost btn-sm" onClick={handlePrintPDF} title="Print / Save as PDF">
                     <IconPrinter width={13} height={13} /> PDF
                   </button>
@@ -531,12 +677,15 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
 
               <div className="shelf-view-meter">
                 <span className="shelf-view-meter-count">
-                  {shelfFilms.length} <span className="shelf-view-meter-total">/ {currentSection.capacity}</span> films
+                  {shelfCopiesCount} <span className="shelf-view-meter-total">/ {currentSection.capacity}</span> copies
+                  {shelfFilms.length !== shelfCopiesCount && (
+                    <span className="shelf-view-meter-sub"> ({shelfFilms.length} titles)</span>
+                  )}
                 </span>
                 <span className="shelf-view-meter-track">
                   <span
                     className="shelf-view-meter-fill"
-                    style={{ width: `${Math.min(100, Math.round((shelfFilms.length / currentSection.capacity) * 100))}%` }}
+                    style={{ width: `${Math.min(100, Math.round((shelfCopiesCount / currentSection.capacity) * 100))}%` }}
                   />
                 </span>
               </div>
@@ -544,8 +693,142 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
               {shelfFilms.length === 0 ? (
                 <div className="status empty-state">
                   <span className="empty-icon"><IconArchive width={22} height={22} /></span>
-                  <p>Nothing shelved here yet.</p>
+                  <p>Nothing shelved here yet. Move available films from inventory below.</p>
                 </div>
+              ) : shelfViewMode === 'spine' ? (
+                <>
+                  <div className="spine-inspector-bar">
+                    {hoveredFilm ? (
+                      <div className="spine-inspector-content">
+                        <div className="spine-inspector-poster">
+                          {hoveredFilm.poster ? (
+                            <img src={hoveredFilm.poster} alt={hoveredFilm.title} />
+                          ) : (
+                            <div className="spine-inspector-poster-fallback">🎬</div>
+                          )}
+                        </div>
+                        <div className="spine-inspector-details">
+                          <div className="spine-inspector-line1">
+                            <span className="spine-inspector-title">{hoveredFilm.title}</span>
+                            {hoveredFilm.originalTitle && hoveredFilm.originalTitle !== hoveredFilm.title && (
+                              <span className="spine-inspector-orig">({hoveredFilm.originalTitle})</span>
+                            )}
+                            {hoveredFilm.year && <span className="spine-inspector-year">{hoveredFilm.year}</span>}
+                          </div>
+                          <div className="spine-inspector-line2">
+                            {hoveredFilm.director && (
+                              <span className="spine-inspector-dir">Dir: {hoveredFilm.director}</span>
+                            )}
+                            {hoveredFilm.studio && (
+                              <span className="spine-inspector-studio">{hoveredFilm.studio}</span>
+                            )}
+                          </div>
+                          <div className="spine-inspector-badges">
+                            {hoveredFilm.rating && (
+                              <span className="spine-inspector-badge badge-imdb">★ {hoveredFilm.rating.toFixed(1)} IMDb</span>
+                            )}
+                            <span className="spine-inspector-badge badge-loc">
+                              C{hoveredFilm.closet || '–'} R{hoveredFilm.row || '–'} S{hoveredFilm.shelf || '–'}
+                            </span>
+                            <span className="spine-inspector-badge badge-format">
+                              {hoveredFilm.format || 'Blu-ray'}
+                            </span>
+                            {hoveredFilm.criterion && (
+                              <span className="spine-inspector-badge badge-criterion">
+                                CRITERION{hoveredFilm.criterionCopies > 1 ? ` ×${hoveredFilm.criterionCopies}` : ''}
+                              </span>
+                            )}
+                            {hoveredFilm.copies > 1 && (
+                              <span className="spine-inspector-badge badge-copies">×{hoveredFilm.copies} copies</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="spine-inspector-cta">
+                          <span>Click case to open full details →</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="spine-inspector-empty">
+                        <span className="spine-inspector-empty-icon">✨</span>
+                        <span>Hover over any Blu-ray case below to inspect its poster and details, or click to open the film page.</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={`cinema-wood-shelf-wrapper shelf-theme-${shelfTheme}`}>
+                    <div className="shelf-overhead-light" />
+                    <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
+                      <div className="shelf-inner-shadow" />
+                      <div className="bluray-shelf" id="shelf">
+                        {shelfFilms.map((f, idx) => {
+                          const style = getSpineColor(f, idx)
+                          const isCriterion = f.criterion || style.type === 'criterion'
+                          const is4k = style.type === '4k'
+                          const isSteelbook = style.type === 'steelbook'
+                          return (
+                            <div
+                              key={f.id}
+                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
+                              style={{
+                                backgroundColor: style.bg,
+                                background: style.bg,
+                                '--spine-text': style.text,
+                              }}
+                              onMouseEnter={() => setHoveredFilm(f)}
+                              onMouseLeave={() => setHoveredFilm(null)}
+                              onClick={() => onSelectFilm(f)}
+                              title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'} · ${f.format || 'Blu-ray'}${f.copies > 1 ? ` ×${f.copies} copies` : ''}`}
+                            >
+                              <div className="case-glare" />
+
+                              <div className="case-header">
+                                {isCriterion ? 'C' : is4k ? '4K UHD' : isSteelbook ? 'STEELBOOK' : 'BLU-RAY'}
+                              </div>
+
+                              <div className="case-spine">
+                                <span className="spine-title" style={{ color: style.text || '#fff' }}>
+                                  {f.title}
+                                  {f.copies > 1 && <span className="spine-copy-badge">×{f.copies}</span>}
+                                </span>
+                              </div>
+
+                              <div className={`case-footer footer-${style.badge || 'dts'}`} style={{ color: style.text || '#aaa' }}>
+                                <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    className="spine-remove-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      removeFromLocation(f)
+                                    }}
+                                    disabled={removingId === f.id}
+                                    title="Remove from this location"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      <div className="shelf-props-layer">
+                        <div className="shelf-prop prop-ticket-stub" title="Vintage Cinema Ticket" />
+                        <div className="shelf-prop prop-notebook" title="Aide-Mémoire">
+                          <span>Aide-Mémoire</span>
+                        </div>
+                        <div className="shelf-prop prop-clapperboard" title="Scene 2 Clapperboard">
+                          <div className="clapper-top" />
+                          <div className="clapper-number">2</div>
+                        </div>
+                        <div className="shelf-prop prop-receipts" title="Movie Receipt Stubs" />
+                      </div>
+                    </div>
+                    <div className="cinema-wood-ledge" />
+                  </div>
+                </>
               ) : (
                 <ul className="shelf-film-list">
                   {shelfFilms.map((f) => (
@@ -591,23 +874,42 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
           <div className="film-selector">
             <div className="film-selector-head">
               <div className="film-selector-title">
-                <h3>Film list</h3>
+                <h3>Available Inventory ({filteredFilms.length})</h3>
                 <span className="film-selector-sub">
-                  Select films, then pick a Closet / Row / Section above and move them there.
-                  {targetExcludedCount > 0 && <> Films already in {targetLabel} are hidden.</>}
+                  Select unassigned films from inventory, then pick a Closet / Row / Section above to assign them.
+                  {hideShelved
+                    ? ` Showing only unassigned films (${shelvedCount} already shelved hidden).`
+                    : targetExcludedCount > 0
+                    ? ` Films already in ${targetLabel} are hidden.`
+                    : ''}
                 </span>
               </div>
-              <input
-                className="film-selector-search"
-                type="text"
-                placeholder="Search films…"
-                value={filmQuery}
-                onChange={(e) => setFilmQuery(e.target.value)}
-              />
+              <div className="film-selector-controls">
+                <label className="film-selector-toggle">
+                  <input
+                    type="checkbox"
+                    checked={hideShelved}
+                    onChange={(e) => {
+                      setHideShelved(e.target.checked)
+                      setSelectedIds(new Set())
+                    }}
+                  />
+                  <span>Hide already shelved ({shelvedCount})</span>
+                </label>
+                <input
+                  className="film-selector-search"
+                  type="text"
+                  placeholder="Search available inventory…"
+                  value={filmQuery}
+                  onChange={(e) => setFilmQuery(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="film-selector-actions">
-              <span className="film-selector-count">{selectedCount} selected</span>
+              <span className="film-selector-count">
+                {selectedCount} selected {selectedCount > 0 && `(${selectedCopiesCount} ${selectedCopiesCount === 1 ? 'copy' : 'copies'})`}
+              </span>
               <button type="button" className="btn btn-ghost btn-sm" onClick={selectAllFiltered} disabled={!filteredFilms.length}>
                 Select all ({filteredFilms.length})
               </button>
@@ -619,10 +921,15 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   type="button"
                   className="btn btn-primary btn-sm film-selector-move"
                   onClick={moveSelected}
-                  disabled={!selectedCount || !hasTarget || moving}
+                  disabled={!selectedCount || !hasTarget || moving || wouldExceedCapacity}
                 >
-                  {moving ? 'Moving…' : `Move ${selectedCount} selected → ${targetLabel || '…'}`}
+                  {moving ? 'Moving…' : `Move ${selectedCount} selected (${selectedCopiesCount} ${selectedCopiesCount === 1 ? 'copy' : 'copies'}) → ${targetLabel || '…'}`}
                 </button>
+              )}
+              {wouldExceedCapacity && (
+                <span className="film-selector-capacity-error">
+                  Cannot add: {selectedCopiesCount} selected, but only {Math.max(0, targetCapacity - currentTargetCopies)} spots left in {targetLabel} (cap {targetCapacity})
+                </span>
               )}
               {!canEdit && hasTarget && selectedCount > 0 && (
                 <span className="film-selector-login-hint">Log in to move films</span>
@@ -632,7 +939,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
             <div className="film-selector-list">
               {filteredFilms.length === 0 ? (
                 <div className="status empty-state">
-                  <p>No films match your search.</p>
+                  <p>
+                    {hideShelved && !filmQuery.trim()
+                      ? 'No unassigned films available in inventory. All physical films have been added to a location.'
+                      : 'No films match your search.'}
+                  </p>
                 </div>
               ) : (
                 filteredFilms.map((f) => {
@@ -651,6 +962,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                       <span className="film-selector-title">
                         <span className="film-selector-title-text">{f.title}</span>
                         {f.year && <span className="film-selector-year">{f.year}</span>}
+                        {f.copies > 1 && <span className="copies-badge">×{f.copies}</span>}
                       </span>
                       <span className="film-selector-loc">
                         C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}
