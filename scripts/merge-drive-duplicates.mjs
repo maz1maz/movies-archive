@@ -41,15 +41,27 @@ function runD1File(sql, { json = false } = {}) {
       env: { ...process.env, CI: '1' },
     })
     if (!json) return out
-    // برای اطمینان، حتی اگه یه چیزی قبل/بعد از JSON چاپ بشه، فقط بخش
-    // آرایه‌ی JSON رو (بین اولین '[' و آخرین ']') استخراج و پارس می‌کنیم.
-    const start = out.indexOf('[')
-    const end = out.lastIndexOf(']')
-    if (start === -1 || end === -1 || end < start) {
-      throw new Error('Could not find JSON in wrangler output:\n' + out)
+    // برای اطمینان، به‌جای فرض کردن کل stdout فقط JSON‌ه، دنبال خطی می‌گردیم که
+    // خودش با '[' شروع می‌شه (خروجی --json وریلر معمولاً یه خط تک‌خطیه)؛ این از
+    // برخورد اشتباه با براکت‌های داخل پیام‌های هشدار (مثل "[WARNING]") جلوگیری می‌کنه.
+    const lines = out.split(/\r?\n/)
+    const jsonLine = lines.map((l) => l.trim()).filter((l) => l.startsWith('[') && l.endsWith(']')).pop()
+    let jsonText = jsonLine
+    if (!jsonText) {
+      const start = out.indexOf('[')
+      const end = out.lastIndexOf(']')
+      if (start === -1 || end === -1 || end < start) {
+        throw new Error('Could not find JSON in wrangler output:\n' + out)
+      }
+      jsonText = out.slice(start, end + 1)
     }
-    const jsonText = out.slice(start, end + 1)
-    return JSON.parse(jsonText)[0]?.results || []
+    let parsed
+    try {
+      parsed = JSON.parse(jsonText)
+    } catch (e) {
+      throw new Error('Failed to parse wrangler JSON output:\n' + out)
+    }
+    return parsed[0]?.results || []
   } finally {
     try {
       unlinkSync(tmpFile)
@@ -69,6 +81,14 @@ function main() {
   console.log('📥 خوندن کل جدول films از D1...')
   const rows = runD1File('SELECT * FROM films;', { json: true })
   console.log(`   ${rows.length} رکورد خونده شد.`)
+
+  if (rows.length < 100) {
+    console.log(
+      '\n⚠️  تعداد رکوردهای خونده‌شده خیلی کمه (احتمالاً یه مشکل تو خوندن خروجی wrangler هست، نه اینکه واقعاً همینقدر فیلم داری).'
+    )
+    console.log('   برای اطمینان، اجرا رو متوقف می‌کنم تا چیزی اشتباه پاک نشه. لطفاً این پیام رو برام بفرست.')
+    process.exit(1)
+  }
 
   const groups = new Map()
   for (const f of rows) {
