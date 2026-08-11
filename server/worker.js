@@ -974,7 +974,7 @@ export default {
 
         try {
           const cached = await db
-            .prepare('SELECT photo, bio, birthDate, deathDate, height, spouse, children FROM people_photos WHERE name = ?')
+            .prepare('SELECT photo, bio, birthDate, deathDate, height, spouse, children, imdbId FROM people_photos WHERE name = ?')
             .bind(cacheKey)
             .first()
           if (cached) {
@@ -1004,6 +1004,7 @@ export default {
                 info.birthDate = wd.birthDate
                 info.deathDate = wd.deathDate
                 info.height = wd.height
+                info.imdbId = wd.imdbId
                 const idsToResolve = [...wd.spouseIds, ...wd.childrenIds]
                 const labels = idsToResolve.length ? await resolveWikidataLabels(idsToResolve) : {}
                 if (wd.spouseIds.length) {
@@ -1021,9 +1022,9 @@ export default {
 
           await db
             .prepare(
-              'INSERT OR REPLACE INTO people_photos (name, photo, bio, birthDate, deathDate, height, spouse, children) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+              'INSERT OR REPLACE INTO people_photos (name, photo, bio, birthDate, deathDate, height, spouse, children, imdbId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
             )
-            .bind(cacheKey, info.photo, info.bio, info.birthDate, info.deathDate, info.height, info.spouse, info.children)
+            .bind(cacheKey, info.photo, info.bio, info.birthDate, info.deathDate, info.height, info.spouse, info.children, info.imdbId)
             .run()
           return json(
             { ...info, age: info.deathDate ? null : ageFromBirthDate(info.birthDate) },
@@ -1516,6 +1517,7 @@ function emptyPersonInfo() {
     height: null,
     spouse: null,
     children: null,
+    imdbId: null,
   }
 }
 
@@ -1674,7 +1676,7 @@ function ageFromBirthDate(birthDate) {
 // فقط متن آزاد. همسر/فرزندان اینجا هنوز فقط شناسه (Q-id) هستن، اسم واقعی‌شون
 // رو resolveWikidataLabels جداگانه می‌گیره.
 async function fetchWikidataFacts(qid) {
-  const empty = { birthDate: null, deathDate: null, height: null, spouseIds: [], childrenIds: [] }
+  const empty = { birthDate: null, deathDate: null, height: null, spouseIds: [], childrenIds: [], imdbId: null }
   try {
     const res = await fetch(
       `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qid}&props=claims&format=json`,
@@ -1724,7 +1726,10 @@ async function fetchWikidataFacts(qid) {
       .filter(Boolean)
       .slice(0, 6)
 
-    return { birthDate, deathDate, height, spouseIds, childrenIds }
+    // P345 = IMDb ID (برای اشخاص معمولاً به شکل nm1234567)
+    const imdbId = claims.P345?.[0]?.mainsnak?.datavalue?.value || null
+
+    return { birthDate, deathDate, height, spouseIds, childrenIds, imdbId }
   } catch {
     return empty
   }

@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS director_extras (
   recommendations TEXT,
   fetchedAt TEXT DEFAULT (datetime('now'))
 );
+ALTER TABLE people_photos ADD COLUMN imdbId TEXT;
 `
 
 const tmpFile = `.tmp-migrate-${randomUUID()}.sql`

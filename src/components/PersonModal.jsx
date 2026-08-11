@@ -12,6 +12,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
     height: null,
     spouse: null,
     children: null,
+    imdbId: null,
   })
   const [bioLoading, setBioLoading] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -32,7 +33,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   useEffect(() => {
     setPhoto(null)
     setBio(null)
-    setFacts({ age: null, birthDate: null, deathDate: null, height: null, spouse: null, children: null })
+    setFacts({ age: null, birthDate: null, deathDate: null, height: null, spouse: null, children: null, imdbId: null })
     setLightboxOpen(false)
     if (!personName) return
     setBioLoading(true)
@@ -50,6 +51,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
             height: data.height || null,
             spouse: data.spouse || null,
             children: data.children || null,
+            imdbId: data.imdbId || null,
           })
         }
       })
@@ -171,7 +173,23 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
             )}
           </div>
           <div>
-            <h2 className="person-title">{personName}</h2>
+            <h2 className="person-title">
+              {personName}
+              <a
+                className="person-imdb-link"
+                href={
+                  facts.imdbId
+                    ? `https://www.imdb.com/name/${facts.imdbId}/`
+                    : `https://www.imdb.com/find/?q=${encodeURIComponent(personName)}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View on IMDb"
+                onClick={(e) => e.stopPropagation()}
+              >
+                IMDb ↗
+              </a>
+            </h2>
             <p className="person-subtitle">
               Found <strong>{matchingFilms.length}</strong> film(s) in your archive
             </p>

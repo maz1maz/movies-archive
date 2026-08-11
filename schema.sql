@@ -55,7 +55,8 @@ CREATE TABLE IF NOT EXISTS people_photos (
   deathDate TEXT,
   height TEXT,
   spouse TEXT,
-  children TEXT
+  children TEXT,
+  imdbId TEXT
 );
 
 -- کش جوایز (از Wikidata) + پیشنهاد فیلم‌های کارگردان که تو آرشیو نیستن ولی
