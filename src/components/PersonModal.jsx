@@ -130,7 +130,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   const [extrasLoading, setExtrasLoading] = useState(false)
   useEffect(() => {
     setDirectorExtras(null)
-    if (!personName || !isDirector) return
+    if (!personName) return
     setExtrasLoading(true)
     let cancelled = false
     fetch(`/api/director-extras?name=${encodeURIComponent(personName)}`)
@@ -146,7 +146,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personName, isDirector])
+  }, [personName])
 
   return (
     <>
@@ -229,10 +229,10 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
               <p className="person-bio">{bio}</p>
             ) : null}
 
-            {isDirector && (
+            {(extrasLoading || directorExtras?.awards?.length > 0 || (isDirector && directorExtras?.recommendations?.length > 0)) && (
               <div className="person-director-extras">
                 {extrasLoading && !directorExtras && (
-                  <p className="person-extras-loading">Loading awards & recommendations…</p>
+                  <p className="person-extras-loading">Loading awards…</p>
                 )}
 
                 {directorExtras?.awards?.length > 0 && (
@@ -249,7 +249,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
                   </div>
                 )}
 
-                {directorExtras?.recommendations?.length > 0 && (
+            {isDirector && directorExtras?.recommendations?.length > 0 && (
                   <div className="person-recommendations">
                     <h4 className="person-extras-title">
                       Highly-rated films not in your archive (IMDb &gt; 7, Letterboxd &gt; 3.5)
