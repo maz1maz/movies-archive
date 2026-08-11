@@ -964,30 +964,6 @@ export default function App() {
         <ExportModal films={sectionFilms} section={section} onClose={() => setShowExport(false)} />
       )}
 
-      {showLocationBrowser && (
-        <LocationBrowserModal
-          films={allFilmsUnfiltered}
-          canEdit={!isGuest}
-          onSelectFilm={(film) => {
-            setForceFilmOverlay(true)
-            setSelected(film)
-          }}
-          onFilmsChanged={loadAllFilmsUnfiltered}
-          onClose={() => setShowLocationBrowser(false)}
-        />
-      )}
-
-      {showBookshelf && (
-        <BookshelfView
-          films={allFilmsUnfiltered}
-          onSelectFilm={(film) => {
-            setForceFilmOverlay(true)
-            setSelected(film)
-          }}
-          onClose={() => setShowBookshelf(false)}
-        />
-      )}
-
       {selected && (!useSplitView || forceFilmOverlay) && (
         <FilmModal
           film={selected}
@@ -1056,6 +1032,30 @@ export default function App() {
         />
       )}
         </>
+      )}
+
+      {showLocationBrowser && (
+        <LocationBrowserModal
+          films={allFilmsUnfiltered}
+          canEdit={!isGuest}
+          onSelectFilm={(film) => {
+            setForceFilmOverlay(true)
+            setSelected(film)
+          }}
+          onFilmsChanged={loadAllFilmsUnfiltered}
+          onClose={() => setShowLocationBrowser(false)}
+        />
+      )}
+
+      {showBookshelf && (
+        <BookshelfView
+          films={allFilmsUnfiltered}
+          onSelectFilm={(film) => {
+            setForceFilmOverlay(true)
+            setSelected(film)
+          }}
+          onClose={() => setShowBookshelf(false)}
+        />
       )}
     </div>
   )
