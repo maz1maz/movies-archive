@@ -35,8 +35,21 @@ function runD1File(sql, { json = false } = {}) {
       encoding: 'utf-8',
       maxBuffer: 1024 * 1024 * 200,
       shell: IS_WIN,
+      // wrangler چاپ می‌کنه پیام‌های پیشرفت تعاملی («Checking if file needs
+      // uploading» و غیره) رو تو stdout حتی با --json، که خروجی رو دیگه JSON
+      // خالص نمی‌ذاره. CI=1 این پیام‌های تزئینی رو خاموش می‌کنه.
+      env: { ...process.env, CI: '1' },
     })
-    return json ? JSON.parse(out)[0]?.results || [] : out
+    if (!json) return out
+    // برای اطمینان، حتی اگه یه چیزی قبل/بعد از JSON چاپ بشه، فقط بخش
+    // آرایه‌ی JSON رو (بین اولین '[' و آخرین ']') استخراج و پارس می‌کنیم.
+    const start = out.indexOf('[')
+    const end = out.lastIndexOf(']')
+    if (start === -1 || end === -1 || end < start) {
+      throw new Error('Could not find JSON in wrangler output:\n' + out)
+    }
+    const jsonText = out.slice(start, end + 1)
+    return JSON.parse(jsonText)[0]?.results || []
   } finally {
     try {
       unlinkSync(tmpFile)
