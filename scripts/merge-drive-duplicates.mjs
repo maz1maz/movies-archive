@@ -10,33 +10,51 @@
 //   ۳. اگه فرق داشته باشن (مثلاً کیفیت/زبون متفاوت) => دست‌نخورده می‌مونه، فقط تو
 //      گزارش پایانی («نیاز به بررسی دستی») لیست می‌شه.
 //
-// قبل از هر حذفی، یه بکاپ کامل از جدول films تو KV ذخیره می‌شه (مثل reset-locations)
-// تا در صورت اشتباه قابل بازگردانی باشه.
+// قبل از هر حذفی، یه بکاپ کامل از جدول films محلی ذخیره می‌شه تا در صورت اشتباه
+// قابل بازگردانی باشه.
+//
+// نکته‌ی فنی: به‌جای --command (که تو ویندوز به‌خاطر اسپیس‌های داخل SQL درست
+// کوت نمی‌شه و می‌شکنه)، همیشه SQL رو تو یه فایل موقت می‌نویسیم و با --file
+// اجرا می‌کنیم — این روی هر پلتفرمی مطمئنه.
 
 import { execFileSync } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, unlinkSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 
 const DB_NAME = 'movies-archive'
-
 const NPX_CMD = process.platform === 'win32' ? 'npx.cmd' : 'npx'
+const IS_WIN = process.platform === 'win32'
 
-function runD1(sql) {
-  const out = execFileSync(
-    NPX_CMD,
-    ['wrangler', 'd1', 'execute', DB_NAME, '--remote', '--json', '--command', sql],
-    { encoding: 'utf-8', maxBuffer: 1024 * 1024 * 200, shell: process.platform === 'win32' }
-  )
-  const parsed = JSON.parse(out)
-  return parsed[0]?.results || []
+function runD1File(sql, { json = false } = {}) {
+  const tmpFile = `.tmp-d1-${randomUUID()}.sql`
+  writeFileSync(tmpFile, sql, 'utf-8')
+  try {
+    const args = ['wrangler', 'd1', 'execute', DB_NAME, '--remote', '--yes', '--file', tmpFile]
+    if (json) args.push('--json')
+    const out = execFileSync(NPX_CMD, args, {
+      encoding: 'utf-8',
+      maxBuffer: 1024 * 1024 * 200,
+      shell: IS_WIN,
+    })
+    return json ? JSON.parse(out)[0]?.results || [] : out
+  } finally {
+    try {
+      unlinkSync(tmpFile)
+    } catch {}
+  }
 }
 
 function normalizeTitle(t) {
   return (t || '').toString().trim().toLowerCase()
 }
 
+function esc(s) {
+  return String(s).replace(/'/g, "''")
+}
+
 function main() {
   console.log('📥 خوندن کل جدول films از D1...')
-  const rows = runD1('SELECT * FROM films')
+  const rows = runD1File('SELECT * FROM films;', { json: true })
   console.log(`   ${rows.length} رکورد خونده شد.`)
 
   const groups = new Map()
@@ -72,7 +90,10 @@ function main() {
     writeFileSync(`backup-before-merge-${ts}.json`, JSON.stringify(rows, null, 2))
     console.log(`   backup-before-merge-${ts}.json ذخیره شد.\n`)
 
-    console.log('🔧 در حال ادغام...')
+    console.log('🔧 آماده‌سازی SQL ادغام...')
+    const statements = []
+    const summary = []
+
     for (const group of safe) {
       const keep = group.reduce((a, b) => (String(a.id) < String(b.id) ? a : b)) // پایدار: کوچیک‌ترین id
       const others = group.filter((f) => f.id !== keep.id)
@@ -89,16 +110,19 @@ function main() {
       const newDrive = drives.join(', ')
       const newCopies = group.reduce((sum, f) => sum + (Number(f.copies) || 1), 0)
 
-      const esc = (s) => String(s).replace(/'/g, "''")
-      runD1(
-        `UPDATE films SET driveNumber = '${esc(newDrive)}', copies = ${newCopies}, updatedAt = datetime('now') WHERE id = '${esc(keep.id)}'`
+      statements.push(
+        `UPDATE films SET driveNumber = '${esc(newDrive)}', copies = ${newCopies}, updatedAt = datetime('now') WHERE id = '${esc(keep.id)}';`
       )
       for (const o of others) {
-        runD1(`DELETE FROM films WHERE id = '${esc(o.id)}'`)
+        statements.push(`DELETE FROM films WHERE id = '${esc(o.id)}';`)
       }
-      console.log(`   ✓ ${keep.title} (${keep.year || '—'}) → Drive ${newDrive}, ${newCopies} copies — ${others.length} رکورد حذف شد`)
+      summary.push(`   ✓ ${keep.title} (${keep.year || '—'}) → Drive ${newDrive}, ${newCopies} copies — ${others.length} رکورد حذف شد`)
     }
-    console.log('\n✅ ادغام خودکار تمام شد.')
+
+    console.log(`🚀 اجرای ${statements.length} دستور روی D1 (یک درخواست)...`)
+    runD1File(statements.join('\n'))
+    console.log('✅ ادغام خودکار تمام شد.\n')
+    summary.forEach((line) => console.log(line))
   }
 
   if (needsReview.length > 0) {
