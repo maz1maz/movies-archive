@@ -18,11 +18,13 @@ import { writeFileSync } from 'node:fs'
 
 const DB_NAME = 'movies-archive'
 
+const NPX_CMD = process.platform === 'win32' ? 'npx.cmd' : 'npx'
+
 function runD1(sql) {
   const out = execFileSync(
-    'npx',
+    NPX_CMD,
     ['wrangler', 'd1', 'execute', DB_NAME, '--remote', '--json', '--command', sql],
-    { encoding: 'utf-8', maxBuffer: 1024 * 1024 * 200 }
+    { encoding: 'utf-8', maxBuffer: 1024 * 1024 * 200, shell: process.platform === 'win32' }
   )
   const parsed = JSON.parse(out)
   return parsed[0]?.results || []
