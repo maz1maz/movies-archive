@@ -137,6 +137,13 @@ export default function FolderNav({
                 <h2>3D Bookshelf</h2>
                 <p>Physical · {counts.physical} items</p>
               </button>
+              <button className="folder-card reveal-item reveal-8" onClick={onSelectSpecialCollections}>
+                <span className="folder-icon">
+                  <IconStar width={32} height={32} />
+                </span>
+                <h2>Special Collections</h2>
+                <p>Coming soon</p>
+              </button>
               <button className="folder-card folder-card-dashboard reveal-item reveal-9" onClick={onSelectDashboard}>
                 <span className="folder-icon">
                   <IconBarChart width={32} height={32} />
