@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { IconClose } from './icons.jsx'
 import FilmModal from './FilmModal.jsx'
+import EditModal from './EditModal.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 
 const SCOPES = [
@@ -17,6 +18,7 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
   const [groups, setGroups] = useState(null)
   const [busyId, setBusyId] = useState(null)
   const [compareGroup, setCompareGroup] = useState(null)
+  const [editingFilm, setEditingFilm] = useState(null)
 
   const load = (s) => {
     setGroups(null)
@@ -160,7 +162,10 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
                       hasBluray={false}
                       hasDigital={false}
                       onClose={() => {}}
-                      onEdit={() => {}}
+                      onEdit={(f) => {
+                        if (isGuest) return openLogin()
+                        setEditingFilm(f)
+                      }}
                       onNavigate={() => {}}
                       onSaveSeasonDrive={async (f, seasonDrives) => {
                         await fetch(`/api/films/${f.id}`, {
@@ -193,6 +198,30 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
             </div>
           </div>
         </div>
+      )}
+      {editingFilm && (
+        <EditModal
+          film={editingFilm}
+          onClose={() => setEditingFilm(null)}
+          onSave={async (patch) => {
+            await fetch(`/api/films/${editingFilm.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(patch),
+            })
+            setEditingFilm(null)
+            load(scope)
+            if (onFilmsChanged) onFilmsChanged()
+          }}
+          onDelete={async () => {
+            if (!window.confirm(`Delete this entry (${editingFilm.title})? This cannot be undone.`)) return
+            await fetch(`/api/films/${editingFilm.id}`, { method: 'DELETE' })
+            setEditingFilm(null)
+            setCompareGroup(null)
+            load(scope)
+            if (onFilmsChanged) onFilmsChanged()
+          }}
+        />
       )}
     </div>
   )
