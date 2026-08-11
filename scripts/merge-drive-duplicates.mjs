@@ -40,6 +40,11 @@ function runD1File(sql, { json = false } = {}) {
       // خالص نمی‌ذاره. CI=1 این پیام‌های تزئینی رو خاموش می‌کنه.
       env: { ...process.env, CI: '1' },
     })
+    if (json) {
+      // برای دیباگ: همیشه خروجی خام رو ذخیره می‌کنیم تا اگه چیزی درست پارس
+      // نشد، بشه دقیقاً دید wrangler چی چاپ کرده.
+      writeFileSync('.wrangler-raw-debug.log', out, 'utf-8')
+    }
     if (!json) return out
     // برای اطمینان، به‌جای فرض کردن کل stdout فقط JSON‌ه، دنبال خطی می‌گردیم که
     // خودش با '[' شروع می‌شه (خروجی --json وریلر معمولاً یه خط تک‌خطیه)؛ این از
@@ -59,9 +64,11 @@ function runD1File(sql, { json = false } = {}) {
     try {
       parsed = JSON.parse(jsonText)
     } catch (e) {
-      throw new Error('Failed to parse wrangler JSON output:\n' + out)
+      throw new Error('Failed to parse wrangler JSON output — see .wrangler-raw-debug.log for the raw text')
     }
-    return parsed[0]?.results || []
+    const results = parsed[0]?.results || []
+    console.log(`   (دیباگ: ${parsed.length} statement result${parsed.length === 1 ? '' : 's'}, اولی ${results.length} ردیف)`)
+    return results
   } finally {
     try {
       unlinkSync(tmpFile)
@@ -86,7 +93,8 @@ function main() {
     console.log(
       '\n⚠️  تعداد رکوردهای خونده‌شده خیلی کمه (احتمالاً یه مشکل تو خوندن خروجی wrangler هست، نه اینکه واقعاً همینقدر فیلم داری).'
     )
-    console.log('   برای اطمینان، اجرا رو متوقف می‌کنم تا چیزی اشتباه پاک نشه. لطفاً این پیام رو برام بفرست.')
+    console.log('   برای اطمینان، اجرا رو متوقف می‌کنم تا چیزی اشتباه پاک نشه.')
+    console.log('   فایل .wrangler-raw-debug.log (کنار همین اسکریپت ساخته شده) رو برام بفرست.')
     process.exit(1)
   }
 
