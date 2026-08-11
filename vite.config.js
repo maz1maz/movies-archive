@@ -13,6 +13,9 @@ export default defineConfig({
     host: true,
     port: 5173,
     allowedHosts: true, // allow Cloudflare preview / tunnel hosts during dev
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+    },
     // هنگام توسعه، درخواست‌های /api به سرور اکسپرس هدایت می‌شن
     proxy: {
       '/api': 'http://localhost:3001',

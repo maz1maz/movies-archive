@@ -80,6 +80,7 @@ export default function Header({
   enrichScopeLabel,
   onOpenExport,
   onOpenLocationBrowser,
+  onOpenBookshelf,
   onSyncLetterboxd,
   onFetchSeasonCounts,
   fetchingSeasonCounts,
@@ -277,6 +278,42 @@ export default function Header({
               <IconPin width={14} height={14} /> Location
             </button>
           )}
+
+          {onOpenBookshelf && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                onOpenBookshelf()
+                setFiltersOpen(false)
+                setMenuOpen(false)
+                setAzOpen(false)
+              }}
+              title="3D Physical Bookshelf view (pure exhibition without edit buttons)"
+            >
+              <IconBookshelf width={14} height={14} /> Bookshelf
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={async () => {
+              if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations()
+                for (const r of regs) await r.unregister()
+              }
+              if ('caches' in window) {
+                const keys = await caches.keys()
+                for (const k of keys) await caches.delete(k)
+              }
+              window.location.reload(true)
+            }}
+            title="Force refresh & clear offline cache"
+            style={{ fontSize: '12px', padding: '6px 10px' }}
+          >
+            ↻ Refresh App
+          </button>
 
           <button
             className="btn btn-ghost theme-toggle"

@@ -459,6 +459,25 @@ export default {
         try {
           film = await enrichFilm(film, key)
         } catch {}
+        if (film.closet && film.row && film.shelf && film.mediaType !== 'digital') {
+          const resCap = await db
+            .prepare(
+              'SELECT SUM(CASE WHEN COALESCE(copies, 1) <= 0 THEN 1 ELSE COALESCE(copies, 1) END) as total FROM films WHERE closet = ? AND row = ? AND shelf = ?'
+            )
+            .bind(String(film.closet), String(film.row), String(film.shelf))
+            .first()
+          const existingCopies = Number(resCap?.total || 0)
+          const newCopies = Number(film.copies || 1)
+          if (existingCopies + newCopies > 60) {
+            return json(
+              {
+                error: `Section capacity exceeded (max 60 copies). C${film.closet} R${film.row} S${film.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
+              },
+              400,
+              corsHeaders
+            )
+          }
+        }
         await insertFilm(db, film)
         try {
           await syncSharedMetadataToSibling(db, film)
@@ -488,6 +507,25 @@ export default {
             } else {
               updated[k] = body[k]
             }
+          }
+        }
+        if (updated.closet && updated.row && updated.shelf && updated.mediaType !== 'digital') {
+          const resCap = await db
+            .prepare(
+              'SELECT SUM(CASE WHEN COALESCE(copies, 1) <= 0 THEN 1 ELSE COALESCE(copies, 1) END) as total FROM films WHERE closet = ? AND row = ? AND shelf = ? AND id != ?'
+            )
+            .bind(String(updated.closet), String(updated.row), String(updated.shelf), String(existing.id))
+            .first()
+          const existingCopies = Number(resCap?.total || 0)
+          const newCopies = Number(updated.copies || 1)
+          if (existingCopies + newCopies > 60) {
+            return json(
+              {
+                error: `Section capacity exceeded (max 60 copies). C${updated.closet} R${updated.row} S${updated.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
+              },
+              400,
+              corsHeaders
+            )
           }
         }
         await updateFilm(db, updated)
@@ -537,6 +575,26 @@ export default {
         const shelf = String(body.shelf || '').trim()
         if (!closet || !row || !shelf) {
           return json({ error: 'closet, row and shelf are required' }, 400, corsHeaders)
+        }
+        const placeholders = ids.map(() => '?').join(',')
+        const existingRes = await db
+          .prepare(`SELECT SUM(CASE WHEN COALESCE(copies, 1) <= 0 THEN 1 ELSE COALESCE(copies, 1) END) as total FROM films WHERE closet = ? AND row = ? AND shelf = ? AND id NOT IN (${placeholders})`)
+          .bind(closet, row, shelf, ...ids)
+          .first()
+        const existingCopies = Number(existingRes?.total || 0)
+        const movingRes = await db
+          .prepare(`SELECT SUM(CASE WHEN COALESCE(copies, 1) <= 0 THEN 1 ELSE COALESCE(copies, 1) END) as total FROM films WHERE id IN (${placeholders})`)
+          .bind(...ids)
+          .first()
+        const movingCopies = Number(movingRes?.total || 0)
+        if (existingCopies + movingCopies > 60) {
+          return json(
+            {
+              error: `Section capacity exceeded (max 60 copies). C${closet} R${row} S${shelf} currently has ${existingCopies} copies; moving ${movingCopies} would exceed 60.`,
+            },
+            400,
+            corsHeaders
+          )
         }
         const stmt = db.prepare(
           "UPDATE films SET closet = ?, row = ?, shelf = ?, updatedAt = datetime('now') WHERE id = ?"

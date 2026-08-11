@@ -19,10 +19,6 @@ import { useRef, useState } from 'react'
 // Overview tab of the Dashboard — same stats as the old Stats modal, shown
 // inline as the landing view instead of jumping straight to Oscars.
 export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isAdmin, onFilmsChanged }) {
-  const [resetting, setResetting] = useState(false)
-  const [resetMsg, setResetMsg] = useState('')
-  const confirmResetRef = useRef('')
-  const [resetConfirm, setResetConfirm] = useState('')
   const totalFilms = films.length
   const totalRuntimeMins = films.reduce((acc, f) => acc + (f.runtime || 0), 0)
   const totalHours = Math.round(totalRuntimeMins / 60)
@@ -215,31 +211,6 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isA
   const openPerson = (name) => onOpenPerson && name && onOpenPerson(name)
   const openFilm = (film) => onOpenFilm && onOpenFilm(film)
 
-  const runResetLocations = async () => {
-    if (!isAdmin) return
-    if (resetConfirm !== 'RESET') {
-      setResetMsg('Type RESET (uppercase) to confirm.')
-      return
-    }
-    setResetting(true)
-    setResetMsg('')
-    try {
-      const res = await fetch('/api/films/reset-locations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'reset failed')
-      setResetMsg(`Done — ${data.reset} physical films cleared, backup saved to KV.`)
-      setResetConfirm('')
-      if (onFilmsChanged) onFilmsChanged()
-    } catch (e) {
-      setResetMsg('Error: ' + e.message)
-    } finally {
-      setResetting(false)
-    }
-  }
-
   return (
     <div className="dashboard-overview">
       <div className="stats-cards-grid stats-cards-grid-6">
@@ -280,32 +251,60 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isA
         </div>
       </div>
 
-      {isAdmin && (
-        <div className="stats-box admin-reset-box">
-          <h3><IconArchive width={15} height={15} /> Danger zone — Reset all physical film locations</h3>
-          <p className="admin-reset-desc">
-            Clears <code>closet</code> / <code>row</code> / <code>shelf</code> for every physical film.
-            A backup of the whole table is saved to KV first (key <code>backup:reset-locations-*</code>).
-            This is <strong>irreversible</strong> unless restored from a backup.
-          </p>
-          <div className="admin-reset-controls">
-            <input
-              className="admin-reset-input"
-              type="text"
-              placeholder="Type RESET to confirm"
-              value={resetConfirm}
-              onChange={(e) => setResetConfirm(e.target.value)}
-            />
-            <button
-              type="button"
-              className="btn btn-danger admin-reset-btn"
-              onClick={runResetLocations}
-              disabled={resetting}
-            >
-              {resetting ? 'Resetting…' : 'Reset all physical locations'}
-            </button>
+      {loanedFilms.length > 0 ? (
+        <div className="stats-box stats-box-loaned">
+          <div className="stats-box-head" style={{ marginBottom: '4px' }}>
+            <h3><IconHandshake width={16} height={16} /> Currently Loaned Out ({loanedFilms.length})</h3>
+            <span className="stats-box-sub">Films currently borrowed from your physical collection</span>
           </div>
-          {resetMsg && <p className="admin-reset-msg">{resetMsg}</p>}
+          <div className="loaned-cards-grid">
+            {loanedFilms.map((f) => {
+              const daysAgo = f.borrowedDate
+                ? Math.floor((Date.now() - new Date(f.borrowedDate).getTime()) / (1000 * 60 * 60 * 24))
+                : null
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  className="loaned-card-item"
+                  onClick={() => openFilm(f)}
+                >
+                  <div className="loaned-card-poster">
+                    {f.poster ? (
+                      <img src={f.poster} alt={f.title} />
+                    ) : (
+                      <span className="loaned-card-poster-empty">🎬</span>
+                    )}
+                  </div>
+                  <div className="loaned-card-info">
+                    <div className="loaned-card-title">{f.title} {f.year && `(${f.year})`}</div>
+                    <div className="loaned-card-borrower">
+                      <span className="borrower-badge">🤝 {f.borrowedTo}</span>
+                    </div>
+                    {f.borrowedDate && (
+                      <div className="loaned-card-date">
+                        {daysAgo !== null && !isNaN(daysAgo)
+                          ? daysAgo === 0
+                            ? 'Loaned today'
+                            : `Loaned ${daysAgo} day${daysAgo === 1 ? '' : 's'} ago (${new Date(f.borrowedDate).toLocaleDateString()})`
+                          : new Date(f.borrowedDate).toLocaleDateString()}
+                      </div>
+                    )}
+                    <div className="loaned-card-loc">
+                      C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'} · {f.format || 'Blu-ray'}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="stats-box stats-box-loaned-empty">
+          <div className="stats-box-head" style={{ marginBottom: 0 }}>
+            <h3><IconHandshake width={16} height={16} /> Currently Loaned Out (0 items)</h3>
+            <span className="stats-box-sub">All your physical films are safely on your shelves right now.</span>
+          </div>
         </div>
       )}
 

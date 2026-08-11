@@ -7,7 +7,26 @@ import LoginModal from './components/LoginModal.jsx'
 import AdminUsersModal from './components/AdminUsersModal.jsx'
 import './styles.css'
 
-if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+if ('caches' in window) {
+  caches.keys().then((keys) => {
+    keys.forEach((key) => {
+      if (key.startsWith('film-archive-app')) {
+        caches.delete(key)
+      }
+    })
+  })
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      reg.update()
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+      }
+    })
+  })
+}
 
 function AdminModalMount() {
   const { adminOpen, setAdminOpen } = useAuth()

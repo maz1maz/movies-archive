@@ -1,10 +1,7 @@
-const APP_CACHE = 'film-archive-app-v4'
 const POSTER_CACHE = 'film-archive-posters-v1'
-const APP_FILES = ['/', '/index.html', '/manifest.webmanifest']
 const MAX_POSTERS = 200
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(APP_CACHE).then((cache) => cache.addAll(APP_FILES)))
   self.skipWaiting()
 })
 
@@ -13,7 +10,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== APP_CACHE && key !== POSTER_CACHE)
+          .filter((key) => key !== POSTER_CACHE)
           .map((key) => caches.delete(key))
       )
     )
@@ -21,10 +18,15 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+})
+
 async function trimPosterCache(cache) {
   const keys = await cache.keys()
   if (keys.length <= MAX_POSTERS) return
-  // Remove oldest entries first (Cache Storage preserves insertion order).
   await Promise.all(keys.slice(0, keys.length - MAX_POSTERS).map((key) => cache.delete(key)))
 }
 
@@ -51,18 +53,5 @@ self.addEventListener('fetch', (event) => {
       })
     )
     return
-  }
-
-  // Cache the app shell; API data remains network-first so edits/imports stay fresh.
-  if (request.method === 'GET' && url.origin === self.location.origin && !url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone()
-          caches.open(APP_CACHE).then((cache) => cache.put(request, copy))
-          return response
-        })
-        .catch(() => caches.match(request))
-    )
   }
 })
