@@ -13,62 +13,77 @@
 // قبل از هر حذفی، یه بکاپ کامل از جدول films محلی ذخیره می‌شه تا در صورت اشتباه
 // قابل بازگردانی باشه.
 //
-// نکته‌ی فنی: به‌جای --command (که تو ویندوز به‌خاطر اسپیس‌های داخل SQL درست
-// کوت نمی‌شه و می‌شکنه)، همیشه SQL رو تو یه فایل موقت می‌نویسیم و با --file
-// اجرا می‌کنیم — این روی هر پلتفرمی مطمئنه.
+// نکات فنی (بعد از چند بار خطا یاد گرفته شده):
+//   - wrangler d1 execute --file برای SELECT فقط آمار (Rows read/written) برمی‌گردونه،
+//     نه خودِ ردیف‌ها؛ برای خوندن داده حتماً باید --command استفاده بشه.
+//   - تو ویندوز، execFileSync با shell:true آرگومان‌ها رو خودش کوت نمی‌کنه، پس
+//     برای --command از execSync با یه رشته‌ی دستی کوت‌شده استفاده می‌کنیم.
+//   - برای نوشتن (UPDATE/DELETE) از --file استفاده می‌کنیم چون نیازی به داده‌ی
+//     برگشتی نداریم، فقط موفقیت اجرا مهمه — و اونجا مشکلی نیست.
 
-import { execFileSync } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
 import { writeFileSync, unlinkSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 
 const DB_NAME = 'movies-archive'
 const NPX_CMD = process.platform === 'win32' ? 'npx.cmd' : 'npx'
 const IS_WIN = process.platform === 'win32'
+const ENV = { ...process.env, CI: '1' }
 
-function runD1File(sql, { json = false } = {}) {
+function extractJsonResults(out) {
+  const lines = out.split(/\r?\n/)
+  const jsonLine = lines.map((l) => l.trim()).filter((l) => l.startsWith('[') && l.endsWith(']')).pop()
+  let jsonText = jsonLine
+  if (!jsonText) {
+    const start = out.indexOf('[')
+    const end = out.lastIndexOf(']')
+    if (start === -1 || end === -1 || end < start) {
+      throw new Error('Could not find JSON in wrangler output:\n' + out)
+    }
+    jsonText = out.slice(start, end + 1)
+  }
+  let parsed
+  try {
+    parsed = JSON.parse(jsonText)
+  } catch {
+    throw new Error('Failed to parse wrangler JSON output — see .wrangler-raw-debug.log')
+  }
+  return parsed[0]?.results || []
+}
+
+// خوندن داده — باید از --command استفاده کنه (نه --file)، وگرنه wrangler فقط
+// آمار برمی‌گردونه نه ردیف‌های واقعی.
+function runQuery(sql) {
+  let out
+  if (IS_WIN) {
+    // کوت دستی برای cmd.exe: کل دستور رو با " دور می‌گیریم و " های داخلی رو دوبل می‌کنیم.
+    const quoted = '"' + sql.replace(/"/g, '""') + '"'
+    const cmd = `${NPX_CMD} wrangler d1 execute ${DB_NAME} --remote --json --command ${quoted}`
+    out = execSync(cmd, { encoding: 'utf-8', maxBuffer: 1024 * 1024 * 200, env: ENV })
+  } else {
+    out = execFileSync(
+      NPX_CMD,
+      ['wrangler', 'd1', 'execute', DB_NAME, '--remote', '--json', '--command', sql],
+      { encoding: 'utf-8', maxBuffer: 1024 * 1024 * 200, env: ENV }
+    )
+  }
+  writeFileSync('.wrangler-raw-debug.log', out, 'utf-8')
+  return extractJsonResults(out)
+}
+
+// نوشتن (UPDATE/DELETE) — از --file استفاده می‌کنه، چون فایل موقت مشکل کوت‌شدن
+// آرگومان تو ویندوز رو کلاً نداره (فقط اسم فایل پاس داده می‌شه، بدون فاصله).
+function runMutations(sql) {
   const tmpFile = `.tmp-d1-${randomUUID()}.sql`
   writeFileSync(tmpFile, sql, 'utf-8')
   try {
     const args = ['wrangler', 'd1', 'execute', DB_NAME, '--remote', '--yes', '--file', tmpFile]
-    if (json) args.push('--json')
-    const out = execFileSync(NPX_CMD, args, {
+    execFileSync(NPX_CMD, args, {
       encoding: 'utf-8',
       maxBuffer: 1024 * 1024 * 200,
       shell: IS_WIN,
-      // wrangler چاپ می‌کنه پیام‌های پیشرفت تعاملی («Checking if file needs
-      // uploading» و غیره) رو تو stdout حتی با --json، که خروجی رو دیگه JSON
-      // خالص نمی‌ذاره. CI=1 این پیام‌های تزئینی رو خاموش می‌کنه.
-      env: { ...process.env, CI: '1' },
+      env: ENV,
     })
-    if (json) {
-      // برای دیباگ: همیشه خروجی خام رو ذخیره می‌کنیم تا اگه چیزی درست پارس
-      // نشد، بشه دقیقاً دید wrangler چی چاپ کرده.
-      writeFileSync('.wrangler-raw-debug.log', out, 'utf-8')
-    }
-    if (!json) return out
-    // برای اطمینان، به‌جای فرض کردن کل stdout فقط JSON‌ه، دنبال خطی می‌گردیم که
-    // خودش با '[' شروع می‌شه (خروجی --json وریلر معمولاً یه خط تک‌خطیه)؛ این از
-    // برخورد اشتباه با براکت‌های داخل پیام‌های هشدار (مثل "[WARNING]") جلوگیری می‌کنه.
-    const lines = out.split(/\r?\n/)
-    const jsonLine = lines.map((l) => l.trim()).filter((l) => l.startsWith('[') && l.endsWith(']')).pop()
-    let jsonText = jsonLine
-    if (!jsonText) {
-      const start = out.indexOf('[')
-      const end = out.lastIndexOf(']')
-      if (start === -1 || end === -1 || end < start) {
-        throw new Error('Could not find JSON in wrangler output:\n' + out)
-      }
-      jsonText = out.slice(start, end + 1)
-    }
-    let parsed
-    try {
-      parsed = JSON.parse(jsonText)
-    } catch (e) {
-      throw new Error('Failed to parse wrangler JSON output — see .wrangler-raw-debug.log for the raw text')
-    }
-    const results = parsed[0]?.results || []
-    console.log(`   (دیباگ: ${parsed.length} statement result${parsed.length === 1 ? '' : 's'}, اولی ${results.length} ردیف)`)
-    return results
   } finally {
     try {
       unlinkSync(tmpFile)
@@ -86,15 +101,14 @@ function esc(s) {
 
 function main() {
   console.log('📥 خوندن کل جدول films از D1...')
-  const rows = runD1File('SELECT * FROM films;', { json: true })
+  const rows = runQuery('SELECT * FROM films;')
   console.log(`   ${rows.length} رکورد خونده شد.`)
 
   if (rows.length < 100) {
     console.log(
-      '\n⚠️  تعداد رکوردهای خونده‌شده خیلی کمه (احتمالاً یه مشکل تو خوندن خروجی wrangler هست، نه اینکه واقعاً همینقدر فیلم داری).'
+      '\n⚠️  تعداد رکوردهای خونده‌شده خیلی کمه. برای اطمینان، اجرا رو متوقف می‌کنم تا چیزی اشتباه پاک نشه.'
     )
-    console.log('   برای اطمینان، اجرا رو متوقف می‌کنم تا چیزی اشتباه پاک نشه.')
-    console.log('   فایل .wrangler-raw-debug.log (کنار همین اسکریپت ساخته شده) رو برام بفرست.')
+    console.log('   فایل .wrangler-raw-debug.log رو برام بفرست.')
     process.exit(1)
   }
 
@@ -161,7 +175,7 @@ function main() {
     }
 
     console.log(`🚀 اجرای ${statements.length} دستور روی D1 (یک درخواست)...`)
-    runD1File(statements.join('\n'))
+    runMutations(statements.join('\n'))
     console.log('✅ ادغام خودکار تمام شد.\n')
     summary.forEach((line) => console.log(line))
   }
