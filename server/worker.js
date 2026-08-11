@@ -1035,6 +1035,48 @@ export default {
         }
       }
 
+      // ---- GET /api/director-extras (awards + high-rated films missing from
+      // the archive, for the director info panel). Cached 30 days in D1 —
+      // both Wikidata (awards) and TMDB+OMDb+Letterboxd (recommendations)
+      // lookups are heavy, so we don't want to redo them on every open. ----
+      if (method === 'GET' && pathname === '/api/director-extras') {
+        const name = (url.searchParams.get('name') || '').trim()
+        if (!name) return json({ awards: [], recommendations: [] }, 200, corsHeaders)
+        const cacheKey = name.toLowerCase()
+
+        try {
+          const cached = await db
+            .prepare('SELECT awards, recommendations, fetchedAt FROM director_extras WHERE name = ?')
+            .bind(cacheKey)
+            .first()
+          const cacheFresh =
+            cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 30 * 24 * 60 * 60 * 1000
+          if (cacheFresh) {
+            return json(
+              { awards: JSON.parse(cached.awards || '[]'), recommendations: JSON.parse(cached.recommendations || '[]') },
+              200,
+              corsHeaders
+            )
+          }
+
+          const [awards, recommendations] = await Promise.all([
+            fetchDirectorAwards(name),
+            fetchDirectorRecommendations(db, name, env),
+          ])
+
+          await db
+            .prepare(
+              "INSERT OR REPLACE INTO director_extras (name, awards, recommendations, fetchedAt) VALUES (?, ?, ?, datetime('now'))"
+            )
+            .bind(cacheKey, JSON.stringify(awards), JSON.stringify(recommendations))
+            .run()
+
+          return json({ awards, recommendations }, 200, corsHeaders)
+        } catch (e) {
+          return json({ awards: [], recommendations: [] }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/letterboxd-rating (fetch Letterboxd average rating + votes, cached on the film row) ----
       if (method === 'GET' && pathname === '/api/letterboxd-rating') {
         const filmId = (url.searchParams.get('filmId') || '').trim()
@@ -1704,6 +1746,129 @@ async function resolveWikidataLabels(ids) {
     return out
   } catch {
     return {}
+  }
+}
+
+// جوایز یه شخص (P166 «award received» روی Wikidata)، گروه‌بندی‌شده بر اساس
+// اسم جایزه با تعداد تکرار — مثلاً «Academy Award for Best Director ×2».
+async function fetchDirectorAwards(name) {
+  try {
+    const wikiRes = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageprops&titles=${encodeURIComponent(name)}`,
+      { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
+    )
+    if (!wikiRes.ok) return []
+    const wikiData = await wikiRes.json()
+    const page = Object.values(wikiData?.query?.pages || {})[0]
+    const qid = page?.pageprops?.wikibase_item
+    if (!qid) return []
+
+    const res = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qid}&props=claims&format=json`, {
+      headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' },
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    const claims = data?.entities?.[qid]?.claims || {}
+    const awardIds = (claims.P166 || []).map((c) => c.mainsnak?.datavalue?.value?.id).filter(Boolean)
+    if (!awardIds.length) return []
+
+    const labels = await resolveWikidataLabels(awardIds)
+    const counts = new Map()
+    for (const id of awardIds) {
+      const label = labels[id]
+      if (!label) continue
+      counts.set(label, (counts.get(label) || 0) + 1)
+    }
+    return Array.from(counts.entries())
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12)
+  } catch {
+    return []
+  }
+}
+
+// فیلم‌هایی که این کارگردان ساخته ولی توی آرشیو نیستن، فیلترشده به اونایی که
+// امتیازشون واقعاً بالاست (IMDb > 7 و Letterboxd > 3.5). فیلموگرافی از TMDB
+// میاد، امتیاز IMDb از OMDb، امتیاز Letterboxd از fetchLetterboxdRating —
+// برای محدود نگه‌داشتن تعداد درخواست‌ها، فقط پرمحبوب‌ترین ۲۰ فیلم TMDB چک می‌شن.
+async function fetchDirectorRecommendations(db, name, env) {
+  if (!env.TMDB_API_KEY) return []
+  const tmdbKey = env.TMDB_API_KEY
+
+  async function tmdbGet(path, params) {
+    const qs = new URLSearchParams(params).toString()
+    const attempts = [
+      { url: `https://api.themoviedb.org/3${path}?${qs}&api_key=${encodeURIComponent(tmdbKey)}`, headers: { accept: 'application/json' } },
+      { url: `https://api.themoviedb.org/3${path}?${qs}`, headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
+    ]
+    for (const a of attempts) {
+      try {
+        const res = await fetch(a.url, { headers: a.headers })
+        if (res.ok) return await res.json()
+      } catch {}
+    }
+    return null
+  }
+
+  try {
+    const search = await tmdbGet('/search/person', { query: name })
+    const person = (search?.results || [])[0]
+    if (!person) return []
+
+    const credits = await tmdbGet(`/person/${person.id}/movie_credits`, {})
+    const directed = (credits?.crew || []).filter((c) => c.job === 'Director')
+    const seen = new Set()
+    const candidates = []
+    for (const c of directed) {
+      if (!c.title || !c.release_date) continue
+      const key = `${c.id}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      candidates.push({ title: c.title, year: parseInt(c.release_date.slice(0, 4), 10), popularity: c.popularity || 0 })
+    }
+    if (!candidates.length) return []
+
+    // فیلم‌هایی که از قبل تو آرشیون رو حذف کن (تطبیق با عنوان+سال، نادیده
+    // گرفتن حروف بزرگ/کوچیک — همون منطق دوپلیکیت‌یاب).
+    const existingRes = await db.prepare('SELECT title, year FROM films').all()
+    const existingKeys = new Set(
+      (existingRes.results || []).map((f) => `${normalizeTitle(f.title)}|${f.year || ''}`)
+    )
+    const missing = candidates.filter((c) => !existingKeys.has(`${normalizeTitle(c.title)}|${c.year || ''}`))
+
+    // فقط پرمحبوب‌ترین ۲۰ تا رو چک کن (نه کل فیلموگرافی) تا سهمیه‌ی OMDb هدر نره.
+    const toCheck = missing.sort((a, b) => b.popularity - a.popularity).slice(0, 20)
+
+    const results = []
+    for (const c of toCheck) {
+      try {
+        const omdbRes = await fetch(
+          `https://www.omdbapi.com/?apikey=${env.OMDB_API_KEY}&t=${encodeURIComponent(c.title)}&y=${c.year}&type=movie`,
+          { signal: AbortSignal.timeout(8000) }
+        )
+        if (!omdbRes.ok) continue
+        const omdbData = await omdbRes.json()
+        if (omdbData.Response !== 'True' || !omdbData.imdbRating || omdbData.imdbRating === 'N/A') continue
+        const imdbRating = parseFloat(omdbData.imdbRating)
+        if (isNaN(imdbRating) || imdbRating <= 7) continue
+
+        const lb = await fetchLetterboxdRating(c.title, c.year)
+        if (!lb || lb.rating <= 3.5) continue
+
+        results.push({
+          title: c.title,
+          year: c.year,
+          imdbRating,
+          letterboxdRating: lb.rating,
+          poster: omdbData.Poster && omdbData.Poster !== 'N/A' ? omdbData.Poster : null,
+        })
+      } catch {}
+    }
+
+    return results.sort((a, b) => b.imdbRating - a.imdbRating)
+  } catch {
+    return []
   }
 }
 

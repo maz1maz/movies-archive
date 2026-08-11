@@ -3031,6 +3031,82 @@ body.light .header {
   background: var(--surface-3, var(--surface-2));
   border-color: var(--border-strong);
 }
+
+.person-director-extras {
+  margin-top: 14px;
+  max-width: 64ch;
+}
+.person-extras-loading {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-style: italic;
+}
+.person-extras-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin: 14px 0 8px;
+}
+.person-awards-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.person-award-chip {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+.person-recommendations-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.person-recommendation-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.person-recommendation-poster {
+  width: 32px;
+  height: 46px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.person-recommendation-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.person-recommendation-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.person-recommendation-year {
+  font-weight: 400;
+  color: var(--muted);
+}
+.person-recommendation-ratings {
+  display: flex;
+  gap: 8px;
+  font-size: 11.5px;
+}
+.person-recommendation-ratings .badge-imdb {
+  color: #f5c518;
+}
+.person-recommendation-ratings .badge-letterboxd {
+  color: #00e054;
+}
 .person-avatar-deceased .person-avatar-photo {
   filter: grayscale(1) contrast(1.05);
 }

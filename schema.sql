@@ -58,6 +58,15 @@ CREATE TABLE IF NOT EXISTS people_photos (
   children TEXT
 );
 
+-- کش جوایز (از Wikidata) + پیشنهاد فیلم‌های کارگردان که تو آرشیو نیستن ولی
+-- امتیاز بالایی دارن (IMDb + Letterboxd) — برای جلوگیری از فچ سنگین تکراری.
+CREATE TABLE IF NOT EXISTS director_extras (
+  name TEXT PRIMARY KEY,
+  awards TEXT,           -- JSON: [{label, count}, ...]
+  recommendations TEXT,  -- JSON: [{title, year, imdbRating, letterboxdRating, poster}, ...]
+  fetchedAt TEXT DEFAULT (datetime('now'))
+);
+
 -- کاربران برنامه. مهمان‌ها (بدون سشن) فقط دسترسی مشاهده دارن.
 -- role: 'admin' | 'user'
 CREATE TABLE IF NOT EXISTS users (

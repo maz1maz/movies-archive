@@ -122,6 +122,30 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   }
   const matchingFilms = Array.from(seenKeys.values())
 
+  const isDirector = matchingFilms.some((f) => (f.director || '').toLowerCase().includes(target))
+
+  const [directorExtras, setDirectorExtras] = useState(null)
+  const [extrasLoading, setExtrasLoading] = useState(false)
+  useEffect(() => {
+    setDirectorExtras(null)
+    if (!personName || !isDirector) return
+    setExtrasLoading(true)
+    let cancelled = false
+    fetch(`/api/director-extras?name=${encodeURIComponent(personName)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) setDirectorExtras(data)
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setExtrasLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [personName, isDirector])
+
   return (
     <>
       <div className="modal-overlay" onClick={onClose}>
@@ -186,6 +210,54 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
             ) : bio ? (
               <p className="person-bio">{bio}</p>
             ) : null}
+
+            {isDirector && (
+              <div className="person-director-extras">
+                {extrasLoading && !directorExtras && (
+                  <p className="person-extras-loading">Loading awards & recommendations…</p>
+                )}
+
+                {directorExtras?.awards?.length > 0 && (
+                  <div className="person-awards">
+                    <h4 className="person-extras-title">Awards</h4>
+                    <div className="person-awards-list">
+                      {directorExtras.awards.map((a) => (
+                        <span key={a.label} className="person-fact-chip person-award-chip">
+                          {a.label}
+                          {a.count > 1 ? ` ×${a.count}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {directorExtras?.recommendations?.length > 0 && (
+                  <div className="person-recommendations">
+                    <h4 className="person-extras-title">
+                      Highly-rated films not in your archive (IMDb &gt; 7, Letterboxd &gt; 3.5)
+                    </h4>
+                    <ul className="person-recommendations-list">
+                      {directorExtras.recommendations.map((r) => (
+                        <li key={`${r.title}-${r.year}`} className="person-recommendation-item">
+                          {r.poster && (
+                            <img src={r.poster} alt={r.title} className="person-recommendation-poster" />
+                          )}
+                          <span className="person-recommendation-info">
+                            <span className="person-recommendation-title">
+                              {r.title} <span className="person-recommendation-year">({r.year})</span>
+                            </span>
+                            <span className="person-recommendation-ratings">
+                              <span className="badge-imdb">★ {r.imdbRating.toFixed(1)} IMDb</span>
+                              <span className="badge-letterboxd">● {r.letterboxdRating.toFixed(1)} Letterboxd</span>
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
