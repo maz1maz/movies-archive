@@ -23,6 +23,14 @@ function sortKey(title) {
     .toLowerCase()
 }
 
+const AZ_LETTERS = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))]
+
+function firstLetterOf(title) {
+  const t = sortKey(title).trim()
+  const ch = (t[0] || '').toUpperCase()
+  return ch >= 'A' && ch <= 'Z' ? ch : '#'
+}
+
 export default function LocationBrowserModal({ films, onSelectFilm, onClose, canEdit = false, onFilmsChanged }) {
   const [closet, setCloset] = useState('')
   const [row, setRow] = useState('')
@@ -31,6 +39,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [filmQuery, setFilmQuery] = useState('')
   const [moving, setMoving] = useState(false)
   const [hideShelved, setHideShelved] = useState(true)
+  const [azLetter, setAzLetter] = useState(null)
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -79,13 +88,16 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     } else if (closet && row && shelf) {
       base = base.filter((f) => !atTarget(f))
     }
+    if (azLetter) {
+      base = base.filter((f) => firstLetterOf(f.title) === azLetter)
+    }
     if (!q) return base
     return base.filter(
       (f) =>
         String(f.title || '').toLowerCase().includes(q) ||
         String(f.year || '').includes(q)
     )
-  }, [physicalSorted, filmQuery, hideShelved, closet, row, shelf])
+  }, [physicalSorted, filmQuery, hideShelved, closet, row, shelf, azLetter])
 
   const targetExcludedCount = useMemo(() => {
     if (!(closet && row && shelf)) return 0
@@ -904,6 +916,26 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   onChange={(e) => setFilmQuery(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="film-selector-az">
+              <button
+                type="button"
+                className={'film-selector-az-btn' + (!azLetter ? ' film-selector-az-btn-active' : '')}
+                onClick={() => setAzLetter(null)}
+              >
+                All
+              </button>
+              {AZ_LETTERS.map((L) => (
+                <button
+                  key={L}
+                  type="button"
+                  className={'film-selector-az-btn' + (azLetter === L ? ' film-selector-az-btn-active' : '')}
+                  onClick={() => setAzLetter(azLetter === L ? null : L)}
+                >
+                  {L}
+                </button>
+              ))}
             </div>
 
             <div className="film-selector-actions">
