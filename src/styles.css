@@ -5944,7 +5944,7 @@ body.light .spine-theme-wood .spine-shelf-board {
   overflow: hidden;
   background: #0b0c10;
   opacity: 1;
-  transition: opacity 480ms ease;
+  transition: opacity 550ms ease;
 }
 .splash-screen.splash-fading {
   opacity: 0;

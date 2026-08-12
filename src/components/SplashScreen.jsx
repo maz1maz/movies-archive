@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { SPLASH_POSTERS } from '../data/splashPosters.js'
 import { IconBrandMark } from './icons.jsx'
 
-const HOLD_MS = 1800
-const FADE_MS = 450
+const HOLD_MS = 3200
+const FADE_MS = 550
 
 // Deterministic-enough shuffle so the tile order varies a bit between visits
 // without needing any randomness library.
