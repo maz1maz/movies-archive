@@ -1084,16 +1084,21 @@ export default {
       // هالیوود. سه بخش موازی fetch می‌شن، هرکدوم جدا کش می‌شن. ----
       if (method === 'GET' && pathname === '/api/cinema-news') {
         try {
-          const [birthdays, upcoming, trailers, headlines, headlinesFa] = await Promise.all([
+          const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming] = await Promise.all([
             fetchTodaysBirthdays(db),
             fetchUpcomingFromCollection(db, env),
             fetchTrendingTrailers(db, env),
             fetchCinemaHeadlines(db),
             fetchCinemaHeadlinesFa(db),
+            fetchGeneralUpcoming(db, env),
           ])
-          return json({ birthdays, upcoming, trailers, headlines, headlinesFa }, 200, corsHeaders)
+          return json({ birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming }, 200, corsHeaders)
         } catch (e) {
-          return json({ birthdays: [], upcoming: [], trailers: [], headlines: [], headlinesFa: [] }, 200, corsHeaders)
+          return json(
+            { birthdays: [], upcoming: [], trailers: [], headlines: [], headlinesFa: [], generalUpcoming: { movies: [], series: [] } },
+            200,
+            corsHeaders
+          )
         }
       }
 
@@ -2040,6 +2045,77 @@ async function fetchTrendingTrailers(db, env) {
     return trailers
   } catch {
     return []
+  }
+}
+
+// فیلم/سریال‌های در راه به‌طور کلی (نه فقط اهالی کالکشن) — برای کسی که فقط
+// می‌خواد ببینه چه چیزی به‌زودی میاد، بدون ربط به این‌که تو آرشیوش هست یا نه.
+// فیلم از TMDB /movie/upcoming، سریال از /discover/tv با first_air_date از
+// امروز به بعد. یک‌روزه کش می‌شه، عمومیه.
+async function fetchGeneralUpcoming(db, env) {
+  if (!env.TMDB_API_KEY) return { movies: [], series: [] }
+  try {
+    const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('general_upcoming').first()
+    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 24 * 60 * 60 * 1000
+    if (fresh) {
+      try {
+        return JSON.parse(cached.data || '{"movies":[],"series":[]}')
+      } catch {
+        return { movies: [], series: [] }
+      }
+    }
+
+    const tmdbKey = env.TMDB_API_KEY
+    async function tmdbGet(path, params) {
+      const qs = new URLSearchParams(params).toString()
+      const attempts = [
+        { url: `https://api.themoviedb.org/3${path}?${qs}&api_key=${encodeURIComponent(tmdbKey)}`, headers: { accept: 'application/json' } },
+        { url: `https://api.themoviedb.org/3${path}?${qs}`, headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
+      ]
+      for (const a of attempts) {
+        try {
+          const res = await fetch(a.url, { headers: a.headers })
+          if (res.ok) return await res.json()
+        } catch {}
+      }
+      return null
+    }
+
+    const today = new Date().toISOString().slice(0, 10)
+
+    const moviesRes = await tmdbGet('/movie/upcoming', { region: 'US', page: '1' })
+    const movies = (moviesRes?.results || [])
+      .filter((m) => m.title && m.release_date)
+      .slice(0, 12)
+      .map((m) => ({
+        title: m.title,
+        releaseDate: m.release_date,
+        poster: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
+      }))
+
+    const seriesRes = await tmdbGet('/discover/tv', {
+      sort_by: 'popularity.desc',
+      'first_air_date.gte': today,
+      page: '1',
+    })
+    const series = (seriesRes?.results || [])
+      .filter((s) => s.name && s.first_air_date)
+      .slice(0, 12)
+      .map((s) => ({
+        title: s.name,
+        releaseDate: s.first_air_date,
+        poster: s.poster_path ? `https://image.tmdb.org/t/p/w300${s.poster_path}` : null,
+      }))
+
+    const data = { movies, series }
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind('general_upcoming', JSON.stringify(data))
+      .run()
+
+    return data
+  } catch {
+    return { movies: [], series: [] }
   }
 }
 

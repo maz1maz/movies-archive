@@ -3202,6 +3202,21 @@ body.light .header {
 .cinema-news-headline-list-rtl .cinema-news-headline-link {
   font-family: 'Vazirmatn', Tahoma, sans-serif;
 }
+.cinema-news-media-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--surface-3, var(--surface-2));
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-inline-start: 6px;
+  vertical-align: middle;
+}
+.cinema-news-poster-card {
+  cursor: default;
+}
 .cinema-news-birthday-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
