@@ -3560,8 +3560,7 @@ body.light .header {
 }
 
 /* ---------- Header: condenses on scroll ---------- */
-.header-condensed .brand-meta,
-.header-condensed .section-badge {
+.header-condensed .brand-meta {
   display: none;
 }
 .header-condensed .header-inner {
@@ -5172,14 +5171,14 @@ body.light .dashboard-panel {
   flex-shrink: 0;
 }
 .section-badge-physical {
-  background: rgba(212, 175, 55, 0.14);
-  border: 1px solid rgba(212, 175, 55, 0.5);
-  color: #d4af37;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: var(--accent-ink);
 }
 .section-badge-digital {
-  background: rgba(59, 130, 246, 0.14);
-  border: 1px solid rgba(59, 130, 246, 0.5);
-  color: #3b82f6;
+  background: #3b82f6;
+  border: 1px solid #3b82f6;
+  color: #ffffff;
 }
 @media (max-width: 720px) {
   .section-badge {
