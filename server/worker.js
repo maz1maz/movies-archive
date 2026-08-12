@@ -1587,6 +1587,13 @@ async function fetchCinemaHeadlines(db) {
     all.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
     const headlines = all.slice(0, 12)
 
+    // ترجمه‌ی کوتاه فارسیِ هر تیتر انگلیسی، برای نمایش زیر عنوان اصلی
+    await Promise.all(
+      headlines.map(async (h) => {
+        h.titleFa = await translateToFa(h.title)
+      })
+    )
+
     await db
       .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
       .bind('headlines', JSON.stringify(headlines))
@@ -1595,6 +1602,26 @@ async function fetchCinemaHeadlines(db) {
     return headlines
   } catch {
     return []
+  }
+}
+
+// ترجمه‌ی سریعِ عنوان با گوگل ترنسلیت (اندپوینت غیررسمی، بدون نیاز به کلید —
+// همون‌جوری که خیلی از ابزارهای رایگان استفاده می‌کنن). اگه در دسترس نبود یا
+// جواب غیرمنتظره داد، فقط null برمی‌گردونه و تیتر بدون ترجمه نمایش داده می‌شه.
+async function translateToFa(text) {
+  if (!text) return null
+  try {
+    const res = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=fa&dt=t&q=${encodeURIComponent(text)}`,
+      { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const parts = data?.[0] || []
+    const translated = parts.map((p) => p?.[0]).filter(Boolean).join('')
+    return translated || null
+  } catch {
+    return null
   }
 }
 

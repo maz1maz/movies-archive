@@ -20,51 +20,83 @@ function timeAgo(pubDate) {
 }
 
 // دسته‌بندی تقریبیِ هر تیتر به فیلم/سریال، فقط بر اساس چند کلیدواژه‌ی رایج
-// (انگلیسی + فارسی). دقیق نیست، ولی برای فیلتر کردن یه لیست خبری کافیه.
+// (انگلیسی + فارسی). چون این سایت‌ها بیشتر خبر سینما می‌ذارن، پیش‌فرض «فیلم»
+// هست مگر کلیدواژه‌ی سریال توش باشه — این‌طوری هیچ تیتری حذف نمی‌شه.
 const SERIES_WORDS = [
-  'series', 'season', 'episode', 'tv show', 'streaming series', 'renewed', 'canceled', 'cancelled',
-  'سریال', 'فصل', 'قسمت', 'قسمت جدید',
-]
-const MOVIE_WORDS = [
-  'box office', 'movie', 'film', 'trailer', 'sequel', 'premiere', 'theatrical',
-  'فیلم', 'سینما', 'اکران', 'گیشه', 'تریلر',
+  'series', 'season', 'episode', 'tv show', 'streaming series', 'renewed', 'canceled', 'cancelled', 'spinoff', 'spin-off',
+  'سریال', 'فصل', 'قسمت',
 ]
 function classifyHeadline(title) {
   const t = (title || '').toLowerCase()
-  const hasSeries = SERIES_WORDS.some((w) => t.includes(w))
-  const hasMovie = MOVIE_WORDS.some((w) => t.includes(w))
-  if (hasSeries && !hasMovie) return 'series'
-  if (hasMovie && !hasSeries) return 'movie'
-  return 'other'
+  return SERIES_WORDS.some((w) => t.includes(w)) ? 'series' : 'movie'
 }
 
-function TypeTabs({ value, onChange, disabledSeries, disabledMovie }) {
+function HeadlineList({ items, rtl }) {
+  if (!items.length) return <p className="cinema-news-headline-meta">Nothing here right now.</p>
   return (
-    <div className="cinema-news-lang-toggle">
-      <button type="button" className={value === 'all' ? 'active' : ''} onClick={() => onChange('all')}>
-        All
-      </button>
-      <button type="button" className={value === 'movie' ? 'active' : ''} onClick={() => onChange('movie')} disabled={disabledMovie}>
-        Movies
-      </button>
-      <button type="button" className={value === 'series' ? 'active' : ''} onClick={() => onChange('series')} disabled={disabledSeries}>
-        Series
-      </button>
+    <ul className={rtl ? 'cinema-news-headline-list cinema-news-headline-list-rtl' : 'cinema-news-headline-list'}>
+      {items.map((h) => (
+        <li key={h.link}>
+          <a href={h.link} target="_blank" rel="noopener noreferrer" className="cinema-news-headline-link">
+            {h.title}
+          </a>
+          {h.titleFa && <p className="cinema-news-headline-translation">{h.titleFa}</p>}
+          <span className="cinema-news-headline-meta">
+            {h.source} · {timeAgo(h.pubDate)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function UpcomingList({ items, onSelectPerson }) {
+  if (!items.length) return <p className="cinema-news-headline-meta">Nothing here right now.</p>
+  return (
+    <ul className="person-recommendations-list">
+      {items.map((u) => (
+        <li key={`${u.title}-${u.releaseDate}`} className="person-recommendation-item">
+          {u.poster && <img src={u.poster} alt={u.title} className="person-recommendation-poster" />}
+          <span className="person-recommendation-info">
+            <span className="person-recommendation-title">{u.title}</span>
+            <span className="person-recommendation-ratings">
+              <span className="badge-imdb">{formatDate(u.releaseDate)}</span>
+              {u.personName && (
+                <button type="button" className="cinema-news-person-link" onClick={() => onSelectPerson(u.personName)}>
+                  {u.role ? `${u.role} · ` : ''}
+                  {u.personName}
+                </button>
+              )}
+            </span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function PosterGrid({ items }) {
+  if (!items.length) return <p className="cinema-news-headline-meta">Nothing here right now.</p>
+  return (
+    <div className="cinema-news-trailer-grid">
+      {items.map((g) => (
+        <div key={`${g.title}-${g.releaseDate}`} className="cinema-news-trailer-card cinema-news-poster-card">
+          {g.poster && <img src={g.poster} alt={g.title} className="cinema-news-trailer-poster" />}
+          <span className="cinema-news-trailer-title">{g.title}</span>
+          <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
+        </div>
+      ))}
     </div>
   )
 }
 
-// صفحه‌ی «اخبار سینما» — پنج بخش موازی از /api/cinema-news: تیترهای مهم
-// (انگلیسی + فارسی، فیلم/سریال جدا)، تولدهای امروزِ اهالی کالکشن، فیلم/سریال
-// در راهِ اهالی کالکشن، فیلم/سریال در راه به‌طور کلی (بدون ربط به آرشیو)، و
-// تریلرهای تازه‌ی هالیوود. همه‌چیز سمت سرور کش می‌شه.
+// صفحه‌ی «اخبار سینما». همه‌چیز جدا جدا نمایش داده می‌شه (بدون تب "All"):
+// خبر سینما / خبر سریال / اخبار فارسی هرکدوم بخش خودشونو دارن، همین‌طور
+// «در راه» کالکشن و «در راه» عمومی هم فیلم/سریال جداست. دیتا از
+// /api/cinema-news، سمت سرور کش می‌شه.
 export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [lang, setLang] = useState('en')
-  const [headlineType, setHeadlineType] = useState('all')
-  const [collectionType, setCollectionType] = useState('all')
-  const [generalType, setGeneralType] = useState('movie')
 
   useEffect(() => {
     let cancelled = false
@@ -90,18 +122,11 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
   const generalMovies = data?.generalUpcoming?.movies || []
   const generalSeries = data?.generalUpcoming?.series || []
 
-  const headlinesRaw = lang === 'fa' ? headlinesFa : headlinesEn
-  const headlines = useMemo(() => {
-    if (headlineType === 'all') return headlinesRaw
-    return headlinesRaw.filter((h) => classifyHeadline(h.title) === headlineType)
-  }, [headlinesRaw, headlineType])
+  const movieHeadlines = useMemo(() => headlinesEn.filter((h) => classifyHeadline(h.title) === 'movie'), [headlinesEn])
+  const seriesHeadlines = useMemo(() => headlinesEn.filter((h) => classifyHeadline(h.title) === 'series'), [headlinesEn])
 
-  const collectionUpcoming = useMemo(() => {
-    if (collectionType === 'all') return upcoming
-    return upcoming.filter((u) => u.mediaType === collectionType)
-  }, [upcoming, collectionType])
-
-  const generalUpcomingList = generalType === 'series' ? generalSeries : generalMovies
+  const collectionMovies = useMemo(() => upcoming.filter((u) => u.mediaType !== 'series'), [upcoming])
+  const collectionSeries = useMemo(() => upcoming.filter((u) => u.mediaType === 'series'), [upcoming])
 
   const nothingFound =
     !loading &&
@@ -148,138 +173,85 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
           </p>
         )}
 
-        {(headlinesEn.length > 0 || headlinesFa.length > 0) && (
-          <div className="cinema-news-section cinema-news-section-first">
-            <div className="cinema-news-headline-header">
-              <h4 className="person-extras-title" style={{ margin: 0 }}>
-                <IconNewspaper width={15} height={15} /> Top headlines
+        {(movieHeadlines.length > 0 || seriesHeadlines.length > 0) && (
+          <div className="cinema-news-columns cinema-news-section cinema-news-section-first">
+            <div className="cinema-news-section">
+              <h4 className="person-extras-title">
+                <IconNewspaper width={15} height={15} /> Movie news
               </h4>
-              <div className="cinema-news-lang-toggle">
-                <button type="button" className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')} disabled={!headlinesEn.length}>
-                  English
-                </button>
-                <button type="button" className={lang === 'fa' ? 'active' : ''} onClick={() => setLang('fa')} disabled={!headlinesFa.length}>
-                  فارسی
-                </button>
-              </div>
+              <HeadlineList items={movieHeadlines} />
             </div>
-            <div style={{ marginBottom: 10 }}>
-              <TypeTabs value={headlineType} onChange={setHeadlineType} />
+            <div className="cinema-news-section">
+              <h4 className="person-extras-title">
+                <IconNewspaper width={15} height={15} /> Series news
+              </h4>
+              <HeadlineList items={seriesHeadlines} />
             </div>
-            {headlines.length === 0 ? (
-              <p className="cinema-news-headline-meta">No headlines in this category right now.</p>
-            ) : (
-              <ul className={lang === 'fa' ? 'cinema-news-headline-list cinema-news-headline-list-rtl' : 'cinema-news-headline-list'}>
-                {headlines.map((h) => (
-                  <li key={h.link}>
-                    <a href={h.link} target="_blank" rel="noopener noreferrer" className="cinema-news-headline-link">
-                      {h.title}
-                    </a>
-                    <span className="cinema-news-headline-meta">
-                      {h.source} · {timeAgo(h.pubDate)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
         )}
 
-        <div className="cinema-news-columns">
-          {birthdays.length > 0 && (
+        {headlinesFa.length > 0 && (
+          <div className="cinema-news-section">
+            <h4 className="person-extras-title">
+              <IconNewspaper width={15} height={15} /> اخبار فارسی
+            </h4>
+            <HeadlineList items={headlinesFa} rtl />
+          </div>
+        )}
+
+        {birthdays.length > 0 && (
+          <div className="cinema-news-section">
+            <h4 className="person-extras-title">
+              <IconCake width={15} height={15} /> Birthdays today
+            </h4>
+            <div className="cinema-news-birthday-grid">
+              {birthdays.map((b) => (
+                <button key={b.name} type="button" className="cinema-news-birthday-card" onClick={() => onSelectPerson(b.name)}>
+                  <span className="person-avatar-circle cinema-news-birthday-avatar">
+                    {b.photo ? <img src={b.photo} alt={b.name} className="person-avatar-photo" /> : b.name[0]?.toUpperCase()}
+                  </span>
+                  <span className="cinema-news-birthday-info">
+                    <span className="cinema-news-birthday-name">
+                      {b.name} {b.age != null ? <span className="person-recommendation-year">({b.age})</span> : null}
+                    </span>
+                    <span className="cinema-news-birthday-films">{b.films.join(', ')}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {upcoming.length > 0 && (
+          <div className="cinema-news-columns cinema-news-section">
             <div className="cinema-news-section">
               <h4 className="person-extras-title">
-                <IconCake width={15} height={15} /> Birthdays today
+                <IconClapperPlay width={15} height={15} /> Coming soon (your collection) — Movies
               </h4>
-              <div className="cinema-news-birthday-grid">
-                {birthdays.map((b) => (
-                  <button key={b.name} type="button" className="cinema-news-birthday-card" onClick={() => onSelectPerson(b.name)}>
-                    <span className="person-avatar-circle cinema-news-birthday-avatar">
-                      {b.photo ? <img src={b.photo} alt={b.name} className="person-avatar-photo" /> : b.name[0]?.toUpperCase()}
-                    </span>
-                    <span className="cinema-news-birthday-info">
-                      <span className="cinema-news-birthday-name">
-                        {b.name} {b.age != null ? <span className="person-recommendation-year">({b.age})</span> : null}
-                      </span>
-                      <span className="cinema-news-birthday-films">{b.films.join(', ')}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <UpcomingList items={collectionMovies} onSelectPerson={onSelectPerson} />
             </div>
-          )}
-
-          {upcoming.length > 0 && (
             <div className="cinema-news-section">
-              <div className="cinema-news-headline-header">
-                <h4 className="person-extras-title" style={{ margin: 0 }}>
-                  <IconClapperPlay width={15} height={15} /> Coming soon from your collection
-                </h4>
-              </div>
-              <div style={{ marginBottom: 10 }}>
-                <TypeTabs
-                  value={collectionType}
-                  onChange={setCollectionType}
-                  disabledMovie={!upcoming.some((u) => u.mediaType === 'movie')}
-                  disabledSeries={!upcoming.some((u) => u.mediaType === 'series')}
-                />
-              </div>
-              <ul className="person-recommendations-list">
-                {collectionUpcoming.map((u) => (
-                  <li key={`${u.title}-${u.releaseDate}`} className="person-recommendation-item">
-                    {u.poster && <img src={u.poster} alt={u.title} className="person-recommendation-poster" />}
-                    <span className="person-recommendation-info">
-                      <span className="person-recommendation-title">
-                        {u.title} <span className="cinema-news-media-badge">{u.mediaType === 'series' ? 'Series' : 'Movie'}</span>
-                      </span>
-                      <span className="person-recommendation-ratings">
-                        <span className="badge-imdb">{formatDate(u.releaseDate)}</span>
-                        <button type="button" className="cinema-news-person-link" onClick={() => onSelectPerson(u.personName)}>
-                          {u.role ? `${u.role} · ` : ''}
-                          {u.personName}
-                        </button>
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <h4 className="person-extras-title">
+                <IconClapperPlay width={15} height={15} /> Coming soon (your collection) — Series
+              </h4>
+              <UpcomingList items={collectionSeries} onSelectPerson={onSelectPerson} />
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {(generalMovies.length > 0 || generalSeries.length > 0) && (
-          <div className="cinema-news-section">
-            <div className="cinema-news-headline-header">
-              <h4 className="person-extras-title" style={{ margin: 0 }}>
-                <IconClapperPlay width={15} height={15} /> Coming soon — everywhere
+          <div className="cinema-news-columns cinema-news-section">
+            <div className="cinema-news-section">
+              <h4 className="person-extras-title">
+                <IconClapperPlay width={15} height={15} /> Coming soon (everywhere) — Movies
               </h4>
-              <div className="cinema-news-lang-toggle">
-                <button
-                  type="button"
-                  className={generalType === 'movie' ? 'active' : ''}
-                  onClick={() => setGeneralType('movie')}
-                  disabled={!generalMovies.length}
-                >
-                  Movies
-                </button>
-                <button
-                  type="button"
-                  className={generalType === 'series' ? 'active' : ''}
-                  onClick={() => setGeneralType('series')}
-                  disabled={!generalSeries.length}
-                >
-                  Series
-                </button>
-              </div>
+              <PosterGrid items={generalMovies} />
             </div>
-            <div className="cinema-news-trailer-grid">
-              {generalUpcomingList.map((g) => (
-                <div key={`${g.title}-${g.releaseDate}`} className="cinema-news-trailer-card cinema-news-poster-card">
-                  {g.poster && <img src={g.poster} alt={g.title} className="cinema-news-trailer-poster" />}
-                  <span className="cinema-news-trailer-title">{g.title}</span>
-                  <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
-                </div>
-              ))}
+            <div className="cinema-news-section">
+              <h4 className="person-extras-title">
+                <IconClapperPlay width={15} height={15} /> Coming soon (everywhere) — Series
+              </h4>
+              <PosterGrid items={generalSeries} />
             </div>
           </div>
         )}

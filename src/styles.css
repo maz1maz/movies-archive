@@ -3346,6 +3346,15 @@ body.light .header {
   color: var(--accent);
   text-decoration: underline;
 }
+.cinema-news-headline-translation {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
+  direction: rtl;
+  text-align: right;
+  line-height: 1.6;
+}
 .cinema-news-headline-meta {
   font-size: 11px;
   color: var(--muted);
