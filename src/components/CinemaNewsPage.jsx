@@ -111,6 +111,32 @@ function PosterGrid({ items }) {
   )
 }
 
+function formatMoney(n) {
+  if (!n) return null
+  if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`
+  if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`
+  if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`
+  return `$${n}`
+}
+
+function BoxOfficeTable({ items }) {
+  if (!items.length) return <p className="cinema-news-headline-meta">Nothing here right now.</p>
+  return (
+    <ol className="cinema-news-boxoffice-list">
+      {items.map((m, i) => (
+        <li key={m.title} className="cinema-news-boxoffice-row">
+          <span className="cinema-news-boxoffice-rank">{i + 1}</span>
+          {m.poster && <img src={m.poster} alt={m.title} className="cinema-news-boxoffice-poster" />}
+          <a href={m.infoUrl} target="_blank" rel="noopener noreferrer" className="cinema-news-boxoffice-title">
+            {m.title}
+          </a>
+          <span className="cinema-news-boxoffice-revenue">{formatMoney(m.revenue)}</span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 function PeopleGrid({ items, subtitleKey }) {
   if (!items.length) return <p className="cinema-news-headline-meta">Nothing here right now.</p>
   return (
@@ -360,8 +386,8 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
               <PosterGrid items={popularMonth} />
             </div>
             <div className="cinema-news-section">
-              <h4 className="person-extras-title">In theaters now (box office proxy)</h4>
-              <PosterGrid items={boxOffice} />
+              <h4 className="person-extras-title">Top box office (worldwide revenue)</h4>
+              <BoxOfficeTable items={boxOffice} />
             </div>
           </div>
         )}

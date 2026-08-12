@@ -1607,7 +1607,7 @@ async function fetchCinemaHeadlines(db) {
     }
 
     all.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-    const headlines = all.slice(0, 8)
+    const headlines = all.slice(0, 6)
 
     // ترجمه‌ی کوتاه فارسیِ هر تیتر انگلیسی، برای نمایش زیر عنوان اصلی
     await Promise.all(
@@ -1981,7 +1981,7 @@ async function fetchUpcomingFromCollection(db, env) {
     }
     const topPeople = Array.from(counts.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
+      .slice(0, 4)
       .map(([name]) => name)
 
     const results = []
@@ -2104,7 +2104,7 @@ async function fetchTrendingTrailers(db, env) {
     }
 
     const upcomingRes = await tmdbGet('/movie/upcoming', { region: 'US', page: '1' })
-    const movies = (upcomingRes?.results || []).slice(0, 6)
+    const movies = (upcomingRes?.results || []).slice(0, 5)
 
     const trailers = []
     for (const m of movies) {
@@ -2262,16 +2262,30 @@ async function fetchTrendingAndBoxOffice(db, env) {
       tmdbGet('/movie/now_playing', { region: 'US', page: '1' }),
     ])
 
+    // برای «گیشه» به‌جای پروکسی محبوبیت، از فیلد revenue واقعیِ TMDB استفاده
+    // می‌کنیم (چون Box Office Mojo تو robots.txt خودش دسترسی خودکار رو کلاً
+    // بسته). فقط برای ۱۰ کاندید پرمحبوب‌ترینِ در حال اکران جزئیات (شامل
+    // revenue) رو جدا می‌گیریم.
+    const boxOfficeCandidates = (nowPlayingRes?.results || [])
+      .filter((m) => m.title)
+      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+      .slice(0, 10)
+    const boxOfficeWithRevenue = await Promise.all(
+      boxOfficeCandidates.map(async (m) => {
+        const detail = await tmdbGet(`/movie/${m.id}`, {})
+        return { ...m, revenue: detail?.revenue || 0 }
+      })
+    )
+
     const data = {
       trendingMoviesWeek: (trendingMoviesRes?.results || []).filter((m) => m.title).slice(0, 8).map(mapMovie),
       trendingSeriesWeek: (trendingSeriesRes?.results || []).filter((s) => s.name).slice(0, 8).map(mapSeries),
       popularMonth: (popularRes?.results || []).filter((m) => m.title).slice(0, 8).map(mapMovie),
-      // نزدیک‌ترین جایگزین برای «گیشه»: فیلم‌های در حال اکران، مرتب بر اساس محبوبیت
-      boxOffice: (nowPlayingRes?.results || [])
-        .filter((m) => m.title)
-        .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-        .slice(0, 8)
-        .map(mapMovie),
+      boxOffice: boxOfficeWithRevenue
+        .filter((m) => m.revenue > 0)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 10)
+        .map((m) => ({ ...mapMovie(m), revenue: m.revenue })),
     }
 
     await db

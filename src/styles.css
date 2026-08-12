@@ -3350,6 +3350,60 @@ body.light .header {
   padding: 2px 6px;
   border-radius: 5px;
 }
+.cinema-news-boxoffice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  counter-reset: none;
+}
+.cinema-news-boxoffice-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.cinema-news-boxoffice-rank {
+  width: 20px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+.cinema-news-boxoffice-poster {
+  width: 28px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.cinema-news-boxoffice-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cinema-news-boxoffice-title:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.cinema-news-boxoffice-revenue {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #4caf50;
+}
 .cinema-news-trailer-title {
   font-size: 12px;
   font-weight: 700;
