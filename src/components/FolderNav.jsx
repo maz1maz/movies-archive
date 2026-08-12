@@ -32,7 +32,7 @@ export default function FolderNav({
   onOpenBookshelf,
   onSelectDashboard,
   onSelectGallery,
-  onOpenCinemaNews,
+  onSelectCinemaNews,
   counts,
   posters,
   allFilms,
@@ -159,7 +159,7 @@ export default function FolderNav({
                 <h2>Gallery</h2>
                 <p>Visual poster wall</p>
               </button>
-              <button className="folder-card reveal-item reveal-9" onClick={onOpenCinemaNews}>
+              <button className="folder-card reveal-item reveal-9" onClick={onSelectCinemaNews}>
                 <span className="folder-icon">
                   <IconNewspaper width={32} height={32} />
                 </span>

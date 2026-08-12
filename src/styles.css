@@ -3124,42 +3124,83 @@ body.light .header {
   filter: grayscale(1) contrast(1.05);
 }
 
-/* --- Cinema News modal --- */
-.modal-cinema-news {
-  width: min(760px, 94vw);
-}
-.cinema-news-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border-bottom: 1px solid var(--border-strong);
-  padding-bottom: 16px;
-}
-.cinema-news-header-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+/* --- Cinema News page --- */
+.cinema-news-page .container {
+  max-width: 980px;
 }
 .cinema-news-section {
   border-top: 1px solid var(--border);
-  padding-top: 14px;
+  padding-top: 18px;
+  margin-top: 18px;
 }
-.cinema-news-section:first-of-type {
+.cinema-news-section-first,
+.cinema-news-columns > .cinema-news-section:first-child {
   border-top: none;
   padding-top: 0;
+  margin-top: 0;
+}
+.cinema-news-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 18px;
+}
+.cinema-news-columns > .cinema-news-section {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+@media (max-width: 760px) {
+  .cinema-news-columns {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
 }
 .cinema-news-section .person-extras-title {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-top: 0;
+}
+.cinema-news-headline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.cinema-news-lang-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px;
+}
+.cinema-news-lang-toggle button {
+  border: none;
+  background: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+}
+.cinema-news-lang-toggle button.active {
+  background: var(--accent-strong);
+  color: #fff;
+}
+.cinema-news-lang-toggle button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.cinema-news-headline-list-rtl {
+  direction: rtl;
+}
+.cinema-news-headline-list-rtl .cinema-news-headline-link {
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
 }
 .cinema-news-birthday-grid {
   display: grid;

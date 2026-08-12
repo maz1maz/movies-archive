@@ -1084,15 +1084,16 @@ export default {
       // هالیوود. سه بخش موازی fetch می‌شن، هرکدوم جدا کش می‌شن. ----
       if (method === 'GET' && pathname === '/api/cinema-news') {
         try {
-          const [birthdays, upcoming, trailers, headlines] = await Promise.all([
+          const [birthdays, upcoming, trailers, headlines, headlinesFa] = await Promise.all([
             fetchTodaysBirthdays(db),
             fetchUpcomingFromCollection(db, env),
             fetchTrendingTrailers(db, env),
             fetchCinemaHeadlines(db),
+            fetchCinemaHeadlinesFa(db),
           ])
-          return json({ birthdays, upcoming, trailers, headlines }, 200, corsHeaders)
+          return json({ birthdays, upcoming, trailers, headlines, headlinesFa }, 200, corsHeaders)
         } catch (e) {
-          return json({ birthdays: [], upcoming: [], trailers: [], headlines: [] }, 200, corsHeaders)
+          return json({ birthdays: [], upcoming: [], trailers: [], headlines: [], headlinesFa: [] }, 200, corsHeaders)
         }
       }
 
@@ -1584,6 +1585,51 @@ async function fetchCinemaHeadlines(db) {
     await db
       .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
       .bind('headlines', JSON.stringify(headlines))
+      .run()
+
+    return headlines
+  } catch {
+    return []
+  }
+}
+
+// تیترهای مهم سینمای فارسی‌زبان (ایران) از چند منبع — همون منطق و کش کش
+// انگلیسی، فقط منابع فارسی. بعضی از این فیدها ممکنه گاهی در دسترس نباشن؛
+// چون fetch هرکدوم جدا try/catch شده، بقیه‌ی فیدها لطمه نمی‌بینن.
+async function fetchCinemaHeadlinesFa(db) {
+  try {
+    const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('headlines_fa').first()
+    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 6 * 60 * 60 * 1000
+    if (fresh) {
+      try {
+        return JSON.parse(cached.data || '[]')
+      } catch {
+        return []
+      }
+    }
+
+    const feeds = [
+      { url: 'https://www.cinemacinema.ir/rss', source: 'سینما سینما' },
+      { url: 'https://cafecinema.ir/feed/', source: 'کافه سینما' },
+      { url: 'https://www.honaronline.ir/feed', source: 'هنرآنلاین' },
+    ]
+    const headers = { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' }
+    const all = []
+    for (const f of feeds) {
+      try {
+        const res = await fetch(f.url, { headers })
+        if (!res.ok) continue
+        const xml = await res.text()
+        all.push(...parseRssItems(xml, f.source))
+      } catch {}
+    }
+
+    all.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
+    const headlines = all.slice(0, 12)
+
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind('headlines_fa', JSON.stringify(headlines))
       .run()
 
     return headlines
