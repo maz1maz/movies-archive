@@ -97,12 +97,12 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   // می‌کنیم تا صفحه خالی نیفته؛ به محض رسیدن جواب سرور، جایگزینش می‌کنیم.
   const source = serverFilms !== null ? serverFilms : allFilms
 
-  // Filter matching films where personName appears in director, cast, writer, musician, producer, etc.
+  // Filter matching films where personName appears in director, cast, or producer.
+  // (writer/musician/composer aren't real film fields — no column stores them —
+  // so matching against those was always a no-op; removed to match the server query.)
   const matchingFilmsRaw = source.filter((f) => {
     if ((f.director || '').toLowerCase().includes(target)) return true
-    if ((f.writer || '').toLowerCase().includes(target)) return true
     if ((f.producer || '').toLowerCase().includes(target)) return true
-    if ((f.musician || f.composer || '').toLowerCase().includes(target)) return true
 
     const castList = Array.isArray(f.cast) ? f.cast : []
     return castList.some((actor) => {
