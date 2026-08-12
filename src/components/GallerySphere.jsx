@@ -194,11 +194,18 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       camera.position.set(0, 0, RADIUS * 2.4)
       camera.lookAt([0, 0, 0])
 
+      // fov بالا عمودیه؛ رو صفحه‌ی باریک/عمودی (موبایل)، دید افقی به همون
+      // نسبت باریک‌تر می‌شه و کره کل صفحه رو پر می‌کنه بدون اینکه هیچ‌وقت
+      // لبه/شکل کرویش دیده بشه. برای جبران، رو صفحه‌های عمودی دوربین رو
+      // متناسب با باریکی صفحه عقب‌تر می‌بریم تا کل کره همیشه معلوم باشه.
+      let aspectCompensation = 1
       function resize() {
         const { clientWidth, clientHeight } = container
         if (!clientWidth || !clientHeight) return
         renderer.setSize(clientWidth, clientHeight)
-        camera.perspective({ aspect: clientWidth / clientHeight })
+        const aspect = clientWidth / clientHeight
+        camera.perspective({ aspect })
+        aspectCompensation = aspect < 1 ? 1 / aspect : 1
       }
       resize()
       window.addEventListener('resize', resize)
@@ -441,7 +448,8 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         autoRotation = t * AUTO_SPEED
         program.uniforms.uRotationY.value = autoRotation + dragRotation
         program.uniforms.uTime.value = t / 1000
-        camera.position.set(0, camDistance * Math.sin(camElevation), camDistance * Math.cos(camElevation))
+        const effDistance = camDistance * aspectCompensation
+        camera.position.set(0, effDistance * Math.sin(camElevation), effDistance * Math.cos(camElevation))
         camera.lookAt([0, 0, 0])
         renderer.render({ scene, camera })
       }
