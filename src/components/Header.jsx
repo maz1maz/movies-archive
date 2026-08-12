@@ -156,40 +156,44 @@ export default function Header({
         <button type="button" className="brand brand-clickable" onClick={onGoToLibrary} title="Back to Library">
           <img src="/logo.png" alt="Cinefilm Archive" className="brand-logo" />
           <div className="brand-text">
-            <h1 className="brand-title">CINEFILM ARCHIVE</h1>
-            <p className="brand-owner">Alireza Mazlaghani</p>
-            <p className="brand-sub">
-              {total}{' '}
-              {section === 'digital-movie'
-                ? 'digital movies'
-                : section === 'digital-series'
-                ? 'digital series'
-                : section === 'physical-series'
-                ? 'Blu-ray series'
-                : 'physical films'}
+            <div className="brand-title-row">
+              <h1 className="brand-title">CINEFILM ARCHIVE</h1>
+              <div className={`section-badge section-badge-${section === 'digital-movie' || section === 'digital-series' ? 'digital' : 'physical'}`}>
+                {section === 'digital-movie' ? (
+                  <>
+                    <IconClapper width={13} height={13} /> Digital Movies
+                  </>
+                ) : section === 'digital-series' ? (
+                  <>
+                    <IconBookshelf width={13} height={13} /> Digital Series
+                  </>
+                ) : section === 'physical-series' ? (
+                  <>
+                    <IconDisc width={13} height={13} /> Blu-ray Series
+                  </>
+                ) : (
+                  <>
+                    <IconArchive width={13} height={13} /> Blu-ray Movies
+                  </>
+                )}
+              </div>
+            </div>
+            <p className="brand-meta">
+              <span className="brand-owner">Alireza Mazlaghani</span>
+              <span className="brand-meta-sep">·</span>
+              <span className="brand-sub">
+                {total}{' '}
+                {section === 'digital-movie'
+                  ? 'digital movies'
+                  : section === 'digital-series'
+                  ? 'digital series'
+                  : section === 'physical-series'
+                  ? 'Blu-ray series'
+                  : 'physical films'}
+              </span>
             </p>
           </div>
         </button>
-
-        <div className={`section-badge section-badge-${section === 'digital-movie' || section === 'digital-series' ? 'digital' : 'physical'}`}>
-          {section === 'digital-movie' ? (
-            <>
-              <IconClapper width={14} height={14} /> Digital Movies
-            </>
-          ) : section === 'digital-series' ? (
-            <>
-              <IconBookshelf width={14} height={14} /> Digital Series
-            </>
-          ) : section === 'physical-series' ? (
-            <>
-              <IconDisc width={14} height={14} /> Blu-ray Series
-            </>
-          ) : (
-            <>
-              <IconArchive width={14} height={14} /> Blu-ray Movies
-            </>
-          )}
-        </div>
         </div>
 
         <div className="actions">
@@ -203,8 +207,9 @@ export default function Header({
                 setAzOpen(false)
               }}
               aria-expanded={filtersOpen}
+              title="Filters"
             >
-              <IconFilter width={14} height={14} /> Filters
+              <IconFilter width={14} height={14} /> <span className="btn-label">Filters</span>
             </button>
 
             <div className={filtersOpen ? 'controls-filters open' : 'controls-filters'}>
@@ -275,7 +280,7 @@ export default function Header({
               }}
               title="Browse by closet / row / section"
             >
-              <IconPin width={14} height={14} /> Location
+              <IconPin width={14} height={14} /> <span className="btn-label">Location</span>
             </button>
           )}
 
@@ -291,7 +296,7 @@ export default function Header({
               }}
               title="3D Physical Bookshelf view (pure exhibition without edit buttons)"
             >
-              <IconBookshelf width={14} height={14} /> Bookshelf
+              <IconBookshelf width={14} height={14} /> <span className="btn-label">Bookshelf</span>
             </button>
           )}
 
@@ -312,7 +317,7 @@ export default function Header({
             title="Force refresh & clear offline cache"
             style={{ fontSize: '12px', padding: '6px 10px' }}
           >
-            ↻ Refresh App
+            ↻ <span className="btn-label">Refresh App</span>
           </button>
 
           <button

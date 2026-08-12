@@ -110,6 +110,12 @@ body.light .header {
   width: 32px;
   height: 32px;
 }
+.brand-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .brand-title {
   margin: 0;
   font-family: 'Playfair Display', Georgia, serif;
@@ -128,14 +134,23 @@ body.light .header {
   border: 1px solid var(--border);
   border-radius: 10px;
 }
-.brand-owner {
+.brand-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px;
   margin: 2px 0 0;
+}
+.brand-owner {
   color: var(--accent);
   font-size: 12.5px;
   font-weight: 600;
 }
+.brand-meta-sep {
+  color: var(--muted);
+  font-size: 11px;
+}
 .brand-sub {
-  margin: 1px 0 0;
   color: var(--muted);
   font-size: 12px;
 }
@@ -3246,10 +3261,31 @@ body.light .header {
   .header-inner {
     align-items: flex-start;
     flex-direction: column;
+    padding: 12px 0 8px;
+    gap: 10px;
   }
   .actions {
     width: 100%;
     justify-content: flex-start;
+    gap: 6px;
+  }
+  .actions .btn {
+    padding: 8px;
+    min-width: 36px;
+  }
+  .actions .btn-label {
+    display: none;
+  }
+  .brand-logo {
+    width: 34px;
+    height: 34px;
+  }
+  .brand-title {
+    font-size: 17px;
+  }
+  .controls {
+    padding: 0 0 10px;
+    gap: 8px;
   }
   .list-row {
     grid-template-columns: 44px minmax(0, 1fr) auto;
@@ -3524,8 +3560,8 @@ body.light .header {
 }
 
 /* ---------- Header: condenses on scroll ---------- */
-.header-condensed .brand-owner,
-.header-condensed .brand-sub {
+.header-condensed .brand-meta,
+.header-condensed .section-badge {
   display: none;
 }
 .header-condensed .header-inner {
