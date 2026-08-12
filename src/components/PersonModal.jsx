@@ -13,6 +13,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
     spouse: null,
     children: null,
     imdbId: null,
+    letterboxdUrl: null,
   })
   const [bioLoading, setBioLoading] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -33,7 +34,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   useEffect(() => {
     setPhoto(null)
     setBio(null)
-    setFacts({ age: null, birthDate: null, deathDate: null, height: null, spouse: null, children: null, imdbId: null })
+    setFacts({ age: null, birthDate: null, deathDate: null, height: null, spouse: null, children: null, imdbId: null, letterboxdUrl: null })
     setLightboxOpen(false)
     if (!personName) return
     setBioLoading(true)
@@ -52,6 +53,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
             spouse: data.spouse || null,
             children: data.children || null,
             imdbId: data.imdbId || null,
+            letterboxdUrl: data.letterboxdUrl || null,
           })
         }
       })
@@ -188,6 +190,20 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
                 onClick={(e) => e.stopPropagation()}
               >
                 IMDb ↗
+              </a>
+              <a
+                className="person-letterboxd-link"
+                href={
+                  facts.letterboxdUrl
+                    ? facts.letterboxdUrl
+                    : `https://letterboxd.com/search/${encodeURIComponent(personName)}/`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View on Letterboxd"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Letterboxd ↗
               </a>
             </h2>
             <p className="person-subtitle">

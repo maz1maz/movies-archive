@@ -10,6 +10,15 @@ function formatDate(iso) {
   }
 }
 
+function timeAgo(pubDate) {
+  if (!pubDate) return ''
+  const then = new Date(pubDate).getTime()
+  if (Number.isNaN(then)) return ''
+  const diffH = Math.max(1, Math.round((Date.now() - then) / 3600000))
+  if (diffH < 24) return `${diffH}h ago`
+  return `${Math.round(diffH / 24)}d ago`
+}
+
 // بخش «اخبار سینما» — سه بخش موازی از /api/cinema-news: تولدهای امروزِ اهالی
 // کالکشن، فیلم/سریال‌های در راه‌شون، و تریلرهای تازه‌ی هالیوود. همه‌چیز سمت
 // سرور کش می‌شه، اینجا فقط نمایشه.
@@ -42,7 +51,8 @@ export default function CinemaNewsModal({ onClose, onSelectPerson, onSelectFilmT
   const birthdays = data?.birthdays || []
   const upcoming = data?.upcoming || []
   const trailers = data?.trailers || []
-  const nothingFound = !loading && !birthdays.length && !upcoming.length && !trailers.length
+  const headlines = data?.headlines || []
+  const nothingFound = !loading && !birthdays.length && !upcoming.length && !trailers.length && !headlines.length
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -70,6 +80,26 @@ export default function CinemaNewsModal({ onClose, onSelectPerson, onSelectFilmT
             Nothing to show yet — birthdays fill in as you open actor/director pages, and TMDB keys are needed for
             upcoming titles &amp; trailers.
           </p>
+        )}
+
+        {headlines.length > 0 && (
+          <div className="cinema-news-section">
+            <h4 className="person-extras-title">
+              <IconNewspaper width={15} height={15} /> Top headlines
+            </h4>
+            <ul className="cinema-news-headline-list">
+              {headlines.map((h) => (
+                <li key={h.link}>
+                  <a href={h.link} target="_blank" rel="noopener noreferrer" className="cinema-news-headline-link">
+                    {h.title}
+                  </a>
+                  <span className="cinema-news-headline-meta">
+                    {h.source} · {timeAgo(h.pubDate)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         {birthdays.length > 0 && (

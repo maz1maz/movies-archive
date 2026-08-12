@@ -73,7 +73,8 @@ CREATE TABLE IF NOT EXISTS people_photos (
   height TEXT,
   spouse TEXT,
   children TEXT,
-  imdbId TEXT
+  imdbId TEXT,
+  letterboxdUrl TEXT
 );
 
 -- کش جوایز (از Wikidata) + پیشنهاد فیلم‌های کارگردان که تو آرشیو نیستن ولی
@@ -138,6 +139,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_userId ON sessions(userId);
 -- ALTER TABLE films ADD COLUMN personalReviewUrl TEXT;
 -- ALTER TABLE films ADD COLUMN personalReviewDate TEXT;
 -- ALTER TABLE films ADD COLUMN reviews TEXT;
+-- ALTER TABLE people_photos ADD COLUMN letterboxdUrl TEXT;
 -- CREATE INDEX IF NOT EXISTS idx_films_closet ON films(closet);
 -- CREATE TABLE IF NOT EXISTS watchlists (
 --   id TEXT PRIMARY KEY,

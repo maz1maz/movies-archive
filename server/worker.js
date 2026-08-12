@@ -973,7 +973,7 @@ export default {
 
         try {
           const cached = await db
-            .prepare('SELECT photo, bio, birthDate, deathDate, height, spouse, children, imdbId FROM people_photos WHERE name = ?')
+            .prepare('SELECT photo, bio, birthDate, deathDate, height, spouse, children, imdbId, letterboxdUrl FROM people_photos WHERE name = ?')
             .bind(cacheKey)
             .first()
           if (cached) {
@@ -1019,11 +1019,13 @@ export default {
             return json(emptyPersonInfo(), 200, corsHeaders)
           }
 
+          info.letterboxdUrl = await resolveLetterboxdPersonUrl(name)
+
           await db
             .prepare(
-              'INSERT OR REPLACE INTO people_photos (name, photo, bio, birthDate, deathDate, height, spouse, children, imdbId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+              'INSERT OR REPLACE INTO people_photos (name, photo, bio, birthDate, deathDate, height, spouse, children, imdbId, letterboxdUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             )
-            .bind(cacheKey, info.photo, info.bio, info.birthDate, info.deathDate, info.height, info.spouse, info.children, info.imdbId)
+            .bind(cacheKey, info.photo, info.bio, info.birthDate, info.deathDate, info.height, info.spouse, info.children, info.imdbId, info.letterboxdUrl)
             .run()
           return json(
             { ...info, age: info.deathDate ? null : ageFromBirthDate(info.birthDate) },
@@ -1082,14 +1084,15 @@ export default {
       // هالیوود. سه بخش موازی fetch می‌شن، هرکدوم جدا کش می‌شن. ----
       if (method === 'GET' && pathname === '/api/cinema-news') {
         try {
-          const [birthdays, upcoming, trailers] = await Promise.all([
+          const [birthdays, upcoming, trailers, headlines] = await Promise.all([
             fetchTodaysBirthdays(db),
             fetchUpcomingFromCollection(db, env),
             fetchTrendingTrailers(db, env),
+            fetchCinemaHeadlines(db),
           ])
-          return json({ birthdays, upcoming, trailers }, 200, corsHeaders)
+          return json({ birthdays, upcoming, trailers, headlines }, 200, corsHeaders)
         } catch (e) {
-          return json({ birthdays: [], upcoming: [], trailers: [] }, 200, corsHeaders)
+          return json({ birthdays: [], upcoming: [], trailers: [], headlines: [] }, 200, corsHeaders)
         }
       }
 
@@ -1523,6 +1526,90 @@ async function runDailyBackup(env) {
 
 // ---------- Helpers ----------
 
+// آدرس صفحه‌ی شخصیِ letterboxd.com (actor یا director) رو با امتحان کردن
+// اسلاگ ساخته‌شده از اسم پیدا می‌کنه. اگه هیچ‌کدوم جواب نداد (اسم غیرمعمول
+// یا Letterboxd اصلاً صفحه‌ای براش نداره)، null برمی‌گردونه و فرانت به لینک
+// جستجو fallback می‌کنه.
+async function resolveLetterboxdPersonUrl(name) {
+  const slug = name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  if (!slug) return null
+  const headers = { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' }
+  for (const kind of ['actor', 'director']) {
+    try {
+      const res = await fetch(`https://letterboxd.com/${kind}/${slug}/`, { headers })
+      if (res.ok) return `https://letterboxd.com/${kind}/${slug}/`
+    } catch {}
+  }
+  return null
+}
+
+// تیترهای مهم سینمایی از فیدهای RSS چند منبع معتبر — یه بار در روز کش می‌شه
+// (عمومیه، نه شخصی‌سازی‌شده).
+async function fetchCinemaHeadlines(db) {
+  try {
+    const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('headlines').first()
+    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 6 * 60 * 60 * 1000
+    if (fresh) {
+      try {
+        return JSON.parse(cached.data || '[]')
+      } catch {
+        return []
+      }
+    }
+
+    const feeds = [
+      { url: 'https://variety.com/feed/', source: 'Variety' },
+      { url: 'https://www.hollywoodreporter.com/feed/', source: 'The Hollywood Reporter' },
+      { url: 'https://www.indiewire.com/feed/', source: 'IndieWire' },
+    ]
+    const headers = { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' }
+    const all = []
+    for (const f of feeds) {
+      try {
+        const res = await fetch(f.url, { headers })
+        if (!res.ok) continue
+        const xml = await res.text()
+        all.push(...parseRssItems(xml, f.source))
+      } catch {}
+    }
+
+    all.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
+    const headlines = all.slice(0, 12)
+
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind('headlines', JSON.stringify(headlines))
+      .run()
+
+    return headlines
+  } catch {
+    return []
+  }
+}
+
+// پارسر ساده‌ی RSS با regex (Workers دسترسی به DOMParser نداره) — فقط
+// title/link/pubDate هر <item> رو در میاره، کافیه برای لیست تیترها.
+function parseRssItems(xml, sourceName) {
+  const items = []
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g
+  let m
+  while ((m = itemRegex.exec(xml)) && items.length < 15) {
+    const block = m[1]
+    const rawTitle = (block.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || ''
+    const rawLink = (block.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || ''
+    const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || ''
+    const title = decodeHtmlEntities(rawTitle.replace('<![CDATA[', '').replace(']]>', '').trim())
+    const link = rawLink.replace('<![CDATA[', '').replace(']]>', '').trim()
+    if (title && link) items.push({ title, link, pubDate, source: sourceName })
+  }
+  return items
+}
+
 function emptyPersonInfo() {
   return {
     photo: null,
@@ -1533,6 +1620,7 @@ function emptyPersonInfo() {
     spouse: null,
     children: null,
     imdbId: null,
+    letterboxdUrl: null,
   }
 }
 
