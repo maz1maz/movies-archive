@@ -2255,21 +2255,28 @@ async function fetchTrendingAndBoxOffice(db, env) {
       infoUrl: `https://www.themoviedb.org/tv/${s.id}`,
     })
 
-    const [trendingMoviesRes, trendingSeriesRes, popularRes, nowPlayingRes] = await Promise.all([
+    const [trendingMoviesRes, trendingSeriesRes, popularRes] = await Promise.all([
       tmdbGet('/trending/movie/week', {}),
       tmdbGet('/trending/tv/week', {}),
       tmdbGet('/movie/popular', { region: 'US', page: '1' }),
-      tmdbGet('/movie/now_playing', { region: 'US', page: '1' }),
     ])
 
     // برای «گیشه» به‌جای پروکسی محبوبیت، از فیلد revenue واقعیِ TMDB استفاده
     // می‌کنیم (چون Box Office Mojo تو robots.txt خودش دسترسی خودکار رو کلاً
-    // بسته). فقط برای ۱۰ کاندید پرمحبوب‌ترینِ در حال اکران جزئیات (شامل
-    // revenue) رو جدا می‌گیریم.
-    const boxOfficeCandidates = (nowPlayingRes?.results || [])
-      .filter((m) => m.title)
-      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-      .slice(0, 10)
+    // بسته). فیلم‌های «در حال اکران» اغلب هنوز revenue ثبت‌شده ندارن (این
+    // فیلد با تأخیر آپدیت می‌شه)، برای همین به‌جاش مستقیم از discover با
+    // sort_by=revenue.desc تو ۶ ماه اخیر می‌گیریم — TMDB خودش این‌جوری فقط
+    // فیلم‌هایی که واقعاً revenue ثبت‌شده دارن رو بالا میاره.
+    const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const boxRes = await tmdbGet('/discover/movie', {
+      sort_by: 'revenue.desc',
+      'primary_release_date.gte': sixMonthsAgo,
+      'primary_release_date.lte': todayStr,
+      region: 'US',
+      page: '1',
+    })
+    const boxOfficeCandidates = (boxRes?.results || []).filter((m) => m.title).slice(0, 10)
     const boxOfficeWithRevenue = await Promise.all(
       boxOfficeCandidates.map(async (m) => {
         const detail = await tmdbGet(`/movie/${m.id}`, {})
