@@ -1,0 +1,40 @@
+// Poster tiles for the boot splash screen (see SplashScreen.jsx). A fixed,
+// curated sample from the archive's own physical collection (rating >= 7.2) —
+// baked in so the splash can render instantly on boot without waiting on
+// /api/films.
+export const SPLASH_POSTERS = [
+  { title: "Ant-Man", poster: "https://m.media-amazon.com/images/M/MV5BMjM2NTQ5Mzc2M15BMl5BanBnXkFtZTgwNTcxMDI2NTE@._V1_QL75_UX380_CR0,1,380,562_.jpg" },
+  { title: "Avengers: Infinity War", poster: "https://m.media-amazon.com/images/M/MV5BMjMxNjY2MDU1OV5BMl5BanBnXkFtZTgwNzY1MTUwNTM@._V1_QL75_UX380_CR0,0,380,562_.jpg" },
+  { title: "Memoir of a Snail", poster: "https://m.media-amazon.com/images/M/MV5BMWQzMzE3ZTUtZmYxMy00NzAyLWIyMzEtZDFlNDgwNzI3MGJjXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Montparnasse 19", poster: "https://m.media-amazon.com/images/M/MV5BM2ZhYjQ0YWQtODczMS00OGRmLWEzYzQtNmI2NDg5N2M2NmNhXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Mother", poster: "https://m.media-amazon.com/images/M/MV5BMTQzMTg0NDA1M15BMl5BanBnXkFtZTgwODUzMTE0MjE@._V1_SX300.jpg" },
+  { title: "My Life as a Dog", poster: "https://m.media-amazon.com/images/M/MV5BNjhlY2Q0ZTEtOTAxNS00YTY2LWFkOWYtZTU5NTI1YmFkZmY0XkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Merrily We Roll Along", poster: "https://m.media-amazon.com/images/M/MV5BZTY0ZDQ1ZWEtZGQ3OS00YmZiLWI0YzYtODkyYWEwZTU2OWVlXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Made in England: The Films of Powell and Pressburger", poster: "https://m.media-amazon.com/images/M/MV5BNjEyYTc3M2ItYTY4MC00ODY4LThiYmUtMGQ0ZDUxYmVkNGFhXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Monsieur Hire", poster: "https://m.media-amazon.com/images/M/MV5BNzA2ZTUwZGItMDE0Yy00ZjhhLTljMDAtODJiYmMyYzYzMTBlXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Madonna: Sticky & Sweet Tour", poster: "https://m.media-amazon.com/images/M/MV5BMTJhNDQ5YzMtODVjNS00NTJlLWIyOGMtN2VhZGE0ZTZmZDQ4XkEyXkFqcGdeQXVyMjA4MjYzMjk@._V1_SX300.jpg" },
+  { title: "Merry Christmas Mr. Lawrence", poster: "https://m.media-amazon.com/images/M/MV5BYWU3NzRlZTktZWFjMC00OWYzLTkzZTItMjI5Mjg5YmJjNGEzXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Moonrise Kingdom", poster: "https://m.media-amazon.com/images/M/MV5BMTEwMTc3NDkzOTJeQTJeQWpwZ15BbWU3MDI4NTAwNzc@._V1_QL75_UX380_CR0,0,380,562_.jpg" },
+  { title: "Made in Hong Kong", poster: "https://m.media-amazon.com/images/M/MV5BY2QwYmZlNTMtZWM3MS00ZWNmLThkOGItY2YyNjM5OWEwYzU2XkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Happiness", poster: "https://m.media-amazon.com/images/M/MV5BNzczYzIyNGEtNWRlNi00NmU4LWI5YjgtNTFjMmUyMjhkOTBhXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "High Hopes", poster: "https://m.media-amazon.com/images/M/MV5BMzMxMGZlMDEtNTVmNC00NzQxLWE4MzUtOWI2NTJhZWE0OTYyXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "He Who Gets Slapped", poster: "https://m.media-amazon.com/images/M/MV5BOTEwMTA1OTc1NF5BMl5BanBnXkFtZTgwMzU1NjkwMjE@._V1_SX300.jpg" },
+  { title: "Hell's Angels", poster: "https://m.media-amazon.com/images/M/MV5BMzMwODM4MzE2MF5BMl5BanBnXkFtZTgwNTc0NTgyMjE@._V1_SX300.jpg" },
+  { title: "His Motorbike, Her Island", poster: "https://m.media-amazon.com/images/M/MV5BNWU3YTc5ZDYtYTJkZC00YzczLWFiYmEtYmNiMTFjYmZmODM0XkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "John Wick: Chapter 2", poster: "https://m.media-amazon.com/images/M/MV5BMjE2NDkxNTY2M15BMl5BanBnXkFtZTgwMDc2NzE0MTI@._V1_SX300.jpg" },
+  { title: "John Wick: Chapter 3 - Parabellum", poster: "https://m.media-amazon.com/images/M/MV5BYjdlNWFlZjEtM2U0NS00ZWU5LTk1M2EtZmQxNWFiZjk0MGM5XkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Hundreds of Beavers", poster: "https://m.media-amazon.com/images/M/MV5BNWU4YWY5ZGItZTgxNC00N2MwLTlkNTktZDc2MDAwOWY2OTE0XkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Lonely Are the Brave", poster: "https://m.media-amazon.com/images/M/MV5BYmVlY2UzZTctYjczNC00MzRmLWE4ZDItYTE0YjExZmMyZTIxXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Three Colors: Blue", poster: "https://m.media-amazon.com/images/M/MV5BNWMxNWE2NGYtMzYwOS00NmJhLTgwNjAtNGM3ODIwNjU5MTZiXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Three Colors: Red", poster: "https://m.media-amazon.com/images/M/MV5BMTQ0YTQyYzItNGEzMi00NmI4LWJkOTMtOWMyMjAwMWEzYTZhXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Women on the Verge of a Nervous Breakdown", poster: "https://m.media-amazon.com/images/M/MV5BNjBjZTg0ODktZDE1OC00Njg3LWJkZGQtYTAwOGQ1OTQ0NDg3XkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "In a Lonely Place", poster: "https://m.media-amazon.com/images/M/MV5BOGEyNGMyYmYtMzExZi00ZDQzLTg2NjctY2FmMDgyY2I5YjI1XkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "The Outsider", poster: "https://m.media-amazon.com/images/M/MV5BOGY0YjJmOWItOGI2MS00N2VmLTlmNjYtMDM3YjY1MzkyM2E1XkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "The Valley of Decision", poster: "https://m.media-amazon.com/images/M/MV5BMWJiMmFjYTgtZDk5Zi00Yjk1LTliMjEtZWE2YTUwMzkwZjYzXkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "20th Century Women", poster: "https://m.media-amazon.com/images/M/MV5BMTkwNDE4NzQwM15BMl5BanBnXkFtZTgwNzQ5Nzg0MDI@._V1_SX300.jpg" },
+  { title: "Trotta", poster: "https://m.media-amazon.com/images/M/MV5BODU2ODE4N2UtMDk0OC00OWNmLWE4MzQtZjI5MjUzNzczOTU2XkEyXkFqcGdeQXVyMTAyNDU2NDM@._V1_SX300.jpg" },
+  { title: "The Seed of the Sacred Fig", poster: "https://m.media-amazon.com/images/M/MV5BMmYxMTlmODQtZTUyOS00YWE3LWFjYTktOWU4ZjU3ZGYwZDk2XkEyXkFqcGc@._V1_SX300.jpg" },
+  { title: "Young Torless", poster: "https://m.media-amazon.com/images/M/MV5BZDllOWMwOWMtOGIwNi00ZTRmLWE1ZjAtMjk4NDdmYWRhOTg2XkEyXkFqcGdeQXVyNzgzODI1OTE@._V1_SX300.jpg" },
+]
+
+export default SPLASH_POSTERS

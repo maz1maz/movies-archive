@@ -97,15 +97,13 @@ body.light .header {
   transform: translateY(-1px);
 }
 .brand-clickable:hover .brand-logo {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35), 0 0 0 2px var(--accent);
+  transform: scale(1.06);
 }
 .brand-logo {
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
-  border-radius: 11px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-  transition: box-shadow 0.15s;
+  transition: transform 0.15s;
   flex: 0 0 auto;
 }
 .header-condensed .brand-logo {
@@ -4009,11 +4007,10 @@ body.light .page-collage-overlay {
 }
 
 .folder-nav-logo {
-  width: 148px;
+  width: 96px;
   height: auto;
   margin-bottom: 16px;
-  border-radius: 22px;
-  filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.55));
+  filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.55));
 }
 
 /* ---------- Marquee band: the warm cinema-ticket panel that frames the
@@ -5934,5 +5931,119 @@ body.light .spine-theme-wood .spine-shelf-board {
   .film-selector-check {
     width: 20px;
     height: 20px;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Boot splash screen                                                     */
+/* ---------------------------------------------------------------------- */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: hidden;
+  background: #0b0c10;
+  opacity: 1;
+  transition: opacity 480ms ease;
+}
+.splash-screen.splash-fading {
+  opacity: 0;
+}
+
+.splash-poster-grid {
+  position: absolute;
+  inset: -2%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+  transform: scale(1.06);
+}
+@media (min-width: 640px) {
+  .splash-poster-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+@media (min-width: 1000px) {
+  .splash-poster-grid {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+.splash-poster-tile {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  background: #16181f;
+}
+.splash-poster-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: saturate(0.85) brightness(0.72);
+}
+
+.splash-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(11, 12, 16, 0.55) 0%, rgba(11, 12, 16, 0.78) 45%, rgba(11, 12, 16, 0.94) 100%),
+    linear-gradient(to bottom, rgba(11, 12, 16, 0.5) 0%, rgba(11, 12, 16, 0.15) 20%, rgba(11, 12, 16, 0.15) 75%, rgba(11, 12, 16, 0.7) 100%);
+}
+
+.splash-brand {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #fff;
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.65));
+  animation: splash-brand-in 900ms ease both;
+}
+.splash-mark {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+}
+.splash-wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.splash-wordmark-main {
+  font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.splash-wordmark-sub {
+  font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+@keyframes splash-brand-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-brand {
+    animation: none;
+  }
+  .splash-screen {
+    transition: none;
   }
 }

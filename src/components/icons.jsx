@@ -10,6 +10,20 @@ const base = {
   strokeLinejoin: 'round',
 }
 
+// نشان (مونوگرام) برند: یه حلقه با یه شکاف سمت راست + یه نقطه توپر تو شکاف —
+// جایگزین لوگوی قدیمی (public/logo.png همون شکل رستر‌شده‌ی همین آیکونه).
+export const IconBrandMark = ({ dotless, ...props }) => (
+  <svg viewBox="0 0 24 24" fill="none" {...props}>
+    <path
+      d="M 19.12 16.45 A 8.4 8.4 0 1 1 19.12 7.55"
+      stroke="currentColor"
+      strokeWidth={2.4}
+      strokeLinecap="round"
+    />
+    {!dotless && <circle cx="20.4" cy="12" r="1.9" fill="currentColor" />}
+  </svg>
+)
+
 export const IconSearch = (props) => (
   <svg {...base} {...props}>
     <circle cx="11" cy="11" r="7" />

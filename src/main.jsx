@@ -5,6 +5,7 @@ import ErrorBoundary from './ErrorBoundary.jsx'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import LoginModal from './components/LoginModal.jsx'
 import AdminUsersModal from './components/AdminUsersModal.jsx'
+import SplashScreen from './components/SplashScreen.jsx'
 import './styles.css'
 
 if ('caches' in window) {
@@ -41,6 +42,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <LoginModal />
         <AdminModalMount />
       </AuthProvider>
+      <SplashScreen />
     </ErrorBoundary>
   </React.StrictMode>,
 )
