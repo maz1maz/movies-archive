@@ -11,6 +11,7 @@ import PosterCollage from './components/PosterCollage.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import LocationBrowserModal from './components/LocationBrowserModal.jsx'
 import BookshelfView from './components/BookshelfView.jsx'
+import CinemaNewsModal from './components/CinemaNewsModal.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
@@ -92,6 +93,7 @@ export default function App() {
   const [showExport, setShowExport] = useState(false)
   const [showLocationBrowser, setShowLocationBrowser] = useState(false)
   const [showBookshelf, setShowBookshelf] = useState(false)
+  const [showCinemaNews, setShowCinemaNews] = useState(false)
   const [forceFilmOverlay, setForceFilmOverlay] = useState(false)
   const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
@@ -719,6 +721,7 @@ export default function App() {
             onOpenBookshelf={() => setShowBookshelf(true)}
             onSelectDashboard={() => changeSection('dashboard')}
             onSelectGallery={() => changeSection('gallery')}
+            onOpenCinemaNews={() => setShowCinemaNews(true)}
           />
           {selected && (
             <FilmModal
@@ -1061,6 +1064,16 @@ export default function App() {
             setSelected(film)
           }}
           onClose={() => setShowBookshelf(false)}
+        />
+      )}
+
+      {showCinemaNews && (
+        <CinemaNewsModal
+          onClose={() => setShowCinemaNews(false)}
+          onSelectPerson={(name) => {
+            setShowCinemaNews(false)
+            setSelectedPerson(name)
+          }}
         />
       )}
     </div>

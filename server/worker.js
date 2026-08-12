@@ -1077,6 +1077,22 @@ export default {
         }
       }
 
+      // ---- GET /api/cinema-news (بخش «اخبار سینما» توی صفحه‌ی اصلی: تولدهای
+      // امروزِ اهالی کالکشن + فیلم/سریال‌های در راهِ اونا + تریلرهای تازه‌ی
+      // هالیوود. سه بخش موازی fetch می‌شن، هرکدوم جدا کش می‌شن. ----
+      if (method === 'GET' && pathname === '/api/cinema-news') {
+        try {
+          const [birthdays, upcoming, trailers] = await Promise.all([
+            fetchTodaysBirthdays(db),
+            fetchUpcomingFromCollection(db, env),
+            fetchTrendingTrailers(db, env),
+          ])
+          return json({ birthdays, upcoming, trailers }, 200, corsHeaders)
+        } catch (e) {
+          return json({ birthdays: [], upcoming: [], trailers: [] }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/letterboxd-rating (fetch Letterboxd average rating + votes, cached on the film row) ----
       if (method === 'GET' && pathname === '/api/letterboxd-rating') {
         const filmId = (url.searchParams.get('filmId') || '').trim()
@@ -1653,6 +1669,244 @@ async function fetchLetterboxdRating(title, year) {
     }
   }
   return null
+}
+
+// افرادی از people_photos (کش تولد/عکس که PersonModal پرش می‌کنه) که تولدشون
+// امروزه، فیلتر شده به اونایی که واقعاً توی آرشیو (کارگردان یا بازیگر) نقشی
+// دارن. چون people_photos فقط با باز کردن PersonModal پر می‌شه، این لیست
+// به‌مرور کامل‌تر می‌شه، نه از روز اول.
+async function fetchTodaysBirthdays(db) {
+  try {
+    const peopleRes = await db
+      .prepare(
+        `SELECT name, photo, birthDate FROM people_photos
+         WHERE birthDate IS NOT NULL AND deathDate IS NULL
+         AND strftime('%m-%d', birthDate) = strftime('%m-%d', 'now')`
+      )
+      .all()
+    const people = peopleRes.results || []
+    if (!people.length) return []
+
+    const out = []
+    for (const p of people) {
+      const nameLower = p.name.toLowerCase()
+      const like = `%${nameLower}%`
+      const filmsRes = await db
+        .prepare('SELECT title, director, "cast" FROM films WHERE LOWER(director) LIKE ? OR LOWER("cast") LIKE ? LIMIT 6')
+        .bind(like, like)
+        .all()
+      const rows = filmsRes.results || []
+      if (!rows.length) continue // فقط اهالی خودِ کالکشن، نه هر کسی که تصادفاً کش شده
+
+      // اسم با حروف درست (people_photos.name همیشه lowercase ذخیره می‌شه)
+      let displayName = p.name
+      for (const f of rows) {
+        if (f.director && f.director.toLowerCase().includes(nameLower)) {
+          const match = f.director.split(',').map((s) => s.trim()).find((s) => s.toLowerCase() === nameLower)
+          displayName = match || f.director
+          break
+        }
+        try {
+          const cast = JSON.parse(f.cast || '[]')
+          const match = Array.isArray(cast)
+            ? cast.find((c) => ((typeof c === 'object' ? c.name : c) || '').toLowerCase() === nameLower)
+            : null
+          if (match) {
+            displayName = typeof match === 'object' ? match.name : match
+            break
+          }
+        } catch {}
+      }
+
+      out.push({
+        name: displayName,
+        photo: p.photo,
+        age: ageFromBirthDate(p.birthDate),
+        films: rows.map((f) => f.title).slice(0, 3),
+      })
+    }
+    return out
+  } catch {
+    return []
+  }
+}
+
+// فیلم/سریال‌های در راهِ پرتکرارترین کارگردان‌ها و بازیگرهای کالکشن (از
+// روی تعداد عناوینی که ازشون تو آرشیو هست). هر فرد جدا توی cinema_news_cache
+// کش می‌شه (۳ روزه) تا هر بار مودال باز می‌شه TMDB دوباره چک نشه.
+async function fetchUpcomingFromCollection(db, env) {
+  if (!env.TMDB_API_KEY) return []
+  try {
+    const filmsRes = await db.prepare('SELECT director, "cast" FROM films').all()
+    const films = filmsRes.results || []
+    const counts = new Map()
+    for (const f of films) {
+      if (f.director) {
+        for (const d of f.director.split(',').map((s) => s.trim()).filter(Boolean)) {
+          counts.set(d, (counts.get(d) || 0) + 1)
+        }
+      }
+      try {
+        const cast = JSON.parse(f.cast || '[]')
+        if (Array.isArray(cast)) {
+          for (const c of cast) {
+            const name = typeof c === 'object' ? c.name : c
+            if (name) counts.set(name, (counts.get(name) || 0) + 1)
+          }
+        }
+      } catch {}
+    }
+    const topPeople = Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name]) => name)
+
+    const results = []
+    for (const name of topPeople) {
+      const cacheKey = `upcoming:${name.toLowerCase()}`
+      const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(cacheKey).first()
+      const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 3 * 24 * 60 * 60 * 1000
+      let items
+      if (fresh) {
+        try {
+          items = JSON.parse(cached.data || '[]')
+        } catch {
+          items = []
+        }
+      } else {
+        items = await fetchPersonUpcoming(name, env)
+        await db
+          .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+          .bind(cacheKey, JSON.stringify(items))
+          .run()
+      }
+      for (const it of items) results.push({ ...it, personName: name })
+    }
+
+    // یکتاسازی (ممکنه یه فیلم هم بازیگر هم کارگردانش تو کالکشن باشن) +
+    // مرتب‌سازی بر اساس نزدیک‌ترین تاریخ اکران
+    const seen = new Set()
+    const unique = []
+    for (const r of results.sort((a, b) => (a.releaseDate || '9999').localeCompare(b.releaseDate || '9999'))) {
+      const key = `${r.title}|${r.releaseDate}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      unique.push(r)
+    }
+    return unique.slice(0, 20)
+  } catch {
+    return []
+  }
+}
+
+async function fetchPersonUpcoming(name, env) {
+  const tmdbKey = env.TMDB_API_KEY
+  async function tmdbGet(path, params) {
+    const qs = new URLSearchParams(params).toString()
+    const attempts = [
+      { url: `https://api.themoviedb.org/3${path}?${qs}&api_key=${encodeURIComponent(tmdbKey)}`, headers: { accept: 'application/json' } },
+      { url: `https://api.themoviedb.org/3${path}?${qs}`, headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
+    ]
+    for (const a of attempts) {
+      try {
+        const res = await fetch(a.url, { headers: a.headers })
+        if (res.ok) return await res.json()
+      } catch {}
+    }
+    return null
+  }
+
+  try {
+    const search = await tmdbGet('/search/person', { query: name })
+    const person = (search?.results || [])[0]
+    if (!person) return []
+
+    const credits = await tmdbGet(`/person/${person.id}/combined_credits`, {})
+    const today = new Date().toISOString().slice(0, 10)
+    const all = [...(credits?.cast || []), ...(credits?.crew || [])]
+    const seen = new Set()
+    const upcoming = []
+    for (const c of all) {
+      const releaseDate = c.release_date || c.first_air_date
+      if (!releaseDate || releaseDate <= today) continue
+      const title = c.title || c.name
+      if (!title) continue
+      const key = `${c.media_type}:${c.id}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      upcoming.push({
+        title,
+        releaseDate,
+        poster: c.poster_path ? `https://image.tmdb.org/t/p/w300${c.poster_path}` : null,
+        mediaType: c.media_type === 'tv' ? 'series' : 'movie',
+        role: c.job || (c.character ? 'Actor' : null),
+      })
+    }
+    return upcoming.sort((a, b) => a.releaseDate.localeCompare(b.releaseDate)).slice(0, 5)
+  } catch {
+    return []
+  }
+}
+
+// تریلرهای فیلم‌های نزدیک‌به‌اکران هالیوود — عمومیه (نه شخصی‌سازی‌شده بر اساس
+// کالکشن)، برای همین فقط یه بار در روز کلاً کش می‌شه، نه به‌ازای هر کاربر.
+async function fetchTrendingTrailers(db, env) {
+  if (!env.TMDB_API_KEY) return []
+  try {
+    const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('trailers').first()
+    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 24 * 60 * 60 * 1000
+    if (fresh) {
+      try {
+        return JSON.parse(cached.data || '[]')
+      } catch {
+        return []
+      }
+    }
+
+    const tmdbKey = env.TMDB_API_KEY
+    async function tmdbGet(path, params) {
+      const qs = new URLSearchParams(params).toString()
+      const attempts = [
+        { url: `https://api.themoviedb.org/3${path}?${qs}&api_key=${encodeURIComponent(tmdbKey)}`, headers: { accept: 'application/json' } },
+        { url: `https://api.themoviedb.org/3${path}?${qs}`, headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
+      ]
+      for (const a of attempts) {
+        try {
+          const res = await fetch(a.url, { headers: a.headers })
+          if (res.ok) return await res.json()
+        } catch {}
+      }
+      return null
+    }
+
+    const upcomingRes = await tmdbGet('/movie/upcoming', { region: 'US', page: '1' })
+    const movies = (upcomingRes?.results || []).slice(0, 8)
+
+    const trailers = []
+    for (const m of movies) {
+      const videosRes = await tmdbGet(`/movie/${m.id}/videos`, {})
+      const vids = videosRes?.results || []
+      const trailer =
+        vids.find((v) => v.type === 'Trailer' && v.site === 'YouTube' && v.official) ||
+        vids.find((v) => v.type === 'Trailer' && v.site === 'YouTube')
+      if (!trailer) continue
+      trailers.push({
+        title: m.title,
+        releaseDate: m.release_date,
+        poster: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
+        youtubeKey: trailer.key,
+      })
+    }
+
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind('trailers', JSON.stringify(trailers))
+      .run()
+
+    return trailers
+  } catch {
+    return []
+  }
 }
 
 function ageFromBirthDate(birthDate) {

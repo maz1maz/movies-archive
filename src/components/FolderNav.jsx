@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconBookshelf } from './icons.jsx'
+import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconBookshelf, IconNewspaper } from './icons.jsx'
 import PosterCollage from './PosterCollage.jsx'
 
 function matchesQuery(film, q) {
@@ -32,6 +32,7 @@ export default function FolderNav({
   onOpenBookshelf,
   onSelectDashboard,
   onSelectGallery,
+  onOpenCinemaNews,
   counts,
   posters,
   allFilms,
@@ -157,6 +158,13 @@ export default function FolderNav({
                 </span>
                 <h2>Gallery</h2>
                 <p>Visual poster wall</p>
+              </button>
+              <button className="folder-card reveal-item reveal-9" onClick={onOpenCinemaNews}>
+                <span className="folder-icon">
+                  <IconNewspaper width={32} height={32} />
+                </span>
+                <h2>Cinema News</h2>
+                <p>Birthdays &amp; what's coming</p>
               </button>
             </div>
           )}

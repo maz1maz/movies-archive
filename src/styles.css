@@ -3123,6 +3123,145 @@ body.light .header {
 .person-avatar-deceased .person-avatar-photo {
   filter: grayscale(1) contrast(1.05);
 }
+
+/* --- Cinema News modal --- */
+.modal-cinema-news {
+  width: min(760px, 94vw);
+}
+.cinema-news-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--border-strong);
+  padding-bottom: 16px;
+}
+.cinema-news-header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cinema-news-section {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.cinema-news-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+.cinema-news-section .person-extras-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0;
+}
+.cinema-news-birthday-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+.cinema-news-birthday-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  text-align: start;
+  cursor: pointer;
+}
+.cinema-news-birthday-card:hover {
+  border-color: var(--accent);
+}
+.cinema-news-birthday-avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.cinema-news-birthday-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cinema-news-birthday-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.cinema-news-birthday-films {
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cinema-news-person-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.cinema-news-person-link:hover {
+  text-decoration: underline;
+}
+.cinema-news-trailer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+.cinema-news-trailer-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  text-decoration: none;
+  color: var(--text);
+}
+.cinema-news-trailer-poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  display: block;
+}
+.cinema-news-trailer-play {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+.cinema-news-trailer-title {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 8px 0;
+}
+.cinema-news-trailer-date {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 0 8px 8px;
+}
 .person-avatar-circle {
   width: 54px;
   height: 54px;

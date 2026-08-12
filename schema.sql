@@ -85,6 +85,15 @@ CREATE TABLE IF NOT EXISTS director_extras (
   fetchedAt TEXT DEFAULT (datetime('now'))
 );
 
+-- کش عمومی برای بخش «اخبار سینما» (تریلرهای تازه، فیلم/سریال‌های در راه‌ی
+-- اهالی کالکشن) — یه جدول کلید/مقدار ساده به‌جای چند جدول جدا، چون همه‌ی
+-- دیتاها کوچیک و از قبل JSON-friendly هستن.
+CREATE TABLE IF NOT EXISTS cinema_news_cache (
+  key TEXT PRIMARY KEY,
+  data TEXT,
+  fetchedAt TEXT DEFAULT (datetime('now'))
+);
+
 -- کاربران برنامه. مهمان‌ها (بدون سشن) فقط دسترسی مشاهده دارن.
 -- role: 'admin' | 'user'
 CREATE TABLE IF NOT EXISTS users (

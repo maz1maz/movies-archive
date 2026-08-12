@@ -264,3 +264,32 @@ export const IconTV = (props) => (
     <path d="M13.5 14h3.5" />
   </svg>
 )
+
+export const IconNewspaper = (props) => (
+  <svg {...base} {...props}>
+    <rect x="2.5" y="5" width="14" height="15" rx="1.5" />
+    <path d="M6.5 9h6" />
+    <path d="M6.5 12.5h6" />
+    <path d="M6.5 16h4" />
+    <path d="M16.5 8h3.5a1.5 1.5 0 0 1 1.5 1.5V18a2 2 0 0 1-2 2h-3" />
+  </svg>
+)
+
+export const IconCake = (props) => (
+  <svg {...base} {...props}>
+    <path d="M4 21v-7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7" />
+    <path d="M2 21h20" />
+    <path d="M4 16.5c1.2-1 2.3-1 3.5 0s2.3 1 3.5 0 2.3-1 3.5 0 2.3 1 3.5 0" />
+    <path d="M12 12V7" />
+    <path d="M12 4.5c-.9 0-1.5-.6-1.5-1.25S11.1 2 12 2s1.5.6 1.5 1.25S12.9 4.5 12 4.5Z" />
+  </svg>
+)
+
+export const IconClapperPlay = (props) => (
+  <svg {...base} {...props}>
+    <path d="M3 10l1.2-4.8A1.5 1.5 0 0 1 5.65 4h12.7a1.5 1.5 0 0 1 1.45 1.2L21 10" />
+    <rect x="3" y="10" width="18" height="10" rx="1.5" />
+    <path d="M3 10l3-4.8M8 10l3-4.8M13 10l3-4.8" />
+    <path d="M10.5 13.2v3.6l3.2-1.8-3.2-1.8Z" fill="currentColor" stroke="none" />
+  </svg>
+)
