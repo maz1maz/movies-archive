@@ -192,8 +192,8 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
           </p>
         )}
 
-        {(movieHeadlines.length > 0 || seriesHeadlines.length > 0) && (
-          <div className="cinema-news-columns cinema-news-section cinema-news-section-first">
+        {(movieHeadlines.length > 0 || seriesHeadlines.length > 0 || headlinesFa.length > 0) && (
+          <div className="cinema-news-columns cinema-news-columns-3 cinema-news-section cinema-news-section-first">
             <div className="cinema-news-section">
               <h4 className="person-extras-title">
                 <IconNewspaper width={15} height={15} /> Movie news
@@ -206,15 +206,12 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
               </h4>
               <HeadlineList items={seriesHeadlines} />
             </div>
-          </div>
-        )}
-
-        {headlinesFa.length > 0 && (
-          <div className="cinema-news-section">
-            <h4 className="person-extras-title">
-              <IconNewspaper width={15} height={15} /> اخبار فارسی
-            </h4>
-            <HeadlineList items={headlinesFa} rtl />
+            <div className="cinema-news-section">
+              <h4 className="person-extras-title">
+                <IconNewspaper width={15} height={15} /> اخبار فارسی
+              </h4>
+              <HeadlineList items={headlinesFa} rtl />
+            </div>
           </div>
         )}
 

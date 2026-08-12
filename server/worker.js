@@ -1641,23 +1641,38 @@ async function fetchCinemaHeadlinesFa(db) {
     }
 
     const feeds = [
-      { url: 'https://www.cinemacinema.ir/rss', source: 'سینما سینما' },
-      { url: 'https://cafecinema.ir/feed/', source: 'کافه سینما' },
-      { url: 'https://www.honaronline.ir/feed', source: 'هنرآنلاین' },
+      { url: 'https://cinemacinema.ir/feed/', source: 'سینما سینما' },
+      { url: 'https://www.filmnews.ir/feed/', source: 'فیلم نیوز' },
+      { url: 'http://caffecinema.com/feed/', source: 'کافه سینما' },
+      { url: 'https://www.cinemapress.ir/feed/', source: 'سینماپرس' },
+      { url: 'http://www.sourehcinema.ir/feed/', source: 'سوره سینما' },
     ]
     const headers = { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' }
-    const all = []
+    // هر منبع رو جدا نگه می‌داریم و بعد round-robin ترکیب می‌کنیم (اول یکی از
+    // هر منبع، بعد دومی از هر منبع، ...) تا لیست همیشه از چند منبع پر بشه، نه
+    // این‌که یه منبع که بیشتر/سریع‌تر پست می‌ذاره کل لیست رو با sort-by-date پر کنه.
+    const perSource = []
     for (const f of feeds) {
       try {
         const res = await fetch(f.url, { headers })
-        if (!res.ok) continue
+        if (!res.ok) {
+          perSource.push([])
+          continue
+        }
         const xml = await res.text()
-        all.push(...parseRssItems(xml, f.source))
-      } catch {}
+        perSource.push(parseRssItems(xml, f.source))
+      } catch {
+        perSource.push([])
+      }
     }
-
-    all.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-    const headlines = all.slice(0, 12)
+    const maxLen = Math.max(0, ...perSource.map((s) => s.length))
+    const interleaved = []
+    for (let i = 0; i < maxLen; i++) {
+      for (const src of perSource) {
+        if (src[i]) interleaved.push(src[i])
+      }
+    }
+    const headlines = interleaved.slice(0, 15)
 
     await db
       .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")

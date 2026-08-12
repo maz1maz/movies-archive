@@ -3126,7 +3126,7 @@ body.light .header {
 
 /* --- Cinema News page --- */
 .cinema-news-page .container {
-  max-width: 980px;
+  max-width: 1180px;
 }
 .cinema-news-section {
   border-top: 1px solid var(--border);
@@ -3145,13 +3145,22 @@ body.light .header {
   gap: 32px;
   margin-top: 18px;
 }
+.cinema-news-columns-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
 .cinema-news-columns > .cinema-news-section {
   margin-top: 0;
   padding-top: 0;
   border-top: none;
 }
+@media (max-width: 980px) {
+  .cinema-news-columns-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 @media (max-width: 760px) {
-  .cinema-news-columns {
+  .cinema-news-columns,
+  .cinema-news-columns-3 {
     grid-template-columns: 1fr;
     gap: 18px;
   }
