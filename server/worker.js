@@ -1084,18 +1084,27 @@ export default {
       // هالیوود. سه بخش موازی fetch می‌شن، هرکدوم جدا کش می‌شن. ----
       if (method === 'GET' && pathname === '/api/cinema-news') {
         try {
-          const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming] = await Promise.all([
+          const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending] = await Promise.all([
             fetchTodaysBirthdays(db),
             fetchUpcomingFromCollection(db, env),
             fetchTrendingTrailers(db, env),
             fetchCinemaHeadlines(db),
             fetchCinemaHeadlinesFa(db),
             fetchGeneralUpcoming(db, env),
+            fetchTrendingAndBoxOffice(db, env),
           ])
-          return json({ birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming }, 200, corsHeaders)
+          return json({ birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending }, 200, corsHeaders)
         } catch (e) {
           return json(
-            { birthdays: [], upcoming: [], trailers: [], headlines: [], headlinesFa: [], generalUpcoming: { movies: [], series: [] } },
+            {
+              birthdays: [],
+              upcoming: [],
+              trailers: [],
+              headlines: [],
+              headlinesFa: [],
+              generalUpcoming: { movies: [], series: [] },
+              trending: { trendingMoviesWeek: [], trendingSeriesWeek: [], popularMonth: [], boxOffice: [] },
+            },
             200,
             corsHeaders
           )
@@ -1585,7 +1594,7 @@ async function fetchCinemaHeadlines(db) {
     }
 
     all.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-    const headlines = all.slice(0, 12)
+    const headlines = all.slice(0, 8)
 
     // ترجمه‌ی کوتاه فارسیِ هر تیتر انگلیسی، برای نمایش زیر عنوان اصلی
     await Promise.all(
@@ -1656,9 +1665,9 @@ async function fetchCinemaHeadlinesFa(db) {
     }
 
     const feeds = [
-      { urls: ['https://cinemacinema.ir/rss', 'https://cinemacinema.ir/feed/', 'https://www.cinemacinema.ir/feed/'], source: 'سینما سینما' },
-      { urls: ['https://www.filmnews.ir/rss', 'https://www.filmnews.ir/feed/', 'http://www.filmnews.ir/rss'], source: 'فیلم نیوز' },
-      { urls: ['https://caffecinema.com/feed/', 'https://www.caffecinema.com/feed/', 'http://caffecinema.com/rss'], source: 'کافه سینما' },
+      { urls: ['https://cinemacinema.ir/rss', 'https://cinemacinema.ir/feed/'], source: 'سینما سینما' },
+      { urls: ['https://www.filmnews.ir/rss', 'https://www.filmnews.ir/feed/'], source: 'فیلم نیوز' },
+      { urls: ['https://caffecinema.com/feed/', 'https://www.caffecinema.com/feed/'], source: 'کافه سینما' },
       { urls: ['https://www.cinemapress.ir/rss'], source: 'سینماپرس' },
       { urls: ['http://www.sourehcinema.ir/rss', 'http://www.sourehcinema.ir/feed/'], source: 'سوره سینما' },
     ]
@@ -1959,7 +1968,7 @@ async function fetchUpcomingFromCollection(db, env) {
     }
     const topPeople = Array.from(counts.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
+      .slice(0, 6)
       .map(([name]) => name)
 
     const results = []
@@ -2082,7 +2091,7 @@ async function fetchTrendingTrailers(db, env) {
     }
 
     const upcomingRes = await tmdbGet('/movie/upcoming', { region: 'US', page: '1' })
-    const movies = (upcomingRes?.results || []).slice(0, 8)
+    const movies = (upcomingRes?.results || []).slice(0, 6)
 
     const trailers = []
     for (const m of movies) {
@@ -2181,6 +2190,85 @@ async function fetchGeneralUpcoming(db, env) {
     return data
   } catch {
     return { movies: [], series: [] }
+  }
+}
+
+// ترند هفته (فیلم+سریال)، پرطرفدارترین این ماه، و «گیشه» (چون TMDB چارت واقعی
+// فروش نداره، از فیلم‌های در حال اکران، مرتب‌شده بر اساس محبوبیت، به‌عنوان
+// نزدیک‌ترین جایگزین در دسترس استفاده می‌کنیم). چهار فراخوانی TMDB، یک‌روزه
+// کش می‌شه، عمومیه.
+async function fetchTrendingAndBoxOffice(db, env) {
+  const empty = { trendingMoviesWeek: [], trendingSeriesWeek: [], popularMonth: [], boxOffice: [] }
+  if (!env.TMDB_API_KEY) return empty
+  try {
+    const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('trending_boxoffice').first()
+    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 24 * 60 * 60 * 1000
+    if (fresh) {
+      try {
+        return JSON.parse(cached.data || 'null') || empty
+      } catch {
+        return empty
+      }
+    }
+
+    const tmdbKey = env.TMDB_API_KEY
+    async function tmdbGet(path, params) {
+      const qs = new URLSearchParams(params).toString()
+      const attempts = [
+        { url: `https://api.themoviedb.org/3${path}?${qs}&api_key=${encodeURIComponent(tmdbKey)}`, headers: { accept: 'application/json' } },
+        { url: `https://api.themoviedb.org/3${path}?${qs}`, headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
+      ]
+      for (const a of attempts) {
+        try {
+          const res = await fetch(a.url, { headers: a.headers })
+          if (res.ok) return await res.json()
+        } catch {}
+      }
+      return null
+    }
+
+    const mapMovie = (m) => ({
+      title: m.title,
+      releaseDate: m.release_date || null,
+      poster: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
+      rating: typeof m.vote_average === 'number' ? Math.round(m.vote_average * 10) / 10 : null,
+      infoUrl: `https://www.themoviedb.org/movie/${m.id}`,
+    })
+    const mapSeries = (s) => ({
+      title: s.name,
+      releaseDate: s.first_air_date || null,
+      poster: s.poster_path ? `https://image.tmdb.org/t/p/w300${s.poster_path}` : null,
+      rating: typeof s.vote_average === 'number' ? Math.round(s.vote_average * 10) / 10 : null,
+      infoUrl: `https://www.themoviedb.org/tv/${s.id}`,
+    })
+
+    const [trendingMoviesRes, trendingSeriesRes, popularRes, nowPlayingRes] = await Promise.all([
+      tmdbGet('/trending/movie/week', {}),
+      tmdbGet('/trending/tv/week', {}),
+      tmdbGet('/movie/popular', { region: 'US', page: '1' }),
+      tmdbGet('/movie/now_playing', { region: 'US', page: '1' }),
+    ])
+
+    const data = {
+      trendingMoviesWeek: (trendingMoviesRes?.results || []).filter((m) => m.title).slice(0, 8).map(mapMovie),
+      trendingSeriesWeek: (trendingSeriesRes?.results || []).filter((s) => s.name).slice(0, 8).map(mapSeries),
+      popularMonth: (popularRes?.results || []).filter((m) => m.title).slice(0, 8).map(mapMovie),
+      // نزدیک‌ترین جایگزین برای «گیشه»: فیلم‌های در حال اکران، مرتب بر اساس محبوبیت
+      boxOffice: (nowPlayingRes?.results || [])
+        .filter((m) => m.title)
+        .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+        .slice(0, 8)
+        .map(mapMovie),
+    }
+
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind('trending_boxoffice', JSON.stringify(data))
+      .run()
+
+    return data
+  } catch {
+    return empty
   }
 }
 

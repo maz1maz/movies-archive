@@ -94,12 +94,14 @@ function PosterGrid({ items }) {
             rel="noopener noreferrer"
           >
             {g.poster && <img src={g.poster} alt={g.title} className="cinema-news-trailer-poster" />}
+            {g.rating != null && <span className="cinema-news-rating-badge">★ {g.rating}</span>}
             <span className="cinema-news-trailer-title">{g.title}</span>
             <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
           </a>
         ) : (
           <div key={`${g.title}-${g.releaseDate}`} className="cinema-news-trailer-card cinema-news-poster-card">
             {g.poster && <img src={g.poster} alt={g.title} className="cinema-news-trailer-poster" />}
+            {g.rating != null && <span className="cinema-news-rating-badge">★ {g.rating}</span>}
             <span className="cinema-news-trailer-title">{g.title}</span>
             <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
           </div>
@@ -140,6 +142,10 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
   const headlinesFa = data?.headlinesFa || []
   const generalMovies = data?.generalUpcoming?.movies || []
   const generalSeries = data?.generalUpcoming?.series || []
+  const trendingMoviesWeek = data?.trending?.trendingMoviesWeek || []
+  const trendingSeriesWeek = data?.trending?.trendingSeriesWeek || []
+  const popularMonth = data?.trending?.popularMonth || []
+  const boxOffice = data?.trending?.boxOffice || []
 
   const movieHeadlines = useMemo(() => headlinesEn.filter((h) => classifyHeadline(h.title) === 'movie'), [headlinesEn])
   const seriesHeadlines = useMemo(() => headlinesEn.filter((h) => classifyHeadline(h.title) === 'series'), [headlinesEn])
@@ -155,7 +161,11 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
     !headlinesEn.length &&
     !headlinesFa.length &&
     !generalMovies.length &&
-    !generalSeries.length
+    !generalSeries.length &&
+    !trendingMoviesWeek.length &&
+    !trendingSeriesWeek.length &&
+    !popularMonth.length &&
+    !boxOffice.length
 
   return (
     <div className="dashboard-panel cinema-news-page">
@@ -268,6 +278,32 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
                 <IconClapperPlay width={15} height={15} /> Coming soon (everywhere) — Series
               </h4>
               <PosterGrid items={generalSeries} />
+            </div>
+          </div>
+        )}
+
+        {(trendingMoviesWeek.length > 0 || trendingSeriesWeek.length > 0) && (
+          <div className="cinema-news-columns cinema-news-section">
+            <div className="cinema-news-section">
+              <h4 className="person-extras-title">Trending this week — Movies</h4>
+              <PosterGrid items={trendingMoviesWeek} />
+            </div>
+            <div className="cinema-news-section">
+              <h4 className="person-extras-title">Trending this week — Series</h4>
+              <PosterGrid items={trendingSeriesWeek} />
+            </div>
+          </div>
+        )}
+
+        {(popularMonth.length > 0 || boxOffice.length > 0) && (
+          <div className="cinema-news-columns cinema-news-section">
+            <div className="cinema-news-section">
+              <h4 className="person-extras-title">Popular this month</h4>
+              <PosterGrid items={popularMonth} />
+            </div>
+            <div className="cinema-news-section">
+              <h4 className="person-extras-title">In theaters now (box office proxy)</h4>
+              <PosterGrid items={boxOffice} />
             </div>
           </div>
         )}

@@ -3337,6 +3337,17 @@ body.light .header {
   justify-content: center;
   font-size: 11px;
 }
+.cinema-news-rating-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #f5c518;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 5px;
+}
 .cinema-news-trailer-title {
   font-size: 12px;
   font-weight: 700;
