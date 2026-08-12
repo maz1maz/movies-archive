@@ -1084,7 +1084,7 @@ export default {
       // هالیوود. سه بخش موازی fetch می‌شن، هرکدوم جدا کش می‌شن. ----
       if (method === 'GET' && pathname === '/api/cinema-news') {
         try {
-          const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneral] =
+          const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneralRaw] =
             await Promise.all([
               fetchTodaysBirthdays(db),
               fetchUpcomingFromCollection(db, env),
@@ -1096,6 +1096,10 @@ export default {
               fetchTrendingPeople(db, env),
               fetchBornTodayGeneral(db),
             ])
+          // اونایی که تو «تولدهای امروزِ کالکشن» هستن رو از لیست عمومی حذف کن
+          // که یه آدم دوبار نیاد.
+          const collectionNames = new Set(birthdays.map((b) => b.name.toLowerCase()))
+          const bornTodayGeneral = bornTodayGeneralRaw.filter((p) => !collectionNames.has(p.name.toLowerCase()))
           return json(
             { birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneral },
             200,
@@ -2312,9 +2316,10 @@ async function fetchTrendingPeople(db, env) {
       return null
     }
 
-    const res = await tmdbGet('/trending/person/week', {})
+    const res = await tmdbGet('/trending/person/week', { language: 'en-US' })
+    const isLatinName = (name) => /^[A-Za-z0-9À-ÖØ-öø-ÿ'’.\-\s]+$/.test(name || '')
     const people = (res?.results || [])
-      .filter((p) => p.name)
+      .filter((p) => p.name && !p.adult && isLatinName(p.name))
       .slice(0, 10)
       .map((p) => ({
         name: p.name,
@@ -2356,7 +2361,7 @@ async function fetchBornTodayGeneral(db) {
     const now = new Date()
     const month = now.getUTCMonth() + 1
     const day = now.getUTCDate()
-    const sparql = `SELECT ?person ?personLabel ?dob ?sitelinks WHERE {
+    const sparql = `SELECT DISTINCT ?person ?personLabel ?dob ?sitelinks WHERE {
       VALUES ?occ { wd:Q33999 wd:Q2526255 wd:Q10800557 }
       ?person wdt:P106 ?occ .
       ?person wdt:P569 ?dob .
@@ -2364,7 +2369,7 @@ async function fetchBornTodayGeneral(db) {
       ?person wikibase:sitelinks ?sitelinks .
       FILTER(?sitelinks > 30)
       SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
-    } ORDER BY DESC(?sitelinks) LIMIT 10`
+    } ORDER BY DESC(?sitelinks) LIMIT 30`
 
     const res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, {
       headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)', accept: 'application/sparql-results+json' },
@@ -2372,17 +2377,19 @@ async function fetchBornTodayGeneral(db) {
     if (!res.ok) return []
     const data = await res.json()
     const rows = data?.results?.bindings || []
-    const people = rows
-      .map((r) => {
-        const dob = r.dob?.value ? r.dob.value.slice(0, 10) : null
-        const year = dob ? parseInt(dob.slice(0, 4), 10) : null
-        return {
-          name: r.personLabel?.value || null,
-          birthYear: year,
-          age: year ? now.getUTCFullYear() - year : null,
-        }
-      })
-      .filter((p) => p.name)
+    const seenNames = new Set()
+    const people = []
+    for (const r of rows) {
+      const name = r.personLabel?.value || null
+      if (!name) continue
+      const key = name.toLowerCase()
+      if (seenNames.has(key)) continue // یه نفر ممکنه چند occupation match بشه (بازیگر + کارگردان)، تکراری نگیر
+      seenNames.add(key)
+      const dob = r.dob?.value ? r.dob.value.slice(0, 10) : null
+      const year = dob ? parseInt(dob.slice(0, 4), 10) : null
+      people.push({ name, birthYear: year, age: year ? now.getUTCFullYear() - year : null })
+      if (people.length >= 10) break
+    }
 
     // فقط برای ۴ نفر اول عکس بگیر (هزینه‌ی fetch رو کنترل می‌کنه)
     for (let i = 0; i < Math.min(4, people.length); i++) {
