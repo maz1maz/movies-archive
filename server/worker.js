@@ -2006,6 +2006,7 @@ async function fetchPersonUpcoming(name, env) {
         poster: c.poster_path ? `https://image.tmdb.org/t/p/w300${c.poster_path}` : null,
         mediaType: c.media_type === 'tv' ? 'series' : 'movie',
         role: c.job || (c.character ? 'Actor' : null),
+        infoUrl: `https://www.themoviedb.org/${c.media_type === 'tv' ? 'tv' : 'movie'}/${c.id}`,
       })
     }
     return upcoming.sort((a, b) => a.releaseDate.localeCompare(b.releaseDate)).slice(0, 5)

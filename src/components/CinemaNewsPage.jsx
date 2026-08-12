@@ -55,20 +55,25 @@ function UpcomingList({ items, onSelectPerson }) {
   return (
     <ul className="person-recommendations-list">
       {items.map((u) => (
-        <li key={`${u.title}-${u.releaseDate}`} className="person-recommendation-item">
-          {u.poster && <img src={u.poster} alt={u.title} className="person-recommendation-poster" />}
-          <span className="person-recommendation-info">
-            <span className="person-recommendation-title">{u.title}</span>
-            <span className="person-recommendation-ratings">
-              <span className="badge-imdb">{formatDate(u.releaseDate)}</span>
-              {u.personName && (
-                <button type="button" className="cinema-news-person-link" onClick={() => onSelectPerson(u.personName)}>
-                  {u.role ? `${u.role} · ` : ''}
-                  {u.personName}
-                </button>
-              )}
+        <li key={`${u.title}-${u.releaseDate}`} className="person-recommendation-item cinema-news-upcoming-item">
+          <a
+            href={u.infoUrl || `https://www.themoviedb.org/search?query=${encodeURIComponent(u.title)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cinema-news-upcoming-link"
+          >
+            {u.poster && <img src={u.poster} alt={u.title} className="person-recommendation-poster" />}
+            <span className="person-recommendation-info">
+              <span className="person-recommendation-title">{u.title}</span>
+              <span className="cinema-news-headline-meta">{formatDate(u.releaseDate)}</span>
             </span>
-          </span>
+          </a>
+          {u.personName && (
+            <button type="button" className="cinema-news-person-link cinema-news-person-link-inline" onClick={() => onSelectPerson(u.personName)}>
+              {u.role ? `${u.role} · ` : ''}
+              {u.personName}
+            </button>
+          )}
         </li>
       ))}
     </ul>
