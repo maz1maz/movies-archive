@@ -1605,24 +1605,39 @@ async function fetchCinemaHeadlines(db) {
   }
 }
 
-// ترجمه‌ی سریعِ عنوان با گوگل ترنسلیت (اندپوینت غیررسمی، بدون نیاز به کلید —
-// همون‌جوری که خیلی از ابزارهای رایگان استفاده می‌کنن). اگه در دسترس نبود یا
-// جواب غیرمنتظره داد، فقط null برمی‌گردونه و تیتر بدون ترجمه نمایش داده می‌شه.
+// ترجمه‌ی سریعِ عنوان. اول MyMemory (رایگان، برای استفاده‌ی برنامه‌نویسی
+// طراحی شده، رو IPهای دیتاسنتر مثل Cloudflare Workers پایدارتره) و اگه جواب
+// نداد، اندپوینت غیررسمی گوگل ترنسلیت به‌عنوان fallback. اگه هیچ‌کدوم در
+// دسترس نبودن یا جواب غیرمنتظره دادن، فقط null برمی‌گردونه و تیتر بدون
+// ترجمه نمایش داده می‌شه.
 async function translateToFa(text) {
   if (!text) return null
+
+  try {
+    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|fa`, {
+      headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' },
+    })
+    if (res.ok) {
+      const data = await res.json()
+      const translated = data?.responseData?.translatedText
+      if (translated && !/PLEASE SELECT|MYMEMORY WARNING/i.test(translated)) return translated
+    }
+  } catch {}
+
   try {
     const res = await fetch(
       `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=fa&dt=t&q=${encodeURIComponent(text)}`,
       { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
     )
-    if (!res.ok) return null
-    const data = await res.json()
-    const parts = data?.[0] || []
-    const translated = parts.map((p) => p?.[0]).filter(Boolean).join('')
-    return translated || null
-  } catch {
-    return null
-  }
+    if (res.ok) {
+      const data = await res.json()
+      const parts = data?.[0] || []
+      const translated = parts.map((p) => p?.[0]).filter(Boolean).join('')
+      if (translated) return translated
+    }
+  } catch {}
+
+  return null
 }
 
 // تیترهای مهم سینمای فارسی‌زبان (ایران) از چند منبع — همون منطق و کش کش
@@ -1641,29 +1656,34 @@ async function fetchCinemaHeadlinesFa(db) {
     }
 
     const feeds = [
-      { url: 'https://cinemacinema.ir/feed/', source: 'سینما سینما' },
-      { url: 'https://www.filmnews.ir/feed/', source: 'فیلم نیوز' },
-      { url: 'http://caffecinema.com/feed/', source: 'کافه سینما' },
-      { url: 'https://www.cinemapress.ir/feed/', source: 'سینماپرس' },
-      { url: 'http://www.sourehcinema.ir/feed/', source: 'سوره سینما' },
+      { urls: ['https://cinemacinema.ir/rss', 'https://cinemacinema.ir/feed/', 'https://www.cinemacinema.ir/feed/'], source: 'سینما سینما' },
+      { urls: ['https://www.filmnews.ir/rss', 'https://www.filmnews.ir/feed/', 'http://www.filmnews.ir/rss'], source: 'فیلم نیوز' },
+      { urls: ['https://caffecinema.com/feed/', 'https://www.caffecinema.com/feed/', 'http://caffecinema.com/rss'], source: 'کافه سینما' },
+      { urls: ['https://www.cinemapress.ir/rss'], source: 'سینماپرس' },
+      { urls: ['http://www.sourehcinema.ir/rss', 'http://www.sourehcinema.ir/feed/'], source: 'سوره سینما' },
     ]
     const headers = { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' }
     // هر منبع رو جدا نگه می‌داریم و بعد round-robin ترکیب می‌کنیم (اول یکی از
     // هر منبع، بعد دومی از هر منبع، ...) تا لیست همیشه از چند منبع پر بشه، نه
     // این‌که یه منبع که بیشتر/سریع‌تر پست می‌ذاره کل لیست رو با sort-by-date پر کنه.
+    // هر منبع چند آدرس کاندید داره (RSS مسیرهای مختلفی داره تو سایت‌های مختلف)
+    // — اولین آدرسی که جواب داد استفاده می‌شه.
     const perSource = []
     for (const f of feeds) {
-      try {
-        const res = await fetch(f.url, { headers })
-        if (!res.ok) {
-          perSource.push([])
-          continue
-        }
-        const xml = await res.text()
-        perSource.push(parseRssItems(xml, f.source))
-      } catch {
-        perSource.push([])
+      let items = []
+      for (const url of f.urls) {
+        try {
+          const res = await fetch(url, { headers })
+          if (!res.ok) continue
+          const xml = await res.text()
+          const parsed = parseRssItems(xml, f.source)
+          if (parsed.length) {
+            items = parsed
+            break
+          }
+        } catch {}
       }
+      perSource.push(items)
     }
     const maxLen = Math.max(0, ...perSource.map((s) => s.length))
     const interleaved = []
