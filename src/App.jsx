@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import Header from './components/Header.jsx'
 import FilmGrid from './components/FilmGrid.jsx'
 import FilmList from './components/FilmList.jsx'
@@ -7,7 +7,6 @@ import EditModal from './components/EditModal.jsx'
 import PersonModal from './components/PersonModal.jsx'
 import FolderNav from './components/FolderNav.jsx'
 import DashboardPanel from './components/DashboardPanel.jsx'
-import GallerySphere from './components/GallerySphere.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import LocationBrowserModal from './components/LocationBrowserModal.jsx'
@@ -16,6 +15,11 @@ import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
 import { useAuth } from './context/AuthContext.jsx'
+
+// Lazy: pulls in the ogl WebGL library, only needed by the rarely-visited
+// 3D gallery view — code-splitting it keeps it out of everyone else's
+// initial page load.
+const GallerySphere = lazy(() => import('./components/GallerySphere.jsx'))
 
 export default function App() {
   const { isGuest, isAdmin, openLogin } = useAuth()
@@ -767,11 +771,13 @@ export default function App() {
         </div>
       ) : section === 'gallery' ? (
         <>
-          <GallerySphere
-            films={allFilmsUnfiltered}
-            onBack={() => changeSection(null)}
-            onOpenFilm={(film) => setSelected(film)}
-          />
+          <Suspense fallback={<div className="status" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0c', color: '#eee', zIndex: 10 }}>Loading gallery…</div>}>
+            <GallerySphere
+              films={allFilmsUnfiltered}
+              onBack={() => changeSection(null)}
+              onOpenFilm={(film) => setSelected(film)}
+            />
+          </Suspense>
           {selected && (
             <FilmModal
               film={selected}

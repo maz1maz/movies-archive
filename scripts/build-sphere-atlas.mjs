@@ -10,26 +10,41 @@
 // نمی‌زنه.
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import sharp from 'sharp'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 const FILMS_JSON = path.join(ROOT, 'films.json')
 const OUT_DIR = path.join(ROOT, 'public/sphere-media')
+// کش خام پوسترهای دانلودشده (raw bytes، قبل از resize) — چون tile
+// size/quality رو ممکنه چندبار تنظیم کنیم، بدون این کش هر تغییر یعنی
+// دوباره ۹۰۰۰+ درخواست به Amazon (چند دقیقه). این پوشه گیت‌ایگنور شده.
+const CACHE_DIR = path.join(ROOT, '.cache/poster-atlas')
 
-const TILE_W = 48
-const TILE_H = 72
+const TILE_W = 38
+const TILE_H = 57
 const CONCURRENCY = 10 // ملایم، چون بازم از یه IP واحده — نه اونقدر که Amazon شاکی بشه
 
+function cacheKeyFor(url) {
+  return crypto.createHash('sha1').update(url).digest('hex')
+}
+
 async function fetchPosterBuffer(url) {
+  const cachePath = path.join(CACHE_DIR, cacheKeyFor(url))
+  if (existsSync(cachePath)) return readFile(cachePath)
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (CinefilioArchive personal use)' },
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return Buffer.from(await res.arrayBuffer())
+  const buf = Buffer.from(await res.arrayBuffer())
+  await writeFile(cachePath, buf).catch(() => {})
+  return buf
 }
 
 async function main() {
+  await mkdir(CACHE_DIR, { recursive: true })
   const films = JSON.parse(await readFile(FILMS_JSON, 'utf-8'))
   const LIMIT = process.env.GALLERY_LIMIT ? Number(process.env.GALLERY_LIMIT) : Infinity
   const seenPosters = new Set()
@@ -78,17 +93,20 @@ async function main() {
 
   console.log('🖼  ترکیب نهایی...')
   await mkdir(OUT_DIR, { recursive: true })
+  // WebP به‌جای JPEG: در همین کیفیت چشمی، حجم فایل نهایی رو به‌طرز محسوسی
+  // کمتر می‌کنه (برای گالری که کاربر منتظر لودشدنشه، این مهمه) — همه‌ی
+  // مرورگرهای امروزی WebP رو پشتیبانی می‌کنن.
   await sharp({
     create: { width: gridW, height: gridH, channels: 4, background: { r: 20, g: 20, b: 22, alpha: 255 } },
   })
     .composite(composites.filter(Boolean))
-    .jpeg({ quality: 82 })
-    .toFile(path.join(OUT_DIR, 'atlas.jpg'))
+    .webp({ quality: 62 })
+    .toFile(path.join(OUT_DIR, 'atlas.webp'))
 
   const config = { cols, rows, count: withPoster.length, ids: withPoster.map((f) => f.id), titles: withPoster.map((f) => f.title) }
   await writeFile(path.join(OUT_DIR, 'atlas-config.json'), JSON.stringify(config, null, 2))
 
-  console.log('✅ public/sphere-media/atlas.jpg')
+  console.log('✅ public/sphere-media/atlas.webp')
   console.log('✅ public/sphere-media/atlas-config.json')
   console.log('\nهر وقت films.json به‌روز شد، دوباره همین اسکریپت رو بزن.')
 }

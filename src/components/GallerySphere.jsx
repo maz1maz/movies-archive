@@ -94,9 +94,10 @@ async function loadStaticAtlas(onProgress) {
 
   const img = await new Promise((resolve, reject) => {
     const image = new Image()
+    image.decoding = 'async'
     image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error('atlas.jpg failed to load'))
-    image.src = '/sphere-media/atlas.jpg?v=' + config.count // کش‌باستینگ ساده
+    image.onerror = () => reject(new Error('atlas.webp failed to load'))
+    image.src = '/sphere-media/atlas.webp?v=' + config.count // کش‌باستینگ ساده
   })
   onProgress?.(100, 100)
 
@@ -411,20 +412,10 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
       function onClick(e) {
         if (dragMoved) return
         const { best, bestDist } = findNearestPoster(e.clientX, e.clientY)
-        if (best >= 0) {
-          console.log(
-            `[GallerySphere] click best index ${best} dist ${bestDist.toFixed(4)} atlasTitle="${atlas.titles[best] || '?'}"`,
-          )
-        }
         if (best >= 0 && bestDist < 0.15) {
           const filmId = atlas.ids[best]
           const film = filmId != null ? filmsById.get(String(filmId)) : undefined
-          if (film) {
-            console.log(`[GallerySphere] opening film title="${film.title}" id=${film.id}`)
-            onOpenFilm(film)
-          } else {
-            console.warn('[GallerySphere] click matched index', best, 'id', filmId, 'but no matching film in live data')
-          }
+          if (film) onOpenFilm(film)
         }
       }
       gl.canvas.addEventListener('pointerdown', onPointerDownTrack)
