@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { IconClose, IconDocument, IconPrinter, IconBarChart, IconDownload, IconSave } from './icons.jsx'
+import { escapeHtml } from '../utils/escapeHtml.js'
 
 const LETTERS = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))]
 
@@ -84,14 +85,14 @@ export default function ExportModal({ films, section, onClose }) {
         (f, idx) => `
       <tr>
         <td>${idx + 1}</td>
-        <td><strong>${f.title}</strong><br><small style="color:#666">${f.originalTitle || ''}</small></td>
-        <td>Closet ${f.closet || '—'} / Row ${f.row || '—'} / Section ${f.shelf || '—'}</td>
-        <td>${f.format || 'Blu-ray'}</td>
+        <td><strong>${escapeHtml(f.title)}</strong><br><small style="color:#666">${escapeHtml(f.originalTitle)}</small></td>
+        <td>Closet ${escapeHtml(f.closet) || '—'} / Row ${escapeHtml(f.row) || '—'} / Section ${escapeHtml(f.shelf) || '—'}</td>
+        <td>${escapeHtml(f.format) || 'Blu-ray'}</td>
         <td>${f.year || '—'}</td>
-        <td>${f.director || '—'}</td>
+        <td>${escapeHtml(f.director) || '—'}</td>
         <td>★ ${f.rating ? f.rating.toFixed(1) : '—'}</td>
-        <td>${f.studio || '—'}</td>
-        <td>${f.borrowedTo ? `Loaned to ${f.borrowedTo}` : 'In Archive'}</td>
+        <td>${escapeHtml(f.studio) || '—'}</td>
+        <td>${f.borrowedTo ? `Loaned to ${escapeHtml(f.borrowedTo)}` : 'In Archive'}</td>
       </tr>
     `
       )

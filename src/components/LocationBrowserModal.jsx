@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload, IconArchive } from './icons.jsx'
+import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
+import { escapeHtml } from '../utils/escapeHtml.js'
 
 const CLOSET_COUNT = 8
 const ROW_COUNT = 10
@@ -40,6 +42,10 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [moving, setMoving] = useState(false)
   const [hideShelved, setHideShelved] = useState(true)
   const [azLetter, setAzLetter] = useState(null)
+  const [shelfViewMode, setShelfViewMode] = useState('spine')
+  const [shelfScale, setShelfScale] = useState(1)
+  const [shelfTheme, setShelfTheme] = useState('wood')
+  const [hoveredFilm, setHoveredFilm] = useState(null)
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -302,12 +308,12 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
         (f, idx) => `
       <tr>
         <td class="cell-nowrap">${idx + 1}</td>
-        <td class="cell-title">${f.title}${f.originalTitle && f.originalTitle !== f.title ? ` <span class="cell-orig">(${f.originalTitle})</span>` : ''}</td>
+        <td class="cell-title">${escapeHtml(f.title)}${f.originalTitle && f.originalTitle !== f.title ? ` <span class="cell-orig">(${escapeHtml(f.originalTitle)})</span>` : ''}</td>
         <td class="cell-nowrap">${f.year || '—'}</td>
-        <td class="cell-nowrap">${f.director || '—'}</td>
+        <td class="cell-nowrap">${escapeHtml(f.director) || '—'}</td>
         <td class="cell-nowrap">★ ${f.rating ? f.rating.toFixed(1) : '—'}</td>
-        <td class="cell-nowrap">C${f.closet || '—'} R${f.row || '—'} S${f.shelf || '—'}</td>
-        <td class="cell-nowrap">${f.format || 'Blu-ray'}</td>
+        <td class="cell-nowrap">C${escapeHtml(f.closet) || '—'} R${escapeHtml(f.row) || '—'} S${escapeHtml(f.shelf) || '—'}</td>
+        <td class="cell-nowrap">${escapeHtml(f.format) || 'Blu-ray'}</td>
         <td class="cell-nowrap">${f.criterion ? `Criterion${f.criterionCopies > 1 ? ` ×${f.criterionCopies}` : ''}` : '—'}</td>
         <td class="cell-nowrap">${f.copies > 1 ? f.copies : 1}</td>
       </tr>

@@ -95,13 +95,29 @@ OMDB_API_KEY=کلید_تو npm start
 
 ---
 
-## ☁️ دیپلوی روی هاست (مثلاً Render / Railway)
+## ☁️ دیپلوی (Cloudflare Workers)
 
-1. ریپو رو به GitHub پوش کن.
-2. سرویس جدید بساز (Build: `npm install && npm run build`، Start: `npm start`).
-3. متغیر محیطی `PORT` رو هاست معمولاً خودش تنظیم می‌کنه؛ `OMDB_API_KEY` رو هم
-   اختیاری اضافه کن.
-4. فایل راکت (اگه خواستی) رو در همین پوشه بذار (`start` از همون استفاده می‌کنه).
+نسخه‌ی واقعی و لایو این پروژه روی **Cloudflare Workers** دیپلوی میشه، نه
+Render/Railway. ورودی پروداکشن `server/worker.js`ه (نه `server/index.js`) و
+داده‌ها روی **D1** + بکاپ روی **KV** ذخیره می‌شن — تنظیماتش تو `wrangler.jsonc`ه.
+
+```bash
+npm install
+npm run deploy      # = npm run build && npx wrangler deploy
+```
+
+قبل از اولین دیپلوی:
+
+1. `npx wrangler d1 execute movies-archive --file=schema.sql` رو یه‌بار اجرا کن
+   تا جدول‌ها ساخته بشن (این فایل `IF NOT EXISTS` استفاده می‌کنه، پس دوباره
+   اجراش کردن دیتای موجود رو پاک/خراب نمی‌کنه).
+2. کلید OMDb رو به‌صورت secret ست کن، نه تو `wrangler.jsonc`:
+   `npx wrangler secret put OMDB_API_KEY`
+
+> ⚠️ **`server/index.js` (همونی که `npm start` اجراش می‌کنه) هیچ احراز هویتی
+> نداره** — فقط برای توسعه‌ی لوکال (`npm run dev`) روی سیستم خودته. اینو
+> مستقیم رو یه هاست عمومی (Render/Railway/...) اجرا نکن؛ یعنی یه آرشیو کاملاً
+> باز و بدون پسورد که هرکسی می‌تونه بخونه/ویرایش/حذف کنه.
 
 ---
 
