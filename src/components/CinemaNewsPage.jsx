@@ -111,6 +111,37 @@ function PosterGrid({ items }) {
   )
 }
 
+function PeopleGrid({ items, subtitleKey }) {
+  if (!items.length) return <p className="cinema-news-headline-meta">Nothing here right now.</p>
+  return (
+    <div className="cinema-news-birthday-grid">
+      {items.map((p) =>
+        p.infoUrl ? (
+          <a key={p.name} href={p.infoUrl} target="_blank" rel="noopener noreferrer" className="cinema-news-birthday-card">
+            <span className="person-avatar-circle cinema-news-birthday-avatar">
+              {p.photo ? <img src={p.photo} alt={p.name} className="person-avatar-photo" /> : p.name[0]?.toUpperCase()}
+            </span>
+            <span className="cinema-news-birthday-info">
+              <span className="cinema-news-birthday-name">{p.name}</span>
+              {p[subtitleKey] && <span className="cinema-news-birthday-films">{p[subtitleKey]}</span>}
+            </span>
+          </a>
+        ) : (
+          <div key={p.name} className="cinema-news-birthday-card">
+            <span className="person-avatar-circle cinema-news-birthday-avatar">
+              {p.photo ? <img src={p.photo} alt={p.name} className="person-avatar-photo" /> : p.name[0]?.toUpperCase()}
+            </span>
+            <span className="cinema-news-birthday-info">
+              <span className="cinema-news-birthday-name">{p.name}</span>
+              {p[subtitleKey] && <span className="cinema-news-birthday-films">{p[subtitleKey]}</span>}
+            </span>
+          </div>
+        )
+      )}
+    </div>
+  )
+}
+
 // صفحه‌ی «اخبار سینما». همه‌چیز جدا جدا نمایش داده می‌شه (بدون تب "All"):
 // خبر سینما / خبر سریال / اخبار فارسی هرکدوم بخش خودشونو دارن، همین‌طور
 // «در راه» کالکشن و «در راه» عمومی هم فیلم/سریال جداست. دیتا از
@@ -146,6 +177,15 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
   const trendingSeriesWeek = data?.trending?.trendingSeriesWeek || []
   const popularMonth = data?.trending?.popularMonth || []
   const boxOffice = data?.trending?.boxOffice || []
+  const trendingPeople = data?.trendingPeople || []
+  const bornTodayGeneral = useMemo(
+    () =>
+      (data?.bornTodayGeneral || []).map((p) => ({
+        ...p,
+        subtitle: p.age != null ? `Age ${p.age}` : p.birthYear ? String(p.birthYear) : null,
+      })),
+    [data]
+  )
 
   const movieHeadlines = useMemo(() => headlinesEn.filter((h) => classifyHeadline(h.title) === 'movie'), [headlinesEn])
   const seriesHeadlines = useMemo(() => headlinesEn.filter((h) => classifyHeadline(h.title) === 'series'), [headlinesEn])
@@ -165,7 +205,9 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
     !trendingMoviesWeek.length &&
     !trendingSeriesWeek.length &&
     !popularMonth.length &&
-    !boxOffice.length
+    !boxOffice.length &&
+    !trendingPeople.length &&
+    !bornTodayGeneral.length
 
   return (
     <div className="dashboard-panel cinema-news-page">
@@ -225,10 +267,17 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
           </div>
         )}
 
+        {trendingPeople.length > 0 && (
+          <div className="cinema-news-section">
+            <h4 className="person-extras-title">Trending people</h4>
+            <PeopleGrid items={trendingPeople} subtitleKey="knownFor" />
+          </div>
+        )}
+
         {birthdays.length > 0 && (
           <div className="cinema-news-section">
             <h4 className="person-extras-title">
-              <IconCake width={15} height={15} /> Birthdays today
+              <IconCake width={15} height={15} /> Birthdays today (your collection)
             </h4>
             <div className="cinema-news-birthday-grid">
               {birthdays.map((b) => (
@@ -245,6 +294,15 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {bornTodayGeneral.length > 0 && (
+          <div className="cinema-news-section">
+            <h4 className="person-extras-title">
+              <IconCake width={15} height={15} /> Born today (everywhere)
+            </h4>
+            <PeopleGrid items={bornTodayGeneral} subtitleKey="subtitle" />
           </div>
         )}
 

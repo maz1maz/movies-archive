@@ -1084,16 +1084,23 @@ export default {
       // هالیوود. سه بخش موازی fetch می‌شن، هرکدوم جدا کش می‌شن. ----
       if (method === 'GET' && pathname === '/api/cinema-news') {
         try {
-          const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending] = await Promise.all([
-            fetchTodaysBirthdays(db),
-            fetchUpcomingFromCollection(db, env),
-            fetchTrendingTrailers(db, env),
-            fetchCinemaHeadlines(db),
-            fetchCinemaHeadlinesFa(db),
-            fetchGeneralUpcoming(db, env),
-            fetchTrendingAndBoxOffice(db, env),
-          ])
-          return json({ birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending }, 200, corsHeaders)
+          const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneral] =
+            await Promise.all([
+              fetchTodaysBirthdays(db),
+              fetchUpcomingFromCollection(db, env),
+              fetchTrendingTrailers(db, env),
+              fetchCinemaHeadlines(db),
+              fetchCinemaHeadlinesFa(db),
+              fetchGeneralUpcoming(db, env),
+              fetchTrendingAndBoxOffice(db, env),
+              fetchTrendingPeople(db, env),
+              fetchBornTodayGeneral(db),
+            ])
+          return json(
+            { birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneral },
+            200,
+            corsHeaders
+          )
         } catch (e) {
           return json(
             {
@@ -1104,6 +1111,8 @@ export default {
               headlinesFa: [],
               generalUpcoming: { movies: [], series: [] },
               trending: { trendingMoviesWeek: [], trendingSeriesWeek: [], popularMonth: [], boxOffice: [] },
+              trendingPeople: [],
+              bornTodayGeneral: [],
             },
             200,
             corsHeaders
@@ -2269,6 +2278,135 @@ async function fetchTrendingAndBoxOffice(db, env) {
     return data
   } catch {
     return empty
+  }
+}
+
+// پرطرفدارترین آدم‌های این هفته (بازیگر/کارگردان) — از TMDB trending/person،
+// شبیه بخش «Trending people» توی IMDb. یک‌روزه کش می‌شه.
+async function fetchTrendingPeople(db, env) {
+  if (!env.TMDB_API_KEY) return []
+  try {
+    const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('trending_people').first()
+    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 24 * 60 * 60 * 1000
+    if (fresh) {
+      try {
+        return JSON.parse(cached.data || '[]')
+      } catch {
+        return []
+      }
+    }
+
+    const tmdbKey = env.TMDB_API_KEY
+    async function tmdbGet(path, params) {
+      const qs = new URLSearchParams(params).toString()
+      const attempts = [
+        { url: `https://api.themoviedb.org/3${path}?${qs}&api_key=${encodeURIComponent(tmdbKey)}`, headers: { accept: 'application/json' } },
+        { url: `https://api.themoviedb.org/3${path}?${qs}`, headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
+      ]
+      for (const a of attempts) {
+        try {
+          const res = await fetch(a.url, { headers: a.headers })
+          if (res.ok) return await res.json()
+        } catch {}
+      }
+      return null
+    }
+
+    const res = await tmdbGet('/trending/person/week', {})
+    const people = (res?.results || [])
+      .filter((p) => p.name)
+      .slice(0, 10)
+      .map((p) => ({
+        name: p.name,
+        photo: p.profile_path ? `https://image.tmdb.org/t/p/w300${p.profile_path}` : null,
+        knownFor: (p.known_for || [])
+          .map((k) => k.title || k.name)
+          .filter(Boolean)
+          .slice(0, 2)
+          .join(', '),
+        infoUrl: `https://www.themoviedb.org/person/${p.id}`,
+      }))
+
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind('trending_people', JSON.stringify(people))
+      .run()
+
+    return people
+  } catch {
+    return []
+  }
+}
+
+// تولدهای امروز به‌طور کلی (نه فقط اهالی کالکشن) — از Wikidata SPARQL: هنرمندان
+// سینما که امروز متولد شدن، مرتب بر اساس تعداد sitelink (معیار شهرت). برای
+// محدود موندن تعداد fetchها، فقط ۴ نفر اول عکس می‌گیرن.
+async function fetchBornTodayGeneral(db) {
+  try {
+    const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('born_today').first()
+    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 24 * 60 * 60 * 1000
+    if (fresh) {
+      try {
+        return JSON.parse(cached.data || '[]')
+      } catch {
+        return []
+      }
+    }
+
+    const now = new Date()
+    const month = now.getUTCMonth() + 1
+    const day = now.getUTCDate()
+    const sparql = `SELECT ?person ?personLabel ?dob ?sitelinks WHERE {
+      VALUES ?occ { wd:Q33999 wd:Q2526255 wd:Q10800557 }
+      ?person wdt:P106 ?occ .
+      ?person wdt:P569 ?dob .
+      FILTER(MONTH(?dob) = ${month} && DAY(?dob) = ${day})
+      ?person wikibase:sitelinks ?sitelinks .
+      FILTER(?sitelinks > 30)
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+    } ORDER BY DESC(?sitelinks) LIMIT 10`
+
+    const res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, {
+      headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)', accept: 'application/sparql-results+json' },
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    const rows = data?.results?.bindings || []
+    const people = rows
+      .map((r) => {
+        const dob = r.dob?.value ? r.dob.value.slice(0, 10) : null
+        const year = dob ? parseInt(dob.slice(0, 4), 10) : null
+        return {
+          name: r.personLabel?.value || null,
+          birthYear: year,
+          age: year ? now.getUTCFullYear() - year : null,
+        }
+      })
+      .filter((p) => p.name)
+
+    // فقط برای ۴ نفر اول عکس بگیر (هزینه‌ی fetch رو کنترل می‌کنه)
+    for (let i = 0; i < Math.min(4, people.length); i++) {
+      try {
+        const wikiRes = await fetch(
+          `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=200&titles=${encodeURIComponent(people[i].name)}`,
+          { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
+        )
+        if (wikiRes.ok) {
+          const wd = await wikiRes.json()
+          const page = Object.values(wd?.query?.pages || {})[0]
+          if (page?.thumbnail?.source) people[i].photo = page.thumbnail.source
+        }
+      } catch {}
+    }
+
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind('born_today', JSON.stringify(people))
+      .run()
+
+    return people
+  } catch {
+    return []
   }
 }
 
