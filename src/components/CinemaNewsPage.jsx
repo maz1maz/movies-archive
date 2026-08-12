@@ -79,13 +79,27 @@ function PosterGrid({ items }) {
   if (!items.length) return <p className="cinema-news-headline-meta">Nothing here right now.</p>
   return (
     <div className="cinema-news-trailer-grid">
-      {items.map((g) => (
-        <div key={`${g.title}-${g.releaseDate}`} className="cinema-news-trailer-card cinema-news-poster-card">
-          {g.poster && <img src={g.poster} alt={g.title} className="cinema-news-trailer-poster" />}
-          <span className="cinema-news-trailer-title">{g.title}</span>
-          <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
-        </div>
-      ))}
+      {items.map((g) =>
+        g.infoUrl ? (
+          <a
+            key={`${g.title}-${g.releaseDate}`}
+            className="cinema-news-trailer-card cinema-news-poster-card"
+            href={g.infoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {g.poster && <img src={g.poster} alt={g.title} className="cinema-news-trailer-poster" />}
+            <span className="cinema-news-trailer-title">{g.title}</span>
+            <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
+          </a>
+        ) : (
+          <div key={`${g.title}-${g.releaseDate}`} className="cinema-news-trailer-card cinema-news-poster-card">
+            {g.poster && <img src={g.poster} alt={g.title} className="cinema-news-trailer-poster" />}
+            <span className="cinema-news-trailer-title">{g.title}</span>
+            <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
+          </div>
+        )
+      )}
     </div>
   )
 }

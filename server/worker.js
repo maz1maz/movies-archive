@@ -2118,6 +2118,7 @@ async function fetchGeneralUpcoming(db, env) {
         title: m.title,
         releaseDate: m.release_date,
         poster: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
+        infoUrl: `https://www.themoviedb.org/movie/${m.id}`,
       }))
 
     const seriesRes = await tmdbGet('/discover/tv', {
@@ -2132,6 +2133,7 @@ async function fetchGeneralUpcoming(db, env) {
         title: s.name,
         releaseDate: s.first_air_date,
         poster: s.poster_path ? `https://image.tmdb.org/t/p/w300${s.poster_path}` : null,
+        infoUrl: `https://www.themoviedb.org/tv/${s.id}`,
       }))
 
     const data = { movies, series }

@@ -3215,7 +3215,7 @@ body.light .header {
   vertical-align: middle;
 }
 .cinema-news-poster-card {
-  cursor: default;
+  cursor: pointer;
 }
 .cinema-news-birthday-grid {
   display: grid;
