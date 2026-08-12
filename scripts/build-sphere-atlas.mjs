@@ -48,7 +48,7 @@ async function main() {
   const films = JSON.parse(await readFile(FILMS_JSON, 'utf-8'))
   const LIMIT = process.env.GALLERY_LIMIT ? Number(process.env.GALLERY_LIMIT) : Infinity
   const seenPosters = new Set()
-  const withPoster = films
+  const deduped = films
     .filter((f) => f.poster)
     .sort((a, b) => String(a.id).localeCompare(String(b.id)))
     .filter((f) => {
@@ -56,7 +56,15 @@ async function main() {
       seenPosters.add(f.poster)
       return true
     })
-    .slice(0, LIMIT)
+  // با LIMIT، به‌جای N تای اول بر اساس id (که کاملاً دلبخواهیه)، بهترین‌ها
+  // (بر اساس امتیاز) رو نگه می‌داریم — یه گالری کوچیک‌تر ولی باکیفیت‌تر،
+  // به‌جای یه زیرمجموعه‌ی تصادفی.
+  const withPoster = Number.isFinite(LIMIT)
+    ? deduped
+        .slice()
+        .sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0))
+        .slice(0, LIMIT)
+    : deduped
 
   const cols = Math.ceil(Math.sqrt(withPoster.length))
   const rows = Math.ceil(withPoster.length / cols)
