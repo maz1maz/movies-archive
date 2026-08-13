@@ -26,7 +26,7 @@ export default function DashboardPosterCard({ title, subtitle, poster, badgeText
   return (
     <button
       type="button"
-      className={`card dashboard-poster-card${isClickable ? '' : ' dashboard-poster-card-dim'}`}
+      className={`card dashboard-poster-card${isClickable ? '' : ' dashboard-poster-card-dim'}${showMissing ? ' dashboard-poster-card-missing' : ''}`}
       onClick={isClickable ? onClick : undefined}
       disabled={!isClickable}
     >

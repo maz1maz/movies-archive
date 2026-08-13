@@ -904,6 +904,18 @@ body.light .header {
 .btn-danger:hover {
   filter: brightness(1.1);
 }
+.btn-danger-outline {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+.btn-danger-outline:hover {
+  background: rgba(180, 30, 30, 0.1);
+}
+.btn-danger-outline:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 .edit-delete-confirm {
   display: flex;
   align-items: center;
@@ -5373,6 +5385,10 @@ body.light .dashboard-panel {
 .dashboard-poster-card-dim .card-meta {
   opacity: 0.55;
 }
+.dashboard-poster-card-missing {
+  border: 1px solid #b41e1e;
+  box-shadow: 0 0 0 1px rgba(180, 30, 30, 0.35) inset;
+}
 .dashboard-badge {
   position: absolute;
   font-size: 9.5px;
@@ -5397,10 +5413,10 @@ body.light .dashboard-panel {
 .dashboard-badge-missing {
   bottom: 7px;
   right: 7px;
-  background: rgba(20, 17, 16, 0.55);
-  border: 1px dashed rgba(255, 255, 255, 0.4);
-  color: #e8e3d6;
-  font-weight: 600;
+  background: rgba(180, 30, 30, 0.85);
+  border: 1px solid #e05252;
+  color: #fff;
+  font-weight: 700;
   letter-spacing: 0.2px;
   backdrop-filter: blur(2px);
 }
