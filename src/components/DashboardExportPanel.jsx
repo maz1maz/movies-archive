@@ -21,7 +21,6 @@ const LETTERS = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')]
 function sortableTitle(title) {
   const t = title || ''
   if (/^the\s+/i.test(t)) return t.slice(4)
-  if (/^a\s+/i.test(t)) return t.slice(2)
   return t
 }
 function titleStartsWithLetter(title, letter) {

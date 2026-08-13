@@ -1352,7 +1352,7 @@ export default {
         if (driveParam) { conditions.push('driveNumber = ?'); params.push(driveParam) }
         if (letterParam) {
           // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The "/"A " ابتدای عنوان
-          const sortableTitle = `CASE WHEN title LIKE 'The %' THEN substr(title,5) WHEN title LIKE 'A %' THEN substr(title,3) ELSE title END`
+          const sortableTitle = `CASE WHEN title LIKE 'The %' THEN substr(title,5) ELSE title END`
           if (letterParam === '#') {
             conditions.push(`UPPER(SUBSTR(${sortableTitle}, 1, 1)) NOT BETWEEN 'A' AND 'Z'`)
           } else {
@@ -1393,7 +1393,7 @@ export default {
         if (driveParam) { conditions.push('driveNumber = ?'); params.push(driveParam) }
         if (letterParam) {
           // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The "/"A " ابتدای عنوان
-          const sortableTitle = `CASE WHEN title LIKE 'The %' THEN substr(title,5) WHEN title LIKE 'A %' THEN substr(title,3) ELSE title END`
+          const sortableTitle = `CASE WHEN title LIKE 'The %' THEN substr(title,5) ELSE title END`
           if (letterParam === '#') {
             conditions.push(`UPPER(SUBSTR(${sortableTitle}, 1, 1)) NOT BETWEEN 'A' AND 'Z'`)
           } else {

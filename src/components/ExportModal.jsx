@@ -7,7 +7,6 @@ const LETTERS = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCod
 function sortableTitle(title) {
   const t = String(title || '')
   if (/^the\s+/i.test(t)) return t.slice(4)
-  if (/^a\s+/i.test(t)) return t.slice(2)
   return t
 }
 
