@@ -1,5 +1,5 @@
-// کارت پوستری مشترک برای تب‌های داشبورد (Oscars / Genre Tops) — همون ظاهر
-// کارت‌های آرشیو اصلی رو تکرار می‌کنه تا این بخش هم‌شکل بقیه‌ی اپ باشه.
+// کارت پوستری مشترک برای تب‌های داشبورد (Oscars / Genre Tops / Watchlists) —
+// همون ظاهر کارت‌های آرشیو اصلی رو تکرار می‌کنه تا این بخش هم‌شکل بقیه‌ی اپ باشه.
 const PALETTE = [
   ['#3a2f5b', '#1f1830'],
   ['#5b3a3a', '#301f1f'],
@@ -23,12 +23,16 @@ export default function DashboardPosterCard({ title, subtitle, poster, badgeText
   const showMissing = showMissingBadge !== undefined ? showMissingBadge : !inArchive
   const [c1, c2] = PALETTE[hashCode(String(title)) % PALETTE.length]
 
+  // وقتی کارت خودش کلیک‌پذیر نیست (فیلم تو آرشیو نیست)، از یه <div> استفاده
+  // می‌کنیم نه <button>، چون دکمه‌ی «Order» داخلش باید خودش جدا کلیک‌پذیر
+  // بمونه — تو <button disabled> هیچ چیز داخلیش کلیک نمی‌خوره.
+  const Wrapper = isClickable ? 'button' : 'div'
+  const wrapperProps = isClickable ? { type: 'button', onClick } : {}
+
   return (
-    <button
-      type="button"
+    <Wrapper
       className={`card dashboard-poster-card${isClickable ? '' : ' dashboard-poster-card-dim'}${showMissing ? ' dashboard-poster-card-missing' : ''}`}
-      onClick={isClickable ? onClick : undefined}
-      disabled={!isClickable}
+      {...wrapperProps}
     >
       <div className="poster" style={!poster ? { background: `linear-gradient(160deg, ${c1}, ${c2})` } : undefined}>
         {poster ? (
@@ -39,12 +43,22 @@ export default function DashboardPosterCard({ title, subtitle, poster, badgeText
         {badgeText && (
           <span className={`dashboard-badge dashboard-badge-${badgeVariant || 'default'}`}>{badgeText}</span>
         )}
-        {showMissing && <span className="dashboard-badge dashboard-badge-missing">Not in archive</span>}
+        {showMissing && (
+          <a
+            className="dashboard-badge dashboard-badge-order"
+            href={`https://www.amazon.com/s?k=${encodeURIComponent(title)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Order
+          </a>
+        )}
       </div>
       <div className="card-body">
         <h3 className="card-title">{title}</h3>
         {subtitle && <p className="card-meta">{subtitle}</p>}
       </div>
-    </button>
+    </Wrapper>
   )
 }

@@ -241,28 +241,6 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
     }))
   }, [activeList, films, itemSearch])
 
-  // عناوینی از این واچ‌لیست که کلاً تو آرشیو (نه بلوری نه دیجیتال) نیستن —
-  // برای «Export missing» استفاده می‌شه، مستقل از جست‌وجوی فعلی تو لیست.
-  const missingItems = useMemo(() => {
-    if (!activeList) return []
-    return activeList.items.filter((item) => !findInArchive(films, item.title))
-  }, [activeList, films])
-
-  const exportMissingCsv = () => {
-    if (!activeList || !missingItems.length) return
-    const esc = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
-    const header = ['Title', 'Year', 'My Rating', 'List']
-    const rows = missingItems.map((item) => [item.title, item.year || '', item.myRating || '', activeList.name])
-    const csv = [header, ...rows].map((row) => row.map(esc).join(',')).join('\r\n')
-    const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${activeList.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-missing-titles.csv`
-    link.click()
-    URL.revokeObjectURL(url)
-  }
-
   if (lists === null) {
     return (
       <div className="oscars-panel">
@@ -348,14 +326,6 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
                   </button>
                   <button className="btn" onClick={() => fileRef.current?.click()}>
                     Import CSV / Export ZIP
-                  </button>
-                  <button
-                    className="btn btn-danger-outline"
-                    onClick={exportMissingCsv}
-                    disabled={!missingItems.length}
-                    title="Download a CSV of titles from this watchlist that aren't in your archive yet"
-                  >
-                    Export missing ({missingItems.length})
                   </button>
                   <button className="btn btn-ghost" onClick={() => handleDelete(activeList.id)}>
                     Delete list

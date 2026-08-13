@@ -3302,23 +3302,23 @@ body.light .header {
 .cinema-news-missing.person-recommendation-item {
   position: relative;
 }
-.cinema-news-missing::after {
-  content: 'Not in archive';
+.cinema-news-order-badge {
   position: absolute;
-  top: 6px;
+  bottom: 6px;
   right: 6px;
-  background: rgba(180, 30, 30, 0.85);
-  border: 1px solid #e05252;
+  background: #7c3aed;
+  border: 1px solid #9d5cf5;
   color: #fff;
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 2px 6px;
+  letter-spacing: 0.2px;
+  padding: 2px 8px;
   border-radius: 5px;
-  z-index: 1;
+  text-decoration: none;
+  z-index: 2;
 }
-li.cinema-news-missing::after {
-  top: 6px;
-  right: 6px;
+.cinema-news-order-badge:hover {
+  filter: brightness(1.1);
 }
 .cinema-news-export-btn {
   font-size: 11px;
@@ -3418,6 +3418,13 @@ li.cinema-news-missing::after {
   background: var(--surface-2);
   text-decoration: none;
   color: var(--text);
+}
+.cinema-news-poster-card-link {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
 }
 .cinema-news-trailer-poster {
   width: 100%;
@@ -5441,15 +5448,19 @@ body.light .dashboard-panel {
   background: rgba(0, 0, 0, 0.65);
   color: #fff;
 }
-.dashboard-badge-missing {
+.dashboard-badge-order {
   bottom: 7px;
   right: 7px;
-  background: rgba(180, 30, 30, 0.85);
-  border: 1px solid #e05252;
+  background: #7c3aed;
+  border: 1px solid #9d5cf5;
   color: #fff;
   font-weight: 700;
   letter-spacing: 0.2px;
-  backdrop-filter: blur(2px);
+  text-decoration: none;
+  cursor: pointer;
+}
+.dashboard-badge-order:hover {
+  filter: brightness(1.1);
 }
 
 .dashboard-overview {
