@@ -436,14 +436,13 @@ body.light .header {
   cursor: pointer;
   padding: 0;
   color: inherit;
-  transform: rotate(var(--tilt, 0deg));
-  box-shadow: 0 12px 26px -10px rgba(0, 0, 0, 0.5), 0 3px 8px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 14px 28px -12px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.22);
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.15s;
 }
 .card:hover {
-  transform: rotate(0deg) translateY(-6px) scale(1.035);
+  transform: translateY(-6px);
   border-color: var(--border-strong);
-  box-shadow: 0 22px 36px -12px rgba(0, 0, 0, 0.6), 0 6px 14px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 24px 38px -14px rgba(0, 0, 0, 0.55), 0 8px 16px rgba(0, 0, 0, 0.28);
   z-index: 2;
   position: relative;
 }
