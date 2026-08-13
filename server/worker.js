@@ -1342,11 +1342,24 @@ export default {
         if (denied) return denied
         const mediaType = url.searchParams.get('mediaType')
         const itemType = url.searchParams.get('itemType')
+        const driveParam = url.searchParams.get('drive')
+        const letterParam = (url.searchParams.get('letter') || '').toUpperCase()
         let sql = 'SELECT * FROM films'
         const conditions = []
         const params = []
         if (mediaType) { conditions.push('mediaType = ?'); params.push(mediaType) }
         if (itemType) { conditions.push('itemType = ?'); params.push(itemType) }
+        if (driveParam) { conditions.push('driveNumber = ?'); params.push(driveParam) }
+        if (letterParam) {
+          // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The "/"A " ابتدای عنوان
+          const sortableTitle = `CASE WHEN title LIKE 'The %' THEN substr(title,5) WHEN title LIKE 'A %' THEN substr(title,3) ELSE title END`
+          if (letterParam === '#') {
+            conditions.push(`UPPER(SUBSTR(${sortableTitle}, 1, 1)) NOT BETWEEN 'A' AND 'Z'`)
+          } else {
+            conditions.push(`UPPER(SUBSTR(${sortableTitle}, 1, 1)) = ?`)
+            params.push(letterParam)
+          }
+        }
         if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ')
         sql += ' ORDER BY title'
         const result = await db.prepare(sql).bind(...params).all()
@@ -1358,7 +1371,7 @@ export default {
         })
       }
 
-      // ---- GET /api/export/excel (optional ?mediaType=&itemType=&closet=&row=&shelf= to scope the backup) ----
+      // ---- GET /api/export/excel (optional ?mediaType=&itemType=&closet=&row=&shelf=&drive=&letter= to scope the backup) ----
       if (method === 'GET' && pathname === '/api/export/excel') {
         const denied = requireAuth()
         if (denied) return denied
@@ -1367,6 +1380,7 @@ export default {
         const closetParam = url.searchParams.get('closet')
         const rowParam = url.searchParams.get('row')
         const shelfParam = url.searchParams.get('shelf')
+        const driveParam = url.searchParams.get('drive')
         const letterParam = (url.searchParams.get('letter') || '').toUpperCase()
         let sql = 'SELECT * FROM films'
         const conditions = []
@@ -1376,6 +1390,7 @@ export default {
         if (closetParam) { conditions.push('closet = ?'); params.push(closetParam) }
         if (rowParam) { conditions.push('row = ?'); params.push(rowParam) }
         if (shelfParam) { conditions.push('shelf = ?'); params.push(shelfParam) }
+        if (driveParam) { conditions.push('driveNumber = ?'); params.push(driveParam) }
         if (letterParam) {
           // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The "/"A " ابتدای عنوان
           const sortableTitle = `CASE WHEN title LIKE 'The %' THEN substr(title,5) WHEN title LIKE 'A %' THEN substr(title,3) ELSE title END`
