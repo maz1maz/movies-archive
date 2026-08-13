@@ -270,149 +270,151 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
           </p>
         )}
 
-        {(movieHeadlines.length > 0 || seriesHeadlines.length > 0 || headlinesFa.length > 0) && (
-          <div className="cinema-news-columns cinema-news-columns-3 cinema-news-section cinema-news-section-first">
-            <div className="cinema-news-section">
-              <h4 className="person-extras-title">
-                <IconNewspaper width={15} height={15} /> Movie news
-              </h4>
-              <HeadlineList items={movieHeadlines} />
+        <div className="cinema-news-stack">
+          {(movieHeadlines.length > 0 || seriesHeadlines.length > 0 || headlinesFa.length > 0) && (
+            <div className="stats-section-row cinema-news-row-3">
+              <div className="stats-box">
+                <h3>
+                  <IconNewspaper width={15} height={15} /> Movie news
+                </h3>
+                <HeadlineList items={movieHeadlines} />
+              </div>
+              <div className="stats-box">
+                <h3>
+                  <IconNewspaper width={15} height={15} /> Series news
+                </h3>
+                <HeadlineList items={seriesHeadlines} />
+              </div>
+              <div className="stats-box">
+                <h3>
+                  <IconNewspaper width={15} height={15} /> اخبار فارسی
+                </h3>
+                <HeadlineList items={headlinesFa} rtl />
+              </div>
             </div>
-            <div className="cinema-news-section">
-              <h4 className="person-extras-title">
-                <IconNewspaper width={15} height={15} /> Series news
-              </h4>
-              <HeadlineList items={seriesHeadlines} />
-            </div>
-            <div className="cinema-news-section">
-              <h4 className="person-extras-title">
-                <IconNewspaper width={15} height={15} /> اخبار فارسی
-              </h4>
-              <HeadlineList items={headlinesFa} rtl />
-            </div>
-          </div>
-        )}
+          )}
 
-        {trendingPeople.length > 0 && (
-          <div className="cinema-news-section">
-            <h4 className="person-extras-title">Trending people</h4>
-            <PeopleGrid items={trendingPeople} subtitleKey="knownFor" />
-          </div>
-        )}
+          {trendingPeople.length > 0 && (
+            <div className="stats-box">
+              <h3>Trending people</h3>
+              <PeopleGrid items={trendingPeople} subtitleKey="knownFor" />
+            </div>
+          )}
 
-        {birthdays.length > 0 && (
-          <div className="cinema-news-section">
-            <h4 className="person-extras-title">
-              <IconCake width={15} height={15} /> Birthdays today (your collection)
-            </h4>
-            <div className="cinema-news-birthday-grid">
-              {birthdays.map((b) => (
-                <button key={b.name} type="button" className="cinema-news-birthday-card" onClick={() => onSelectPerson(b.name)}>
-                  <span className="person-avatar-circle cinema-news-birthday-avatar">
-                    {b.photo ? <img src={b.photo} alt={b.name} className="person-avatar-photo" /> : b.name[0]?.toUpperCase()}
-                  </span>
-                  <span className="cinema-news-birthday-info">
-                    <span className="cinema-news-birthday-name">
-                      {b.name} {b.age != null ? <span className="person-recommendation-year">({b.age})</span> : null}
+          {birthdays.length > 0 && (
+            <div className="stats-box">
+              <h3>
+                <IconCake width={15} height={15} /> Birthdays today (your collection)
+              </h3>
+              <div className="cinema-news-birthday-grid">
+                {birthdays.map((b) => (
+                  <button key={b.name} type="button" className="cinema-news-birthday-card" onClick={() => onSelectPerson(b.name)}>
+                    <span className="person-avatar-circle cinema-news-birthday-avatar">
+                      {b.photo ? <img src={b.photo} alt={b.name} className="person-avatar-photo" /> : b.name[0]?.toUpperCase()}
                     </span>
-                    <span className="cinema-news-birthday-films">{b.films.join(', ')}</span>
-                  </span>
-                </button>
-              ))}
+                    <span className="cinema-news-birthday-info">
+                      <span className="cinema-news-birthday-name">
+                        {b.name} {b.age != null ? <span className="person-recommendation-year">({b.age})</span> : null}
+                      </span>
+                      <span className="cinema-news-birthday-films">{b.films.join(', ')}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {bornTodayGeneral.length > 0 && (
-          <div className="cinema-news-section">
-            <h4 className="person-extras-title">
-              <IconCake width={15} height={15} /> Born today (everywhere)
-            </h4>
-            <PeopleGrid items={bornTodayGeneral} subtitleKey="subtitle" />
-          </div>
-        )}
+          {bornTodayGeneral.length > 0 && (
+            <div className="stats-box">
+              <h3>
+                <IconCake width={15} height={15} /> Born today (everywhere)
+              </h3>
+              <PeopleGrid items={bornTodayGeneral} subtitleKey="subtitle" />
+            </div>
+          )}
 
-        {upcoming.length > 0 && (
-          <div className="cinema-news-columns cinema-news-section">
-            <div className="cinema-news-section">
-              <h4 className="person-extras-title">
-                <IconClapperPlay width={15} height={15} /> Coming soon (your collection) — Movies
-              </h4>
-              <UpcomingList items={collectionMovies} onSelectPerson={onSelectPerson} />
+          {upcoming.length > 0 && (
+            <div className="stats-section-row">
+              <div className="stats-box">
+                <h3>
+                  <IconClapperPlay width={15} height={15} /> Coming soon (your collection) — Movies
+                </h3>
+                <UpcomingList items={collectionMovies} onSelectPerson={onSelectPerson} />
+              </div>
+              <div className="stats-box">
+                <h3>
+                  <IconClapperPlay width={15} height={15} /> Coming soon (your collection) — Series
+                </h3>
+                <UpcomingList items={collectionSeries} onSelectPerson={onSelectPerson} />
+              </div>
             </div>
-            <div className="cinema-news-section">
-              <h4 className="person-extras-title">
-                <IconClapperPlay width={15} height={15} /> Coming soon (your collection) — Series
-              </h4>
-              <UpcomingList items={collectionSeries} onSelectPerson={onSelectPerson} />
-            </div>
-          </div>
-        )}
+          )}
 
-        {(generalMovies.length > 0 || generalSeries.length > 0) && (
-          <div className="cinema-news-columns cinema-news-section">
-            <div className="cinema-news-section">
-              <h4 className="person-extras-title">
-                <IconClapperPlay width={15} height={15} /> Coming soon (everywhere) — Movies
-              </h4>
-              <PosterGrid items={generalMovies} />
+          {(generalMovies.length > 0 || generalSeries.length > 0) && (
+            <div className="stats-section-row">
+              <div className="stats-box">
+                <h3>
+                  <IconClapperPlay width={15} height={15} /> Coming soon (everywhere) — Movies
+                </h3>
+                <PosterGrid items={generalMovies} />
+              </div>
+              <div className="stats-box">
+                <h3>
+                  <IconClapperPlay width={15} height={15} /> Coming soon (everywhere) — Series
+                </h3>
+                <PosterGrid items={generalSeries} />
+              </div>
             </div>
-            <div className="cinema-news-section">
-              <h4 className="person-extras-title">
-                <IconClapperPlay width={15} height={15} /> Coming soon (everywhere) — Series
-              </h4>
-              <PosterGrid items={generalSeries} />
-            </div>
-          </div>
-        )}
+          )}
 
-        {(trendingMoviesWeek.length > 0 || trendingSeriesWeek.length > 0) && (
-          <div className="cinema-news-columns cinema-news-section">
-            <div className="cinema-news-section">
-              <h4 className="person-extras-title">Trending this week — Movies</h4>
-              <PosterGrid items={trendingMoviesWeek} />
+          {(trendingMoviesWeek.length > 0 || trendingSeriesWeek.length > 0) && (
+            <div className="stats-section-row">
+              <div className="stats-box">
+                <h3>Trending this week — Movies</h3>
+                <PosterGrid items={trendingMoviesWeek} />
+              </div>
+              <div className="stats-box">
+                <h3>Trending this week — Series</h3>
+                <PosterGrid items={trendingSeriesWeek} />
+              </div>
             </div>
-            <div className="cinema-news-section">
-              <h4 className="person-extras-title">Trending this week — Series</h4>
-              <PosterGrid items={trendingSeriesWeek} />
-            </div>
-          </div>
-        )}
+          )}
 
-        {(popularMonth.length > 0 || boxOffice.length > 0) && (
-          <div className="cinema-news-columns cinema-news-section">
-            <div className="cinema-news-section">
-              <h4 className="person-extras-title">Popular this month</h4>
-              <PosterGrid items={popularMonth} />
+          {(popularMonth.length > 0 || boxOffice.length > 0) && (
+            <div className="stats-section-row">
+              <div className="stats-box">
+                <h3>Popular this month</h3>
+                <PosterGrid items={popularMonth} />
+              </div>
+              <div className="stats-box">
+                <h3>Top box office (worldwide revenue)</h3>
+                <BoxOfficeTable items={boxOffice} />
+              </div>
             </div>
-            <div className="cinema-news-section">
-              <h4 className="person-extras-title">Top box office (worldwide revenue)</h4>
-              <BoxOfficeTable items={boxOffice} />
-            </div>
-          </div>
-        )}
+          )}
 
-        {trailers.length > 0 && (
-          <div className="cinema-news-section">
-            <h4 className="person-extras-title">New trailers</h4>
-            <div className="cinema-news-trailer-grid">
-              {trailers.map((t) => (
-                <a
-                  key={t.title}
-                  className="cinema-news-trailer-card"
-                  href={`https://www.youtube.com/watch?v=${t.youtubeKey}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t.poster && <img src={t.poster} alt={t.title} className="cinema-news-trailer-poster" />}
-                  <span className="cinema-news-trailer-play">▶</span>
-                  <span className="cinema-news-trailer-title">{t.title}</span>
-                  <span className="cinema-news-trailer-date">{formatDate(t.releaseDate)}</span>
-                </a>
-              ))}
+          {trailers.length > 0 && (
+            <div className="stats-box">
+              <h3>New trailers</h3>
+              <div className="cinema-news-trailer-grid">
+                {trailers.map((t) => (
+                  <a
+                    key={t.title}
+                    className="cinema-news-trailer-card"
+                    href={`https://www.youtube.com/watch?v=${t.youtubeKey}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t.poster && <img src={t.poster} alt={t.title} className="cinema-news-trailer-poster" />}
+                    <span className="cinema-news-trailer-play">▶</span>
+                    <span className="cinema-news-trailer-title">{t.title}</span>
+                    <span className="cinema-news-trailer-date">{formatDate(t.releaseDate)}</span>
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
