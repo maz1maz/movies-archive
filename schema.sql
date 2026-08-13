@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS order_list (
   title TEXT NOT NULL,
   releaseDate TEXT,
   source TEXT,
+  director TEXT,
   addedAt TEXT DEFAULT (datetime('now'))
 );
 
@@ -150,6 +151,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_userId ON sessions(userId);
 -- ALTER TABLE films ADD COLUMN personalReviewDate TEXT;
 -- ALTER TABLE films ADD COLUMN reviews TEXT;
 -- ALTER TABLE people_photos ADD COLUMN letterboxdUrl TEXT;
+-- ALTER TABLE order_list ADD COLUMN director TEXT;
 -- CREATE INDEX IF NOT EXISTS idx_films_closet ON films(closet);
 -- CREATE TABLE IF NOT EXISTS watchlists (
 --   id TEXT PRIMARY KEY,

@@ -1091,6 +1091,39 @@ export default {
       // ---- GET /api/cinema-news (بخش «اخبار سینما» توی صفحه‌ی اصلی: تولدهای
       // امروزِ اهالی کالکشن + فیلم/سریال‌های در راهِ اونا + تریلرهای تازه‌ی
       // هالیوود. سه بخش موازی fetch می‌شن، هرکدوم جدا کش می‌شن. ----
+      // ---- GET /api/tmdb-director?id=X&type=movie|tv (فقط برای دکمه‌ی Order وقتی
+      // خودِ آیتم کارگردان رو از قبل نداره — یه lookup سبک و لحظه‌ای) ----
+      if (method === 'GET' && pathname === '/api/tmdb-director') {
+        const tmdbId = url.searchParams.get('id')
+        const mediaType = url.searchParams.get('type') === 'tv' ? 'tv' : 'movie'
+        if (!tmdbId || !env.TMDB_API_KEY) return json({ director: null }, 200, corsHeaders)
+        try {
+          const tmdbKey = env.TMDB_API_KEY
+          async function tmdbGet(path) {
+            const attempts = [
+              { url: `https://api.themoviedb.org/3${path}?api_key=${encodeURIComponent(tmdbKey)}`, headers: { accept: 'application/json' } },
+              { url: `https://api.themoviedb.org/3${path}`, headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
+            ]
+            for (const a of attempts) {
+              try {
+                const res = await fetch(a.url, { headers: a.headers })
+                if (res.ok) return await res.json()
+              } catch {}
+            }
+            return null
+          }
+          const credits = await tmdbGet(`/${mediaType}/${tmdbId}/credits`)
+          const crew = credits?.crew || []
+          const director =
+            crew.find((c) => c.job === 'Director')?.name ||
+            (mediaType === 'tv' ? crew.find((c) => c.job === 'Series Director' || c.department === 'Directing')?.name : null) ||
+            null
+          return json({ director }, 200, corsHeaders)
+        } catch (e) {
+          return json({ director: null }, 200, corsHeaders)
+        }
+      }
+
       // ---- لیست سفارش (Order List) — عناوینی که از دکمه‌ی Order اضافه شدن ----
       if (method === 'GET' && pathname === '/api/order-list') {
         try {
@@ -1113,8 +1146,8 @@ export default {
           if (existing) return json({ id: existing.id, alreadyExists: true }, 200, corsHeaders)
           const id = crypto.randomUUID()
           await db
-            .prepare('INSERT INTO order_list (id, title, releaseDate, source) VALUES (?, ?, ?, ?)')
-            .bind(id, title, body.releaseDate || null, body.source || null)
+            .prepare('INSERT INTO order_list (id, title, releaseDate, source, director) VALUES (?, ?, ?, ?, ?)')
+            .bind(id, title, body.releaseDate || null, body.source || null, body.director || null)
             .run()
           return json({ id, alreadyExists: false }, 200, corsHeaders)
         } catch (e) {

@@ -70,6 +70,7 @@ export default function DashboardOrderListPanel() {
             <thead>
               <tr>
                 <th>Title</th>
+                <th>Director</th>
                 <th>Release date</th>
                 <th>Added from</th>
                 <th>Added</th>
@@ -80,6 +81,7 @@ export default function DashboardOrderListPanel() {
               {items.map((it) => (
                 <tr key={it.id}>
                   <td>{it.title}</td>
+                  <td>{it.director || '—'}</td>
                   <td>{formatDate(it.releaseDate)}</td>
                   <td>{it.source || '—'}</td>
                   <td>{formatDate(it.addedAt)}</td>

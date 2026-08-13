@@ -9,7 +9,7 @@ import {
   IconUser,
   IconClapper,
 } from './icons.jsx'
-import { addToOrderList } from '../utils/orderList.js'
+import { addToOrderList, lookupDirectorFromTmdbUrl } from '../utils/orderList.js'
 
 const TABS = [
   { key: 'news', label: 'News', icon: IconNewspaper },
@@ -68,7 +68,7 @@ function titleInArchive(films, title) {
   return films.some((f) => (f.title || '').trim().toLowerCase() === t)
 }
 
-function OrderBadge({ title, releaseDate, source }) {
+function OrderBadge({ title, releaseDate, source, director, infoUrl }) {
   const [state, setState] = useState('idle') // idle | adding | added
   const handleClick = async (e) => {
     e.preventDefault()
@@ -76,7 +76,8 @@ function OrderBadge({ title, releaseDate, source }) {
     if (state !== 'idle') return
     setState('adding')
     try {
-      await addToOrderList({ title, releaseDate, source })
+      const resolvedDirector = director || (await lookupDirectorFromTmdbUrl(infoUrl))
+      await addToOrderList({ title, releaseDate, source, director: resolvedDirector })
       setState('added')
     } catch {
       setState('idle')
@@ -137,7 +138,15 @@ function UpcomingList({ items, onSelectPerson, films }) {
                 {u.personName}
               </button>
             )}
-            {missing && <OrderBadge title={u.title} releaseDate={u.releaseDate} source="Coming soon (collection)" />}
+            {missing && (
+              <OrderBadge
+                title={u.title}
+                releaseDate={u.releaseDate}
+                source="Coming soon (collection)"
+                director={u.role && /director/i.test(u.role) ? u.personName : null}
+                infoUrl={u.infoUrl}
+              />
+            )}
           </li>
         )
       })}
@@ -165,7 +174,9 @@ function PosterGrid({ items, films }) {
               <span className="cinema-news-trailer-title">{g.title}</span>
               <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
             </a>
-            {missing && <OrderBadge title={g.title} releaseDate={g.releaseDate} source="Coming soon (everywhere)" />}
+            {missing && (
+              <OrderBadge title={g.title} releaseDate={g.releaseDate} source="Coming soon (everywhere)" infoUrl={g.infoUrl} />
+            )}
           </div>
         )
       })}
