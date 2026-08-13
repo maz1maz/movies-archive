@@ -2838,6 +2838,9 @@ async function fetchDirectorRecommendations(db, name, env) {
     const results = []
     for (const c of toCheck) {
       let imdbRating = null
+      // پوستر رو اول از TMDB می‌گیریم (image.tmdb.org، همیشه از مرورگر لود
+      // می‌شه)، نه از OMDb (که پوسترش رو media-amazon.com می‌ده و اون سایت
+      // خیلی وقتا hotlinking از دامنه‌های دیگه رو بلاک می‌کنه و تصویر شکسته میاد).
       let poster = c.posterPath ? `https://image.tmdb.org/t/p/w300${c.posterPath}` : null
 
       // OMDb فقط best-effort: اگه کوتاش تموم شده باشه یا جواب نده، مشکلی
@@ -2852,7 +2855,7 @@ async function fetchDirectorRecommendations(db, name, env) {
           if (omdbData.Response === 'True' && omdbData.imdbRating && omdbData.imdbRating !== 'N/A') {
             const parsed = parseFloat(omdbData.imdbRating)
             if (!isNaN(parsed)) imdbRating = parsed
-            if (omdbData.Poster && omdbData.Poster !== 'N/A') poster = omdbData.Poster
+            if (!poster && omdbData.Poster && omdbData.Poster !== 'N/A') poster = omdbData.Poster
           }
         }
       } catch {}

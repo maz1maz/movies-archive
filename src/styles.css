@@ -3168,6 +3168,11 @@ body.light .header {
   border-radius: 8px;
   background: var(--surface-2);
 }
+.person-recommendation-order {
+  position: static;
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}
 .person-recommendation-poster {
   width: 32px;
   height: 46px;

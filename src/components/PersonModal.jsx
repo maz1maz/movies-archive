@@ -1,6 +1,28 @@
 import { useEffect, useState } from 'react'
 import { IconClose, IconUser, IconPin, IconDisc } from './icons.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
+import { addToOrderList } from '../utils/orderList.js'
+
+function RecommendationOrderButton({ title, year, director }) {
+  const [state, setState] = useState('idle') // idle | adding | added
+  const handleClick = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (state !== 'idle') return
+    setState('adding')
+    try {
+      await addToOrderList({ title, releaseDate: year ? `${year}-01-01` : null, source: 'Director recommendations', director })
+      setState('added')
+    } catch {
+      setState('idle')
+    }
+  }
+  return (
+    <button type="button" className="cinema-news-order-badge person-recommendation-order" onClick={handleClick} disabled={state !== 'idle'}>
+      {state === 'added' ? 'Added ✓' : state === 'adding' ? '…' : 'Order'}
+    </button>
+  )
+}
 
 export default function PersonModal({ personName, allFilms, onSelectFilm, onClose, hasBluray }) {
   const [photo, setPhoto] = useState(null)
@@ -287,6 +309,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
                               )}
                             </span>
                           </span>
+                          <RecommendationOrderButton title={r.title} year={r.year} director={personName} />
                         </li>
                       ))}
                     </ul>
