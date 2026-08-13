@@ -1096,10 +1096,32 @@ export default {
               fetchTrendingPeople(db, env),
               fetchBornTodayGeneral(db),
             ])
-          // اونایی که تو «تولدهای امروزِ کالکشن» هستن رو از لیست عمومی حذف کن
-          // که یه آدم دوبار نیاد.
+          // اونایی که تو «تولدهای امروزِ کالکشن» هستن رو از لیست عمومی حذف کن که یه
+          // آدم دوبار نیاد. birthdays فقط از people_photos (کشِ PersonModal) میاد،
+          // پس ممکنه یه نفر تو آرشیو باشه ولی صفحه‌ش هنوز باز نشده و اونجا نباشه —
+          // برای همین برای بقیه‌ی لیست عمومی هم مستقیم تو films چک می‌کنیم که واقعاً
+          // تو آرشیو نیستن، نه فقط تو کشِ عکس.
           const collectionNames = new Set(birthdays.map((b) => b.name.toLowerCase()))
-          const bornTodayGeneral = bornTodayGeneralRaw.filter((p) => !collectionNames.has(p.name.toLowerCase()))
+          const bornTodayGeneral = []
+          for (const p of bornTodayGeneralRaw) {
+            const nameLower = p.name.toLowerCase()
+            if (collectionNames.has(nameLower)) continue
+            let inCollection = false
+            try {
+              const like = `%${nameLower}%`
+              const filmsRes = await db
+                .prepare('SELECT title FROM films WHERE LOWER(director) LIKE ? OR LOWER("cast") LIKE ? LIMIT 3')
+                .bind(like, like)
+                .all()
+              const rows = filmsRes.results || []
+              if (rows.length) {
+                inCollection = true
+                birthdays.push({ name: p.name, photo: p.photo || null, age: p.age, films: rows.map((f) => f.title) })
+                collectionNames.add(nameLower)
+              }
+            } catch {}
+            if (!inCollection) bornTodayGeneral.push(p)
+          }
 
           // برای نمایش «آخرین بروزرسانی» بالای بخش اخبار
           let newsUpdatedAt = null
@@ -1659,32 +1681,46 @@ async function fetchCinemaHeadlines(db) {
 // ترجمه نمایش داده می‌شه.
 async function translateToFa(text) {
   if (!text) return null
+  const hasPersianChars = (s) => /[\u0600-\u06FF]/.test(s || '')
 
-  try {
-    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|fa`, {
-      headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' },
-    })
-    if (res.ok) {
+  const tryMyMemory = async () => {
+    try {
+      const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|fa`, {
+        headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' },
+      })
+      if (!res.ok) return null
       const data = await res.json()
       const translated = data?.responseData?.translatedText
-      if (translated && !/PLEASE SELECT|MYMEMORY WARNING/i.test(translated)) return translated
+      return hasPersianChars(translated) ? translated : null
+    } catch {
+      return null
     }
-  } catch {}
+  }
 
-  try {
-    const res = await fetch(
-      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=fa&dt=t&q=${encodeURIComponent(text)}`,
-      { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
-    )
-    if (res.ok) {
+  const tryGoogle = async () => {
+    try {
+      const res = await fetch(
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=fa&dt=t&q=${encodeURIComponent(text)}`,
+        { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } }
+      )
+      if (!res.ok) return null
       const data = await res.json()
       const parts = data?.[0] || []
       const translated = parts.map((p) => p?.[0]).filter(Boolean).join('')
-      if (translated) return translated
+      return hasPersianChars(translated) ? translated : null
+    } catch {
+      return null
     }
-  } catch {}
+  }
 
-  return null
+  // هر دو سرویس رو هم‌زمان می‌زنیم (نه یکی بعد از اون یکی) و هرکدوم زودتر
+  // جواب معتبر (شامل حروف فارسی) داد همونو برمی‌داریم — چون این دو سرویسِ
+  // رایگان گاهی رو IPهای دیتاسنتری مثل Cloudflare Workers rate-limit می‌شن،
+  // اجرای موازی شانس موفقیت رو بدون هزینه‌ی زمانی اضافه بالا می‌بره.
+  const [myMemoryResult, googleResult] = await Promise.allSettled([tryMyMemory(), tryGoogle()])
+  const a = myMemoryResult.status === 'fulfilled' ? myMemoryResult.value : null
+  const b = googleResult.status === 'fulfilled' ? googleResult.value : null
+  return a || b || null
 }
 
 // تیترهای مهم سینمای فارسی‌زبان (ایران) از چند منبع — همون منطق و کش کش
