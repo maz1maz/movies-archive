@@ -282,7 +282,9 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
                             </span>
                             <span className="person-recommendation-ratings">
                               <span className="badge-imdb">★ {r.imdbRating.toFixed(1)} IMDb</span>
-                              <span className="badge-letterboxd">● {r.letterboxdRating.toFixed(1)} Letterboxd</span>
+                              {r.letterboxdRating != null && (
+                                <span className="badge-letterboxd">● {r.letterboxdRating.toFixed(1)} Letterboxd</span>
+                              )}
                             </span>
                           </span>
                         </li>

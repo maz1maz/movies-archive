@@ -2792,14 +2792,18 @@ async function fetchDirectorRecommendations(db, name, env) {
         const imdbRating = parseFloat(omdbData.imdbRating)
         if (isNaN(imdbRating) || imdbRating <= 7) continue
 
+        // لترباکس رو هم چک می‌کنیم (فقط برای فیلتر کیفیت بیشتر)، ولی چون این
+        // یه اسکرپه و گاهی کلاً جواب نمی‌ده (بلاک/تغییر مارک‌آپ)، اگه جواب
+        // نداد یا هیچی برنگردوند، به‌خاطر همون نبود دیتا کل پیشنهاد رو رد
+        // نمی‌کنیم — فقط وقتی amتیازش واقعاً پایینه (زیر ۳.۵) حذفش می‌کنیم.
         const lb = await fetchLetterboxdRating(c.title, c.year)
-        if (!lb || lb.rating <= 3.5) continue
+        if (lb && lb.rating <= 3.5) continue
 
         results.push({
           title: c.title,
           year: c.year,
           imdbRating,
-          letterboxdRating: lb.rating,
+          letterboxdRating: lb ? lb.rating : null,
           poster: omdbData.Poster && omdbData.Poster !== 'N/A' ? omdbData.Poster : null,
         })
       } catch {}
