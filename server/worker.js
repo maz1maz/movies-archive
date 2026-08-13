@@ -1091,6 +1091,49 @@ export default {
       // ---- GET /api/cinema-news (بخش «اخبار سینما» توی صفحه‌ی اصلی: تولدهای
       // امروزِ اهالی کالکشن + فیلم/سریال‌های در راهِ اونا + تریلرهای تازه‌ی
       // هالیوود. سه بخش موازی fetch می‌شن، هرکدوم جدا کش می‌شن. ----
+      // ---- لیست سفارش (Order List) — عناوینی که از دکمه‌ی Order اضافه شدن ----
+      if (method === 'GET' && pathname === '/api/order-list') {
+        try {
+          const result = await db.prepare('SELECT * FROM order_list ORDER BY addedAt DESC').all()
+          return json(result.results || [], 200, corsHeaders)
+        } catch (e) {
+          return json([], 200, corsHeaders)
+        }
+      }
+
+      if (method === 'POST' && pathname === '/api/order-list') {
+        const denied = requireAuth()
+        if (denied) return denied
+        try {
+          const body = await request.json()
+          const title = (body.title || '').trim()
+          if (!title) return json({ error: 'title is required' }, 400, corsHeaders)
+          // اگه از قبل هست دوباره اضافه نکن
+          const existing = await db.prepare('SELECT id FROM order_list WHERE LOWER(title) = ?').bind(title.toLowerCase()).first()
+          if (existing) return json({ id: existing.id, alreadyExists: true }, 200, corsHeaders)
+          const id = crypto.randomUUID()
+          await db
+            .prepare('INSERT INTO order_list (id, title, releaseDate, source) VALUES (?, ?, ?, ?)')
+            .bind(id, title, body.releaseDate || null, body.source || null)
+            .run()
+          return json({ id, alreadyExists: false }, 200, corsHeaders)
+        } catch (e) {
+          return json({ error: 'Failed to add to order list' }, 500, corsHeaders)
+        }
+      }
+
+      if (method === 'DELETE' && pathname.startsWith('/api/order-list/')) {
+        const denied = requireAuth()
+        if (denied) return denied
+        const id = pathname.split('/').pop()
+        try {
+          await db.prepare('DELETE FROM order_list WHERE id = ?').bind(id).run()
+          return json({ ok: true }, 200, corsHeaders)
+        } catch (e) {
+          return json({ error: 'Failed to remove' }, 500, corsHeaders)
+        }
+      }
+
       if (method === 'GET' && pathname === '/api/cinema-news') {
         try {
           const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneralRaw] =

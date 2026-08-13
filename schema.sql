@@ -95,6 +95,16 @@ CREATE TABLE IF NOT EXISTS cinema_news_cache (
   fetchedAt TEXT DEFAULT (datetime('now'))
 );
 
+-- لیست «سفارش» — عناوینی که از دکمه‌ی Order (تو Watchlists یا Coming Soon
+-- اخبار سینما) اضافه شدن، برای این‌که بعداً چاپ بشن و خریداری بشن.
+CREATE TABLE IF NOT EXISTS order_list (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  releaseDate TEXT,
+  source TEXT,
+  addedAt TEXT DEFAULT (datetime('now'))
+);
+
 -- کاربران برنامه. مهمان‌ها (بدون سشن) فقط دسترسی مشاهده دارن.
 -- role: 'admin' | 'user'
 CREATE TABLE IF NOT EXISTS users (

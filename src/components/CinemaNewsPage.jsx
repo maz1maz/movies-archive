@@ -9,6 +9,7 @@ import {
   IconUser,
   IconClapper,
 } from './icons.jsx'
+import { addToOrderList } from '../utils/orderList.js'
 
 const TABS = [
   { key: 'news', label: 'News', icon: IconNewspaper },
@@ -67,17 +68,24 @@ function titleInArchive(films, title) {
   return films.some((f) => (f.title || '').trim().toLowerCase() === t)
 }
 
-function OrderBadge({ title }) {
+function OrderBadge({ title, releaseDate, source }) {
+  const [state, setState] = useState('idle') // idle | adding | added
+  const handleClick = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (state !== 'idle') return
+    setState('adding')
+    try {
+      await addToOrderList({ title, releaseDate, source })
+      setState('added')
+    } catch {
+      setState('idle')
+    }
+  }
   return (
-    <a
-      className="cinema-news-order-badge"
-      href={`https://www.amazon.com/s?k=${encodeURIComponent(title)}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-    >
-      Order
-    </a>
+    <button type="button" className="cinema-news-order-badge" onClick={handleClick} disabled={state !== 'idle'}>
+      {state === 'added' ? 'Added ✓' : state === 'adding' ? '…' : 'Order'}
+    </button>
   )
 }
 
@@ -129,7 +137,7 @@ function UpcomingList({ items, onSelectPerson, films }) {
                 {u.personName}
               </button>
             )}
-            {missing && <OrderBadge title={u.title} />}
+            {missing && <OrderBadge title={u.title} releaseDate={u.releaseDate} source="Coming soon (collection)" />}
           </li>
         )
       })}
@@ -157,7 +165,7 @@ function PosterGrid({ items, films }) {
               <span className="cinema-news-trailer-title">{g.title}</span>
               <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
             </a>
-            {missing && <OrderBadge title={g.title} />}
+            {missing && <OrderBadge title={g.title} releaseDate={g.releaseDate} source="Coming soon (everywhere)" />}
           </div>
         )
       })}

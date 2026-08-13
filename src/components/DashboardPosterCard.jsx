@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import { addToOrderList } from '../utils/orderList.js'
+
 // کارت پوستری مشترک برای تب‌های داشبورد (Oscars / Genre Tops / Watchlists) —
 // همون ظاهر کارت‌های آرشیو اصلی رو تکرار می‌کنه تا این بخش هم‌شکل بقیه‌ی اپ باشه.
 const PALETTE = [
@@ -16,6 +19,27 @@ function hashCode(str) {
     h |= 0
   }
   return Math.abs(h)
+}
+
+function OrderBadge({ title }) {
+  const [state, setState] = useState('idle') // idle | adding | added
+  const handleClick = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (state !== 'idle') return
+    setState('adding')
+    try {
+      await addToOrderList({ title, source: 'Watchlist' })
+      setState('added')
+    } catch {
+      setState('idle')
+    }
+  }
+  return (
+    <button type="button" className="dashboard-badge dashboard-badge-order" onClick={handleClick} disabled={state !== 'idle'}>
+      {state === 'added' ? 'Added ✓' : state === 'adding' ? '…' : 'Order'}
+    </button>
+  )
 }
 
 export default function DashboardPosterCard({ title, subtitle, poster, badgeText, badgeVariant, inArchive, clickable, showMissingBadge, onClick }) {
@@ -43,17 +67,7 @@ export default function DashboardPosterCard({ title, subtitle, poster, badgeText
         {badgeText && (
           <span className={`dashboard-badge dashboard-badge-${badgeVariant || 'default'}`}>{badgeText}</span>
         )}
-        {showMissing && (
-          <a
-            className="dashboard-badge dashboard-badge-order"
-            href={`https://www.amazon.com/s?k=${encodeURIComponent(title)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-          >
-            Order
-          </a>
-        )}
+        {showMissing && <OrderBadge title={title} />}
       </div>
       <div className="card-body">
         <h3 className="card-title">{title}</h3>

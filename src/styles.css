@@ -3316,9 +3316,15 @@ body.light .header {
   border-radius: 5px;
   text-decoration: none;
   z-index: 2;
+  cursor: pointer;
+  font-family: inherit;
 }
 .cinema-news-order-badge:hover {
   filter: brightness(1.1);
+}
+.cinema-news-order-badge:disabled {
+  cursor: default;
+  opacity: 0.85;
 }
 .cinema-news-export-btn {
   font-size: 11px;
@@ -5458,9 +5464,14 @@ body.light .dashboard-panel {
   letter-spacing: 0.2px;
   text-decoration: none;
   cursor: pointer;
+  font-family: inherit;
 }
 .dashboard-badge-order:hover {
   filter: brightness(1.1);
+}
+.dashboard-badge-order:disabled {
+  cursor: default;
+  opacity: 0.85;
 }
 
 .dashboard-overview {
@@ -6503,5 +6514,58 @@ body.light .spine-theme-wood .spine-shelf-board {
   }
   .splash-screen {
     transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Order List tab                                                          */
+/* ---------------------------------------------------------------------- */
+.order-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 13px;
+}
+.order-list-table th,
+.order-list-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.order-list-table th {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .order-list-print-area,
+  .order-list-print-area * {
+    visibility: visible;
+  }
+  .order-list-print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: none;
+    background: #fff;
+    color: #000;
+  }
+  .order-list-print-area h3 {
+    color: #000;
+  }
+  .order-list-table th,
+  .order-list-table td {
+    border-bottom: 1px solid #999;
+    color: #000;
+  }
+  .order-list-no-print {
+    display: none;
   }
 }
