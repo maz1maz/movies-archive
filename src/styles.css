@@ -414,17 +414,21 @@ body.light .header {
   gap: 16px;
   margin: 6px 0 4px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
-  letter-spacing: 3px;
+  letter-spacing: 3.5px;
   text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 4px rgba(0, 0, 0, 0.55);
 }
 .grid-section-heading::before,
 .grid-section-heading::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--border-strong);
+  background: linear-gradient(to right, transparent, var(--border-strong));
+}
+.grid-section-heading::after {
+  background: linear-gradient(to left, transparent, var(--border-strong));
 }
 
 .card {
