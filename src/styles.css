@@ -1242,6 +1242,15 @@ body.light .header {
 .country-fill {
   background: #4fa3a0;
 }
+.cinema-news-boxoffice-fill {
+  background: #4caf50;
+}
+.cinema-news-boxoffice-chart .stats-bar-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
 
 .stats-shelf-pills {
   display: flex;

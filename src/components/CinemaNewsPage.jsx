@@ -16,7 +16,7 @@ const TABS = [
   { key: 'comingsoon', label: 'Coming Soon', icon: IconClapperPlay },
   { key: 'trending', label: 'Trending', icon: IconBarChart },
   { key: 'boxoffice', label: 'Box Office', icon: IconBarChart },
-  { key: 'trailers', label: 'Trailers', icon: IconClapper },
+  { key: 'trailers', label: 'New Trailers', icon: IconClapper },
 ]
 
 function formatDate(iso) {
@@ -135,6 +135,29 @@ function formatMoney(n) {
   if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`
   if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`
   return `$${n}`
+}
+
+function BoxOfficeChart({ items }) {
+  if (!items.length) return null
+  const max = Math.max(...items.map((m) => m.revenue || 0))
+  return (
+    <div className="stats-bars cinema-news-boxoffice-chart">
+      {items.map((m) => {
+        const pct = max ? Math.round(((m.revenue || 0) / max) * 100) : 0
+        return (
+          <div key={m.title} className="stats-bar-item">
+            <div className="stats-bar-meta">
+              <span className="stats-bar-name">{m.title}</span>
+              <span className="stats-bar-val">{formatMoney(m.revenue)}</span>
+            </div>
+            <div className="stats-bar-track">
+              <div className="stats-bar-fill cinema-news-boxoffice-fill" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 function BoxOfficeTable({ items }) {
@@ -434,9 +457,15 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
           )}
 
           {tab === 'boxoffice' && boxOffice.length > 0 && (
-            <div className="stats-box">
-              <h3>Top box office (worldwide revenue)</h3>
-              <BoxOfficeTable items={boxOffice} />
+            <div className="stats-section-row">
+              <div className="stats-box">
+                <h3>Top box office — chart</h3>
+                <BoxOfficeChart items={boxOffice} />
+              </div>
+              <div className="stats-box">
+                <h3>Top box office (worldwide revenue)</h3>
+                <BoxOfficeTable items={boxOffice} />
+              </div>
             </div>
           )}
 
