@@ -1125,6 +1125,50 @@ export default {
       }
 
       // ---- لیست سفارش (Order List) — عناوینی که از دکمه‌ی Order اضافه شدن ----
+      // ---- GET /api/debug/checks — تست سریع سلامت هرکدوم از سرویس‌های بیرونی
+      // (OMDb, TMDB, Letterboxd) که پیشنهادهای کارگردان بهشون وابسته‌ست. فقط
+      // برای لاگین‌شده‌ها، صرفاً تشخیصیه و بعد از رفع مشکل قابل حذفه. ----
+      if (method === 'GET' && pathname === '/api/debug/checks') {
+        const denied = requireAuth()
+        if (denied) return denied
+
+        const out = { omdb: null, tmdb: null, letterboxd: null }
+
+        try {
+          const res = await fetch(`https://www.omdbapi.com/?apikey=${env.OMDB_API_KEY}&t=Mean%20Streets&y=1973&type=movie`, {
+            signal: AbortSignal.timeout(8000),
+          })
+          const data = await res.json().catch(() => null)
+          out.omdb = { httpStatus: res.status, keyPresent: !!env.OMDB_API_KEY, body: data }
+        } catch (e) {
+          out.omdb = { error: String(e), keyPresent: !!env.OMDB_API_KEY }
+        }
+
+        try {
+          const tmdbKey = env.TMDB_API_KEY
+          const res = await fetch(`https://api.themoviedb.org/3/search/person?query=Martin%20Scorsese&api_key=${encodeURIComponent(tmdbKey || '')}`, {
+            headers: { accept: 'application/json' },
+          })
+          const data = await res.json().catch(() => null)
+          out.tmdb = { httpStatus: res.status, keyPresent: !!tmdbKey, resultCount: data?.results?.length ?? null, error: data?.status_message || null }
+        } catch (e) {
+          out.tmdb = { error: String(e), keyPresent: !!env.TMDB_API_KEY }
+        }
+
+        try {
+          const res = await fetch('https://letterboxd.com/film/mean-streets/', {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' },
+          })
+          const html = res.ok ? await res.text() : ''
+          const match = html.match(/name="twitter:data2"\s+content="([\d.]+)\s+out of 5"/)
+          out.letterboxd = { httpStatus: res.status, ratingFound: match ? parseFloat(match[1]) : null }
+        } catch (e) {
+          out.letterboxd = { error: String(e) }
+        }
+
+        return json(out, 200, corsHeaders)
+      }
+
       if (method === 'GET' && pathname === '/api/order-list') {
         try {
           const result = await db.prepare('SELECT * FROM order_list ORDER BY addedAt DESC').all()
