@@ -1021,6 +1021,15 @@ export default {
 
           info.letterboxdUrl = await resolveLetterboxdPersonUrl(name)
 
+          // اگه ویکی‌پدیا هیچی برنگردوند (نه عکس نه بیو نه تاریخ تولد) احتمالاً
+          // یه مشکل موقتی بوده (نه این‌که واقعاً صفحه‌ای نداره) — کش نکن، دفعه‌ی
+          // بعد که PersonModal باز شد دوباره امتحان می‌کنیم به‌جای این‌که برای
+          // همیشه یه نتیجه‌ی خالی رو نگه داریم.
+          const gotAnyData = info.photo || info.bio || info.birthDate
+          if (!gotAnyData) {
+            return json({ ...info, age: null }, 200, corsHeaders)
+          }
+
           await db
             .prepare(
               'INSERT OR REPLACE INTO people_photos (name, photo, bio, birthDate, deathDate, height, spouse, children, imdbId, letterboxdUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
