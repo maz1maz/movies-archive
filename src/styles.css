@@ -746,6 +746,43 @@ body.light .header {
   width: 100%;
   box-sizing: border-box;
 }
+.duplicate-warning-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+}
+.duplicate-warning-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.duplicate-warning-row span {
+  flex: 1;
+}
+.duplicate-warning-danger {
+  border: 1px solid #e05252;
+  background: rgba(224, 82, 82, 0.1);
+  color: #e05252;
+}
+.duplicate-warning-info {
+  border: 1px solid var(--accent);
+  background: rgba(79, 163, 160, 0.08);
+  color: var(--text);
+}
+.duplicate-warning-dismiss {
+  align-self: flex-end;
+}
 .link-conflicts-panel > span:first-child {
   display: block;
   color: var(--warning, #d9a441);

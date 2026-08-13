@@ -43,7 +43,18 @@ function toForm(film) {
   }
 }
 
-export default function EditModal({ film, onClose, onSave, onAutofill, onDelete, startWithLink }) {
+// عنوان رو برای مقایسه‌ی تکراری ساده می‌کنه: حروف کوچیک، بدون فاصله‌ی اضافه،
+// و بدون "the" اول (که خیلی وقتا فرقش باعث می‌شه یه فیلم یکسان تشخیص داده نشه).
+function normalizeTitleForMatch(t) {
+  return (t || '')
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/^the\s+/, '')
+    .replace(/\s+/g, ' ')
+}
+
+export default function EditModal({ film, onClose, onSave, onAutofill, onDelete, startWithLink, existingFilms, onOpenExisting }) {
   const isNew = !film.id
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [form, setForm] = useState(() => toForm(film))
@@ -52,6 +63,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   const [linkUrl, setLinkUrl] = useState('')
   const [linkLoading, setLinkLoading] = useState(false)
   const [linkConflicts, setLinkConflicts] = useState(null) // [{key, label, oldVal, newVal, checked}] | null
+  const [duplicateWarning, setDuplicateWarning] = useState(null) // {sameFormatMatch, otherFormatMatch} | null
   const linkInputRef = useRef(null)
 
   const FIELD_LABELS = {
@@ -102,6 +114,25 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
           driveNumber: prev.driveNumber,
           itemType: data.itemType || prev.itemType,
         }))
+
+        // چک تکراری: هم‌عنوان‌هایی که از قبل تو آرشیو هستن رو پیدا کن (بین
+        // همون نوع - فیلم/سریال - تا با تیتر مشابه ولی نوع متفاوت قاطی نشه)
+        if (Array.isArray(existingFilms) && existingFilms.length) {
+          const wantedItemType = data.itemType || form.itemType
+          const norm = normalizeTitleForMatch(fetched.title)
+          const matches = existingFilms.filter(
+            (f) => normalizeTitleForMatch(f.title) === norm && (f.itemType === 'series' ? 'series' : 'movie') === wantedItemType
+          )
+          if (matches.length) {
+            const sameFormatMatch = matches.find((f) => (f.mediaType === 'digital' ? 'digital' : 'physical') === form.mediaType)
+            const otherFormatMatch = matches.find((f) => (f.mediaType === 'digital' ? 'digital' : 'physical') !== form.mediaType)
+            if (sameFormatMatch || otherFormatMatch) {
+              setDuplicateWarning({ sameFormatMatch, otherFormatMatch })
+            }
+          } else {
+            setDuplicateWarning(null)
+          }
+        }
         return
       }
       // فیلم موجود — دیتای لینک نسبت به دیتای قبلی ارجحیت داره، ولی هر جا با
@@ -289,6 +320,57 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                 <button type="button" className="btn btn-primary" onClick={applyLinkConflicts}>Apply selected</button>
                 <button type="button" className="btn btn-ghost" onClick={dismissLinkConflicts}>Cancel</button>
               </div>
+            </div>
+          )}
+
+          {duplicateWarning && (
+            <div className="edit-field full duplicate-warning-panel">
+              {duplicateWarning.sameFormatMatch && (
+                <div className="duplicate-warning-row duplicate-warning-danger">
+                  <span>
+                    ⚠️ Already in your {form.mediaType === 'digital' ? 'digital' : 'Blu-ray'} collection
+                    {duplicateWarning.sameFormatMatch.mediaType === 'digital'
+                      ? duplicateWarning.sameFormatMatch.driveNumber
+                        ? ` (Drive ${duplicateWarning.sameFormatMatch.driveNumber})`
+                        : ''
+                      : [duplicateWarning.sameFormatMatch.closet, duplicateWarning.sameFormatMatch.shelf, duplicateWarning.sameFormatMatch.row]
+                          .filter(Boolean).length
+                        ? ` (${[duplicateWarning.sameFormatMatch.closet, duplicateWarning.sameFormatMatch.shelf, duplicateWarning.sameFormatMatch.row].filter(Boolean).join(' · ')})`
+                        : ''}
+                    . Adding this would create a duplicate.
+                  </span>
+                  {onOpenExisting && (
+                    <button type="button" className="btn btn-ghost" onClick={() => onOpenExisting(duplicateWarning.sameFormatMatch)}>
+                      View existing
+                    </button>
+                  )}
+                </div>
+              )}
+              {duplicateWarning.otherFormatMatch && (
+                <div className="duplicate-warning-row duplicate-warning-info">
+                  <span>
+                    📀 You already have this in {duplicateWarning.otherFormatMatch.mediaType === 'digital' ? 'digital' : 'Blu-ray'}
+                    {duplicateWarning.otherFormatMatch.mediaType === 'digital'
+                      ? duplicateWarning.otherFormatMatch.driveNumber
+                        ? ` (Drive ${duplicateWarning.otherFormatMatch.driveNumber})`
+                        : ''
+                      : [duplicateWarning.otherFormatMatch.closet, duplicateWarning.otherFormatMatch.shelf, duplicateWarning.otherFormatMatch.row]
+                          .filter(Boolean).length
+                        ? ` (${[duplicateWarning.otherFormatMatch.closet, duplicateWarning.otherFormatMatch.shelf, duplicateWarning.otherFormatMatch.row].filter(Boolean).join(' · ')})`
+                        : ''}
+                    . Saving this as a separate {form.mediaType === 'digital' ? 'digital' : 'Blu-ray'} copy is fine — they'll show together
+                    on the film page automatically.
+                  </span>
+                  {onOpenExisting && (
+                    <button type="button" className="btn btn-ghost" onClick={() => onOpenExisting(duplicateWarning.otherFormatMatch)}>
+                      View existing
+                    </button>
+                  )}
+                </div>
+              )}
+              <button type="button" className="btn btn-ghost duplicate-warning-dismiss" onClick={() => setDuplicateWarning(null)}>
+                Dismiss
+              </button>
             </div>
           )}
 

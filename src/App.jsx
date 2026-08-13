@@ -1066,6 +1066,12 @@ export default function App() {
             itemType: section === 'digital-series' || section === 'physical-series' ? 'series' : 'movie',
           }}
           startWithLink={adding === 'link'}
+          existingFilms={allFilmsUnfiltered}
+          onOpenExisting={(existingFilm) => {
+            setAdding(false)
+            setForceFilmOverlay(true)
+            setSelected(existingFilm)
+          }}
           onClose={() => setAdding(false)}
           onSave={handleAddFilm}
         />
