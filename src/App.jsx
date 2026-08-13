@@ -818,6 +818,7 @@ export default function App() {
             onSelectPerson={(name) => setSelectedPerson(name)}
             theme={theme}
             setTheme={setTheme}
+            films={allFilmsUnfiltered}
           />
           {selected && (
             <FilmModal

@@ -59,6 +59,44 @@ function classifyHeadline(title) {
   return SERIES_WORDS.some((w) => t.includes(w)) ? 'series' : 'movie'
 }
 
+// چک می‌کنه که آیا یه عنوان از قبل تو آرشیو (بلوری یا دیجیتال) هست یا نه —
+// برای بج/قاب قرمزِ «تو آرشیو نیست» رو بخش‌های Coming Soon.
+function titleInArchive(films, title) {
+  const t = (title || '').trim().toLowerCase()
+  if (!t || !Array.isArray(films)) return false
+  return films.some((f) => (f.title || '').trim().toLowerCase() === t)
+}
+
+function exportMissingCsv(items, filename) {
+  if (!items.length) return
+  const esc = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
+  const header = ['Title', 'Release date', 'Person / Role']
+  const rows = items.map((it) => [it.title, it.releaseDate || '', [it.role, it.personName].filter(Boolean).join(' · ')])
+  const csv = [header, ...rows].map((row) => row.map(esc).join(',')).join('\r\n')
+  const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function ExportMissingButton({ items, films, filename }) {
+  const missing = items.filter((it) => !titleInArchive(films, it.title))
+  return (
+    <button
+      type="button"
+      className="btn btn-danger-outline cinema-news-export-btn"
+      disabled={!missing.length}
+      onClick={() => exportMissingCsv(missing, filename)}
+      title="Download a CSV of titles here that aren't in your archive"
+    >
+      Export missing ({missing.length})
+    </button>
+  )
+}
+
 function HeadlineList({ items, rtl }) {
   if (!items.length) return <p className="cinema-news-headline-meta">Nothing here right now.</p>
   return (
@@ -78,63 +116,65 @@ function HeadlineList({ items, rtl }) {
   )
 }
 
-function UpcomingList({ items, onSelectPerson }) {
+function UpcomingList({ items, onSelectPerson, films }) {
   if (!items.length) return <p className="cinema-news-headline-meta">Nothing here right now.</p>
   return (
     <ul className="person-recommendations-list">
-      {items.map((u) => (
-        <li key={`${u.title}-${u.releaseDate}`} className="person-recommendation-item cinema-news-upcoming-item">
-          <a
-            href={u.infoUrl || `https://www.themoviedb.org/search?query=${encodeURIComponent(u.title)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="cinema-news-upcoming-link"
+      {items.map((u) => {
+        const missing = !titleInArchive(films, u.title)
+        return (
+          <li
+            key={`${u.title}-${u.releaseDate}`}
+            className={`person-recommendation-item cinema-news-upcoming-item${missing ? ' cinema-news-missing' : ''}`}
           >
-            {u.poster && <img src={u.poster} alt={u.title} className="person-recommendation-poster" />}
-            <span className="person-recommendation-info">
-              <span className="person-recommendation-title">{u.title}</span>
-              <span className="cinema-news-headline-meta">{formatDate(u.releaseDate)}</span>
-            </span>
-          </a>
-          {u.personName && (
-            <button type="button" className="cinema-news-person-link cinema-news-person-link-inline" onClick={() => onSelectPerson(u.personName)}>
-              {u.role ? `${u.role} · ` : ''}
-              {u.personName}
-            </button>
-          )}
-        </li>
-      ))}
+            <a
+              href={u.infoUrl || `https://www.themoviedb.org/search?query=${encodeURIComponent(u.title)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cinema-news-upcoming-link"
+            >
+              {u.poster && <img src={u.poster} alt={u.title} className="person-recommendation-poster" />}
+              <span className="person-recommendation-info">
+                <span className="person-recommendation-title">{u.title}</span>
+                <span className="cinema-news-headline-meta">{formatDate(u.releaseDate)}</span>
+              </span>
+            </a>
+            {u.personName && (
+              <button type="button" className="cinema-news-person-link cinema-news-person-link-inline" onClick={() => onSelectPerson(u.personName)}>
+                {u.role ? `${u.role} · ` : ''}
+                {u.personName}
+              </button>
+            )}
+          </li>
+        )
+      })}
     </ul>
   )
 }
 
-function PosterGrid({ items }) {
+function PosterGrid({ items, films }) {
   if (!items.length) return <p className="cinema-news-headline-meta">Nothing here right now.</p>
   return (
     <div className="cinema-news-trailer-grid">
-      {items.map((g) =>
-        g.infoUrl ? (
-          <a
-            key={`${g.title}-${g.releaseDate}`}
-            className="cinema-news-trailer-card cinema-news-poster-card"
-            href={g.infoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+      {items.map((g) => {
+        const missing = !titleInArchive(films, g.title)
+        const cardClass = `cinema-news-trailer-card cinema-news-poster-card${missing ? ' cinema-news-missing' : ''}`
+        return g.infoUrl ? (
+          <a key={`${g.title}-${g.releaseDate}`} className={cardClass} href={g.infoUrl} target="_blank" rel="noopener noreferrer">
             {g.poster && <img src={g.poster} alt={g.title} className="cinema-news-trailer-poster" />}
             {g.rating != null && <span className="cinema-news-rating-badge">★ {g.rating}</span>}
             <span className="cinema-news-trailer-title">{g.title}</span>
             <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
           </a>
         ) : (
-          <div key={`${g.title}-${g.releaseDate}`} className="cinema-news-trailer-card cinema-news-poster-card">
+          <div key={`${g.title}-${g.releaseDate}`} className={cardClass}>
             {g.poster && <img src={g.poster} alt={g.title} className="cinema-news-trailer-poster" />}
             {g.rating != null && <span className="cinema-news-rating-badge">★ {g.rating}</span>}
             <span className="cinema-news-trailer-title">{g.title}</span>
             <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
           </div>
         )
-      )}
+      })}
     </div>
   )
 }
@@ -223,7 +263,7 @@ function PeopleGrid({ items, subtitleKey }) {
 // خبر سینما / خبر سریال / اخبار فارسی هرکدوم بخش خودشونو دارن، همین‌طور
 // «در راه» کالکشن و «در راه» عمومی هم فیلم/سریال جداست. دیتا از
 // /api/cinema-news، سمت سرور کش می‌شه.
-export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme }) {
+export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme, films }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('news')
@@ -421,16 +461,22 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
           {tab === 'comingsoon' && upcoming.length > 0 && (
             <div className="stats-section-row">
               <div className="stats-box">
-                <h3>
-                  <IconClapperPlay width={15} height={15} /> Coming soon (your collection) — Movies
-                </h3>
-                <UpcomingList items={collectionMovies} onSelectPerson={onSelectPerson} />
+                <div className="cinema-news-headline-header">
+                  <h3 style={{ margin: 0 }}>
+                    <IconClapperPlay width={15} height={15} /> Coming soon (your collection) — Movies
+                  </h3>
+                  <ExportMissingButton items={collectionMovies} films={films} filename="coming-soon-collection-movies-missing.csv" />
+                </div>
+                <UpcomingList items={collectionMovies} onSelectPerson={onSelectPerson} films={films} />
               </div>
               <div className="stats-box">
-                <h3>
-                  <IconClapperPlay width={15} height={15} /> Coming soon (your collection) — Series
-                </h3>
-                <UpcomingList items={collectionSeries} onSelectPerson={onSelectPerson} />
+                <div className="cinema-news-headline-header">
+                  <h3 style={{ margin: 0 }}>
+                    <IconClapperPlay width={15} height={15} /> Coming soon (your collection) — Series
+                  </h3>
+                  <ExportMissingButton items={collectionSeries} films={films} filename="coming-soon-collection-series-missing.csv" />
+                </div>
+                <UpcomingList items={collectionSeries} onSelectPerson={onSelectPerson} films={films} />
               </div>
             </div>
           )}
@@ -438,16 +484,22 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
           {tab === 'comingsoon' && (generalMovies.length > 0 || generalSeries.length > 0) && (
             <div className="stats-section-row">
               <div className="stats-box">
-                <h3>
-                  <IconClapperPlay width={15} height={15} /> Coming soon (everywhere) — Movies
-                </h3>
-                <PosterGrid items={generalMovies} />
+                <div className="cinema-news-headline-header">
+                  <h3 style={{ margin: 0 }}>
+                    <IconClapperPlay width={15} height={15} /> Coming soon (everywhere) — Movies
+                  </h3>
+                  <ExportMissingButton items={generalMovies} films={films} filename="coming-soon-everywhere-movies-missing.csv" />
+                </div>
+                <PosterGrid items={generalMovies} films={films} />
               </div>
               <div className="stats-box">
-                <h3>
-                  <IconClapperPlay width={15} height={15} /> Coming soon (everywhere) — Series
-                </h3>
-                <PosterGrid items={generalSeries} />
+                <div className="cinema-news-headline-header">
+                  <h3 style={{ margin: 0 }}>
+                    <IconClapperPlay width={15} height={15} /> Coming soon (everywhere) — Series
+                  </h3>
+                  <ExportMissingButton items={generalSeries} films={films} filename="coming-soon-everywhere-series-missing.csv" />
+                </div>
+                <PosterGrid items={generalSeries} films={films} />
               </div>
             </div>
           )}
