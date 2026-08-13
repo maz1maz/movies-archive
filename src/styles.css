@@ -3148,6 +3148,11 @@ body.light .header {
   align-items: center;
   gap: 6px;
 }
+.cinema-news-updated-meta {
+  margin: 0 0 -6px;
+  font-size: 12px;
+  color: var(--muted);
+}
 .cinema-news-row-3 {
   grid-template-columns: 1fr 1fr 1fr;
 }

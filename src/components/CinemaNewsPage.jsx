@@ -19,6 +19,16 @@ const TABS = [
   { key: 'trailers', label: 'New Trailers', icon: IconClapper },
 ]
 
+function formatUpdatedAt(sqliteDatetime) {
+  if (!sqliteDatetime) return null
+  try {
+    const d = new Date(sqliteDatetime.replace(' ', 'T') + 'Z')
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  } catch {
+    return null
+  }
+}
+
 function formatDate(iso) {
   if (!iso) return ''
   try {
@@ -246,6 +256,7 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
   const popularMonth = data?.trending?.popularMonth || []
   const boxOffice = data?.trending?.boxOffice || []
   const trendingPeople = data?.trendingPeople || []
+  const newsUpdatedAt = formatUpdatedAt(data?.newsUpdatedAt)
   const bornTodayGeneral = useMemo(
     () =>
       (data?.bornTodayGeneral || []).map((p) => ({
@@ -341,7 +352,11 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
 
         <div className="cinema-news-stack">
           {tab === 'news' && (movieHeadlines.length > 0 || seriesHeadlines.length > 0 || headlinesFa.length > 0) && (
-            <div className="stats-section-row cinema-news-row-3">
+            <>
+              <p className="cinema-news-updated-meta">
+                {newsUpdatedAt ? `Updated ${newsUpdatedAt}` : 'Updated recently'} · refreshes every 6 hours
+              </p>
+              <div className="stats-section-row cinema-news-row-3">
               <div className="stats-box">
                 <h3>
                   <IconNewspaper width={15} height={15} /> Movie news
@@ -360,7 +375,8 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
                 </h3>
                 <HeadlineList items={headlinesFa} rtl />
               </div>
-            </div>
+              </div>
+            </>
           )}
 
           {tab === 'people' && trendingPeople.length > 0 && (

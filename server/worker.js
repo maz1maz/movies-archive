@@ -1100,8 +1100,18 @@ export default {
           // که یه آدم دوبار نیاد.
           const collectionNames = new Set(birthdays.map((b) => b.name.toLowerCase()))
           const bornTodayGeneral = bornTodayGeneralRaw.filter((p) => !collectionNames.has(p.name.toLowerCase()))
+
+          // برای نمایش «آخرین بروزرسانی» بالای بخش اخبار
+          let newsUpdatedAt = null
+          try {
+            const newsMeta = await db
+              .prepare("SELECT fetchedAt FROM cinema_news_cache WHERE key IN ('headlines','headlines_fa') ORDER BY fetchedAt DESC LIMIT 1")
+              .first()
+            newsUpdatedAt = newsMeta?.fetchedAt || null
+          } catch {}
+
           return json(
-            { birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneral },
+            { birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneral, newsUpdatedAt },
             200,
             corsHeaders
           )
