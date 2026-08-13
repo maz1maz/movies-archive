@@ -2772,9 +2772,11 @@ async function fetchDirectorAwards(name) {
 }
 
 // فیلم‌هایی که این کارگردان ساخته ولی توی آرشیو نیستن، فیلترشده به اونایی که
-// امتیازشون واقعاً بالاست (IMDb > 7 و Letterboxd > 3.5). فیلموگرافی از TMDB
-// میاد، امتیاز IMDb از OMDb، امتیاز Letterboxd از fetchLetterboxdRating —
-// برای محدود نگه‌داشتن تعداد درخواست‌ها، فقط پرمحبوب‌ترین ۲۰ فیلم TMDB چک می‌شن.
+// امتیازشون واقعاً بالاست. فیلتر اصلی رو رو امتیاز خودِ TMDB (vote_average،
+// که رایگان و بدون درخواست اضافه از قبل داریمش) انجام می‌دیم، نه OMDb — چون
+// کوتای رایگان OMDb (۱۰۰۰ درخواست/روز) خیلی زود با همین یه فیچر تموم می‌شه.
+// OMDb/Letterboxd فقط برای غنی‌سازی (امتیاز رسمی IMDb، پوستر بهتر) best-effort
+// امتحان می‌شن؛ اگه جواب ندادن، نتیجه رو حذف نمی‌کنیم.
 async function fetchDirectorRecommendations(db, name, env) {
   if (!env.TMDB_API_KEY) return []
   const tmdbKey = env.TMDB_API_KEY
@@ -2808,7 +2810,13 @@ async function fetchDirectorRecommendations(db, name, env) {
       const key = `${c.id}`
       if (seen.has(key)) continue
       seen.add(key)
-      candidates.push({ title: c.title, year: parseInt(c.release_date.slice(0, 4), 10), popularity: c.popularity || 0 })
+      candidates.push({
+        title: c.title,
+        year: parseInt(c.release_date.slice(0, 4), 10),
+        popularity: c.popularity || 0,
+        tmdbRating: typeof c.vote_average === 'number' ? c.vote_average : null,
+        posterPath: c.poster_path || null,
+      })
     }
     if (!candidates.length) return []
 
@@ -2820,37 +2828,47 @@ async function fetchDirectorRecommendations(db, name, env) {
     )
     const missing = candidates.filter((c) => !existingKeys.has(`${normalizeTitle(c.title)}|${c.year || ''}`))
 
-    // فقط پرمحبوب‌ترین ۲۰ تا رو چک کن (نه کل فیلموگرافی) تا سهمیه‌ی OMDb هدر نره.
-    const toCheck = missing.sort((a, b) => b.popularity - a.popularity).slice(0, 20)
+    // فیلتر اصلیِ کیفیت: امتیاز خودِ TMDB بالای ۷ (همون مقیاس IMDb، رایگان،
+    // از قبل داریمش). فقط پرمحبوب‌ترین ۲۰ تا از این‌ها رو برای غنی‌سازی چک می‌کنیم.
+    const toCheck = missing
+      .filter((c) => c.tmdbRating != null && c.tmdbRating > 7)
+      .sort((a, b) => b.popularity - a.popularity)
+      .slice(0, 20)
 
     const results = []
     for (const c of toCheck) {
+      let imdbRating = null
+      let poster = c.posterPath ? `https://image.tmdb.org/t/p/w300${c.posterPath}` : null
+
+      // OMDb فقط best-effort: اگه کوتاش تموم شده باشه یا جواب نده، مشکلی
+      // نیست — امتیاز TMDB رو به‌جاش نگه می‌داریم، نه این‌که کل پیشنهاد رو حذف کنیم.
       try {
         const omdbRes = await fetch(
           `https://www.omdbapi.com/?apikey=${env.OMDB_API_KEY}&t=${encodeURIComponent(c.title)}&y=${c.year}&type=movie`,
           { signal: AbortSignal.timeout(8000) }
         )
-        if (!omdbRes.ok) continue
-        const omdbData = await omdbRes.json()
-        if (omdbData.Response !== 'True' || !omdbData.imdbRating || omdbData.imdbRating === 'N/A') continue
-        const imdbRating = parseFloat(omdbData.imdbRating)
-        if (isNaN(imdbRating) || imdbRating <= 7) continue
-
-        // لترباکس رو هم چک می‌کنیم (فقط برای فیلتر کیفیت بیشتر)، ولی چون این
-        // یه اسکرپه و گاهی کلاً جواب نمی‌ده (بلاک/تغییر مارک‌آپ)، اگه جواب
-        // نداد یا هیچی برنگردوند، به‌خاطر همون نبود دیتا کل پیشنهاد رو رد
-        // نمی‌کنیم — فقط وقتی amتیازش واقعاً پایینه (زیر ۳.۵) حذفش می‌کنیم.
-        const lb = await fetchLetterboxdRating(c.title, c.year)
-        if (lb && lb.rating <= 3.5) continue
-
-        results.push({
-          title: c.title,
-          year: c.year,
-          imdbRating,
-          letterboxdRating: lb ? lb.rating : null,
-          poster: omdbData.Poster && omdbData.Poster !== 'N/A' ? omdbData.Poster : null,
-        })
+        if (omdbRes.ok) {
+          const omdbData = await omdbRes.json()
+          if (omdbData.Response === 'True' && omdbData.imdbRating && omdbData.imdbRating !== 'N/A') {
+            const parsed = parseFloat(omdbData.imdbRating)
+            if (!isNaN(parsed)) imdbRating = parsed
+            if (omdbData.Poster && omdbData.Poster !== 'N/A') poster = omdbData.Poster
+          }
+        }
       } catch {}
+
+      // لترباکس هم best-effort — اگه واقعاً امتیازش پایینه (زیر ۳.۵) حذفش
+      // می‌کنیم، ولی اگه فقط جواب نداد (بلاک/تغییر مارک‌آپ) نادیده می‌گیریم.
+      const lb = await fetchLetterboxdRating(c.title, c.year)
+      if (lb && lb.rating <= 3.5) continue
+
+      results.push({
+        title: c.title,
+        year: c.year,
+        imdbRating: imdbRating ?? c.tmdbRating,
+        letterboxdRating: lb ? lb.rating : null,
+        poster,
+      })
     }
 
     return results.sort((a, b) => b.imdbRating - a.imdbRating)
