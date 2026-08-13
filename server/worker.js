@@ -2453,9 +2453,15 @@ async function fetchBornTodayGeneral(db) {
       SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
     } ORDER BY DESC(?sitelinks) LIMIT 30`
 
-    const res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, {
-      headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)', accept: 'application/sparql-results+json' },
-    })
+    const wikidataHeaders = {
+      'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive; personal, single-user film archive app)',
+      accept: 'application/sparql-results+json',
+    }
+    let res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers: wikidataHeaders })
+    if (!res.ok) {
+      // یه بار دیگه امتحان کن — سرویس Wikidata گاهی زیر بار سنگین موقتاً رد می‌کنه
+      res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers: wikidataHeaders })
+    }
     if (!res.ok) return []
     const data = await res.json()
     const rows = data?.results?.bindings || []
