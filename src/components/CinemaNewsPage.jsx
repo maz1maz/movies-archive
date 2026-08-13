@@ -1,5 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
-import { IconCake, IconClapperPlay, IconNewspaper, IconSun, IconMoon } from './icons.jsx'
+import {
+  IconCake,
+  IconClapperPlay,
+  IconNewspaper,
+  IconSun,
+  IconMoon,
+  IconBarChart,
+  IconUser,
+  IconClapper,
+} from './icons.jsx'
+
+const TABS = [
+  { key: 'news', label: 'News', icon: IconNewspaper },
+  { key: 'people', label: 'People', icon: IconUser },
+  { key: 'comingsoon', label: 'Coming Soon', icon: IconClapperPlay },
+  { key: 'trending', label: 'Trending', icon: IconBarChart },
+  { key: 'boxoffice', label: 'Box Office', icon: IconBarChart },
+  { key: 'trailers', label: 'Trailers', icon: IconClapper },
+]
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -175,6 +193,7 @@ function PeopleGrid({ items, subtitleKey }) {
 export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState('news')
 
   useEffect(() => {
     let cancelled = false
@@ -235,6 +254,15 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
     !trendingPeople.length &&
     !bornTodayGeneral.length
 
+  const tabHasContent = {
+    news: movieHeadlines.length > 0 || seriesHeadlines.length > 0 || headlinesFa.length > 0,
+    people: trendingPeople.length > 0 || birthdays.length > 0 || bornTodayGeneral.length > 0,
+    comingsoon: upcoming.length > 0 || generalMovies.length > 0 || generalSeries.length > 0,
+    trending: trendingMoviesWeek.length > 0 || trendingSeriesWeek.length > 0 || popularMonth.length > 0,
+    boxoffice: boxOffice.length > 0,
+    trailers: trailers.length > 0,
+  }
+
   return (
     <div className="dashboard-panel cinema-news-page">
       <div className="container">
@@ -261,6 +289,18 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
           Birthdays, what's coming, and new trailers — built from your own collection
         </p>
 
+        <nav className="dashboard-subnav">
+          {TABS.map((t) => {
+            const Icon = t.icon
+            return (
+              <button key={t.key} className={tab === t.key ? 'active' : ''} onClick={() => setTab(t.key)} title={t.label}>
+                <Icon width={14} height={14} />
+                <span className="dashboard-tab-label">{t.label}</span>
+              </button>
+            )
+          })}
+        </nav>
+
         {loading && <p className="person-extras-loading">Loading cinema news…</p>}
 
         {nothingFound && (
@@ -270,8 +310,14 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
           </p>
         )}
 
+        {!loading && !nothingFound && !tabHasContent[tab] && (
+          <p className="person-subtitle" style={{ marginTop: 12 }}>
+            Nothing here yet.
+          </p>
+        )}
+
         <div className="cinema-news-stack">
-          {(movieHeadlines.length > 0 || seriesHeadlines.length > 0 || headlinesFa.length > 0) && (
+          {tab === 'news' && (movieHeadlines.length > 0 || seriesHeadlines.length > 0 || headlinesFa.length > 0) && (
             <div className="stats-section-row cinema-news-row-3">
               <div className="stats-box">
                 <h3>
@@ -294,14 +340,14 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
             </div>
           )}
 
-          {trendingPeople.length > 0 && (
+          {tab === 'people' && trendingPeople.length > 0 && (
             <div className="stats-box">
               <h3>Trending people</h3>
               <PeopleGrid items={trendingPeople} subtitleKey="knownFor" />
             </div>
           )}
 
-          {birthdays.length > 0 && (
+          {tab === 'people' && birthdays.length > 0 && (
             <div className="stats-box">
               <h3>
                 <IconCake width={15} height={15} /> Birthdays today (your collection)
@@ -324,7 +370,7 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
             </div>
           )}
 
-          {bornTodayGeneral.length > 0 && (
+          {tab === 'people' && bornTodayGeneral.length > 0 && (
             <div className="stats-box">
               <h3>
                 <IconCake width={15} height={15} /> Born today (everywhere)
@@ -333,7 +379,7 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
             </div>
           )}
 
-          {upcoming.length > 0 && (
+          {tab === 'comingsoon' && upcoming.length > 0 && (
             <div className="stats-section-row">
               <div className="stats-box">
                 <h3>
@@ -350,7 +396,7 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
             </div>
           )}
 
-          {(generalMovies.length > 0 || generalSeries.length > 0) && (
+          {tab === 'comingsoon' && (generalMovies.length > 0 || generalSeries.length > 0) && (
             <div className="stats-section-row">
               <div className="stats-box">
                 <h3>
@@ -367,7 +413,7 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
             </div>
           )}
 
-          {(trendingMoviesWeek.length > 0 || trendingSeriesWeek.length > 0) && (
+          {tab === 'trending' && (trendingMoviesWeek.length > 0 || trendingSeriesWeek.length > 0) && (
             <div className="stats-section-row">
               <div className="stats-box">
                 <h3>Trending this week — Movies</h3>
@@ -380,20 +426,21 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
             </div>
           )}
 
-          {(popularMonth.length > 0 || boxOffice.length > 0) && (
-            <div className="stats-section-row">
-              <div className="stats-box">
-                <h3>Popular this month</h3>
-                <PosterGrid items={popularMonth} />
-              </div>
-              <div className="stats-box">
-                <h3>Top box office (worldwide revenue)</h3>
-                <BoxOfficeTable items={boxOffice} />
-              </div>
+          {tab === 'trending' && popularMonth.length > 0 && (
+            <div className="stats-box">
+              <h3>Popular this month</h3>
+              <PosterGrid items={popularMonth} />
             </div>
           )}
 
-          {trailers.length > 0 && (
+          {tab === 'boxoffice' && boxOffice.length > 0 && (
+            <div className="stats-box">
+              <h3>Top box office (worldwide revenue)</h3>
+              <BoxOfficeTable items={boxOffice} />
+            </div>
+          )}
+
+          {tab === 'trailers' && trailers.length > 0 && (
             <div className="stats-box">
               <h3>New trailers</h3>
               <div className="cinema-news-trailer-grid">
