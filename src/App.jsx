@@ -702,6 +702,17 @@ export default function App() {
       ? digitalMoviePosters
       : digitalSeriesPosters
 
+  const gridHeading =
+    section === 'physical'
+      ? 'Blu-ray Movies'
+      : section === 'physical-series'
+      ? 'Blu-ray Series'
+      : section === 'digital-movie'
+      ? 'Digital Movies'
+      : section === 'digital-series'
+      ? 'Digital Series'
+      : null
+
   return (
     <div className="app">
       {toast && <div className="toast">{toast}</div>}
@@ -970,6 +981,11 @@ export default function App() {
         ) : useSplitView && selected ? (
           <div className="grid-split">
             <div className="grid-split-grid">
+              {gridHeading && (
+                <div className="grid-section-heading">
+                  <span>{gridHeading}</span>
+                </div>
+              )}
               <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
             </div>
             <div className="grid-split-detail">
@@ -994,7 +1010,14 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
+          <>
+            {gridHeading && (
+              <div className="grid-section-heading">
+                <span>{gridHeading}</span>
+              </div>
+            )}
+            <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
+          </>
         )}
         {pageCount > 1 && !loading && (
           <div className="pagination">

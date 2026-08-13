@@ -404,8 +404,27 @@ body.light .header {
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
-  gap: 20px;
+  gap: 26px 22px;
   padding: 26px 0 40px;
+}
+
+.grid-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 6px 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.grid-section-heading::before,
+.grid-section-heading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-strong);
 }
 
 .card {
@@ -417,11 +436,16 @@ body.light .header {
   cursor: pointer;
   padding: 0;
   color: inherit;
-  transition: transform 0.15s, border-color 0.15s;
+  transform: rotate(var(--tilt, 0deg));
+  box-shadow: 0 12px 26px -10px rgba(0, 0, 0, 0.5), 0 3px 8px rgba(0, 0, 0, 0.28);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.15s;
 }
 .card:hover {
-  transform: translateY(-3px);
+  transform: rotate(0deg) translateY(-6px) scale(1.035);
   border-color: var(--border-strong);
+  box-shadow: 0 22px 36px -12px rgba(0, 0, 0, 0.6), 0 6px 14px rgba(0, 0, 0, 0.32);
+  z-index: 2;
+  position: relative;
 }
 
 .poster {
