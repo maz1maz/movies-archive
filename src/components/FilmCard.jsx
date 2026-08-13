@@ -22,8 +22,6 @@ function hashCode(str) {
 
 export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, hasDigital }) {
   const [c1, c2] = PALETTE[hashCode(String(film.id)) % PALETTE.length]
-  // چرخش ملایم و ثابت (بر اساس id) برای حس آلبوم عکس/پولاروید تو گرید پوسترها
-  const tiltDeg = (hashCode(String(film.id) + 'tilt') % 7) - 3
   const isDigital = film.mediaType === 'digital'
   const hasLocation = isDigital ? film.driveNumber : film.closet || film.shelf || film.row
 
@@ -48,7 +46,6 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         hasBluray && 'card-has-bluray',
         hasDigital && 'card-has-digital',
       ].filter(Boolean).join(' ')}
-      style={{ '--tilt': `${tiltDeg}deg` }}
       data-film-id={film.id}
       onClick={(e) => {
         e.stopPropagation()

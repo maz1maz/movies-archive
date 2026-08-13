@@ -404,7 +404,7 @@ body.light .header {
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
-  gap: 26px 22px;
+  gap: 20px;
   padding: 26px 0 40px;
 }
 
@@ -440,16 +440,11 @@ body.light .header {
   cursor: pointer;
   padding: 0;
   color: inherit;
-  transform: rotate(var(--tilt, 0deg));
-  box-shadow: 0 12px 22px -10px rgba(0, 0, 0, 0.5), 0 3px 8px rgba(0, 0, 0, 0.28);
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.15s;
+  transition: transform 0.15s, border-color 0.15s;
 }
 .card:hover {
-  transform: rotate(0deg) translateY(-6px) scale(1.04);
+  transform: translateY(-3px);
   border-color: var(--border-strong);
-  box-shadow: 0 22px 34px -12px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.32);
-  z-index: 2;
-  position: relative;
 }
 
 .poster {
