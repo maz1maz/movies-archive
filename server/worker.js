@@ -416,7 +416,7 @@ export default {
           // مرتب‌سازی الفبایی، نادیده گرفتن «The» ابتدای عنوان (مثلاً
           // "The Godfather" باید زیر G بره نه T)
           sql += ` ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
-        } else sql += ' ORDER BY title ASC'
+        } else sql += ` ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
 
         const result = await db.prepare(sql).bind(...params).all()
         // Parse JSON string fields
@@ -1548,7 +1548,7 @@ export default {
         if (itemType) { conditions.push('itemType = ?'); params.push(itemType) }
         if (driveParam) { conditions.push('driveNumber = ?'); params.push(driveParam) }
         if (letterParam) {
-          // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The "/"A " ابتدای عنوان
+          // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The " ابتدای عنوان
           const sortableTitle = `CASE WHEN title LIKE 'The %' THEN substr(title,5) ELSE title END`
           if (letterParam === '#') {
             conditions.push(`UPPER(SUBSTR(${sortableTitle}, 1, 1)) NOT BETWEEN 'A' AND 'Z'`)
@@ -1558,7 +1558,7 @@ export default {
           }
         }
         if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ')
-        sql += ' ORDER BY title'
+        sql += ` ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
         const result = await db.prepare(sql).bind(...params).all()
         const films = (result.results || []).map(parseFilmRow)
         const filenameScope = itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : ''
@@ -1589,7 +1589,7 @@ export default {
         if (shelfParam) { conditions.push('shelf = ?'); params.push(shelfParam) }
         if (driveParam) { conditions.push('driveNumber = ?'); params.push(driveParam) }
         if (letterParam) {
-          // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The "/"A " ابتدای عنوان
+          // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The " ابتدای عنوان
           const sortableTitle = `CASE WHEN title LIKE 'The %' THEN substr(title,5) ELSE title END`
           if (letterParam === '#') {
             conditions.push(`UPPER(SUBSTR(${sortableTitle}, 1, 1)) NOT BETWEEN 'A' AND 'Z'`)
@@ -1599,7 +1599,7 @@ export default {
           }
         }
         if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ')
-        sql += ' ORDER BY title'
+        sql += ` ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
         const result = await db.prepare(sql).bind(...params).all()
         const films = (result.results || []).map(parseFilmRow)
         const isSeriesExport = itemType === 'series'
@@ -1761,7 +1761,9 @@ export default {
 // KV پر نشه. یه کلید ثابت "backup:latest" هم برای دسترسی سریع نگه داشته می‌شه.
 async function runDailyBackup(env) {
   const db = env.DB
-  const result = await db.prepare('SELECT * FROM films ORDER BY title').all()
+  const result = await db
+    .prepare(`SELECT * FROM films ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`)
+    .all()
   const films = (result.results || []).map(parseFilmRow)
   const payload = JSON.stringify({ backedUpAt: new Date().toISOString(), count: films.length, films })
 
