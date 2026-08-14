@@ -296,20 +296,36 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
                     <ul className="person-recommendations-list">
                       {directorExtras.recommendations.map((r) => (
                         <li key={`${r.title}-${r.year}`} className="person-recommendation-item">
-                          {r.poster && (
-                            <img src={proxyImg(r.poster)} alt={r.title} className="person-recommendation-poster" />
-                          )}
-                          <span className="person-recommendation-info">
-                            <span className="person-recommendation-title">
-                              {r.title} <span className="person-recommendation-year">({r.year})</span>
+                          <a
+                            className="person-recommendation-link"
+                            href={`https://www.imdb.com/find/?q=${encodeURIComponent(`${r.title} ${r.year}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {r.poster && (
+                              <img src={proxyImg(r.poster)} alt={r.title} className="person-recommendation-poster" />
+                            )}
+                            <span className="person-recommendation-info">
+                              <span className="person-recommendation-title">
+                                {r.title} <span className="person-recommendation-year">({r.year})</span>
+                              </span>
+                              <span className="person-recommendation-ratings">
+                                <span className="badge-imdb">★ {r.imdbRating.toFixed(1)} IMDb</span>
+                                {r.letterboxdRating != null && (
+                                  <span className="badge-letterboxd">● {r.letterboxdRating.toFixed(1)} Letterboxd</span>
+                                )}
+                              </span>
                             </span>
-                            <span className="person-recommendation-ratings">
-                              <span className="badge-imdb">★ {r.imdbRating.toFixed(1)} IMDb</span>
-                              {r.letterboxdRating != null && (
-                                <span className="badge-letterboxd">● {r.letterboxdRating.toFixed(1)} Letterboxd</span>
-                              )}
-                            </span>
-                          </span>
+                          </a>
+                          <a
+                            className="person-recommendation-lb-link"
+                            href={`https://letterboxd.com/search/films/${encodeURIComponent(r.title)}/`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Search on Letterboxd"
+                          >
+                            LB ↗
+                          </a>
                           <RecommendationOrderButton title={r.title} year={r.year} director={personName} />
                         </li>
                       ))}
