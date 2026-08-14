@@ -338,6 +338,7 @@ export default function App() {
 
       showToast(
         `Imported: ${data.added} new, ${data.updated} updated` +
+          (data.enriched ? `, ${data.enriched} auto-enriched from OMDb` : '') +
           (total != null ? ` — ${total} films total` : ''),
         7000
       )

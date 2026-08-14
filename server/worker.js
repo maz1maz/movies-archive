@@ -1450,21 +1450,19 @@ export default {
         const rows = XLSX.utils.sheet_to_json(ws, { defval: '' })
         if (!rows.length) return json({ error: 'File is empty' }, 400, corsHeaders)
 
-        let imported = rows.map((r, i) => rowToFilm(r, i))
+        const imported = rows.map((r, i) => rowToFilm(r, i))
 
-        const key = env.OMDB_API_KEY
-        imported = await Promise.all(
-          imported.map(async (f) => {
-            try {
-              return await enrichFilm(f, key)
-            } catch {
-              return f
-            }
-          })
-        )
-
+        // نکته‌ی مهم (باگ قبلی): قبلاً همه‌ی ردیف‌ها اول با OMDb غنی‌سازی
+        // می‌شدن (Promise.all رو کل فایل) و فقط بعدش نوبت INSERT می‌رسید. تو
+        // فایل‌های بزرگ (صدها ردیف)، این فاز غنی‌سازی به سقف زمان اجرا/تعداد
+        // درخواست Cloudflare Workers می‌خورد و کل ریکوئست fail می‌شد — یعنی
+        // هیچ ردیفی، حتی اونایی که غنی‌سازی‌شون لازم نبود، ذخیره نمی‌شد، بدون
+        // خطای واضح به کاربر. الان اول INSERT/UPDATE (که فقط دیتابیسه، سریع و
+        // بدون تماس بیرونی) انجام می‌شه؛ غنی‌سازی OMDb فقط best-effort و بعد
+        // از ذخیره‌شدن موفقِ همه‌چیز، و فقط برای فایل‌های کوچیک انجام می‌شه.
         let added = 0
         let updated = 0
+        const newlyAddedIds = []
         for (const f of imported) {
           // تطبیق فقط با عنوان کافی نیست: باعث می‌شد فیلم دیجیتال هم‌نامِ یه
           // فیلم فیزیکی (یا نسخه‌ی دیگه) به‌جای اضافه‌شدن، رکورد اون یکی رو
@@ -1509,11 +1507,30 @@ export default {
             updated++
           } else {
             await insertFilm(db, f)
+            newlyAddedIds.push(f.id)
             added++
           }
         }
 
-        return json({ count: imported.length, added, updated }, 200, corsHeaders)
+        // غنی‌سازی OMDb: فقط best-effort، فقط برای فایل‌های کوچیک (≤15 ردیف)
+        // که مطمئنیم تو سقف subrequest جا می‌شن. فایل‌های بزرگ‌تر رو کاربر
+        // می‌تونه بعداً از دکمه‌ی «Enrich» به‌صورت دسته‌ای پر کنه.
+        let enriched = 0
+        if (imported.length <= 15 && env.OMDB_API_KEY) {
+          const key = env.OMDB_API_KEY
+          for (const id of newlyAddedIds) {
+            try {
+              const row = await db.prepare('SELECT * FROM films WHERE id = ?').bind(id).first()
+              if (!row) continue
+              const parsed = parseFilmRow(row)
+              const enrichedFilm = await enrichFilm(parsed, key)
+              await updateFilm(db, { ...enrichedFilm, id })
+              enriched++
+            } catch {}
+          }
+        }
+
+        return json({ count: imported.length, added, updated, enriched }, 200, corsHeaders)
       }
 
       // ---- GET /api/export/json (optional ?mediaType=&itemType= to scope the backup) ----
