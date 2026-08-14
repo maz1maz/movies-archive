@@ -1647,6 +1647,16 @@ export default {
         )
         const ws = XLSX.utils.json_to_sheet(rows)
         const wb = XLSX.utils.book_new()
+
+        // برگه‌ی خلاصه: تعداد کل و تعداد نسخه‌های کرایتریون، اول از همه.
+        const criterionCount = films.filter((f) => f.criterion).length
+        const summaryRows = [
+          { Metric: 'Total items', Value: films.length },
+          { Metric: 'Criterion Collection editions', Value: criterionCount },
+          { Metric: 'Generated', Value: new Date().toLocaleString() },
+        ]
+        const summaryWs = XLSX.utils.json_to_sheet(summaryRows, { skipHeader: true })
+        XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary')
         XLSX.utils.book_append_sheet(wb, ws, 'Film Archive')
         const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: false })
         const locationScope = [closetParam ? `C${closetParam}` : '', rowParam ? `R${rowParam}` : '', shelfParam ? `S${shelfParam}` : ''].join('')

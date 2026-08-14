@@ -100,6 +100,8 @@ export default function DashboardExportPanel({ films }) {
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
 
+    const criterionCount = scopedFilms.filter((f) => f.criterion).length
+
     const rows = scopedFilms
       .map(
         (f) => `
@@ -111,6 +113,7 @@ export default function DashboardExportPanel({ films }) {
         <td>${escapeHtml(f.director) || '—'}</td>
         <td>★ ${f.rating ? f.rating.toFixed(1) : '—'}</td>
         <td>${escapeHtml(f.studio) || '—'}</td>
+        <td>${f.criterion ? `✓${f.criterionCopies > 1 ? ` ×${f.criterionCopies}` : ''}` : '—'}</td>
         <td>${f.borrowedTo ? `Loaned to ${escapeHtml(f.borrowedTo)}` : 'In Archive'}</td>
       </tr>
     `
@@ -138,7 +141,7 @@ export default function DashboardExportPanel({ films }) {
         </head>
         <body>
           <h1>🎬 ${scopeLabel} Catalog</h1>
-          <p>Total Items: ${scopedFilms.length} · Generated on ${new Date().toLocaleString()}</p>
+          <p>Total Items: ${scopedFilms.length} · Criterion Collection: ${criterionCount} · Generated on ${new Date().toLocaleString()}</p>
           <button onclick="window.print()" style="padding:10px 18px; margin-bottom:15px; font-weight:bold; cursor:pointer;">🖨️ Print Catalog / Save as PDF</button>
           <table>
             <thead>
@@ -150,6 +153,7 @@ export default function DashboardExportPanel({ films }) {
                 <th>Director</th>
                 <th>IMDb</th>
                 <th>Studio</th>
+                <th>Criterion</th>
                 <th>Status</th>
               </tr>
             </thead>
