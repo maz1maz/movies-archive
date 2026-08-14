@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { IconClose, IconUser, IconPin, IconDisc } from './icons.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { addToOrderList } from '../utils/orderList.js'
+import { proxyImg } from '../utils/proxyImg.js'
 
 function RecommendationOrderButton({ title, year, director }) {
   const [state, setState] = useState('idle') // idle | adding | added
@@ -191,7 +192,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
             title={photo ? 'Click to view full photo' : undefined}
           >
             {photo ? (
-              <img src={photo} alt={personName} className="person-avatar-photo" />
+              <img src={proxyImg(photo)} alt={personName} className="person-avatar-photo" />
             ) : (
               personName[0]?.toUpperCase() || <IconUser width={36} height={36} />
             )}
@@ -296,7 +297,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
                       {directorExtras.recommendations.map((r) => (
                         <li key={`${r.title}-${r.year}`} className="person-recommendation-item">
                           {r.poster && (
-                            <img src={r.poster} alt={r.title} className="person-recommendation-poster" />
+                            <img src={proxyImg(r.poster)} alt={r.title} className="person-recommendation-poster" />
                           )}
                           <span className="person-recommendation-info">
                             <span className="person-recommendation-title">
@@ -367,7 +368,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
 
       {lightboxOpen && (
         <ImageLightbox
-          src={photo}
+          src={proxyImg(photo)}
           alt={personName}
           grayscale={isDeceased}
           onClose={() => setLightboxOpen(false)}

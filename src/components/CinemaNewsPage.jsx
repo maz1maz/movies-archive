@@ -10,6 +10,7 @@ import {
   IconClapper,
 } from './icons.jsx'
 import { addToOrderList, lookupDirectorFromTmdbUrl } from '../utils/orderList.js'
+import { proxyImg } from '../utils/proxyImg.js'
 
 const TABS = [
   { key: 'news', label: 'News', icon: IconNewspaper },
@@ -126,7 +127,7 @@ function UpcomingList({ items, onSelectPerson, films }) {
               rel="noopener noreferrer"
               className="cinema-news-upcoming-link"
             >
-              {u.poster && <img src={u.poster} alt={u.title} className="person-recommendation-poster" />}
+              {u.poster && <img src={proxyImg(u.poster)} alt={u.title} className="person-recommendation-poster" />}
               <span className="person-recommendation-info">
                 <span className="person-recommendation-title">{u.title}</span>
                 <span className="cinema-news-headline-meta">{formatDate(u.releaseDate)}</span>
@@ -169,7 +170,7 @@ function PosterGrid({ items, films }) {
               target="_blank"
               rel="noopener noreferrer"
             >
-              {g.poster && <img src={g.poster} alt={g.title} className="cinema-news-trailer-poster" />}
+              {g.poster && <img src={proxyImg(g.poster)} alt={g.title} className="cinema-news-trailer-poster" />}
               {g.rating != null && <span className="cinema-news-rating-badge">★ {g.rating}</span>}
               <span className="cinema-news-trailer-title">{g.title}</span>
               <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
@@ -222,7 +223,7 @@ function BoxOfficeTable({ items }) {
       {items.map((m, i) => (
         <li key={m.title} className="cinema-news-boxoffice-row">
           <span className="cinema-news-boxoffice-rank">{i + 1}</span>
-          {m.poster && <img src={m.poster} alt={m.title} className="cinema-news-boxoffice-poster" />}
+          {m.poster && <img src={proxyImg(m.poster)} alt={m.title} className="cinema-news-boxoffice-poster" />}
           <a href={m.infoUrl} target="_blank" rel="noopener noreferrer" className="cinema-news-boxoffice-title">
             {m.title}
           </a>
@@ -241,7 +242,7 @@ function PeopleGrid({ items, subtitleKey }) {
         p.infoUrl ? (
           <a key={p.name} href={p.infoUrl} target="_blank" rel="noopener noreferrer" className="cinema-news-birthday-card">
             <span className="person-avatar-circle cinema-news-birthday-avatar">
-              {p.photo ? <img src={p.photo} alt={p.name} className="person-avatar-photo" /> : p.name[0]?.toUpperCase()}
+              {p.photo ? <img src={proxyImg(p.photo)} alt={p.name} className="person-avatar-photo" /> : p.name[0]?.toUpperCase()}
             </span>
             <span className="cinema-news-birthday-info">
               <span className="cinema-news-birthday-name">{p.name}</span>
@@ -251,7 +252,7 @@ function PeopleGrid({ items, subtitleKey }) {
         ) : (
           <div key={p.name} className="cinema-news-birthday-card">
             <span className="person-avatar-circle cinema-news-birthday-avatar">
-              {p.photo ? <img src={p.photo} alt={p.name} className="person-avatar-photo" /> : p.name[0]?.toUpperCase()}
+              {p.photo ? <img src={proxyImg(p.photo)} alt={p.name} className="person-avatar-photo" /> : p.name[0]?.toUpperCase()}
             </span>
             <span className="cinema-news-birthday-info">
               <span className="cinema-news-birthday-name">{p.name}</span>
@@ -440,7 +441,7 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
                 {birthdays.map((b) => (
                   <button key={b.name} type="button" className="cinema-news-birthday-card" onClick={() => onSelectPerson(b.name)}>
                     <span className="person-avatar-circle cinema-news-birthday-avatar">
-                      {b.photo ? <img src={b.photo} alt={b.name} className="person-avatar-photo" /> : b.name[0]?.toUpperCase()}
+                      {b.photo ? <img src={proxyImg(b.photo)} alt={b.name} className="person-avatar-photo" /> : b.name[0]?.toUpperCase()}
                     </span>
                     <span className="cinema-news-birthday-info">
                       <span className="cinema-news-birthday-name">
@@ -542,7 +543,7 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {t.poster && <img src={t.poster} alt={t.title} className="cinema-news-trailer-poster" />}
+                    {t.poster && <img src={proxyImg(t.poster)} alt={t.title} className="cinema-news-trailer-poster" />}
                     <span className="cinema-news-trailer-play">▶</span>
                     <span className="cinema-news-trailer-title">{t.title}</span>
                     <span className="cinema-news-trailer-date">{formatDate(t.releaseDate)}</span>

@@ -1128,6 +1128,35 @@ export default {
       // ---- GET /api/debug/checks — تست سریع سلامت هرکدوم از سرویس‌های بیرونی
       // (OMDb, TMDB, Letterboxd) که پیشنهادهای کارگردان بهشون وابسته‌ست. فقط
       // برای لاگین‌شده‌ها، صرفاً تشخیصیه و بعد از رفع مشکل قابل حذفه. ----
+      // ---- GET /api/image-proxy?url=... — تصاویری که مستقیم رو مرورگر کاربر
+      // بلوکه (مثلاً image.tmdb.org که از بعضی شبکه‌ها/ایران بدون VPN باز نمی‌شه)
+      // رو از سمت Worker می‌گیره و برمی‌گردونه، چون خودِ Workers بهشون دسترسی داره.
+      // فقط دامنه‌های شناخته‌شده و امن (TMDB, Wikipedia/Wikimedia) مجازن.
+      if (method === 'GET' && pathname === '/api/image-proxy') {
+        const target = url.searchParams.get('url')
+        if (!target) return new Response('Missing url', { status: 400 })
+        let targetUrl
+        try {
+          targetUrl = new URL(target)
+        } catch {
+          return new Response('Bad url', { status: 400 })
+        }
+        const allowedHosts = ['image.tmdb.org', 'upload.wikimedia.org', 'upload.wikimedia.beta.wmflabs.org']
+        if (!allowedHosts.includes(targetUrl.hostname)) return new Response('Host not allowed', { status: 403 })
+        try {
+          const imgRes = await fetch(targetUrl.toString(), {
+            headers: { 'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive)' },
+          })
+          if (!imgRes.ok) return new Response('Upstream error', { status: 502 })
+          const headers = new Headers(corsHeaders)
+          headers.set('Content-Type', imgRes.headers.get('content-type') || 'image/jpeg')
+          headers.set('Cache-Control', 'public, max-age=604800, immutable')
+          return new Response(imgRes.body, { status: 200, headers })
+        } catch (e) {
+          return new Response('Fetch failed', { status: 502 })
+        }
+      }
+
       if (method === 'GET' && pathname === '/api/debug/checks') {
         const denied = requireAuth()
         if (denied) return denied
