@@ -8,7 +8,6 @@ import PersonModal from './components/PersonModal.jsx'
 import FolderNav from './components/FolderNav.jsx'
 import DashboardPanel from './components/DashboardPanel.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
-import ExportModal from './components/ExportModal.jsx'
 import LocationBrowserModal from './components/LocationBrowserModal.jsx'
 import BookshelfView from './components/BookshelfView.jsx'
 import CinemaNewsPage from './components/CinemaNewsPage.jsx'
@@ -90,7 +89,6 @@ export default function App() {
     () => typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches
   )
   const [selectedPerson, setSelectedPerson] = useState(null)
-  const [showExport, setShowExport] = useState(false)
   const [showLocationBrowser, setShowLocationBrowser] = useState(false)
   const [showBookshelf, setShowBookshelf] = useState(false)
   const [forceFilmOverlay, setForceFilmOverlay] = useState(false)
@@ -939,7 +937,14 @@ export default function App() {
         onSyncLetterboxd={handleSyncLetterboxd}
         onFetchSeasonCounts={handleFetchSeasonCounts}
         fetchingSeasonCounts={fetchingSeasonCounts}
-        onOpenExport={() => setShowExport(true)}
+        onOpenExport={() => {
+          // به‌جای مودال جدای Export که تکراری بود، مستقیم می‌بره به تب
+          // «Export & Backup» توی داشبورد — تنها جایی که خروجی‌ها ازونجا گرفته می‌شن.
+          try {
+            window.localStorage.setItem('cinefilm-dashboard-last-tab', 'export')
+          } catch {}
+          changeSection('dashboard')
+        }}
         onOpenLocationBrowser={() => setShowLocationBrowser(true)}
         onOpenBookshelf={() => setShowBookshelf(true)}
         view={view}
@@ -1033,10 +1038,6 @@ export default function App() {
       <footer className="footer">
         Cinefilm Archive · © {new Date().getFullYear()} · @1hamid
       </footer>
-
-      {showExport && (
-        <ExportModal films={sectionFilms} section={section} onClose={() => setShowExport(false)} />
-      )}
 
       {selected && (!useSplitView || forceFilmOverlay) && (
         <FilmModal

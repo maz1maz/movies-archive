@@ -104,8 +104,9 @@ export default function DashboardExportPanel({ films }) {
 
     const rows = scopedFilms
       .map(
-        (f) => `
+        (f, i) => `
       <tr>
+        <td>${i + 1}</td>
         <td><strong>${escapeHtml(f.title)}</strong><br><small style="color:#666">${escapeHtml(f.originalTitle)}</small></td>
         <td>${f.mediaType === 'digital' ? `Drive ${escapeHtml(f.driveNumber) || '—'}` : `Closet ${escapeHtml(f.closet) || '—'} / Row ${escapeHtml(f.row) || '—'} / Section ${escapeHtml(f.shelf) || '—'}`}</td>
         <td>${escapeHtml(f.format) || 'Blu-ray'}</td>
@@ -113,6 +114,7 @@ export default function DashboardExportPanel({ films }) {
         <td>${escapeHtml(f.director) || '—'}</td>
         <td>★ ${f.rating ? f.rating.toFixed(1) : '—'}</td>
         <td>${escapeHtml(f.studio) || '—'}</td>
+        <td>${f.mediaType === 'digital' ? '—' : f.copies || 1}</td>
         <td>${f.criterion ? `✓${f.criterionCopies > 1 ? ` ×${f.criterionCopies}` : ''}` : '—'}</td>
         <td>${f.borrowedTo ? `Loaned to ${escapeHtml(f.borrowedTo)}` : 'In Archive'}</td>
       </tr>
@@ -146,6 +148,7 @@ export default function DashboardExportPanel({ films }) {
           <table>
             <thead>
               <tr>
+                <th>#</th>
                 <th>Title</th>
                 <th>Storage</th>
                 <th>Format</th>
@@ -153,6 +156,7 @@ export default function DashboardExportPanel({ films }) {
                 <th>Director</th>
                 <th>IMDb</th>
                 <th>Studio</th>
+                <th>Copies</th>
                 <th>Criterion</th>
                 <th>Status</th>
               </tr>
