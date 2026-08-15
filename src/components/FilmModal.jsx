@@ -61,6 +61,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const [collectionLoading, setCollectionLoading] = useState(false)
   const [bookAdaptation, setBookAdaptation] = useState(null)
   const [shootingLocation, setShootingLocation] = useState(null)
+  const [festivalAwards, setFestivalAwards] = useState(Array.isArray(film?.festivalAwards) ? film.festivalAwards : [])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -153,6 +154,23 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       cancelled = true
     }
   }, [film?.id, film?.shootingLocation])
+
+  // جوایز جشنواره‌ای — خودکار از Wikidata (P166). سرور خودش تشخیص می‌ده قبلاً
+  // چک شده یا نه (raw column)، پس همیشه fetch می‌کنیم و سرور کشش رو مدیریت می‌کنه.
+  useEffect(() => {
+    setFestivalAwards(Array.isArray(film?.festivalAwards) ? film.festivalAwards : [])
+    if (!film?.id) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/festival-awards`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && Array.isArray(data.awards)) setFestivalAwards(data.awards)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [film?.id])
 
   // عکس واقعی بازیگرها رو از ویکی‌پدیا می‌گیریم (کلید API لازم نداره).
   // نتیجه سمت سرور هم کش می‌شه، پس دفعات بعد سریع برمی‌گرده.
@@ -484,6 +502,19 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                   <em>{bookAdaptation.basedOnBook}</em>
                   {bookAdaptation.bookAuthor ? ` by ${bookAdaptation.bookAuthor}` : ''}
                 </p>
+              </div>
+            )}
+
+            {festivalAwards.length > 0 && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">FESTIVAL AWARDS</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                  {festivalAwards.map((a) => (
+                    <p key={a.festival} style={{ margin: 0, fontSize: 13.5 }}>
+                      {a.icon} <strong>{a.award}</strong>
+                    </p>
+                  ))}
+                </div>
               </div>
             )}
 

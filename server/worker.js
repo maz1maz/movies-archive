@@ -1230,6 +1230,19 @@ export default {
         }
       }
 
+      // ---- GET /api/films/:id/festival-awards — جوایز جشنواره‌ای، خودکار از Wikidata ----
+      const awardsMatch = pathname.match(/^\/api\/films\/([^/]+)\/festival-awards$/)
+      if (method === 'GET' && awardsMatch) {
+        try {
+          const film = await db.prepare('SELECT * FROM films WHERE id = ?').bind(awardsMatch[1]).first()
+          if (!film) return json({ awards: [] }, 200, corsHeaders)
+          const awards = await resolveFestivalAwards(db, env, film)
+          return json({ awards }, 200, corsHeaders)
+        } catch (e) {
+          return json({ awards: [], error: String(e) }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/films/:id/shooting-location — لوکیشن فیلم‌برداری، خودکار از Wikidata ----
       const locationMatch = pathname.match(/^\/api\/films\/([^/]+)\/shooting-location$/)
       if (method === 'GET' && locationMatch) {
@@ -3812,6 +3825,68 @@ async function resolveShootingLocation(db, env, film) {
     return locations
   } catch {
     return null
+  }
+}
+
+// جدول تشخیص جشنواره از روی متن اسم جایزه (Wikidata P166) — فقط ۵ جشنواره‌ی
+// معتبر اصلی رو می‌شناسیم تا کارت پر از بج نشه؛ جوایز صنفی/منطقه‌ای نادیده
+// گرفته می‌شن. هر کدوم یه emoji و رنگ مخصوص به خودش داره (نه لوگوی واقعی —
+// به‌خاطر کپی‌رایت، لوگوهای رسمی جشنواره‌ها استفاده نمی‌شن).
+const FESTIVAL_BADGES = [
+  { test: /palme d.?or|cannes/i, festival: 'Cannes', icon: '🌿', color: '#d4af37' },
+  { test: /golden lion|venice/i, festival: 'Venice', icon: '🦁', color: '#c9a227' },
+  { test: /golden bear|berlin/i, festival: 'Berlin', icon: '🐻', color: '#c0392b' },
+  { test: /academy award|oscar/i, festival: 'Oscar', icon: '🏆', color: '#f5c518' },
+  { test: /sundance/i, festival: 'Sundance', icon: '🏔️', color: '#4a90d9' },
+]
+
+// جوایز جشنواره‌ای — خودکار از Wikidata P166 «award received». فقط جوایز
+// شناخته‌شده‌ی ۵ جشنواره‌ی بالا رو برمی‌گردونه (نه هر جایزه‌ای که فیلم گرفته).
+// festivalAwards=NULL یعنی هنوز چک‌نشده، '[]'=چک‌شده بدون جایزه‌ی شناخته‌شده.
+async function resolveFestivalAwards(db, env, film) {
+  if (film.festivalAwards != null) {
+    try {
+      return JSON.parse(film.festivalAwards || '[]')
+    } catch {
+      return []
+    }
+  }
+  if (!film.imdbId) return []
+
+  try {
+    const headers = {
+      'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive; personal, single-user film archive app)',
+      accept: 'application/sparql-results+json',
+    }
+    const sparql = `SELECT ?awardLabel WHERE {
+      ?film wdt:P345 "${film.imdbId}".
+      ?film wdt:P166 ?award.
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+    } LIMIT 20`
+
+    let res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
+    if (!res.ok) {
+      res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
+    }
+    if (!res.ok) return []
+    const data = await res.json()
+    const rows = data?.results?.bindings || []
+
+    const matched = []
+    const seenFestivals = new Set()
+    for (const r of rows) {
+      const label = r.awardLabel?.value
+      if (!label) continue
+      const badge = FESTIVAL_BADGES.find((b) => b.test.test(label))
+      if (!badge || seenFestivals.has(badge.festival)) continue
+      seenFestivals.add(badge.festival)
+      matched.push({ award: label, festival: badge.festival, icon: badge.icon, color: badge.color })
+    }
+
+    await db.prepare('UPDATE films SET festivalAwards = ? WHERE id = ?').bind(JSON.stringify(matched), film.id).run()
+    return matched
+  } catch {
+    return []
   }
 }
 

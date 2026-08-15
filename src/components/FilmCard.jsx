@@ -33,11 +33,15 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
   const cardRef = useRef(null)
   const [altPosters, setAltPosters] = useState(null)
   const [posterIndex, setPosterIndex] = useState(0)
+  const [festivalAwards, setFestivalAwards] = useState(
+    Array.isArray(film.festivalAwards) ? film.festivalAwards : []
+  )
 
   useEffect(() => {
     setAltPosters(null)
     setPosterIndex(0)
-  }, [film.id])
+    setFestivalAwards(Array.isArray(film.festivalAwards) ? film.festivalAwards : [])
+  }, [film.id, film.festivalAwards])
 
   useEffect(() => {
     if (altPosters !== null) return
@@ -50,6 +54,13 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
             .then((r) => r.json())
             .then((data) => setAltPosters(Array.isArray(data.posters) ? data.posters : []))
             .catch(() => setAltPosters([]))
+          // همیشه fetch می‌شه، ولی سرور خودش چک می‌کنه که قبلاً resolve شده یا
+          // نه (raw column، نه نسخه‌ی parse‌شده‌ی کلاینت که null رو با [] یکی
+          // می‌کنه) — پس برای فیلم‌های از‌قبل‌چک‌شده فقط یه خوندن ساده از DBه.
+          fetch(`/api/films/${film.id}/festival-awards`)
+            .then((r) => r.json())
+            .then((data) => setFestivalAwards(Array.isArray(data.awards) ? data.awards : []))
+            .catch(() => {})
           observer.disconnect()
         }
       },
@@ -146,8 +157,18 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
             </span>
           </div>
         )}
-        {(film.criterion || hasBluray) && (
+        {(film.criterion || hasBluray || festivalAwards.length > 0) && (
           <div className="poster-badge-stack poster-badge-stack-left">
+            {festivalAwards.slice(0, 1).map((a) => (
+              <span
+                key={a.festival}
+                className="festival-award-badge"
+                style={{ background: a.color }}
+                title={a.award}
+              >
+                {a.icon} {a.festival}
+              </span>
+            ))}
             {film.criterion && (
               <span className="criterion-badge">
                 CRITERION{film.criterionCopies > 1 ? ` ×${film.criterionCopies}` : ''}

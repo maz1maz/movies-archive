@@ -30,6 +30,10 @@ const DONE_ITEMS = [
   { title: 'همکاری کارگردان–بازیگر', desc: 'بخش «بازیگرهای پرتکرار» (روی صفحه کارگردان) یا «همکاری با کارگردان‌ها» (روی صفحه بازیگر) تو PersonModal — کاملاً از دیتای موجود، فقط همکاری‌های بیش از ۱ فیلم' },
   { title: 'لوکیشن فیلم‌برداری', desc: 'خودکار از Wikidata (P915 «filming location»)، بر اساس imdbId؛ نمایش «Filmed in» تو FilmModal — بدون فیلتر جغرافیایی (فقط نمایش)' },
   { title: 'نسخه اکستندد / دایرکتور کات', desc: 'ستون editionType (دستی، تو EditModal) — حالا تو FilmModal ردیف «Edition» و رو کارت گرید تگ کوچیک نشون داده می‌شه' },
+  {
+    title: 'جشنواره‌ای برنده جایزه',
+    desc: 'خودکار از Wikidata (P166 «award received»)، محدود به ۵ جشنواره‌ی معتبر (Cannes/Venice/Berlin/Oscar/Sundance) با emoji و رنگ مخصوص (نه لوگوی واقعی، به‌خاطر کپی‌رایت)؛ بج رو کارت گرید (کنار Criterion/Blu-ray) + لیست کامل تو FilmModal',
+  },
 ]
 
 const CINEPHILE_ITEMS = [
@@ -39,7 +43,6 @@ const CINEPHILE_ITEMS = [
   { title: 'فیلم‌های الهام‌گرفته از هم', desc: 'لینک دستی بین دو فیلم با توضیح ارتباط' },
   { title: 'تریلر دیده‌شده', desc: 'تیک و تاریخ جدا برای دیدن تریلر هر فیلم' },
   { title: 'برچسب فیلم‌های کالت', desc: 'تگ دستی cult classic + فیلتر مخصوص' },
-  { title: 'جشنواره‌ای برنده جایزه', desc: 'بج طلایی برای فیلم‌های برنده Cannes/Oscar/Berlinale' },
   { title: 'فرمت اصلی اکران', desc: 'بج 35mm / 70mm / IMAX / دیجیتال' },
   { title: 'عکس پشت‌صحنه', desc: 'گالری behind-the-scenes از TMDB تو MovieModal' },
   { title: 'برچسب ریتم فیلم', desc: 'تگ دستی کند/متوسط/تند + فیلتر' },
