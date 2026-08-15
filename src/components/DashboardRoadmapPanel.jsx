@@ -1,9 +1,12 @@
-import { IconLayers, IconMasks } from './icons.jsx'
+import { IconLayers, IconMasks, IconCheck } from './icons.jsx'
 
 // تب «Roadmap» — فقط لیست ایده‌های آینده، بدون قابلیت فعال. هر آیتم بعداً
-// جداگانه پیاده‌سازی و از این لیست حذف می‌شه.
+// جداگانه پیاده‌سازی می‌شه و از این لیست به ستون «انجام‌شده» منتقل می‌شه.
+const DONE_ITEMS = [
+  { title: 'گزارش سلامت دیتابیس', desc: 'تب DB Health — اسکن و لیست رکوردهای ناقص (بدون پوستر/خلاصه/کارگردان/ژانر/لوکیشن و...)' },
+]
+
 const TECHNICAL_ITEMS = [
-  { title: 'گزارش سلامت دیتابیس', desc: 'اسکن و لیست رکوردهای ناقص (بدون پوستر/خلاصه/اطلاعات)' },
   { title: 'سیستم لاگ تغییرات (Audit Trail)', desc: 'ثبت اینکه کی چی رو تغییر داد، با مقدار قبل/بعد' },
   { title: 'API Rate Limit Monitoring', desc: 'گسترش /api/debug/checks برای هشدار نزدیک شدن به quota' },
   { title: 'تست خودکار قبل از دیپلوی', desc: 'اسکریپت چک اسکیما و endpointها پیش از npm run deploy' },
@@ -43,7 +46,7 @@ const CINEPHILE_ITEMS = [
   { title: 'برچسب تجربی / آوانگارد', desc: 'تگ دستی experimental، جدا از cult' },
 ]
 
-function RoadmapGroup({ icon: Icon, title, subtitle, items }) {
+function RoadmapGroup({ icon: Icon, title, subtitle, items, done }) {
   return (
     <div className="stats-box" style={{ marginBottom: 18 }}>
       <div className="stats-box-head" style={{ marginBottom: '4px' }}>
@@ -60,11 +63,11 @@ function RoadmapGroup({ icon: Icon, title, subtitle, items }) {
             style={{
               padding: '10px 12px',
               borderRadius: 8,
-              background: 'var(--card-bg, rgba(127,127,127,0.08))',
-              border: '1px solid var(--border-color, rgba(127,127,127,0.15))',
+              background: done ? 'var(--success-bg, rgba(60,160,100,0.10))' : 'var(--card-bg, rgba(127,127,127,0.08))',
+              border: done ? '1px solid var(--success-border, rgba(60,160,100,0.35))' : '1px solid var(--border-color, rgba(127,127,127,0.15))',
             }}
           >
-            <div style={{ fontWeight: 600, fontSize: 14 }}>{it.title}</div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>{done ? '✅ ' : ''}{it.title}</div>
             <div style={{ fontSize: 12.5, opacity: 0.75, marginTop: 2 }}>{it.desc}</div>
           </div>
         ))}
@@ -80,6 +83,13 @@ export default function DashboardRoadmapPanel() {
       <p className="dashboard-eyebrow" style={{ marginTop: 18 }}>
         فقط لیست — هنوز پیاده‌سازی نشده
       </p>
+      <RoadmapGroup
+        icon={IconCheck}
+        title="انجام‌شده"
+        subtitle="آیتم‌های پیاده‌سازی‌شده از این روادمپ"
+        items={DONE_ITEMS}
+        done
+      />
       <RoadmapGroup
         icon={IconLayers}
         title="زیرساخت و فنی"
