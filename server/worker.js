@@ -3594,6 +3594,12 @@ async function fetchDirectorRecommendations(db, name, env) {
       // نشد (نه TMDB نه OMDb)، به‌جای اینکه با شک نشونش بدیم، حذفش می‌کنیم.
       if (runtimeMins == null || runtimeMins < 40) continue
 
+      // فیلتر اولیه (بالای این تابع) فقط رو امتیاز TMDB بود؛ ولی امتیاز
+      // واقعی IMDb (از OMDb) می‌تونه پایین‌تر از ۷ در بیاد. اینجا دوباره با
+      // امتیاز نهایی (همونی که نمایش داده می‌شه) چک می‌کنیم تا زیر ۷ رد نشه.
+      const finalRating = imdbRating ?? c.tmdbRating
+      if (finalRating == null || finalRating <= 7) continue
+
       // لترباکس هم best-effort — اگه واقعاً امتیازش پایینه (زیر ۳.۵) حذفش
       // می‌کنیم، ولی اگه فقط جواب نداد (بلاک/تغییر مارک‌آپ) نادیده می‌گیریم.
       const lb = await fetchLetterboxdRating(c.title, c.year)
@@ -3602,7 +3608,7 @@ async function fetchDirectorRecommendations(db, name, env) {
       results.push({
         title: c.title,
         year: c.year,
-        imdbRating: imdbRating ?? c.tmdbRating,
+        imdbRating: finalRating,
         letterboxdRating: lb ? lb.rating : null,
         poster,
       })
