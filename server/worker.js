@@ -410,10 +410,10 @@ export default {
         const result = await db
           .prepare(
             `SELECT * FROM films WHERE
-             LOWER(director) LIKE ? OR LOWER(producer) LIKE ? OR LOWER("cast") LIKE ?
+             LOWER(director) LIKE ? OR LOWER(producer) LIKE ? OR LOWER("cast") LIKE ? OR LOWER(screenwriter) LIKE ?
              ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
           )
-          .bind(s, s, s)
+          .bind(s, s, s, s)
           .all()
         const films = (result.results || []).map(parseFilmRow)
         return json(films, 200, corsHeaders)

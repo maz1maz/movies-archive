@@ -245,7 +245,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
   const fullCrew = [
     { label: 'Director', value: film.director },
-    { label: 'Writer', value: film.writer || film.director },
+    { label: 'Writer', value: film.screenwriter },
     { label: 'Producer', value: film.producer },
     { label: 'Musician', value: film.composer || film.musician },
     { label: 'Cinematography', value: film.cinematographer },

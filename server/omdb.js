@@ -86,6 +86,15 @@ export async function enrichFilm(baseFilm, key, onApiCall) {
   if (data.Title && data.Title !== 'N/A') fillMissing(out, 'originalTitle', data.Title)
   if (data.Title && data.Title !== 'N/A') fillMissing(out, 'title', data.Title)
   if (data.Director && data.Director !== 'N/A') fillMissing(out, 'director', data.Director)
+  if (data.Writer && data.Writer !== 'N/A') {
+    // OMDb گاهی چندتا نویسنده با نقششون می‌ده، مثلاً "Mario Puzo (novel), Francis Ford Coppola (screenplay)"
+    // — فقط اسم‌ها رو نگه می‌داریم، پرانتزها رو حذف می‌کنیم.
+    const writers = data.Writer
+      .split(',')
+      .map((w) => w.replace(/\s*\([^)]*\)/g, '').trim())
+      .filter(Boolean)
+    if (writers.length) fillMissing(out, 'screenwriter', writers.join(', '))
+  }
   if (data.Actors && data.Actors !== 'N/A') {
     fillMissing(
       out,
