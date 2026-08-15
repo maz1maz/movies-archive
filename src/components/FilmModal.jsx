@@ -526,7 +526,18 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
                 <div className="cine-section-label">BASED ON</div>
                 <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>
-                  <em>{bookAdaptation.basedOnBook}</em>
+                  <a
+                    href={`https://www.goodreads.com/search?q=${encodeURIComponent(
+                      bookAdaptation.bookAuthor
+                        ? `${bookAdaptation.basedOnBook} ${bookAdaptation.bookAuthor}`
+                        : bookAdaptation.basedOnBook
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'inherit', textDecoration: 'underline' }}
+                  >
+                    <em>{bookAdaptation.basedOnBook}</em>
+                  </a>
                   {bookAdaptation.bookAuthor ? ` by ${bookAdaptation.bookAuthor}` : ''}
                 </p>
               </div>

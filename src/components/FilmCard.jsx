@@ -29,7 +29,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
 
   // پوسترهای جایگزین (از TMDB) — فقط وقتی کارت واقعاً تو دیدرسه fetch می‌شن
   // (IntersectionObserver)، تا برای صدها کارت خارج از صفحه درخواست الکی نره.
-  // هر ۵ ثانیه یکی جلو می‌ره؛ اولی همیشه پوستر اصلی خودمونه.
+  // فقط با هاور موس می‌چرخن (نه خودکار همیشه) تا صفحه اذیت‌کننده نشه.
   const cardRef = useRef(null)
   const [altPosters, setAltPosters] = useState(null)
   const [posterIndex, setPosterIndex] = useState(0)
@@ -72,16 +72,25 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
 
   const posterList = altPosters && altPosters.length > 0 ? [film.poster, ...altPosters] : null
 
+  // به‌جای چرخش خودکار مداوم (که رو صفحه‌ی شلوغ اذیت‌کننده بود)، فقط وقتی
+  // موس روی کارت می‌ره پوستر عوض می‌شه — مثل هاور روی کارت تو Netflix.
+  const [isHovering, setIsHovering] = useState(false)
   useEffect(() => {
-    if (!posterList || posterList.length < 2) return
+    if (!isHovering || !posterList || posterList.length < 2) return
     const id = setInterval(() => {
       setPosterIndex((i) => (i + 1) % posterList.length)
-    }, 5000)
+    }, 1200)
     return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [posterList?.length])
+  }, [isHovering, posterList?.length])
 
   const displayedPoster = posterList ? posterList[posterIndex] : film.poster
+
+  const handleMouseEnter = () => setIsHovering(true)
+  const handleMouseLeave = () => {
+    setIsHovering(false)
+    setPosterIndex(0)
+  }
 
   // چرخه‌ی وضعیت تماشا با کلیک روی بج: ندیده → واچ‌لیست‌شده (زرد) →
   // دیده‌شده (سبز) → دوباره ندیده
@@ -110,6 +119,8 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         e.stopPropagation()
         onSelect(film)
       }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div
         className="poster"
