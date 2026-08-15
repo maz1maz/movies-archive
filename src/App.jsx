@@ -780,6 +780,15 @@ export default function App() {
               onClose={() => setSelectedPerson(null)}
             />
           )}
+          {editing && (
+            <EditModal
+              film={editing}
+              onClose={() => setEditing(null)}
+              onSave={(patch) => handleSaveFilm(editing.id, patch)}
+              onAutofill={() => handleAutofillFilm(editing.id)}
+              onDelete={handleDeleteFilm}
+            />
+          )}
         </>
       ) : section === 'special-collections' ? (
         <div className="folder-nav">
