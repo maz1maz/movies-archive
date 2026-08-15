@@ -1217,6 +1217,19 @@ export default {
         }
       }
 
+      // ---- GET /api/films/:id/alt-posters — پوسترهای جایگزین از TMDB برای اسلایدشوی گرید ----
+      const altPostersMatch = pathname.match(/^\/api\/films\/([^/]+)\/alt-posters$/)
+      if (method === 'GET' && altPostersMatch) {
+        try {
+          const film = await db.prepare('SELECT id, imdbId, itemType FROM films WHERE id = ?').bind(altPostersMatch[1]).first()
+          if (!film) return json({ posters: [] }, 200, corsHeaders)
+          const posters = await fetchAltPosters(db, env, film)
+          return json({ posters }, 200, corsHeaders)
+        } catch (e) {
+          return json({ posters: [], error: String(e) }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/films/:id/book-adaptation — اقتباس از کتاب، خودکار از Wikidata ----
       const bookMatch = pathname.match(/^\/api\/films\/([^/]+)\/book-adaptation$/)
       if (method === 'GET' && bookMatch) {
@@ -3740,6 +3753,52 @@ async function resolveBookAdaptation(db, env, film) {
     return { basedOnBook: workTitle, bookAuthor: author }
   } catch {
     return null
+  }
+}
+
+// پوسترهای جایگزین یه فیلم/سریال از TMDB — برای اسلایدشوی خودکار روی کارت
+// تو گرید. با imdbId فیلم TMDB رو پیدا می‌کنیم، عکس‌هاش رو می‌گیریم، تا ۵ تای
+// برتر (بر اساس رأی) رو نگه می‌داریم. ۳۰ روز کش می‌شه (نتیجه‌ی خالی فقط
+// ۳۰ دقیقه، تا اگه فیلم تازه امروز اضافه شده دوباره امتحان بشه).
+async function fetchAltPosters(db, env, film) {
+  const cacheKey = `posters:${film.id}`
+  try {
+    const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(cacheKey).first()
+    const fresh = isCacheFresh(cached?.fetchedAt, cached?.data, 30 * 24 * 60 * 60 * 1000)
+    if (fresh) {
+      try {
+        return JSON.parse(cached.data)
+      } catch {}
+    }
+  } catch {}
+
+  if (!env.TMDB_API_KEY || !film.imdbId) return []
+  try {
+    const mediaType = film.itemType === 'series' ? 'tv' : 'movie'
+    const findRes = await fetch(
+      `https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`
+    )
+    if (!findRes.ok) return []
+    const findData = await findRes.json()
+    const tmdbId = findData?.[`${mediaType}_results`]?.[0]?.id
+    if (!tmdbId) return []
+
+    const imgRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/images?api_key=${env.TMDB_API_KEY}`)
+    if (!imgRes.ok) return []
+    const imgData = await imgRes.json()
+    const posters = (imgData.posters || [])
+      .filter((p) => p.file_path)
+      .sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+      .slice(0, 5)
+      .map((p) => `https://image.tmdb.org/t/p/w500${p.file_path}`)
+
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind(cacheKey, JSON.stringify(posters))
+      .run()
+    return posters
+  } catch {
+    return []
   }
 }
 

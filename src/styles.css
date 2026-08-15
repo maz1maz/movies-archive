@@ -464,6 +464,13 @@ body.light .header {
   object-fit: cover;
   transition: transform 0.3s ease;
 }
+.poster-img-fade {
+  animation: posterFadeIn 0.6s ease;
+}
+@keyframes posterFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 .card:hover .poster img {
   transform: scale(1.04);
 }

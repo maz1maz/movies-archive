@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from 'react'
 import { IconStar, IconPin, IconDisc, IconClapper } from './icons.jsx'
 import StarRating from './StarRating.jsx'
+import { proxyImg } from '../utils/proxyImg.js'
 
 // پالت رنگی برای کارت‌هایی که پوستر ندارن
 const PALETTE = [
@@ -25,6 +27,51 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
   const isDigital = film.mediaType === 'digital'
   const hasLocation = isDigital ? film.driveNumber : film.closet || film.shelf || film.row
 
+  // پوسترهای جایگزین (از TMDB) — فقط وقتی کارت واقعاً تو دیدرسه fetch می‌شن
+  // (IntersectionObserver)، تا برای صدها کارت خارج از صفحه درخواست الکی نره.
+  // هر ۵ ثانیه یکی جلو می‌ره؛ اولی همیشه پوستر اصلی خودمونه.
+  const cardRef = useRef(null)
+  const [altPosters, setAltPosters] = useState(null)
+  const [posterIndex, setPosterIndex] = useState(0)
+
+  useEffect(() => {
+    setAltPosters(null)
+    setPosterIndex(0)
+  }, [film.id])
+
+  useEffect(() => {
+    if (altPosters !== null) return
+    const el = cardRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          fetch(`/api/films/${film.id}/alt-posters`)
+            .then((r) => r.json())
+            .then((data) => setAltPosters(Array.isArray(data.posters) ? data.posters : []))
+            .catch(() => setAltPosters([]))
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '300px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [film.id, altPosters])
+
+  const posterList = altPosters && altPosters.length > 0 ? [film.poster, ...altPosters] : null
+
+  useEffect(() => {
+    if (!posterList || posterList.length < 2) return
+    const id = setInterval(() => {
+      setPosterIndex((i) => (i + 1) % posterList.length)
+    }, 5000)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posterList?.length])
+
+  const displayedPoster = posterList ? posterList[posterIndex] : film.poster
+
   // چرخه‌ی وضعیت تماشا با کلیک روی بج: ندیده → واچ‌لیست‌شده (زرد) →
   // دیده‌شده (سبز) → دوباره ندیده
   const status = film.watched ? 'watched' : film.watchlisted ? 'watchlisted' : 'unwatched'
@@ -39,6 +86,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
 
   return (
     <button
+      ref={cardRef}
       type="button"
       className={[
         'card',
@@ -57,9 +105,11 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         style={{ background: `linear-gradient(160deg, ${c1}, ${c2})` }}
       >
         <img
-          src={film.poster}
+          key={displayedPoster}
+          src={proxyImg(displayedPoster)}
           alt={film.title}
           loading="lazy"
+          className="poster-img-fade"
           onError={(e) => {
             e.currentTarget.style.display = 'none'
           }}
