@@ -1206,6 +1206,18 @@ export default {
         }
       }
 
+      // ---- GET /api/usage-stats (admin) — تاریخچه‌ی ۳۰ روز اخیر مصرف API ----
+      if (method === 'GET' && pathname === '/api/usage-stats') {
+        const denied = requireAdmin()
+        if (denied) return denied
+        const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+        const result = await db
+          .prepare('SELECT date, service, count FROM api_usage_daily WHERE date >= ? ORDER BY date ASC')
+          .bind(cutoff)
+          .all()
+        return json({ rows: result.results || [], omdbDailyLimit: 1000 }, 200, corsHeaders)
+      }
+
       if (method === 'GET' && pathname === '/api/debug/checks') {
         const denied = requireAuth()
         if (denied) return denied

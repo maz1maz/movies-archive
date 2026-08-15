@@ -12,6 +12,7 @@ import DashboardOrderListPanel from './DashboardOrderListPanel.jsx'
 import DashboardRoadmapPanel from './DashboardRoadmapPanel.jsx'
 import DashboardHealthPanel from './DashboardHealthPanel.jsx'
 import DashboardAuditPanel from './DashboardAuditPanel.jsx'
+import DashboardApiUsagePanel from './DashboardApiUsagePanel.jsx'
 import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper, IconBookshelf, IconLayers, IconHandshake, IconSparkles, IconCheck, IconDocument } from './icons.jsx'
 
 const TABS = [
@@ -22,6 +23,7 @@ const TABS = [
   { key: 'watchlists', label: 'Watchlists', icon: IconBookshelf },
   { key: 'health', label: 'DB Health', icon: IconCheck },
   { key: 'audit', label: 'Audit Trail', icon: IconDocument },
+  { key: 'apiusage', label: 'API Usage', icon: IconBarChart },
   { key: 'duplicates', label: 'Duplicates', icon: IconLayers },
   { key: 'loaned', label: 'Loaned Out', icon: IconHandshake },
   { key: 'orderlist', label: 'Order List', icon: IconSave },
@@ -84,6 +86,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
         {tab === 'watchlists' && <DashboardWatchlistsPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
         {tab === 'health' && <DashboardHealthPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
         {tab === 'audit' && <DashboardAuditPanel films={films} onOpenFilm={onOpenFilm} />}
+        {tab === 'apiusage' && <DashboardApiUsagePanel />}
         {tab === 'duplicates' && <DashboardDuplicatesPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
         {tab === 'loaned' && <DashboardLoanedPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'orderlist' && <DashboardOrderListPanel />}

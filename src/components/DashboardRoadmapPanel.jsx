@@ -7,12 +7,12 @@ const DONE_ITEMS = [
   { title: 'سیستم لاگ تغییرات (Audit Trail)', desc: 'تب Audit Trail — ثبت create/update/delete با مقدار قبل/بعد و کاربر' },
   { title: 'API Rate Limit Monitoring', desc: 'شمارنده‌ی روزانه‌ی OMDb تو D1 + نوار هشدار تو تب DB Health وقتی به ۸۰٪ سقف نزدیک بشه' },
   { title: 'تست خودکار قبل از دیپلوی', desc: 'predeploy — چک سینتکس server/*.js، build کامل، تطبیق schema.sql با worker.js، و اختیاری چک زنده‌ی OMDb/TMDB' },
-  { title: 'بکاپ چندلایه', desc: 'علاوه بر KV، هر بکاپ روزانه رو backups/latest-backup.json تو خود repo هم commit می‌کنه (GITHUB_BACKUP_TOKEN)' },
+  { title: 'بکاپ چندلایه', desc: 'علاوه بر KV، هر بکاپ روزانه رو backups/latest-backup.json.gz تو خود repo هم commit می‌کنه (GITHUB_BACKUP_TOKEN)' },
+  { title: 'صفحه آمار مصرف API', desc: 'تب API Usage — نمودار ۳۰ روز اخیر مصرف OMDb از api_usage_daily' },
 ]
 
 const TECHNICAL_ITEMS = [
   { title: 'کش هوشمند با Invalidation خودکار', desc: 'پاک‌سازی خودکار کش به‌جای حذف دستی جدول‌ها' },
-  { title: 'صفحه آمار مصرف API', desc: 'نمودار روزانه مصرف TMDB / OMDb / Wikidata' },
   { title: 'نسخه‌بندی اسکیمای دیتابیس', desc: 'فایل migration برای هر تغییر ساختار جدول' },
   { title: 'نوتیفیکیشن خطاهای سرور', desc: 'اطلاع‌رسانی (ایمیل/تلگرام) موقع کرش Worker' },
   { title: 'Rate Limiting روی Endpointهای عمومی', desc: 'محدودیت درخواست برای دسترسی مهمان (guest)' },
