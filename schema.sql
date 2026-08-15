@@ -60,6 +60,9 @@ CREATE TABLE IF NOT EXISTS films (
   pacing TEXT,                            -- slow / medium / fast
   experimental INTEGER DEFAULT 0,         -- برچسب فیلم تجربی/آوانگارد
   myNotes TEXT,                           -- یادداشت شخصی خصوصی (جدا از personalReview لترباکسدی)
+  collectionId TEXT,                      -- TMDB collection id؛ NULL=چک‌نشده، ''=چک‌شده بدون مجموعه
+  collectionName TEXT,                    -- اسم مجموعه‌ی TMDB (مثلاً "The Godfather Collection")
+  collectionPoster TEXT,                  -- پوستر مجموعه (از TMDB)
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );

@@ -1181,6 +1181,58 @@ export default {
         }
       }
 
+      // ---- GET /api/films/:id/collection — مجموعه‌ی TMDB این فیلم (اگه عضو یکی باشه) + کدوماشون تو آرشیو هست ----
+      const collectionMatch = pathname.match(/^\/api\/films\/([^/]+)\/collection$/)
+      if (method === 'GET' && collectionMatch) {
+        try {
+          const film = await db.prepare('SELECT * FROM films WHERE id = ?').bind(collectionMatch[1]).first()
+          if (!film) return json({ collection: null }, 200, corsHeaders)
+
+          const resolved = await resolveFilmCollection(db, env, film)
+          if (!resolved) return json({ collection: null }, 200, corsHeaders)
+
+          const details = await fetchCollectionDetails(db, env, resolved.collectionId)
+          if (!details) return json({ collection: null }, 200, corsHeaders)
+
+          // چک کن کدوم فیلم‌های مجموعه از قبل تو آرشیو هستن (بر اساس عنوان+سال،
+          // نادیده گرفتن "The" مثل بقیه‌ی جاهای اپ)
+          const normTitle = (t) =>
+            (t || '')
+              .toLowerCase()
+              .replace(/^the\s+/, '')
+              .trim()
+          const allTitlesRes = await db.prepare('SELECT id, title, year FROM films').all()
+          const archiveIndex = new Map()
+          for (const f of allTitlesRes.results || []) {
+            archiveIndex.set(`${normTitle(f.title)}::${f.year || ''}`, f.id)
+          }
+          const parts = details.parts.map((p) => {
+            const archiveFilmId = archiveIndex.get(`${normTitle(p.title)}::${p.year || ''}`) || null
+            return { ...p, inArchive: !!archiveFilmId, archiveFilmId }
+          })
+
+          return json({ collection: { ...details, parts } }, 200, corsHeaders)
+        } catch (e) {
+          return json({ collection: null, error: String(e) }, 200, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/collections — همه‌ی مجموعه‌هایی که حداقل یه فیلمشون تو آرشیو هست ----
+      if (method === 'GET' && pathname === '/api/collections') {
+        try {
+          const result = await db
+            .prepare(
+              `SELECT collectionId, collectionName, collectionPoster, COUNT(*) as ownedCount
+               FROM films WHERE collectionId IS NOT NULL AND collectionId != ''
+               GROUP BY collectionId ORDER BY ownedCount DESC, collectionName ASC`
+            )
+            .all()
+          return json(result.results || [], 200, corsHeaders)
+        } catch (e) {
+          return json([], 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/cinema-news (بخش «اخبار سینما» توی صفحه‌ی اصلی: تولدهای
       // امروزِ اهالی کالکشن + فیلم/سریال‌های در راهِ اونا + تریلرهای تازه‌ی
       // هالیوود. سه بخش موازی fetch می‌شن، هرکدوم جدا کش می‌شن. ----
@@ -3524,6 +3576,110 @@ function parseFilmRow(row) {
   film.cultClassic = Boolean(film.cultClassic)
   film.experimental = Boolean(film.experimental)
   return film
+}
+
+// ---------- TMDB Collections (based on / sequel / prequel graph) ----------
+
+// جزئیات کامل یه مجموعه‌ی TMDB (اسم، پوستر، لیست همه‌ی فیلم‌های عضو) —
+// ۳۰ روز کش می‌شه چون به‌ندرت تغییر می‌کنه (فقط وقتی فیلم جدیدی به مجموعه اضافه بشه).
+async function fetchCollectionDetails(db, env, collectionId) {
+  const cacheKey = `collection:${collectionId}`
+  try {
+    const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(cacheKey).first()
+    const fresh = isCacheFresh(cached?.fetchedAt, cached?.data, 30 * 24 * 60 * 60 * 1000)
+    if (fresh) {
+      try {
+        return JSON.parse(cached.data)
+      } catch {}
+    }
+  } catch {}
+
+  if (!env.TMDB_API_KEY) return null
+  try {
+    const res = await fetch(`https://api.themoviedb.org/3/collection/${collectionId}?api_key=${env.TMDB_API_KEY}`)
+    if (!res.ok) return null
+    const data = await res.json()
+    const result = {
+      id: data.id,
+      name: data.name,
+      poster: data.poster_path ? `https://image.tmdb.org/t/p/w342${data.poster_path}` : null,
+      parts: (data.parts || [])
+        .filter((p) => p.release_date)
+        .map((p) => ({
+          tmdbId: p.id,
+          title: p.title,
+          year: p.release_date ? parseInt(p.release_date.slice(0, 4), 10) : null,
+          poster: p.poster_path ? `https://image.tmdb.org/t/p/w185${p.poster_path}` : null,
+        }))
+        .sort((a, b) => (a.year || 9999) - (b.year || 9999)),
+    }
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind(cacheKey, JSON.stringify(result))
+      .run()
+    return result
+  } catch {
+    return null
+  }
+}
+
+// یه فیلم رو به یه TMDB collection وصل می‌کنه (اگه قبلاً چک نشده باشه). نتیجه
+// رو مستقیم روی ردیف films ذخیره می‌کنه (collectionId='' یعنی چک‌شده و متعلق
+// به هیچ مجموعه‌ای نیست، تا دوباره هر بار fetch نشه).
+async function resolveFilmCollection(db, env, film) {
+  if (film.collectionId != null) {
+    // قبلاً چک شده — یا عضو یه مجموعه‌ست، یا مطمئنیم که نیست
+    if (!film.collectionId) return null
+    return { collectionId: film.collectionId, collectionName: film.collectionName, collectionPoster: film.collectionPoster }
+  }
+  if (!env.TMDB_API_KEY || film.itemType === 'series') {
+    return null // TMDB collections فقط برای فیلمن، نه سریال
+  }
+
+  let tmdbMovieId = null
+  try {
+    if (film.imdbId) {
+      const findRes = await fetch(
+        `https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`
+      )
+      if (findRes.ok) {
+        const findData = await findRes.json()
+        tmdbMovieId = findData?.movie_results?.[0]?.id || null
+      }
+    }
+    if (!tmdbMovieId && film.title) {
+      const q = encodeURIComponent(film.title)
+      const yearParam = film.year ? `&year=${film.year}` : ''
+      const searchRes = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${env.TMDB_API_KEY}&query=${q}${yearParam}`)
+      if (searchRes.ok) {
+        const searchData = await searchRes.json()
+        tmdbMovieId = searchData?.results?.[0]?.id || null
+      }
+    }
+    if (!tmdbMovieId) {
+      await db.prepare("UPDATE films SET collectionId = '' WHERE id = ?").bind(film.id).run()
+      return null
+    }
+
+    const movieRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbMovieId}?api_key=${env.TMDB_API_KEY}`)
+    if (!movieRes.ok) return null
+    const movieData = await movieRes.json()
+    const collection = movieData.belongs_to_collection
+
+    if (!collection) {
+      await db.prepare("UPDATE films SET collectionId = '' WHERE id = ?").bind(film.id).run()
+      return null
+    }
+
+    const collectionPoster = collection.poster_path ? `https://image.tmdb.org/t/p/w342${collection.poster_path}` : null
+    await db
+      .prepare('UPDATE films SET collectionId = ?, collectionName = ?, collectionPoster = ? WHERE id = ?')
+      .bind(String(collection.id), collection.name, collectionPoster, film.id)
+      .run()
+    return { collectionId: String(collection.id), collectionName: collection.name, collectionPoster }
+  } catch {
+    return null
+  }
 }
 
 async function insertFilm(db, film) {

@@ -57,6 +57,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   }
   const [letterboxdVotes, setLetterboxdVotes] = useState(null)
   const [lightboxSrc, setLightboxSrc] = useState(null)
+  const [collection, setCollection] = useState(null)
+  const [collectionLoading, setCollectionLoading] = useState(false)
 
   useEffect(() => {
     const onKey = (e) => {
@@ -94,6 +96,27 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   useEffect(() => {
     setLightboxSrc(null)
   }, [film.id])
+
+  // مجموعه‌ی TMDB این فیلم (اگه بخشی از یه سری مثل «Alien Collection» باشه).
+  // سریال‌ها و فیلم‌های بدون itemType مشخص رو سرور خودش رد می‌کنه.
+  useEffect(() => {
+    setCollection(null)
+    if (!film?.id || film.itemType === 'series') return
+    setCollectionLoading(true)
+    let cancelled = false
+    fetch(`/api/films/${film.id}/collection`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) setCollection(data.collection || null)
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setCollectionLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [film?.id, film?.itemType])
 
   // عکس واقعی بازیگرها رو از ویکی‌پدیا می‌گیریم (کلید API لازم نداره).
   // نتیجه سمت سرور هم کش می‌شه، پس دفعات بعد سریع برمی‌گرده.
@@ -415,6 +438,42 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                   <p className="cine-my-review-text">{r.text}</p>
                 </div>
               ))}
+
+            {collection && collection.parts?.length > 1 && (
+              <div className="cine-collection-box">
+                <div className="cine-section-label">
+                  PART OF: {collection.name?.toUpperCase()} ({collection.parts.filter((p) => p.inArchive).length}/{collection.parts.length} in archive)
+                </div>
+                <div className="cine-collection-grid">
+                  {collection.parts.map((p) => (
+                    <div key={p.tmdbId} className={`cine-collection-item${p.title === film.title ? ' cine-collection-item-current' : ''}`}>
+                      <button
+                        type="button"
+                        className="cine-collection-poster-btn"
+                        disabled={!p.inArchive}
+                        onClick={() => {
+                          if (p.inArchive && p.archiveFilmId && onNavigate) {
+                            const target = films.find((f) => f.id === p.archiveFilmId)
+                            if (target) onNavigate(target)
+                          }
+                        }}
+                        title={p.title}
+                      >
+                        {p.poster ? (
+                          <img src={p.poster} alt={p.title} className="cine-collection-poster" />
+                        ) : (
+                          <span className="cine-collection-poster-empty">{p.title}</span>
+                        )}
+                        {!p.inArchive && <span className="cine-collection-missing-badge">Missing</span>}
+                      </button>
+                      <span className="cine-collection-item-title">
+                        {p.title} {p.year ? `(${p.year})` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Bottom Row: Studio Name (Left) + MPA Box + All-Black IMDb Badge with K votes */}
             <div className="cine-info-bottom-row">

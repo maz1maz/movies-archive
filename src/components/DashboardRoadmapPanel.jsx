@@ -18,13 +18,13 @@ const DONE_ITEMS = [
   },
   { title: 'دنبال‌کردن هنرمند', desc: 'دکمه Follow/Unfollow رو PersonModal + تب Following تو Dashboard (گالری کارت با عکس)' },
   { title: 'تقویم جشنواره‌ها و اکران‌ها', desc: 'تب Festivals تو Cinema News — کاملاً خودکار از Wikidata (بدون لیست دستی): P179 پیدا می‌کنه نزدیک‌ترین ادیشن هر جشنواره رو، کش ۱۴ روزه' },
+  { title: 'گراف رابطه فیلم‌ها', desc: 'بخش «Part of: X Collection» تو MovieModal (از belongs_to_collection تی‌ام‌دی‌بی) + تب Collections تو Dashboard؛ چک‌کردن خودکار موقع باز کردن هر فیلم، بدون نیاز به enrich دستی' },
 ]
 
 const CINEPHILE_ITEMS = [
   { title: 'یادداشت نقد شخصی', desc: 'فیلد یادداشت خصوصی جدا از reviewهای فعلی' },
   { title: 'رتبه‌بندی سالانه', desc: 'تب Top 10 هر سال بر اساس تاریخ تماشا' },
   { title: 'جنبش سینمایی', desc: 'فیلد و فیلتر برای مکتب‌هایی مثل نئورئالیسم' },
-  { title: 'گراف رابطه فیلم‌ها', desc: 'based on / remake / sequel از TMDB collections' },
   { title: 'فیلم‌های الهام‌گرفته از هم', desc: 'لینک دستی بین دو فیلم با توضیح ارتباط' },
   { title: 'بازیگر مشترک', desc: 'نمایش فیلم‌های مشترک دو بازیگر از دیتای cast موجود' },
   { title: 'تریلر دیده‌شده', desc: 'تیک و تاریخ جدا برای دیدن تریلر هر فیلم' },
