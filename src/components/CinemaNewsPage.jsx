@@ -11,11 +11,13 @@ import {
 } from './icons.jsx'
 import { addToOrderList, lookupDirectorFromTmdbUrl } from '../utils/orderList.js'
 import { proxyImg } from '../utils/proxyImg.js'
+import { FESTIVALS } from '../data/festivals.js'
 
 const TABS = [
   { key: 'news', label: 'News', icon: IconNewspaper },
   { key: 'people', label: 'People', icon: IconUser },
   { key: 'comingsoon', label: 'Coming Soon', icon: IconClapperPlay },
+  { key: 'festivals', label: 'Festivals', icon: IconCake },
   { key: 'trending', label: 'Trending', icon: IconBarChart },
   { key: 'boxoffice', label: 'Box Office', icon: IconBarChart },
   { key: 'trailers', label: 'New Trailers', icon: IconClapper },
@@ -106,6 +108,55 @@ function HeadlineList({ items, rtl }) {
           </span>
         </li>
       ))}
+    </ul>
+  )
+}
+
+function daysUntil(dateStr) {
+  const target = new Date(dateStr + 'T00:00:00')
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Math.round((target - today) / 86400000)
+}
+
+function formatFestivalRange(start, end) {
+  const s = new Date(start + 'T00:00:00')
+  const e = new Date(end + 'T00:00:00')
+  const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()
+  const opts = { day: 'numeric', month: 'short' }
+  if (start === end) return s.toLocaleDateString('en-US', { ...opts, year: 'numeric' })
+  if (sameMonth) {
+    return `${s.getDate()}–${e.toLocaleDateString('en-US', { ...opts, year: 'numeric' })}`
+  }
+  return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', { ...opts, year: 'numeric' })}`
+}
+
+function FestivalCalendar({ festivals }) {
+  const sorted = [...festivals].sort((a, b) => new Date(a.start) - new Date(b.start))
+  return (
+    <ul className="person-recommendations-list">
+      {sorted.map((f) => {
+        const startsIn = daysUntil(f.start)
+        const endsIn = daysUntil(f.end)
+        const isOngoing = startsIn <= 0 && endsIn >= 0
+        const isSoon = !isOngoing && startsIn > 0 && startsIn <= 30
+        return (
+          <li key={f.name} className="person-recommendation-item cinema-news-upcoming-item">
+            <a href={f.url} target="_blank" rel="noopener noreferrer" className="cinema-news-upcoming-link">
+              <span className="person-recommendation-info">
+                <span className="person-recommendation-title">
+                  {f.name}
+                  {isOngoing && <span className="cinema-news-festival-badge cinema-news-festival-badge-live"> در حال برگزاری</span>}
+                  {isSoon && <span className="cinema-news-festival-badge">{startsIn} روز دیگر</span>}
+                </span>
+                <span className="cinema-news-headline-meta">
+                  {formatFestivalRange(f.start, f.end)} · {f.location}
+                </span>
+              </span>
+            </a>
+          </li>
+        )
+      })}
     </ul>
   )
 }
@@ -461,6 +512,15 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
                 <IconCake width={15} height={15} /> Born today (everywhere)
               </h3>
               <PeopleGrid items={bornTodayGeneral} subtitleKey="subtitle" />
+            </div>
+          )}
+
+          {tab === 'festivals' && (
+            <div className="stats-box">
+              <h3>
+                <IconCake width={15} height={15} /> Major film festivals & award ceremonies
+              </h3>
+              <FestivalCalendar festivals={FESTIVALS} />
             </div>
           )}
 

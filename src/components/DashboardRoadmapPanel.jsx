@@ -17,12 +17,12 @@ const DONE_ITEMS = [
     desc: 'TTL کوتاه‌تر خودکار برای نتیجه‌ی خالی/شکست‌خورده (به‌جای TTL کامل) در همه‌ی کش‌های cinema_news_cache و director_extras؛ + رفع باگ people_photos که ثبت لینک مصاحبه، fetch بیوگرافی رو برای همیشه بلاک می‌کرد',
   },
   { title: 'دنبال‌کردن هنرمند', desc: 'دکمه Follow/Unfollow رو PersonModal + تب Following تو Dashboard (گالری کارت با عکس)' },
+  { title: 'تقویم جشنواره‌ها و اکران‌ها', desc: 'تب Festivals تو Cinema News — لیست دستی‌نگه‌داری‌شده‌ی جشنواره‌های معتبر (Cannes/Venice/Berlinale/Sundance/TIFF/Oscars) با نشانگر «در حال برگزاری» و «X روز مانده»' },
 ]
 
 const CINEPHILE_ITEMS = [
   { title: 'یادداشت نقد شخصی', desc: 'فیلد یادداشت خصوصی جدا از reviewهای فعلی' },
   { title: 'رتبه‌بندی سالانه', desc: 'تب Top 10 هر سال بر اساس تاریخ تماشا' },
-  { title: 'تقویم جشنواره‌ها و اکران‌ها', desc: 'بخش جدید تو Cinema News از RSS/TMDB' },
   { title: 'جنبش سینمایی', desc: 'فیلد و فیلتر برای مکتب‌هایی مثل نئورئالیسم' },
   { title: 'گراف رابطه فیلم‌ها', desc: 'based on / remake / sequel از TMDB collections' },
   { title: 'فیلم‌های الهام‌گرفته از هم', desc: 'لینک دستی بین دو فیلم با توضیح ارتباط' },

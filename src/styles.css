@@ -3505,6 +3505,23 @@ body.light .header {
   padding: 2px 6px;
   border-radius: 5px;
 }
+.cinema-news-festival-badge {
+  display: inline-block;
+  margin-inline-start: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 5px;
+  padding: 1px 7px;
+  vertical-align: middle;
+}
+.cinema-news-festival-badge-live {
+  color: #ff5a5a;
+  background: color-mix(in srgb, #ff5a5a 14%, transparent);
+  border-color: color-mix(in srgb, #ff5a5a 40%, transparent);
+}
 .cinema-news-boxoffice-list {
   list-style: none;
   margin: 0;
