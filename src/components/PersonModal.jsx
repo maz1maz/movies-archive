@@ -158,6 +158,14 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
 
   const isDirector = dedupedFilms.some((f) => (f.director || '').toLowerCase().includes(target))
 
+  // اگه کارگردان نبود، بازیگره یا نه رو چک می‌کنیم — برای تگ کنار اسم.
+  const isActor =
+    !isDirector &&
+    dedupedFilms.some((f) => {
+      const castList = Array.isArray(f.cast) ? f.cast : []
+      return castList.some((a) => (typeof a === 'object' ? a.name : a || '').toLowerCase() === target)
+    })
+
   // اگه این شخص تو آرشیو به‌عنوان کارگردان شناخته می‌شه، صفحه‌ش رو صرفاً
   // فیلموگرافی کارگردانی‌ش نشون بده — نه فیلم‌هایی که فقط تهیه‌کننده یا
   // بازیگرشون بوده، که ترکیبشون گیج‌کننده‌ست.
@@ -323,6 +331,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
             <h2 className="person-title">
               {personName}
               {isDirector && <span className="person-role-tag">DIRECTOR</span>}
+              {isActor && <span className="person-role-tag">ACTOR</span>}
               <a
                 className="person-imdb-link"
                 href={
