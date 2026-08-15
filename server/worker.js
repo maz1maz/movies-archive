@@ -1045,10 +1045,14 @@ export default {
 
         try {
           const cached = await db
-            .prepare('SELECT photo, bio, birthDate, deathDate, height, spouse, children, imdbId, letterboxdUrl FROM people_photos WHERE name = ?')
+            .prepare('SELECT photo, bio, birthDate, deathDate, height, spouse, children, imdbId, letterboxdUrl, interviewLinks FROM people_photos WHERE name = ?')
             .bind(cacheKey)
             .first()
-          if (cached) {
+          // اگه ردیف وجود داره ولی هیچ دیتای واقعی‌ای نداره (مثلاً فقط از مسیر
+          // ثبت لینک مصاحبه ساخته شده)، کش معتبر نیست — باید دوباره fetch بشه؛
+          // وگرنه این آدم برای همیشه بدون عکس/بیو می‌مونه.
+          const cacheHasData = cached && (cached.photo || cached.bio || cached.birthDate)
+          if (cacheHasData) {
             return json(
               { ...cached, age: cached.deathDate ? null : ageFromBirthDate(cached.birthDate) },
               200,
@@ -1104,9 +1108,21 @@ export default {
 
           await db
             .prepare(
-              'INSERT OR REPLACE INTO people_photos (name, photo, bio, birthDate, deathDate, height, spouse, children, imdbId, letterboxdUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+              'INSERT OR REPLACE INTO people_photos (name, photo, bio, birthDate, deathDate, height, spouse, children, imdbId, letterboxdUrl, interviewLinks) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             )
-            .bind(cacheKey, info.photo, info.bio, info.birthDate, info.deathDate, info.height, info.spouse, info.children, info.imdbId, info.letterboxdUrl)
+            .bind(
+              cacheKey,
+              info.photo,
+              info.bio,
+              info.birthDate,
+              info.deathDate,
+              info.height,
+              info.spouse,
+              info.children,
+              info.imdbId,
+              info.letterboxdUrl,
+              cached?.interviewLinks ?? null // INSERT OR REPLACE کل ردیف رو عوض می‌کنه؛ اگه لینک مصاحبه‌ای قبلاً ثبت شده بود، اینجا حفظش می‌کنیم
+            )
             .run()
           return json(
             { ...info, age: info.deathDate ? null : ageFromBirthDate(info.birthDate) },
@@ -1132,8 +1148,13 @@ export default {
             .prepare('SELECT awards, recommendations, fetchedAt FROM director_extras WHERE name = ?')
             .bind(cacheKey)
             .first()
-          const cacheFresh =
-            cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 30 * 24 * 60 * 60 * 1000
+          // اگه هم awards و هم recommendations خالی باشن، احتمالاً یه fetch
+          // (مثلاً به‌خاطر quota تموم‌شده‌ی OMDb) شکست خورده — به‌جای TTL کامل
+          // ۳۰ روزه، فقط ۱ روز نگهش می‌داریم تا خودش دوباره امتحان کنه.
+          const isEmpty =
+            (JSON.parse(cached?.awards || '[]').length === 0) && (JSON.parse(cached?.recommendations || '[]').length === 0)
+          const ttl = isEmpty ? 1 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000
+          const cacheFresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < ttl
           if (cacheFresh) {
             return json(
               { awards: JSON.parse(cached.awards || '[]'), recommendations: JSON.parse(cached.recommendations || '[]') },
@@ -2195,6 +2216,25 @@ function uint8ToBase64(bytes) {
 
 // ---------- Helpers ----------
 
+// TTL هوشمند برای کش‌های cinema_news_cache: اگه دیتای کش‌شده خالی باشه
+// (آرایه‌ی خالی — یعنی احتمالاً یه fetch شکست‌خورده بوده، نه این‌که واقعاً
+// چیزی برای نمایش نیست)، به‌جای TTL کامل (مثلاً ۲۴ ساعت)، یه TTL خیلی
+// کوتاه‌تر استفاده می‌کنیم تا خودش دفعه‌ی بعد که کسی صفحه رو باز کرد دوباره
+// امتحان کنه — بدون نیاز به حذف دستی ردیف از دیتابیس بعد از هر تغییر منطق.
+const EMPTY_CACHE_TTL_MS = 30 * 60 * 1000 // ۳۰ دقیقه برای نتیجه‌ی خالی
+function isCacheFresh(fetchedAt, dataStr, fullTtlMs) {
+  if (!fetchedAt) return false
+  const age = Date.now() - new Date(fetchedAt).getTime()
+  let isEmpty = true
+  try {
+    const parsed = JSON.parse(dataStr || '[]')
+    isEmpty = Array.isArray(parsed) ? parsed.length === 0 : !parsed || Object.keys(parsed).length === 0
+  } catch {
+    isEmpty = true
+  }
+  return age < (isEmpty ? EMPTY_CACHE_TTL_MS : fullTtlMs)
+}
+
 // آدرس صفحه‌ی شخصیِ letterboxd.com (actor یا director) رو با امتحان کردن
 // اسلاگ ساخته‌شده از اسم پیدا می‌کنه. اگه هیچ‌کدوم جواب نداد (اسم غیرمعمول
 // یا Letterboxd اصلاً صفحه‌ای براش نداره)، null برمی‌گردونه و فرانت به لینک
@@ -2222,7 +2262,7 @@ async function resolveLetterboxdPersonUrl(name) {
 async function fetchCinemaHeadlines(db) {
   try {
     const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('headlines').first()
-    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 6 * 60 * 60 * 1000
+    const fresh = isCacheFresh(cached?.fetchedAt, cached?.data, 6 * 60 * 60 * 1000)
     if (fresh) {
       try {
         return JSON.parse(cached.data || '[]')
@@ -2323,7 +2363,7 @@ async function translateToFa(text) {
 async function fetchCinemaHeadlinesFa(db) {
   try {
     const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('headlines_fa').first()
-    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 6 * 60 * 60 * 1000
+    const fresh = isCacheFresh(cached?.fetchedAt, cached?.data, 6 * 60 * 60 * 1000)
     if (fresh) {
       try {
         return JSON.parse(cached.data || '[]')
@@ -2643,7 +2683,7 @@ async function fetchUpcomingFromCollection(db, env) {
     for (const name of topPeople) {
       const cacheKey = `upcoming:${name.toLowerCase()}`
       const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(cacheKey).first()
-      const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 3 * 24 * 60 * 60 * 1000
+      const fresh = isCacheFresh(cached?.fetchedAt, cached?.data, 3 * 24 * 60 * 60 * 1000)
       let items
       if (fresh) {
         try {
@@ -2733,7 +2773,7 @@ async function fetchTrendingTrailers(db, env) {
   if (!env.TMDB_API_KEY) return []
   try {
     const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('trailers').first()
-    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 24 * 60 * 60 * 1000
+    const fresh = isCacheFresh(cached?.fetchedAt, cached?.data, 24 * 60 * 60 * 1000)
     if (fresh) {
       try {
         return JSON.parse(cached.data || '[]')
@@ -2796,7 +2836,7 @@ async function fetchGeneralUpcoming(db, env) {
   if (!env.TMDB_API_KEY) return { movies: [], series: [] }
   try {
     const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('general_upcoming').first()
-    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 24 * 60 * 60 * 1000
+    const fresh = isCacheFresh(cached?.fetchedAt, cached?.data, 24 * 60 * 60 * 1000)
     if (fresh) {
       try {
         return JSON.parse(cached.data || '{"movies":[],"series":[]}')
@@ -2870,7 +2910,7 @@ async function fetchTrendingAndBoxOffice(db, env) {
   if (!env.TMDB_API_KEY) return empty
   try {
     const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('trending_boxoffice').first()
-    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 24 * 60 * 60 * 1000
+    const fresh = isCacheFresh(cached?.fetchedAt, cached?.data, 24 * 60 * 60 * 1000)
     if (fresh) {
       try {
         return JSON.parse(cached.data || 'null') || empty
@@ -2967,7 +3007,7 @@ async function fetchTrendingPeople(db, env) {
   if (!env.TMDB_API_KEY) return []
   try {
     const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('trending_people').first()
-    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 24 * 60 * 60 * 1000
+    const fresh = isCacheFresh(cached?.fetchedAt, cached?.data, 24 * 60 * 60 * 1000)
     if (fresh) {
       try {
         return JSON.parse(cached.data || '[]')
@@ -3025,7 +3065,7 @@ async function fetchTrendingPeople(db, env) {
 async function fetchBornTodayGeneral(db) {
   try {
     const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('born_today').first()
-    const fresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < 24 * 60 * 60 * 1000
+    const fresh = isCacheFresh(cached?.fetchedAt, cached?.data, 24 * 60 * 60 * 1000)
     if (fresh) {
       try {
         return JSON.parse(cached.data || '[]')

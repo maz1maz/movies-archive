@@ -1,4 +1,4 @@
-import { IconLayers, IconMasks, IconCheck } from './icons.jsx'
+import { IconMasks, IconCheck } from './icons.jsx'
 
 // تب «Roadmap» — فقط لیست ایده‌های آینده، بدون قابلیت فعال. هر آیتم بعداً
 // جداگانه پیاده‌سازی می‌شه و از این لیست به ستون «انجام‌شده» منتقل می‌شه.
@@ -12,10 +12,10 @@ const DONE_ITEMS = [
   { title: 'نسخه‌بندی اسکیمای دیتابیس', desc: 'پوشه‌ی migrations/ + جدول schema_migrations + npm run migrate' },
   { title: 'نوتیفیکیشن خطاهای سرور', desc: 'هشدار تلگرام موقع خطای API یا شکست کرون‌های daily backup/enrichment (TELEGRAM_BOT_TOKEN)' },
   { title: 'Rate Limiting روی Endpointهای عمومی', desc: 'محدودیت ۶۰ درخواست/دقیقه برای مهمان‌ها، رو KV جدا (RATE_LIMIT) — کاربر لاگین‌شده محدودیت نداره' },
-]
-
-const TECHNICAL_ITEMS = [
-  { title: 'کش هوشمند با Invalidation خودکار', desc: 'پاک‌سازی خودکار کش به‌جای حذف دستی جدول‌ها' },
+  {
+    title: 'کش هوشمند با Invalidation خودکار',
+    desc: 'TTL کوتاه‌تر خودکار برای نتیجه‌ی خالی/شکست‌خورده (به‌جای TTL کامل) در همه‌ی کش‌های cinema_news_cache و director_extras؛ + رفع باگ people_photos که ثبت لینک مصاحبه، fetch بیوگرافی رو برای همیشه بلاک می‌کرد',
+  },
 ]
 
 const CINEPHILE_ITEMS = [
@@ -89,12 +89,6 @@ export default function DashboardRoadmapPanel() {
         subtitle="آیتم‌های پیاده‌سازی‌شده از این روادمپ"
         items={DONE_ITEMS}
         done
-      />
-      <RoadmapGroup
-        icon={IconLayers}
-        title="زیرساخت و فنی"
-        subtitle="بهبودهای پایداری، مانیتورینگ و نگهداری سیستم"
-        items={TECHNICAL_ITEMS}
       />
       <RoadmapGroup
         icon={IconMasks}
