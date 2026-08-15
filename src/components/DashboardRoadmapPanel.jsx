@@ -5,10 +5,10 @@ import { IconLayers, IconMasks, IconCheck } from './icons.jsx'
 const DONE_ITEMS = [
   { title: 'گزارش سلامت دیتابیس', desc: 'تب DB Health — اسکن و لیست رکوردهای ناقص (بدون پوستر/خلاصه/کارگردان/ژانر/لوکیشن و...)' },
   { title: 'سیستم لاگ تغییرات (Audit Trail)', desc: 'تب Audit Trail — ثبت create/update/delete با مقدار قبل/بعد و کاربر' },
+  { title: 'API Rate Limit Monitoring', desc: 'شمارنده‌ی روزانه‌ی OMDb تو D1 + نوار هشدار تو تب DB Health وقتی به ۸۰٪ سقف نزدیک بشه' },
 ]
 
 const TECHNICAL_ITEMS = [
-  { title: 'API Rate Limit Monitoring', desc: 'گسترش /api/debug/checks برای هشدار نزدیک شدن به quota' },
   { title: 'تست خودکار قبل از دیپلوی', desc: 'اسکریپت چک اسکیما و endpointها پیش از npm run deploy' },
   { title: 'بکاپ چندلایه', desc: 'خروجی دوره‌ای به GitHub/R2، علاوه بر بکاپ فعلی روی KV' },
   { title: 'کش هوشمند با Invalidation خودکار', desc: 'پاک‌سازی خودکار کش به‌جای حذف دستی جدول‌ها' },

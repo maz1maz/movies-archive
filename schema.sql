@@ -161,6 +161,13 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 CREATE INDEX IF NOT EXISTS idx_audit_log_changedAt ON audit_log(changedAt DESC);
 
+CREATE TABLE IF NOT EXISTS api_usage_daily (
+  date TEXT NOT NULL,
+  service TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (date, service)
+);
+
 -- ============================================================================
 -- MIGRATION for an EXISTING production database (D1) that predates the
 -- columns/table above. NOT run automatically by `npm run db:init` — that

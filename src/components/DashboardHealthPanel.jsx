@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import EditModal from './EditModal.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 
@@ -32,6 +32,14 @@ export default function DashboardHealthPanel({ films = [], onOpenFilm, onFilmsCh
   const { isGuest, openLogin } = useAuth()
   const [openKey, setOpenKey] = useState(null)
   const [editingFilm, setEditingFilm] = useState(null)
+  const [usage, setUsage] = useState(null)
+
+  useEffect(() => {
+    fetch('/api/debug/checks')
+      .then((r) => r.json())
+      .then((data) => setUsage(data.usage || null))
+      .catch(() => setUsage(null))
+  }, [])
 
   const results = useMemo(() => {
     return CHECKS.map((c) => ({
@@ -56,6 +64,27 @@ export default function DashboardHealthPanel({ films = [], onOpenFilm, onFilmsCh
           فقط خواندنیه — چیزی رو خودکار تغییر نمی‌ده.
         </p>
       </div>
+
+      {usage?.omdb && (
+        <div className="card" style={{ padding: 14, marginTop: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 600 }}>
+            <span>مصرف امروز OMDb</span>
+            <span style={{ color: usage.omdb.warning ? 'var(--marquee-ruby, #9c2b3c)' : 'var(--muted)' }}>
+              {usage.omdb.count.toLocaleString('en-US')} / {usage.omdb.limit.toLocaleString('en-US')}
+              {usage.omdb.warning ? ' — نزدیک به سقف!' : ''}
+            </span>
+          </div>
+          <div style={{ height: 6, borderRadius: 4, background: 'var(--surface-2)', marginTop: 8, overflow: 'hidden' }}>
+            <div
+              style={{
+                height: '100%',
+                width: `${Math.min(100, (usage.omdb.count / usage.omdb.limit) * 100)}%`,
+                background: usage.omdb.warning ? 'var(--marquee-ruby, #9c2b3c)' : 'var(--accent)',
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <section>
         {totalIssues === 0 ? (

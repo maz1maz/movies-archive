@@ -52,6 +52,22 @@ export default {
       }
     }
 
+    // ---- API usage counter (برای هشدار نزدیک شدن به quota روزانه‌ی OMDb) ----
+    const bumpApiUsage = async (service) => {
+      try {
+        const today = new Date().toISOString().slice(0, 10)
+        await db
+          .prepare(
+            `INSERT INTO api_usage_daily (date, service, count) VALUES (?, ?, 1)
+             ON CONFLICT(date, service) DO UPDATE SET count = count + 1`
+          )
+          .bind(today, service)
+          .run()
+      } catch {
+        // شمارش نشدن یه درخواست نباید کل عملیات رو خراب کنه
+      }
+    }
+
     const requireAdmin = () =>
       !currentUser
         ? json({ error: 'You need to log in for this action' }, 401, corsHeaders)
@@ -476,7 +492,7 @@ export default {
           runtime: body.runtime ? parseInt(body.runtime, 10) : null,
         }
         try {
-          film = await enrichFilm(film, key)
+          film = await enrichFilm(film, key, () => bumpApiUsage('omdb'))
         } catch {}
         if (film.closet && film.row && film.shelf && film.mediaType !== 'digital') {
           const resCap = await db
@@ -662,7 +678,7 @@ export default {
         let fields = []
         let enriched = parsed
         try {
-          enriched = await enrichFilm(parsed, key)
+          enriched = await enrichFilm(parsed, key, () => bumpApiUsage('omdb'))
           fields = ENRICHABLE_FIELDS.filter(
             (f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f])
           )
@@ -789,7 +805,7 @@ export default {
         const yearParam = url.searchParams.get('year')
         const before = { title, year: yearParam ? parseInt(yearParam, 10) : undefined }
         try {
-          const found = await enrichFilm(before, key)
+          const found = await enrichFilm(before, key, () => bumpApiUsage('omdb'))
           const gotNewData = Object.keys(found).some((k) => !(k in before) || found[k] !== before[k])
           if (!gotNewData) return json({ error: 'No film with this title found on IMDb' }, 404, corsHeaders)
           return json(found, 200, corsHeaders)
@@ -970,7 +986,7 @@ export default {
           }
         } else {
           try {
-            const found = await enrichFilm(base, key)
+            const found = await enrichFilm(base, key, () => bumpApiUsage('omdb'))
             if (found.title) {
               result = found
             } else {
@@ -1194,7 +1210,26 @@ export default {
         const denied = requireAuth()
         if (denied) return denied
 
-        const out = { omdb: null, tmdb: null, letterboxd: null }
+        const out = { omdb: null, tmdb: null, letterboxd: null, usage: null }
+
+        try {
+          const today = new Date().toISOString().slice(0, 10)
+          const usageRes = await db.prepare('SELECT service, count FROM api_usage_daily WHERE date = ?').bind(today).all()
+          const OMDB_DAILY_LIMIT = 1000
+          const rows = usageRes.results || []
+          const omdbCount = rows.find((r) => r.service === 'omdb')?.count || 0
+          out.usage = {
+            date: today,
+            omdb: {
+              count: omdbCount,
+              limit: OMDB_DAILY_LIMIT,
+              remaining: Math.max(0, OMDB_DAILY_LIMIT - omdbCount),
+              warning: omdbCount >= OMDB_DAILY_LIMIT * 0.8,
+            },
+          }
+        } catch (e) {
+          out.usage = { error: String(e) }
+        }
 
         try {
           const res = await fetch(`https://www.omdbapi.com/?apikey=${env.OMDB_API_KEY}&t=Mean%20Streets&y=1973&type=movie`, {
@@ -1694,7 +1729,7 @@ export default {
               const row = await db.prepare('SELECT * FROM films WHERE id = ?').bind(id).first()
               if (!row) continue
               const parsed = parseFilmRow(row)
-              const enrichedFilm = await enrichFilm(parsed, key)
+              const enrichedFilm = await enrichFilm(parsed, key, () => bumpApiUsage('omdb'))
               await updateFilm(db, { ...enrichedFilm, id })
               enriched++
             } catch {}
@@ -3209,7 +3244,7 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
     const parsed = parseFilmRow(film)
     let enriched
     try {
-      enriched = await enrichFilm(parsed, env.OMDB_API_KEY)
+      enriched = await enrichFilm(parsed, env.OMDB_API_KEY, () => bumpApiUsage('omdb'))
     } catch (e) {
       if (e.code === 'OMDB_QUOTA_EXCEEDED') {
         quotaExceeded = true

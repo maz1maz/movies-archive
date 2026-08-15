@@ -15,7 +15,7 @@ function fillMissing(film, field, value) {
   film[field] = value
 }
 
-export async function enrichFilm(baseFilm, key) {
+export async function enrichFilm(baseFilm, key, onApiCall) {
   let film = baseFilm
 
   // برای سریال، اول TVMaze رو امتحان می‌کنیم — رایگان، بدون کلید، و
@@ -57,6 +57,11 @@ export async function enrichFilm(baseFilm, key) {
   const res = await fetch(`${BASE}?${new URLSearchParams(query).toString()}`, {
     signal: AbortSignal.timeout(8000),
   })
+  if (onApiCall) {
+    try {
+      await onApiCall()
+    } catch {}
+  }
   if (!res.ok) return film
 
   const data = await res.json()
