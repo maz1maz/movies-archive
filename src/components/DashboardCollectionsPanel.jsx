@@ -1,4 +1,25 @@
 import { useEffect, useState } from 'react'
+import { addToOrderList } from '../utils/orderList.js'
+
+function CollectionOrderButton({ title, year }) {
+  const [state, setState] = useState('idle')
+  const handleClick = async (e) => {
+    e.stopPropagation()
+    if (state !== 'idle') return
+    setState('adding')
+    try {
+      await addToOrderList({ title, releaseDate: year ? `${year}-01-01` : null, source: 'Collection' })
+      setState('added')
+    } catch {
+      setState('idle')
+    }
+  }
+  return (
+    <button type="button" className="cine-collection-order-btn" onClick={handleClick} disabled={state !== 'idle'}>
+      {state === 'added' ? 'Added ✓' : state === 'adding' ? '…' : 'Order'}
+    </button>
+  )
+}
 
 export default function DashboardCollectionsPanel({ films = [], onOpenFilm }) {
   const [collections, setCollections] = useState(null)
@@ -21,8 +42,8 @@ export default function DashboardCollectionsPanel({ films = [], onOpenFilm }) {
     }
     setOpenId(col.collectionId)
     setDetail(null)
-    // برای گرفتن جزئیات کامل (لیست همه‌ی اعضا)، از همون endpoint فیلم استفاده
-    // می‌کنیم — کافیه یکی از فیلم‌های همین مجموعه که تو آرشیو داریم رو پیدا کنیم.
+    // To get the full member list, reuse the per-film collection endpoint —
+    // just need one archive film that belongs to this collection.
     const anyFilm = films.find((f) => f.collectionId === col.collectionId)
     if (!anyFilm) return
     setDetailLoading(true)
@@ -37,14 +58,14 @@ export default function DashboardCollectionsPanel({ films = [], onOpenFilm }) {
     <div className="oscars-panel">
       <div className="card oscars-controls">
         <p className="oscars-intro">
-          مجموعه‌های TMDB (سکوئل/پیش‌درآمد رسمی) که حداقل یه فیلمشون تو آرشیوته. موقع باز کردن هر فیلم، خودکار چک می‌شه.
+          TMDB collections (official sequels/prequels) with at least one title in your archive. Checked automatically when you open a film.
         </p>
       </div>
 
       {collections === null ? (
-        <div className="empty">در حال بارگذاری…</div>
+        <div className="empty">Loading…</div>
       ) : collections.length === 0 ? (
-        <div className="empty">هنوز هیچ مجموعه‌ای شناسایی نشده — با باز کردن فیلم‌ها (تو MovieModal) خودکار پر می‌شه.</div>
+        <div className="empty">No collections detected yet — opening films (in MovieModal) fills this in automatically.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
           {collections.map((col) => (
@@ -59,16 +80,16 @@ export default function DashboardCollectionsPanel({ films = [], onOpenFilm }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{col.collectionName}</div>
                   <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>
-                    {col.ownedCount} عنوان تو آرشیو
+                    {col.ownedCount} title{col.ownedCount > 1 ? 's' : ''} in archive
                   </div>
                 </div>
                 <span style={{ fontSize: 12, color: 'var(--muted)' }}>{openId === col.collectionId ? '▲' : '▼'}</span>
               </div>
 
               {openId === col.collectionId && (
-                <div style={{ marginTop: 12, display: 'flex', gap: 10, overflowX: 'auto', paddingTop: 4 }}>
+                <div style={{ marginTop: 12, display: 'flex', gap: 14, overflowX: 'auto', paddingTop: 4 }}>
                   {detailLoading ? (
-                    <div className="empty">در حال بارگذاری…</div>
+                    <div className="empty">Loading…</div>
                   ) : (
                     (detail?.parts || []).map((p) => (
                       <div key={p.tmdbId} style={{ flex: '0 0 80px', textAlign: 'center' }}>
@@ -99,6 +120,7 @@ export default function DashboardCollectionsPanel({ films = [], onOpenFilm }) {
                         <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 4 }}>
                           {p.title} {p.year ? `(${p.year})` : ''}
                         </div>
+                        {!p.inArchive && <CollectionOrderButton title={p.title} year={p.year} />}
                       </div>
                     ))
                   )}
@@ -111,3 +133,4 @@ export default function DashboardCollectionsPanel({ films = [], onOpenFilm }) {
     </div>
   )
 }
+
