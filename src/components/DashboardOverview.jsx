@@ -111,22 +111,29 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isA
 
   // شمارش تعداد فیلم/سریال زیر هر حرف الفبا — دقیقاً همون قانونی که تو
   // بقیه‌ی اپ برای سورت استفاده می‌شه: فقط "The" ابتدای عنوان نادیده گرفته
-  // می‌شه، بقیه‌ی حروف دست‌نخورده می‌مونن.
-  const letterCounts = {}
-  films.forEach((f) => {
-    const raw = (f.title || '').trim()
-    if (!raw) return
-    const sortable = /^the\s+/i.test(raw) ? raw.replace(/^the\s+/i, '') : raw
-    const first = sortable.charAt(0).toUpperCase()
-    const key = /[A-Z]/.test(first) ? first : '#'
-    letterCounts[key] = (letterCounts[key] || 0) + 1
-  })
+  // می‌شه، بقیه‌ی حروف دست‌نخورده می‌مونن. جدا برای فیزیکی/دیجیتال.
   const ALPHABET_ORDER = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))]
-  const letterEntries = ALPHABET_ORDER.filter((l) => letterCounts[l]).map((l) => [l, letterCounts[l]])
-  const maxLetterCount = letterEntries.reduce((m, [, c]) => Math.max(m, c), 1)
+  const buildLetterEntries = (list) => {
+    const counts = {}
+    list.forEach((f) => {
+      const raw = (f.title || '').trim()
+      if (!raw) return
+      const sortable = /^the\s+/i.test(raw) ? raw.replace(/^the\s+/i, '') : raw
+      const first = sortable.charAt(0).toUpperCase()
+      const key = /[A-Z]/.test(first) ? first : '#'
+      counts[key] = (counts[key] || 0) + 1
+    })
+    return ALPHABET_ORDER.filter((l) => counts[l]).map((l) => [l, counts[l]])
+  }
+  const physicalFilms = films.filter((f) => f.mediaType !== 'digital')
+  const digitalFilms = films.filter((f) => f.mediaType === 'digital')
+  const letterEntriesPhysical = buildLetterEntries(physicalFilms)
+  const letterEntriesDigital = buildLetterEntries(digitalFilms)
+  const maxLetterCountPhysical = letterEntriesPhysical.reduce((m, [, c]) => Math.max(m, c), 1)
+  const maxLetterCountDigital = letterEntriesDigital.reduce((m, [, c]) => Math.max(m, c), 1)
 
-  const physicalCount = films.filter((f) => f.mediaType !== 'digital').length
-  const digitalCount = films.filter((f) => f.mediaType === 'digital').length
+  const physicalCount = physicalFilms.length
+  const digitalCount = digitalFilms.length
   const movieCount = films.filter((f) => f.itemType !== 'series').length
   const seriesCount = films.filter((f) => f.itemType === 'series').length
 
@@ -302,16 +309,34 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isA
         </div>
       )}
 
-      {letterEntries.length > 1 && (
+      {letterEntriesPhysical.length > 1 && (
         <div className="stats-box">
-          <h3><IconBookshelf width={15} height={15} /> Titles by Letter</h3>
+          <h3><IconBookshelf width={15} height={15} /> Physical Titles by Letter</h3>
           <div className="stats-timeline stats-timeline-alphabet">
-            {letterEntries.map(([letter, count]) => (
+            {letterEntriesPhysical.map(([letter, count]) => (
               <div key={letter} className="timeline-col">
                 <span className="timeline-count">{count}</span>
                 <div
                   className="timeline-bar"
-                  style={{ height: `${Math.max(6, Math.round((count / maxLetterCount) * 100))}%` }}
+                  style={{ height: `${Math.max(6, Math.round((count / maxLetterCountPhysical) * 100))}%` }}
+                />
+                <span className="timeline-label">{letter}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {letterEntriesDigital.length > 1 && (
+        <div className="stats-box">
+          <h3><IconBookshelf width={15} height={15} /> Digital Titles by Letter</h3>
+          <div className="stats-timeline stats-timeline-alphabet">
+            {letterEntriesDigital.map(([letter, count]) => (
+              <div key={letter} className="timeline-col">
+                <span className="timeline-count">{count}</span>
+                <div
+                  className="timeline-bar"
+                  style={{ height: `${Math.max(6, Math.round((count / maxLetterCountDigital) * 100))}%` }}
                 />
                 <span className="timeline-label">{letter}</span>
               </div>

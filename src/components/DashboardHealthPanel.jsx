@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import EditModal from './EditModal.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 
-// هر چک یه فیلتره روی آرایه‌ی films؛ اگه true برگردونه یعنی اون رکورد مشکل داره
-const CHECKS = [
+// چک‌های عمومی که هم رو فیزیکی هم دیجیتال اجرا می‌شن
+const GENERIC_CHECKS = [
   { key: 'poster', label: 'بدون پوستر', test: (f) => !f.poster },
   { key: 'synopsis', label: 'بدون خلاصه', test: (f) => !f.synopsis || !f.synopsis.trim() },
   { key: 'director', label: 'بدون کارگردان', test: (f) => !f.director || !f.director.trim() },
@@ -11,25 +11,91 @@ const CHECKS = [
   { key: 'year', label: 'بدون سال ساخت', test: (f) => !f.year },
   { key: 'cast', label: 'بدون بازیگر', test: (f) => !f.cast || !f.cast.trim() },
   { key: 'rating', label: 'بدون امتیاز (IMDb/TMDB)', test: (f) => !f.rating },
-  {
-    key: 'location',
-    label: 'فیزیکی بدون لوکیشن (Closet/Row/Section)',
-    test: (f) => f.mediaType === 'physical' && (!f.closet || !f.row || !f.shelf),
-  },
-  {
-    key: 'drive',
-    label: 'دیجیتال بدون درایو',
-    test: (f) => f.mediaType === 'digital' && (!f.driveNumber || !f.driveNumber.trim()),
-  },
-  {
-    key: 'seasons',
-    label: 'سریال بدون تعداد فصل',
-    test: (f) => f.itemType === 'series' && !f.totalSeasonsProduced,
-  },
+  { key: 'seasons', label: 'سریال بدون تعداد فصل', test: (f) => f.itemType === 'series' && !f.totalSeasonsProduced },
+]
+// چک‌های مخصوص فیزیکی
+const PHYSICAL_CHECKS = [
+  { key: 'location', label: 'بدون لوکیشن (Closet/Row/Section)', test: (f) => !f.closet || !f.row || !f.shelf },
+]
+// چک‌های مخصوص دیجیتال
+const DIGITAL_CHECKS = [
+  { key: 'drive', label: 'بدون درایو', test: (f) => !f.driveNumber || !f.driveNumber.trim() },
 ]
 
-export default function DashboardHealthPanel({ films = [], onOpenFilm, onFilmsChanged }) {
-  const { isGuest, openLogin } = useAuth()
+function runChecks(checks, items) {
+  return checks.map((c) => ({
+    ...c,
+    items: items.filter((f) => {
+      try {
+        return c.test(f)
+      } catch {
+        return false
+      }
+    }),
+  }))
+}
+
+
+function HealthResultsList({ results, totalIssues, openKey, setOpenKey, onOpenFilm, isGuest, openLogin, setEditingFilm, keyPrefix }) {
+  if (totalIssues === 0) {
+    return <div className="empty">همه چیز کامله — هیچ نقصی پیدا نشد. 🎬</div>
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+      {results
+        .filter((r) => r.items.length > 0)
+        .sort((a, b) => b.items.length - a.items.length)
+        .map((r) => {
+          const uniqueKey = `${keyPrefix}:${r.key}`
+          return (
+            <div key={uniqueKey} className="card oscars-category-block" style={{ padding: 16 }}>
+              <h3
+                className="oscars-category-title"
+                style={{ borderBottom: 'none', marginBottom: 4, cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}
+                onClick={() => setOpenKey(openKey === uniqueKey ? null : uniqueKey)}
+              >
+                <span>{r.label}</span>
+                <span style={{ fontSize: 12.5, color: 'var(--muted)', fontWeight: 500 }}>
+                  {r.items.length.toLocaleString('en-US')} مورد {openKey === uniqueKey ? '▲' : '▼'}
+                </span>
+              </h3>
+              {openKey === uniqueKey && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10, maxHeight: 420, overflowY: 'auto' }}>
+                  {r.items.map((f) => (
+                    <div
+                      key={f.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '6px 0',
+                        borderBottom: '1px solid var(--border)',
+                      }}
+                    >
+                      <div style={{ width: 32, height: 46, flexShrink: 0, borderRadius: 4, overflow: 'hidden', background: 'var(--surface-2)' }}>
+                        {f.poster && <img src={f.poster} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                      </div>
+                      <div style={{ flex: 1, fontSize: 12.5, color: 'var(--muted)' }}>
+                        {f.title} {f.year ? `(${f.year})` : ''} · {f.itemType === 'series' ? 'سریال' : 'فیلم'}
+                      </div>
+                      <button className="btn btn-sm" onClick={() => onOpenFilm(f)}>
+                        نمایش
+                      </button>
+                      <button className="btn btn-sm btn-ghost" onClick={() => (isGuest ? openLogin() : setEditingFilm(f))}>
+                        ویرایش
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+    </div>
+  )
+}
+
+export default function DashboardHealthPanel({ films = [], onOpenFilm, onFilmsChanged }) {  const { isGuest, openLogin } = useAuth()
   const [openKey, setOpenKey] = useState(null)
   const [editingFilm, setEditingFilm] = useState(null)
   const [usage, setUsage] = useState(null)
@@ -42,19 +108,16 @@ export default function DashboardHealthPanel({ films = [], onOpenFilm, onFilmsCh
   }, [])
 
   const results = useMemo(() => {
-    return CHECKS.map((c) => ({
-      ...c,
-      items: films.filter((f) => {
-        try {
-          return c.test(f)
-        } catch {
-          return false
-        }
-      }),
-    }))
+    const physicalFilms = films.filter((f) => f.mediaType !== 'digital')
+    const digitalFilms = films.filter((f) => f.mediaType === 'digital')
+    return {
+      physical: [...runChecks(GENERIC_CHECKS, physicalFilms), ...runChecks(PHYSICAL_CHECKS, physicalFilms)],
+      digital: [...runChecks(GENERIC_CHECKS, digitalFilms), ...runChecks(DIGITAL_CHECKS, digitalFilms)],
+    }
   }, [films])
 
-  const totalIssues = results.reduce((sum, r) => sum + r.items.length, 0)
+  const totalIssuesPhysical = results.physical.reduce((sum, r) => sum + r.items.length, 0)
+  const totalIssuesDigital = results.digital.reduce((sum, r) => sum + r.items.length, 0)
 
   return (
     <div className="oscars-panel">
@@ -87,62 +150,33 @@ export default function DashboardHealthPanel({ films = [], onOpenFilm, onFilmsCh
       )}
 
       <section>
-        {totalIssues === 0 ? (
-          <div className="empty">همه چیز کامله — هیچ نقصی پیدا نشد. 🎬</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
-            {results
-              .filter((r) => r.items.length > 0)
-              .sort((a, b) => b.items.length - a.items.length)
-              .map((r) => (
-                <div key={r.key} className="card oscars-category-block" style={{ padding: 16 }}>
-                  <h3
-                    className="oscars-category-title"
-                    style={{ borderBottom: 'none', marginBottom: 4, cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}
-                    onClick={() => setOpenKey(openKey === r.key ? null : r.key)}
-                  >
-                    <span>{r.label}</span>
-                    <span style={{ fontSize: 12.5, color: 'var(--muted)', fontWeight: 500 }}>
-                      {r.items.length.toLocaleString('en-US')} مورد {openKey === r.key ? '▲' : '▼'}
-                    </span>
-                  </h3>
-                  {openKey === r.key && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10, maxHeight: 420, overflowY: 'auto' }}>
-                      {r.items.map((f) => (
-                        <div
-                          key={f.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            padding: '6px 0',
-                            borderBottom: '1px solid var(--border)',
-                          }}
-                        >
-                          <div style={{ width: 32, height: 46, flexShrink: 0, borderRadius: 4, overflow: 'hidden', background: 'var(--surface-2)' }}>
-                            {f.poster && <img src={f.poster} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                          </div>
-                          <div style={{ flex: 1, fontSize: 12.5, color: 'var(--muted)' }}>
-                            {f.title} {f.year ? `(${f.year})` : ''} · {f.itemType === 'series' ? 'سریال' : 'فیلم'} ·{' '}
-                            {f.mediaType === 'digital' ? 'دیجیتال' : 'فیزیکی'}
-                          </div>
-                          <button className="btn btn-sm" onClick={() => onOpenFilm(f)}>
-                            نمایش
-                          </button>
-                          <button
-                            className="btn btn-sm btn-ghost"
-                            onClick={() => (isGuest ? openLogin() : setEditingFilm(f))}
-                          >
-                            ویرایش
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-          </div>
-        )}
+        <h3 style={{ marginTop: 8, marginBottom: 4 }}>📀 فیزیکی</h3>
+        <HealthResultsList
+          results={results.physical}
+          totalIssues={totalIssuesPhysical}
+          openKey={openKey}
+          setOpenKey={setOpenKey}
+          onOpenFilm={onOpenFilm}
+          isGuest={isGuest}
+          openLogin={openLogin}
+          setEditingFilm={setEditingFilm}
+          keyPrefix="phys"
+        />
+      </section>
+
+      <section style={{ marginTop: 24 }}>
+        <h3 style={{ marginTop: 8, marginBottom: 4 }}>💻 دیجیتال</h3>
+        <HealthResultsList
+          results={results.digital}
+          totalIssues={totalIssuesDigital}
+          openKey={openKey}
+          setOpenKey={setOpenKey}
+          onOpenFilm={onOpenFilm}
+          isGuest={isGuest}
+          openLogin={openLogin}
+          setEditingFilm={setEditingFilm}
+          keyPrefix="dig"
+        />
       </section>
 
       {editingFilm && (
