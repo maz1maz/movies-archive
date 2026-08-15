@@ -514,7 +514,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
 
         {directorCollabs.length > 0 && (
           <div className="stats-box" style={{ marginTop: 18 }}>
-            <h3>{isDirector ? 'بازیگرهای پرتکرار این کارگردان' : 'همکاری پرتکرار با کارگردان‌ها'}</h3>
+            <h3>{isDirector ? "Director's frequent cast" : 'Frequent director collaborations'}</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
               {directorCollabs.map((c) => (
                 <button
@@ -524,7 +524,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                   style={{ fontSize: 12.5, padding: '5px 10px' }}
                   onClick={() => onSelectPerson && onSelectPerson(c.name)}
                 >
-                  {c.name} <span style={{ opacity: 0.65 }}>· {c.count} فیلم</span>
+                  {c.name} <span style={{ opacity: 0.65 }}>· {c.count} film{c.count > 1 ? 's' : ''}</span>
                 </button>
               ))}
             </div>
@@ -533,7 +533,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
 
         {coStars.length > 0 && (
           <div className="stats-box" style={{ marginTop: 18 }}>
-            <h3>هم‌بازی‌های پرتکرار</h3>
+            <h3>Frequent co-stars</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
               {coStars.map((cs) => (
                 <button
@@ -543,7 +543,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                   style={{ fontSize: 12.5, padding: '5px 10px' }}
                   onClick={() => onSelectPerson && onSelectPerson(cs.name)}
                 >
-                  {cs.name} <span style={{ opacity: 0.65 }}>· {cs.count} فیلم</span>
+                  {cs.name} <span style={{ opacity: 0.65 }}>· {cs.count} film{cs.count > 1 ? 's' : ''}</span>
                 </button>
               ))}
             </div>
