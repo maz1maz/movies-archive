@@ -3,6 +3,33 @@ import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconShare } 
 import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { shareFilmCard } from '../utils/shareCard.js'
+import { addToOrderList } from '../utils/orderList.js'
+
+function CollectionOrderButton({ title, year }) {
+  const [state, setState] = useState('idle') // idle | adding | added
+  const handleClick = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (state !== 'idle') return
+    setState('adding')
+    try {
+      await addToOrderList({ title, releaseDate: year ? `${year}-01-01` : null, source: 'Collection' })
+      setState('added')
+    } catch {
+      setState('idle')
+    }
+  }
+  return (
+    <button
+      type="button"
+      className="cine-collection-order-btn"
+      onClick={handleClick}
+      disabled={state !== 'idle'}
+    >
+      {state === 'added' ? 'Added ✓' : state === 'adding' ? '…' : 'Order'}
+    </button>
+  )
+}
 
 export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false, siblingFilm = null, onSaveSeasonDrive }) {
   const [showAllCast, setShowAllCast] = useState(false)
@@ -530,11 +557,23 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                         type="button"
                         className="cine-collection-poster-btn"
                         disabled={!p.inArchive}
-                        onClick={() => {
-                          if (p.inArchive && p.archiveFilmId && onNavigate) {
-                            const target = films.find((f) => f.id === p.archiveFilmId)
-                            if (target) onNavigate(target)
+                        onClick={async () => {
+                          if (!p.inArchive || !p.archiveFilmId || !onNavigate) return
+                          // ممکنه فیلم مقصد تو لیست films (که بسته به بخش/فیلترِ
+                          // فعلی می‌تونه محدود باشه) نباشه — مستقیم از سرور می‌گیریم
+                          // تا کلیک همیشه کار کنه، مستقل از اینکه کجای اپیم.
+                          const local = films.find((f) => f.id === p.archiveFilmId)
+                          if (local) {
+                            onNavigate(local)
+                            return
                           }
+                          try {
+                            const res = await fetch(`/api/films/${p.archiveFilmId}`)
+                            if (res.ok) {
+                              const data = await res.json()
+                              onNavigate(data)
+                            }
+                          } catch {}
                         }}
                         title={p.title}
                       >
@@ -548,6 +587,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       <span className="cine-collection-item-title">
                         {p.title} {p.year ? `(${p.year})` : ''}
                       </span>
+                      {!p.inArchive && <CollectionOrderButton title={p.title} year={p.year} />}
                     </div>
                   ))}
                 </div>
