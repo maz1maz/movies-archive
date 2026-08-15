@@ -9,13 +9,13 @@ const DONE_ITEMS = [
   { title: 'تست خودکار قبل از دیپلوی', desc: 'predeploy — چک سینتکس server/*.js، build کامل، تطبیق schema.sql با worker.js، و اختیاری چک زنده‌ی OMDb/TMDB' },
   { title: 'بکاپ چندلایه', desc: 'علاوه بر KV، هر بکاپ روزانه رو backups/latest-backup.json.gz تو خود repo هم commit می‌کنه (GITHUB_BACKUP_TOKEN)' },
   { title: 'صفحه آمار مصرف API', desc: 'تب API Usage — نمودار ۳۰ روز اخیر مصرف OMDb از api_usage_daily' },
+  { title: 'نسخه‌بندی اسکیمای دیتابیس', desc: 'پوشه‌ی migrations/ + جدول schema_migrations + npm run migrate' },
+  { title: 'نوتیفیکیشن خطاهای سرور', desc: 'هشدار تلگرام موقع خطای API یا شکست کرون‌های daily backup/enrichment (TELEGRAM_BOT_TOKEN)' },
+  { title: 'Rate Limiting روی Endpointهای عمومی', desc: 'محدودیت ۶۰ درخواست/دقیقه برای مهمان‌ها، رو KV جدا (RATE_LIMIT) — کاربر لاگین‌شده محدودیت نداره' },
 ]
 
 const TECHNICAL_ITEMS = [
   { title: 'کش هوشمند با Invalidation خودکار', desc: 'پاک‌سازی خودکار کش به‌جای حذف دستی جدول‌ها' },
-  { title: 'نسخه‌بندی اسکیمای دیتابیس', desc: 'فایل migration برای هر تغییر ساختار جدول' },
-  { title: 'نوتیفیکیشن خطاهای سرور', desc: 'اطلاع‌رسانی (ایمیل/تلگرام) موقع کرش Worker' },
-  { title: 'Rate Limiting روی Endpointهای عمومی', desc: 'محدودیت درخواست برای دسترسی مهمان (guest)' },
 ]
 
 const CINEPHILE_ITEMS = [

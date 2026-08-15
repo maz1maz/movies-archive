@@ -168,6 +168,14 @@ CREATE TABLE IF NOT EXISTS api_usage_daily (
   PRIMARY KEY (date, service)
 );
 
+-- از این به بعد تغییرات ساختاری از طریق migrations/ اعمال می‌شن، نه مستقیم اینجا.
+-- schema.sql فقط snapshot خواناییه؛ منبع حقیقت migrations/*.sql + جدول
+-- schema_migrations هست (npm run migrate).
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  id TEXT PRIMARY KEY,
+  appliedAt TEXT DEFAULT (datetime('now'))
+);
+
 -- ============================================================================
 -- MIGRATION for an EXISTING production database (D1) that predates the
 -- columns/table above. NOT run automatically by `npm run db:init` — that

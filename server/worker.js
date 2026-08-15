@@ -75,6 +75,29 @@ export default {
         ? json({ error: 'This action is admin-only' }, 403, corsHeaders)
         : null
 
+    // ---- Rate Limiting برای درخواست‌های مهمان (لاگین‌نشده) ----
+    // فقط guestها محدود می‌شن؛ کاربر لاگین‌شده (owner) هیچ محدودیتی نداره.
+    // شمارنده‌ی sliding-window یک‌دقیقه‌ای رو IP، تو یه KV جدا (RATE_LIMIT) نگه‌داری می‌شه.
+    if (!currentUser && env.RATE_LIMIT && pathname.startsWith('/api/')) {
+      const GUEST_LIMIT_PER_MINUTE = 60
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown'
+      const minuteBucket = Math.floor(Date.now() / 60000)
+      const rlKey = `rl:${ip}:${minuteBucket}`
+      try {
+        const current = parseInt((await env.RATE_LIMIT.get(rlKey)) || '0', 10)
+        if (current >= GUEST_LIMIT_PER_MINUTE) {
+          return json(
+            { error: 'Too many requests — please slow down and try again in a moment.' },
+            429,
+            { ...corsHeaders, 'Retry-After': '60' }
+          )
+        }
+        await env.RATE_LIMIT.put(rlKey, String(current + 1), { expirationTtl: 70 })
+      } catch {
+        // اگه خود KV مشکل داشت، درخواست رو بلاک نکن — فقط rate limiting رد می‌شه
+      }
+    }
+
     try {
       // ---- Auth: login / logout / me ----
       if (method === 'POST' && pathname === '/api/auth/login') {
@@ -1963,6 +1986,10 @@ export default {
       return new Response('Not Found', { status: 404, headers: corsHeaders })
 
     } catch (err) {
+      // خطای غیرمنتظره‌ی هر endpoint — هم به کاربر جواب می‌ده، هم (اگه تنظیم شده باشه) به تلگرام هشدار می‌فرسته
+      try {
+        await notifyServerError(env, `API error on ${method} ${pathname}: ${err.message}`)
+      } catch {}
       return json({ error: err.message }, 500, corsHeaders)
     }
   },
@@ -1974,21 +2001,51 @@ export default {
     // این تابع با دو زمان‌بندی متفاوت صدا زده می‌شه (به wrangler.jsonc نگاه کن)؛
     // event.cron مشخص می‌کنه کدوم کرون بوده تا کار درست انجام بشه.
     if (event.cron === '0 4 * * *') {
-      await runDailyBackup(env)
+      try {
+        await runDailyBackup(env)
+      } catch (e) {
+        await notifyServerError(env, `Daily backup (cron 0 4 * * *) failed: ${e.message}`).catch(() => {})
+        throw e
+      }
       return
     }
 
-    const db = env.DB
-    let totalProcessed = 0
-    let totalUpdated = 0
-    for (let i = 0; i < 65; i++) {
-      const result = await enrichBatch(db, env, 15)
-      totalProcessed += result.processed
-      totalUpdated += result.updated
-      if (result.quotaExceeded || result.processed === 0 || result.remaining === 0) break
+    try {
+      const db = env.DB
+      let totalProcessed = 0
+      let totalUpdated = 0
+      for (let i = 0; i < 65; i++) {
+        const result = await enrichBatch(db, env, 15)
+        totalProcessed += result.processed
+        totalUpdated += result.updated
+        if (result.quotaExceeded || result.processed === 0 || result.remaining === 0) break
+      }
+      console.log(`Daily enrichment: processed ${totalProcessed}, updated ${totalUpdated}`)
+    } catch (e) {
+      await notifyServerError(env, `Daily enrichment (cron 0 3 * * *) failed: ${e.message}`).catch(() => {})
+      throw e
     }
-    console.log(`Daily enrichment: processed ${totalProcessed}, updated ${totalUpdated}`)
   },
+}
+
+// هشدار خطای سرور از طریق تلگرام — اگه TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID
+// (هر دو wrangler secret) ست نشده باشن، بی‌سروصدا رد می‌شه. برای گرفتن این دوتا:
+//   ۱) با @BotFather تو تلگرام یه بات بساز، توکنش رو بگیر (TELEGRAM_BOT_TOKEN)
+//   ۲) به بات پیام بده، بعد https://api.telegram.org/bot<TOKEN>/getUpdates رو باز کن
+//      و chat.id رو از جواب JSON بردار (TELEGRAM_CHAT_ID)
+async function notifyServerError(env, message) {
+  const token = env.TELEGRAM_BOT_TOKEN
+  const chatId = env.TELEGRAM_CHAT_ID
+  if (!token || !chatId) return
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: `🎬 Cinefilm Archive — خطای سرور:\n${message}`,
+    }),
+    signal: AbortSignal.timeout(8000),
+  }).catch(() => {})
 }
 
 // هر روز ساعت ۴ بامداد UTC (یه ساعت بعد از enrichment) کل جدول films رو به‌صورت

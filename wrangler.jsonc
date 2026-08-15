@@ -31,6 +31,10 @@
     {
       "binding": "BACKUPS",
       "id": "3d0be28e236842fbba40b8bacbf91da2"
+    },
+    {
+      "binding": "RATE_LIMIT",
+      "id": "47403fec79ba458382b41fd1cb026bd1"
     }
   ],
   // دو کرون: ساعت ۳ بامداد UTC برای enrichment خودکار، ساعت ۴ بامداد UTC
