@@ -59,6 +59,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const [lightboxSrc, setLightboxSrc] = useState(null)
   const [collection, setCollection] = useState(null)
   const [collectionLoading, setCollectionLoading] = useState(false)
+  const [bookAdaptation, setBookAdaptation] = useState(null)
 
   useEffect(() => {
     const onKey = (e) => {
@@ -117,6 +118,23 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       cancelled = true
     }
   }, [film?.id, film?.itemType])
+
+  // اقتباس از کتاب — خودکار از Wikidata (P144). اگه basedOnBook از قبل دستی
+  // پر شده باشه (تو EditModal)، سرور همون رو برمی‌گردونه بدون fetch مجدد.
+  useEffect(() => {
+    setBookAdaptation(film?.basedOnBook ? { basedOnBook: film.basedOnBook, bookAuthor: film.bookAuthor } : null)
+    if (!film?.id || film.itemType === 'series' || film.basedOnBook) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/book-adaptation`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && data?.basedOnBook) setBookAdaptation(data)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [film?.id, film?.itemType, film?.basedOnBook, film?.bookAuthor])
 
   // عکس واقعی بازیگرها رو از ویکی‌پدیا می‌گیریم (کلید API لازم نداره).
   // نتیجه سمت سرور هم کش می‌شه، پس دفعات بعد سریع برمی‌گرده.
@@ -438,6 +456,16 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                   <p className="cine-my-review-text">{r.text}</p>
                 </div>
               ))}
+
+            {bookAdaptation?.basedOnBook && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">BASED ON</div>
+                <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>
+                  <em>{bookAdaptation.basedOnBook}</em>
+                  {bookAdaptation.bookAuthor ? ` by ${bookAdaptation.bookAuthor}` : ''}
+                </p>
+              </div>
+            )}
 
             {collection && collection.parts?.length > 1 && (
               <div className="cine-collection-box">

@@ -1217,9 +1217,21 @@ export default {
         }
       }
 
-      // ---- GET /api/collections — همه‌ی مجموعه‌هایی که حداقل یه فیلمشون تو آرشیو هست ----
-      if (method === 'GET' && pathname === '/api/collections') {
+      // ---- GET /api/films/:id/book-adaptation — اقتباس از کتاب، خودکار از Wikidata ----
+      const bookMatch = pathname.match(/^\/api\/films\/([^/]+)\/book-adaptation$/)
+      if (method === 'GET' && bookMatch) {
         try {
+          const film = await db.prepare('SELECT * FROM films WHERE id = ?').bind(bookMatch[1]).first()
+          if (!film) return json({ basedOnBook: null, bookAuthor: null }, 200, corsHeaders)
+          const resolved = await resolveBookAdaptation(db, env, film)
+          return json(resolved || { basedOnBook: null, bookAuthor: null }, 200, corsHeaders)
+        } catch (e) {
+          return json({ basedOnBook: null, bookAuthor: null, error: String(e) }, 200, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/collections — همه‌ی مجموعه‌هایی که حداقل یه فیلمشون تو آرشیو هست ----
+      if (method === 'GET' && pathname === '/api/collections') {        try {
           const result = await db
             .prepare(
               `SELECT collectionId, collectionName, collectionPoster, COUNT(*) as ownedCount
@@ -3677,6 +3689,55 @@ async function resolveFilmCollection(db, env, film) {
       .bind(String(collection.id), collection.name, collectionPoster, film.id)
       .run()
     return { collectionId: String(collection.id), collectionName: collection.name, collectionPoster }
+  } catch {
+    return null
+  }
+}
+
+// اقتباس از کتاب — خودکار از Wikidata، فیلد P144 «based on». اگه فیلم روی
+// اثری مبتنیه، اسم اثر + نویسنده (P50) رو برمی‌گردونه. مثل collections، فقط
+// یه بار چک می‌شه: basedOnBook=NULL یعنی هنوز چک‌نشده، ''=چک‌شده بدون اقتباس.
+async function resolveBookAdaptation(db, env, film) {
+  if (film.basedOnBook != null) {
+    if (!film.basedOnBook) return null
+    return { basedOnBook: film.basedOnBook, bookAuthor: film.bookAuthor || null }
+  }
+  if (!film.imdbId) return null
+
+  try {
+    const headers = {
+      'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive; personal, single-user film archive app)',
+      accept: 'application/sparql-results+json',
+    }
+    const sparql = `SELECT ?workLabel ?authorLabel WHERE {
+      ?film wdt:P345 "${film.imdbId}".
+      ?film wdt:P144 ?work.
+      OPTIONAL { ?work wdt:P50 ?author. }
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+    } LIMIT 1`
+
+    let res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
+    if (!res.ok) {
+      res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
+    }
+    if (!res.ok) return null
+    const data = await res.json()
+    const row = data?.results?.bindings?.[0]
+
+    if (!row) {
+      await db.prepare("UPDATE films SET basedOnBook = '' WHERE id = ?").bind(film.id).run()
+      return null
+    }
+
+    const workTitle = row.workLabel?.value || ''
+    const author = row.authorLabel?.value || null
+    if (!workTitle) {
+      await db.prepare("UPDATE films SET basedOnBook = '' WHERE id = ?").bind(film.id).run()
+      return null
+    }
+
+    await db.prepare('UPDATE films SET basedOnBook = ?, bookAuthor = ? WHERE id = ?').bind(workTitle, author, film.id).run()
+    return { basedOnBook: workTitle, bookAuthor: author }
   } catch {
     return null
   }
