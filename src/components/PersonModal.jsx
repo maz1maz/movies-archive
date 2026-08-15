@@ -322,6 +322,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
           <div>
             <h2 className="person-title">
               {personName}
+              {isDirector && <span className="person-role-tag">DIRECTOR</span>}
               <a
                 className="person-imdb-link"
                 href={

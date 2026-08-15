@@ -3553,6 +3553,7 @@ async function fetchDirectorRecommendations(db, name, env) {
     const results = []
     for (const c of toCheck) {
       let imdbRating = null
+      let runtimeMins = null
       // پوستر رو اول از TMDB می‌گیریم (image.tmdb.org، همیشه از مرورگر لود
       // می‌شه)، نه از OMDb (که پوسترش رو media-amazon.com می‌ده و اون سایت
       // خیلی وقتا hotlinking از دامنه‌های دیگه رو بلاک می‌کنه و تصویر شکسته میاد).
@@ -3572,6 +3573,8 @@ async function fetchDirectorRecommendations(db, name, env) {
             if (!isNaN(parsed)) imdbRating = parsed
             if (!poster && omdbData.Poster && omdbData.Poster !== 'N/A') poster = omdbData.Poster
           }
+          const runtimeMatch = (omdbData.Runtime || '').match(/(\d+)/)
+          if (runtimeMatch) runtimeMins = parseInt(runtimeMatch[1], 10)
         }
       } catch {}
 
@@ -3579,6 +3582,10 @@ async function fetchDirectorRecommendations(db, name, env) {
       // می‌کنیم، ولی اگه فقط جواب نداد (بلاک/تغییر مارک‌آپ) نادیده می‌گیریم.
       const lb = await fetchLetterboxdRating(c.title, c.year)
       if (lb && lb.rating <= 3.5) continue
+
+      // فیلم کوتاه (زیر ۴۰ دقیقه) رو پیشنهاد نده — همون قانونی که تو
+      // PersonModal برای فیلموگرافی/همکاری‌ها اعمال می‌شه.
+      if (typeof runtimeMins === 'number' && runtimeMins > 0 && runtimeMins < 40) continue
 
       results.push({
         title: c.title,
