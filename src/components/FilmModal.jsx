@@ -60,6 +60,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const [collection, setCollection] = useState(null)
   const [collectionLoading, setCollectionLoading] = useState(false)
   const [bookAdaptation, setBookAdaptation] = useState(null)
+  const [shootingLocation, setShootingLocation] = useState(null)
 
   useEffect(() => {
     const onKey = (e) => {
@@ -135,6 +136,23 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       cancelled = true
     }
   }, [film?.id, film?.itemType, film?.basedOnBook, film?.bookAuthor])
+
+  // لوکیشن فیلم‌برداری — خودکار از Wikidata (P915). سریال‌ها هم شامل می‌شن
+  // (برخلاف کتاب/مجموعه که فقط فیلمن).
+  useEffect(() => {
+    setShootingLocation(film?.shootingLocation || null)
+    if (!film?.id || film.shootingLocation) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/shooting-location`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && data?.shootingLocation) setShootingLocation(data.shootingLocation)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [film?.id, film?.shootingLocation])
 
   // عکس واقعی بازیگرها رو از ویکی‌پدیا می‌گیریم (کلید API لازم نداره).
   // نتیجه سمت سرور هم کش می‌شه، پس دفعات بعد سریع برمی‌گرده.
@@ -250,6 +268,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     { label: 'Musician', value: film.composer || film.musician },
     { label: 'Cinematography', value: film.cinematographer },
     { label: 'Country', value: film.country },
+    { label: 'Filmed in', value: shootingLocation },
     { label: 'Runtime', value: film.runtime ? `${film.runtime} mins (${runtimeText})` : null },
   ].filter((item) => item.value)
 

@@ -1230,6 +1230,19 @@ export default {
         }
       }
 
+      // ---- GET /api/films/:id/shooting-location — لوکیشن فیلم‌برداری، خودکار از Wikidata ----
+      const locationMatch = pathname.match(/^\/api\/films\/([^/]+)\/shooting-location$/)
+      if (method === 'GET' && locationMatch) {
+        try {
+          const film = await db.prepare('SELECT * FROM films WHERE id = ?').bind(locationMatch[1]).first()
+          if (!film) return json({ shootingLocation: null }, 200, corsHeaders)
+          const shootingLocation = await resolveShootingLocation(db, env, film)
+          return json({ shootingLocation }, 200, corsHeaders)
+        } catch (e) {
+          return json({ shootingLocation: null, error: String(e) }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/films/:id/book-adaptation — اقتباس از کتاب، خودکار از Wikidata ----
       const bookMatch = pathname.match(/^\/api\/films\/([^/]+)\/book-adaptation$/)
       if (method === 'GET' && bookMatch) {
@@ -1244,7 +1257,8 @@ export default {
       }
 
       // ---- GET /api/collections — همه‌ی مجموعه‌هایی که حداقل یه فیلمشون تو آرشیو هست ----
-      if (method === 'GET' && pathname === '/api/collections') {        try {
+      if (method === 'GET' && pathname === '/api/collections') {
+        try {
           const result = await db
             .prepare(
               `SELECT collectionId, collectionName, collectionPoster, COUNT(*) as ownedCount
@@ -3751,6 +3765,51 @@ async function resolveBookAdaptation(db, env, film) {
 
     await db.prepare('UPDATE films SET basedOnBook = ?, bookAuthor = ? WHERE id = ?').bind(workTitle, author, film.id).run()
     return { basedOnBook: workTitle, bookAuthor: author }
+  } catch {
+    return null
+  }
+}
+
+// لوکیشن فیلم‌برداری — خودکار از Wikidata، فیلد P915 «filming location». مثل
+// basedOnBook: shootingLocation=NULL یعنی هنوز چک‌نشده، ''=چک‌شده بدون لوکیشن ثبت‌شده.
+async function resolveShootingLocation(db, env, film) {
+  if (film.shootingLocation != null) {
+    return film.shootingLocation || null
+  }
+  if (!film.imdbId) return null
+
+  try {
+    const headers = {
+      'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive; personal, single-user film archive app)',
+      accept: 'application/sparql-results+json',
+    }
+    const sparql = `SELECT ?locationLabel WHERE {
+      ?film wdt:P345 "${film.imdbId}".
+      ?film wdt:P915 ?location.
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+    } LIMIT 5`
+
+    let res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
+    if (!res.ok) {
+      res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
+    }
+    if (!res.ok) return null
+    const data = await res.json()
+    const rows = data?.results?.bindings || []
+
+    if (!rows.length) {
+      await db.prepare("UPDATE films SET shootingLocation = '' WHERE id = ?").bind(film.id).run()
+      return null
+    }
+
+    const locations = [...new Set(rows.map((r) => r.locationLabel?.value).filter(Boolean))].join(', ')
+    if (!locations) {
+      await db.prepare("UPDATE films SET shootingLocation = '' WHERE id = ?").bind(film.id).run()
+      return null
+    }
+
+    await db.prepare('UPDATE films SET shootingLocation = ? WHERE id = ?').bind(locations, film.id).run()
+    return locations
   } catch {
     return null
   }
