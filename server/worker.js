@@ -1240,6 +1240,126 @@ export default {
         }
       }
 
+      // ---- هنرمندهای دنبال‌شده (کارگردان/بازیگر) ----
+      if (method === 'GET' && pathname === '/api/followed') {
+        try {
+          const result = await db.prepare('SELECT * FROM followed_people ORDER BY addedAt DESC').all()
+          return json(result.results || [], 200, corsHeaders)
+        } catch (e) {
+          return json([], 200, corsHeaders)
+        }
+      }
+
+      if (method === 'POST' && pathname === '/api/followed') {
+        const denied = requireAuth()
+        if (denied) return denied
+        try {
+          const body = await request.json()
+          const name = (body.name || '').trim()
+          if (!name) return json({ error: 'name is required' }, 400, corsHeaders)
+          await db
+            .prepare('INSERT INTO followed_people (name, type, photo) VALUES (?, ?, ?) ON CONFLICT(name) DO NOTHING')
+            .bind(name, body.type || null, body.photo || null)
+            .run()
+          return json({ ok: true }, 200, corsHeaders)
+        } catch (e) {
+          return json({ error: 'Failed to follow' }, 500, corsHeaders)
+        }
+      }
+
+      if (method === 'DELETE' && pathname.startsWith('/api/followed/')) {
+        const denied = requireAuth()
+        if (denied) return denied
+        const name = decodeURIComponent(pathname.split('/').pop())
+        try {
+          await db.prepare('DELETE FROM followed_people WHERE name = ?').bind(name).run()
+          return json({ ok: true }, 200, corsHeaders)
+        } catch (e) {
+          return json({ error: 'Failed to unfollow' }, 500, corsHeaders)
+        }
+      }
+
+      // ---- لینک‌های مصاحبه‌ی دستی برای هر هنرمند (ذخیره روی people_photos) ----
+      if (method === 'POST' && pathname === '/api/interview-links') {
+        const denied = requireAuth()
+        if (denied) return denied
+        try {
+          const body = await request.json()
+          const name = (body.name || '').trim()
+          if (!name) return json({ error: 'name is required' }, 400, corsHeaders)
+          const links = Array.isArray(body.links) ? body.links : []
+          const existing = await db.prepare('SELECT name FROM people_photos WHERE name = ?').bind(name).first()
+          if (existing) {
+            await db.prepare('UPDATE people_photos SET interviewLinks = ? WHERE name = ?').bind(JSON.stringify(links), name).run()
+          } else {
+            await db.prepare('INSERT INTO people_photos (name, interviewLinks) VALUES (?, ?)').bind(name, JSON.stringify(links)).run()
+          }
+          return json({ ok: true }, 200, corsHeaders)
+        } catch (e) {
+          return json({ error: 'Failed to save interview links' }, 500, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/acclaimed-unseen (فیلم‌های پرامتیاز TMDB که تو آرشیو نیستن) ----
+      if (method === 'GET' && pathname === '/api/acclaimed-unseen') {
+        try {
+          if (!env.TMDB_API_KEY) return json([], 200, corsHeaders)
+          const tmdbKey = env.TMDB_API_KEY
+          const existingRows = await db.prepare('SELECT LOWER(TRIM(REPLACE(title, char(8217), char(39)))) AS t, year FROM films').all()
+          const existingKeys = new Set((existingRows.results || []).map((r) => `${r.t}::${r.year || ''}`))
+          const acclaimed = []
+          for (let page = 1; page <= 2 && acclaimed.length < 20; page++) {
+            const res = await fetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${tmdbKey}&page=${page}`)
+            if (!res.ok) break
+            const data = await res.json()
+            for (const m of data.results || []) {
+              const title = (m.title || '').toLowerCase().trim().replace(/\u2019/g, "'")
+              const year = m.release_date ? Number(m.release_date.slice(0, 4)) : null
+              if (existingKeys.has(`${title}::${year || ''}`)) continue
+              acclaimed.push({
+                tmdbId: m.id,
+                title: m.title,
+                year,
+                rating: m.vote_average,
+                votes: m.vote_count,
+                poster: m.poster_path ? `https://image.tmdb.org/t/p/w300${m.poster_path}` : null,
+              })
+              if (acclaimed.length >= 20) break
+            }
+          }
+          return json(acclaimed, 200, corsHeaders)
+        } catch (e) {
+          return json([], 200, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/tmdb-backdrops?title=X&year=Y&type=movie|tv (عکس‌های پشت‌صحنه/استیل) ----
+      if (method === 'GET' && pathname === '/api/tmdb-backdrops') {
+        try {
+          if (!env.TMDB_API_KEY) return json({ backdrops: [] }, 200, corsHeaders)
+          const tmdbKey = env.TMDB_API_KEY
+          const title = url.searchParams.get('title')
+          const year = url.searchParams.get('year')
+          const type = url.searchParams.get('type') === 'series' || url.searchParams.get('type') === 'tv' ? 'tv' : 'movie'
+          if (!title) return json({ backdrops: [] }, 200, corsHeaders)
+          const searchUrl = `https://api.themoviedb.org/3/search/${type}?api_key=${tmdbKey}&query=${encodeURIComponent(title)}${year ? `&year=${year}` : ''}`
+          const searchRes = await fetch(searchUrl)
+          if (!searchRes.ok) return json({ backdrops: [] }, 200, corsHeaders)
+          const searchData = await searchRes.json()
+          const hit = (searchData.results || [])[0]
+          if (!hit) return json({ backdrops: [] }, 200, corsHeaders)
+          const res = await fetch(`https://api.themoviedb.org/3/${type}/${hit.id}/images?api_key=${tmdbKey}`)
+          if (!res.ok) return json({ backdrops: [] }, 200, corsHeaders)
+          const data = await res.json()
+          const backdrops = (data.backdrops || [])
+            .slice(0, 12)
+            .map((b) => `https://image.tmdb.org/t/p/w780${b.file_path}`)
+          return json({ backdrops }, 200, corsHeaders)
+        } catch (e) {
+          return json({ backdrops: [] }, 200, corsHeaders)
+        }
+      }
+
       if (method === 'GET' && pathname === '/api/cinema-news') {
         try {
           const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneralRaw] =
@@ -2961,6 +3081,19 @@ function parseFilmRow(row) {
   if (!film.mediaType) film.mediaType = 'physical'
   if (!film.itemType) film.itemType = 'movie'
   if (!film.copies) film.copies = 1
+  if (typeof film.relatedFilms === 'string' && film.relatedFilms) {
+    try { film.relatedFilms = JSON.parse(film.relatedFilms) } catch { film.relatedFilms = [] }
+  } else if (!film.relatedFilms) {
+    film.relatedFilms = []
+  }
+  if (typeof film.festivalAwards === 'string' && film.festivalAwards) {
+    try { film.festivalAwards = JSON.parse(film.festivalAwards) } catch { film.festivalAwards = [] }
+  } else if (!film.festivalAwards) {
+    film.festivalAwards = []
+  }
+  film.trailerWatched = Boolean(film.trailerWatched)
+  film.cultClassic = Boolean(film.cultClassic)
+  film.experimental = Boolean(film.experimental)
   return film
 }
 
@@ -3052,9 +3185,12 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
 }
 
 async function updateFilm(db, film) {
-  const { id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, letterboxdVotes, watchlisted, seasonDrives, personalReview, personalReviewUrl, personalReviewDate, reviews } = film
+  const { id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, letterboxdVotes, watchlisted, seasonDrives, personalReview, personalReviewUrl, personalReviewDate, reviews,
+    cinematicMovement, relatedFilms, trailerWatched, trailerWatchedDate, basedOnBook, bookAuthor, screenwriter, cultClassic, shootingLocation, editionType, festivalAwards, screeningFormat, pacing, experimental, myNotes } = film
   await db.prepare(
-    `UPDATE films SET title=?, originalTitle=?, closet=?, shelf=?, row=?, director=?, producer=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, criterionCopies=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=?, letterboxdRating=?, letterboxdVotes=?, watchlisted=?, seasonDrives=?, personalReview=?, personalReviewUrl=?, personalReviewDate=?, reviews=? WHERE id=?`
+    `UPDATE films SET title=?, originalTitle=?, closet=?, shelf=?, row=?, director=?, producer=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, criterionCopies=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=?, letterboxdRating=?, letterboxdVotes=?, watchlisted=?, seasonDrives=?, personalReview=?, personalReviewUrl=?, personalReviewDate=?, reviews=?,
+      cinematicMovement=?, relatedFilms=?, trailerWatched=?, trailerWatchedDate=?, basedOnBook=?, bookAuthor=?, screenwriter=?, cultClassic=?, shootingLocation=?, editionType=?, festivalAwards=?, screeningFormat=?, pacing=?, experimental=?, myNotes=?
+     WHERE id=?`
   ).bind(
     title || null, originalTitle || null, closet || null, shelf || null, row || null,
     director || null, producer || null, cast && Array.isArray(cast) ? JSON.stringify(cast) : cast || null,
@@ -3069,7 +3205,15 @@ async function updateFilm(db, film) {
     itemType || 'movie', seasonsEpisodes || null, letterboxdRating || null, letterboxdVotes || null, watchlisted ? 1 : 0,
     seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(seasonDrives) : seasonDrives) : null,
     personalReview || null, personalReviewUrl || null, personalReviewDate || null,
-    reviews ? (Array.isArray(reviews) ? JSON.stringify(reviews) : reviews) : null, id
+    reviews ? (Array.isArray(reviews) ? JSON.stringify(reviews) : reviews) : null,
+    cinematicMovement || null,
+    relatedFilms ? (Array.isArray(relatedFilms) ? JSON.stringify(relatedFilms) : relatedFilms) : null,
+    trailerWatched ? 1 : 0, trailerWatchedDate || null,
+    basedOnBook || null, bookAuthor || null, screenwriter || null,
+    cultClassic ? 1 : 0, shootingLocation || null, editionType || null,
+    festivalAwards ? (Array.isArray(festivalAwards) ? JSON.stringify(festivalAwards) : festivalAwards) : null,
+    screeningFormat || null, pacing || null, experimental ? 1 : 0, myNotes || null,
+    id
   ).run()
 }
 

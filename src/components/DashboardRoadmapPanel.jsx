@@ -52,7 +52,7 @@ function RoadmapGroup({ icon: Icon, title, subtitle, items }) {
         </h3>
         <span className="stats-box-sub">{subtitle}</span>
       </div>
-      <div className="roadmap-list" style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+      <div className="roadmap-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 8, marginTop: 10 }}>
         {items.map((it) => (
           <div
             key={it.title}

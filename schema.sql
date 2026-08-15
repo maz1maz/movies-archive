@@ -45,6 +45,21 @@ CREATE TABLE IF NOT EXISTS films (
   personalReviewUrl TEXT,                 -- لینک نقد روی Letterboxd
   personalReviewDate TEXT,                -- تاریخ نقد
   reviews TEXT,                           -- JSON array: نقدهای همگام‌شده از Letterboxd
+  cinematicMovement TEXT,                 -- جنبش/مکتب سینمایی (مثلاً نئورئالیسم ایتالیا)
+  relatedFilms TEXT,                      -- JSON: [{filmId, title, type, note}] رابطه با فیلم‌های دیگر آرشیو
+  trailerWatched INTEGER DEFAULT 0,       -- تریلر دیده شده یا نه
+  trailerWatchedDate TEXT,                -- تاریخ دیدن تریلر
+  basedOnBook TEXT,                       -- عنوان کتاب مبدأ اقتباس
+  bookAuthor TEXT,                        -- نویسنده‌ی کتاب مبدأ
+  screenwriter TEXT,                      -- نویسنده فیلمنامه
+  cultClassic INTEGER DEFAULT 0,          -- برچسب فیلم کالت
+  shootingLocation TEXT,                  -- لوکیشن فیلم‌برداری
+  editionType TEXT,                       -- Theatrical / Extended / Director's Cut / ...
+  festivalAwards TEXT,                    -- JSON: [{festival, award, year}]
+  screeningFormat TEXT,                   -- 35mm / 70mm / IMAX / Digital / ...
+  pacing TEXT,                            -- slow / medium / fast
+  experimental INTEGER DEFAULT 0,         -- برچسب فیلم تجربی/آوانگارد
+  myNotes TEXT,                           -- یادداشت شخصی خصوصی (جدا از personalReview لترباکسدی)
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
@@ -74,7 +89,16 @@ CREATE TABLE IF NOT EXISTS people_photos (
   spouse TEXT,
   children TEXT,
   imdbId TEXT,
-  letterboxdUrl TEXT
+  letterboxdUrl TEXT,
+  interviewLinks TEXT     -- JSON: [{title, url}] لینک مصاحبه‌های دستی
+);
+
+-- هنرمندهای دنبال‌شده (کارگردان/بازیگر) — برای هشدار فیلم جدید
+CREATE TABLE IF NOT EXISTS followed_people (
+  name TEXT PRIMARY KEY,
+  type TEXT,              -- director | cast
+  photo TEXT,
+  addedAt TEXT DEFAULT (datetime('now'))
 );
 
 -- کش جوایز (از Wikidata) + پیشنهاد فیلم‌های کارگردان که تو آرشیو نیستن ولی

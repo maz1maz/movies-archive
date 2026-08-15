@@ -761,6 +761,17 @@ body.light .header {
   font-size: 12px;
   font-weight: 700;
 }
+.edit-section-divider {
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+}
+.edit-section-divider > span {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
 .link-conflicts-panel {
   border: 1px solid var(--warning, #d9a441);
   background: rgba(217, 164, 65, 0.08);

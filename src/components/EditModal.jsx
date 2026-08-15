@@ -40,6 +40,19 @@ function toForm(film) {
         : [{ seasons: '', drive: '' }],
     imdbId: film.imdbId || '',
     imdbVotes: film.imdbVotes || '',
+    cinematicMovement: film.cinematicMovement || '',
+    basedOnBook: film.basedOnBook || '',
+    bookAuthor: film.bookAuthor || '',
+    screenwriter: film.screenwriter || '',
+    cultClassic: film.cultClassic === true,
+    shootingLocation: film.shootingLocation || '',
+    editionType: film.editionType || '',
+    screeningFormat: film.screeningFormat || '',
+    pacing: film.pacing || '',
+    experimental: film.experimental === true,
+    myNotes: film.myNotes || '',
+    trailerWatched: film.trailerWatched === true,
+    trailerWatchedDate: film.trailerWatchedDate || '',
   }
 }
 
@@ -242,6 +255,19 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
           : undefined,
       imdbId: form.imdbId || undefined,
       imdbVotes: form.imdbVotes || undefined,
+      cinematicMovement: form.cinematicMovement || undefined,
+      basedOnBook: form.basedOnBook || undefined,
+      bookAuthor: form.bookAuthor || undefined,
+      screenwriter: form.screenwriter || undefined,
+      cultClassic: form.cultClassic,
+      shootingLocation: form.shootingLocation || undefined,
+      editionType: form.editionType || undefined,
+      screeningFormat: form.screeningFormat || undefined,
+      pacing: form.pacing || undefined,
+      experimental: form.experimental,
+      myNotes: form.myNotes || undefined,
+      trailerWatched: form.trailerWatched,
+      trailerWatchedDate: form.trailerWatched ? (form.trailerWatchedDate || new Date().toISOString().slice(0, 10)) : undefined,
     }
     onSave(patch)
   }
@@ -633,6 +659,90 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
           <label className="edit-field full">
             <span>Synopsis</span>
             <textarea rows="3" value={form.synopsis} onChange={set('synopsis')} />
+          </label>
+
+          <div className="edit-field full edit-section-divider">
+            <span>علایق فیلم‌بازی</span>
+          </div>
+          <label className="edit-field">
+            <span>جنبش سینمایی</span>
+            <input value={form.cinematicMovement} onChange={set('cinematicMovement')} placeholder="مثلاً نئورئالیسم ایتالیا" />
+          </label>
+          <label className="edit-field">
+            <span>نویسنده فیلمنامه</span>
+            <input value={form.screenwriter} onChange={set('screenwriter')} />
+          </label>
+          <label className="edit-field">
+            <span>اقتباس از کتاب</span>
+            <input value={form.basedOnBook} onChange={set('basedOnBook')} placeholder="عنوان کتاب" />
+          </label>
+          <label className="edit-field">
+            <span>نویسنده کتاب</span>
+            <input value={form.bookAuthor} onChange={set('bookAuthor')} />
+          </label>
+          <label className="edit-field">
+            <span>لوکیشن فیلم‌برداری</span>
+            <input value={form.shootingLocation} onChange={set('shootingLocation')} />
+          </label>
+          <label className="edit-field">
+            <span>نسخه (Edition)</span>
+            <input value={form.editionType} onChange={set('editionType')} placeholder="Theatrical / Extended / Director's Cut" />
+          </label>
+          <label className="edit-field">
+            <span>فرمت اکران</span>
+            <select value={form.screeningFormat} onChange={set('screeningFormat')}>
+              <option value="">—</option>
+              <option value="35mm">35mm</option>
+              <option value="70mm">70mm</option>
+              <option value="IMAX">IMAX</option>
+              <option value="Digital">Digital</option>
+            </select>
+          </label>
+          <label className="edit-field">
+            <span>ریتم فیلم</span>
+            <select value={form.pacing} onChange={set('pacing')}>
+              <option value="">—</option>
+              <option value="slow">کند</option>
+              <option value="medium">متوسط</option>
+              <option value="fast">تند</option>
+            </select>
+          </label>
+          <label className="edit-field edit-checkbox-field">
+            <span>برچسب‌ها</span>
+            <span className="edit-checkbox-row">
+              <input
+                type="checkbox"
+                checked={form.cultClassic}
+                onChange={(event) => setForm((previous) => ({ ...previous, cultClassic: event.target.checked }))}
+              />
+              فیلم کالت
+            </span>
+          </label>
+          <label className="edit-field edit-checkbox-field">
+            <span>&nbsp;</span>
+            <span className="edit-checkbox-row">
+              <input
+                type="checkbox"
+                checked={form.experimental}
+                onChange={(event) => setForm((previous) => ({ ...previous, experimental: event.target.checked }))}
+              />
+              تجربی / آوانگارد
+            </span>
+          </label>
+          <label className="edit-field edit-checkbox-field">
+            <span>تریلر</span>
+            <span className="edit-checkbox-row">
+              <input
+                type="checkbox"
+                checked={form.trailerWatched}
+                onChange={(event) => setForm((previous) => ({ ...previous, trailerWatched: event.target.checked }))}
+              />
+              تریلرشو دیدم
+            </span>
+          </label>
+          <label className="edit-field full">
+            <span>یادداشت شخصی (خصوصی)</span>
+            <textarea rows="3" value={form.myNotes} onChange={set('myNotes')} placeholder="یادداشت خودت درباره این فیلم…" />
           </label>
         </div>
 
