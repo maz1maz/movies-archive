@@ -9,7 +9,8 @@ import DashboardWatchlistsPanel from './DashboardWatchlistsPanel.jsx'
 import DashboardDuplicatesPanel from './DashboardDuplicatesPanel.jsx'
 import DashboardLoanedPanel from './DashboardLoanedPanel.jsx'
 import DashboardOrderListPanel from './DashboardOrderListPanel.jsx'
-import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper, IconBookshelf, IconLayers, IconHandshake } from './icons.jsx'
+import DashboardRoadmapPanel from './DashboardRoadmapPanel.jsx'
+import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper, IconBookshelf, IconLayers, IconHandshake, IconSparkles } from './icons.jsx'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: IconBarChart },
@@ -22,6 +23,7 @@ const TABS = [
   { key: 'orderlist', label: 'Order List', icon: IconSave },
   { key: 'recommend', label: 'Tonight', icon: IconDice },
   { key: 'export', label: 'Export & Backup', icon: IconSave },
+  { key: 'roadmap', label: 'Roadmap', icon: IconSparkles },
 ]
 
 const LAST_TAB_KEY = 'cinefilm-dashboard-last-tab'
@@ -81,6 +83,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
         {tab === 'orderlist' && <DashboardOrderListPanel />}
         {tab === 'recommend' && <DashboardRecommendPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'export' && <DashboardExportPanel films={films} />}
+        {tab === 'roadmap' && <DashboardRoadmapPanel />}
       </div>
     </div>
   )
