@@ -173,6 +173,45 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
     return [...tally.values()].sort((a, b) => b.count - a.count).slice(0, 12)
   }, [matchingFilms, target])
 
+  // همکاری کارگردان–بازیگر — کاملاً از دیتای director/cast موجود، بدون API.
+  // اگه این شخص کارگردانه: کدوم بازیگرا رو بیشتر انتخاب کرده.
+  // اگه این شخص بازیگره: با کدوم کارگردان‌ها بیشتر کار کرده.
+  const directorCollabs = useMemo(() => {
+    const personIsDirectorInFilm = (f) => (f.director || '').toLowerCase().includes(target)
+    const tally = new Map()
+
+    if (isDirector) {
+      // این شخص کارگردانه → بازیگرای پرتکرار فیلم‌هایی که خودش کارگردانی کرده
+      for (const f of matchingFilms) {
+        if (!personIsDirectorInFilm(f)) continue
+        const castList = Array.isArray(f.cast) ? f.cast : []
+        for (const actor of castList) {
+          const name = typeof actor === 'object' ? actor.name : actor
+          if (!name) continue
+          const lower = name.toLowerCase()
+          if (!tally.has(lower)) tally.set(lower, { name, count: 0 })
+          tally.get(lower).count++
+        }
+      }
+    } else {
+      // این شخص بازیگره → کارگردان‌های پرتکراری که باهاشون کار کرده
+      for (const f of matchingFilms) {
+        const castList = Array.isArray(f.cast) ? f.cast : []
+        const inCast = castList.some((a) => (typeof a === 'object' ? a.name : a || '').toLowerCase() === target)
+        if (!inCast || !f.director) continue
+        for (const dName of f.director.split(',').map((d) => d.trim()).filter(Boolean)) {
+          const lower = dName.toLowerCase()
+          if (!tally.has(lower)) tally.set(lower, { name: dName, count: 0 })
+          tally.get(lower).count++
+        }
+      }
+    }
+    return [...tally.values()]
+      .filter((c) => c.count > 1) // فقط همکاری‌های تکراری (بیش از ۱ فیلم) جالبن
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+  }, [matchingFilms, target, isDirector])
+
   const [followState, setFollowState] = useState('unknown') // unknown | following | not-following
   useEffect(() => {
     setFollowState('unknown')
@@ -455,6 +494,25 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
             ))
           )}
         </div>
+
+        {directorCollabs.length > 0 && (
+          <div className="stats-box" style={{ marginTop: 18 }}>
+            <h3>{isDirector ? 'بازیگرهای پرتکرار این کارگردان' : 'همکاری پرتکرار با کارگردان‌ها'}</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+              {directorCollabs.map((c) => (
+                <button
+                  key={c.name}
+                  type="button"
+                  className="person-follow-btn"
+                  style={{ fontSize: 12.5, padding: '5px 10px' }}
+                  onClick={() => onSelectPerson && onSelectPerson(c.name)}
+                >
+                  {c.name} <span style={{ opacity: 0.65 }}>· {c.count} فیلم</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {coStars.length > 0 && (
           <div className="stats-box" style={{ marginTop: 18 }}>
