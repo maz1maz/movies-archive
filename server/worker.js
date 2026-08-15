@@ -32,6 +32,26 @@ export default {
     // کاربر لاگین‌شده‌ی فعلی (از روی کوکی سشن) — مهمان‌ها null می‌گیرن.
     const currentUser = await getSessionUser(db, request)
     const requireAuth = () => (currentUser ? null : json({ error: 'You need to log in for this action' }, 401, corsHeaders))
+
+    // ---- Audit Trail — ثبت اینکه کی چی رو تغییر داد، با مقدار قبل/بعد ----
+    const logAudit = async ({ filmId, filmTitle, action, changes }) => {
+      try {
+        await db
+          .prepare('INSERT INTO audit_log (id, filmId, filmTitle, action, changes, changedBy) VALUES (?, ?, ?, ?, ?, ?)')
+          .bind(
+            crypto.randomUUID(),
+            filmId || null,
+            filmTitle || null,
+            action,
+            changes ? JSON.stringify(changes) : null,
+            currentUser?.username || 'guest'
+          )
+          .run()
+      } catch {
+        // لاگ‌نشدن یه تغییر نباید کل عملیات رو خراب کنه
+      }
+    }
+
     const requireAdmin = () =>
       !currentUser
         ? json({ error: 'You need to log in for this action' }, 401, corsHeaders)
@@ -481,6 +501,7 @@ export default {
         try {
           await syncSharedMetadataToSibling(db, film)
         } catch {}
+        await logAudit({ filmId: film.id, filmTitle: film.title, action: 'create' })
         return json(film, 201, corsHeaders)
       }
 
@@ -531,6 +552,17 @@ export default {
         try {
           await syncSharedMetadataToSibling(db, updated)
         } catch {}
+        const changed = {}
+        for (const k of EDITABLE) {
+          const before = existing[k]
+          const after = updated[k]
+          if (String(before ?? '') !== String(after ?? '')) {
+            changed[k] = [before ?? null, after ?? null]
+          }
+        }
+        if (Object.keys(changed).length > 0) {
+          await logAudit({ filmId: updated.id, filmTitle: updated.title, action: 'update', changes: changed })
+        }
         return json(parseFilmRow(updated), 200, corsHeaders)
       }
 
@@ -608,9 +640,10 @@ export default {
       if (method === 'DELETE' && deleteMatch) {
         const denied = requireAuth()
         if (denied) return denied
-        const existing = await db.prepare('SELECT id FROM films WHERE id = ?').bind(deleteMatch[1]).first()
+        const existing = await db.prepare('SELECT id, title FROM films WHERE id = ?').bind(deleteMatch[1]).first()
         if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
         await db.prepare('DELETE FROM films WHERE id = ?').bind(deleteMatch[1]).run()
+        await logAudit({ filmId: existing.id, filmTitle: existing.title, action: 'delete' })
         return json({ deleted: true, id: deleteMatch[1] }, 200, corsHeaders)
       }
 
@@ -1198,8 +1231,26 @@ export default {
         return json(out, 200, corsHeaders)
       }
 
-      if (method === 'GET' && pathname === '/api/order-list') {
-        try {
+      // ---- GET /api/audit-log — تاریخچه‌ی تغییرات (کی چی رو کی تغییر داد) ----
+      if (method === 'GET' && pathname === '/api/audit-log') {
+        const denied = requireAuth()
+        if (denied) return denied
+        const limit = Math.min(parseInt(url.searchParams.get('limit') || '100', 10) || 100, 500)
+        const filmId = url.searchParams.get('filmId')
+        let result
+        if (filmId) {
+          result = await db
+            .prepare('SELECT * FROM audit_log WHERE filmId = ? ORDER BY changedAt DESC LIMIT ?')
+            .bind(filmId, limit)
+            .all()
+        } else {
+          result = await db.prepare('SELECT * FROM audit_log ORDER BY changedAt DESC LIMIT ?').bind(limit).all()
+        }
+        const rows = (result.results || []).map((r) => ({ ...r, changes: r.changes ? JSON.parse(r.changes) : null }))
+        return json(rows, 200, corsHeaders)
+      }
+
+      if (method === 'GET' && pathname === '/api/order-list') {        try {
           const result = await db.prepare('SELECT * FROM order_list ORDER BY addedAt DESC').all()
           return json(result.results || [], 200, corsHeaders)
         } catch (e) {

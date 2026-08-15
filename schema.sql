@@ -150,6 +150,17 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_userId ON sessions(userId);
 
+CREATE TABLE IF NOT EXISTS audit_log (
+  id TEXT PRIMARY KEY,
+  filmId TEXT,
+  filmTitle TEXT,
+  action TEXT NOT NULL,
+  changes TEXT,
+  changedBy TEXT,
+  changedAt TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_audit_log_changedAt ON audit_log(changedAt DESC);
+
 -- ============================================================================
 -- MIGRATION for an EXISTING production database (D1) that predates the
 -- columns/table above. NOT run automatically by `npm run db:init` — that

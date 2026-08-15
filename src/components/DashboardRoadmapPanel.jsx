@@ -4,10 +4,10 @@ import { IconLayers, IconMasks, IconCheck } from './icons.jsx'
 // جداگانه پیاده‌سازی می‌شه و از این لیست به ستون «انجام‌شده» منتقل می‌شه.
 const DONE_ITEMS = [
   { title: 'گزارش سلامت دیتابیس', desc: 'تب DB Health — اسکن و لیست رکوردهای ناقص (بدون پوستر/خلاصه/کارگردان/ژانر/لوکیشن و...)' },
+  { title: 'سیستم لاگ تغییرات (Audit Trail)', desc: 'تب Audit Trail — ثبت create/update/delete با مقدار قبل/بعد و کاربر' },
 ]
 
 const TECHNICAL_ITEMS = [
-  { title: 'سیستم لاگ تغییرات (Audit Trail)', desc: 'ثبت اینکه کی چی رو تغییر داد، با مقدار قبل/بعد' },
   { title: 'API Rate Limit Monitoring', desc: 'گسترش /api/debug/checks برای هشدار نزدیک شدن به quota' },
   { title: 'تست خودکار قبل از دیپلوی', desc: 'اسکریپت چک اسکیما و endpointها پیش از npm run deploy' },
   { title: 'بکاپ چندلایه', desc: 'خروجی دوره‌ای به GitHub/R2، علاوه بر بکاپ فعلی روی KV' },

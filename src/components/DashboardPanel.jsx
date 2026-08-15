@@ -11,7 +11,8 @@ import DashboardLoanedPanel from './DashboardLoanedPanel.jsx'
 import DashboardOrderListPanel from './DashboardOrderListPanel.jsx'
 import DashboardRoadmapPanel from './DashboardRoadmapPanel.jsx'
 import DashboardHealthPanel from './DashboardHealthPanel.jsx'
-import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper, IconBookshelf, IconLayers, IconHandshake, IconSparkles, IconCheck } from './icons.jsx'
+import DashboardAuditPanel from './DashboardAuditPanel.jsx'
+import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper, IconBookshelf, IconLayers, IconHandshake, IconSparkles, IconCheck, IconDocument } from './icons.jsx'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: IconBarChart },
@@ -20,6 +21,7 @@ const TABS = [
   { key: 'crafts', label: 'Crafts', icon: IconClapper },
   { key: 'watchlists', label: 'Watchlists', icon: IconBookshelf },
   { key: 'health', label: 'DB Health', icon: IconCheck },
+  { key: 'audit', label: 'Audit Trail', icon: IconDocument },
   { key: 'duplicates', label: 'Duplicates', icon: IconLayers },
   { key: 'loaned', label: 'Loaned Out', icon: IconHandshake },
   { key: 'orderlist', label: 'Order List', icon: IconSave },
@@ -81,6 +83,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
         {tab === 'crafts' && <CraftsPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'watchlists' && <DashboardWatchlistsPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
         {tab === 'health' && <DashboardHealthPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
+        {tab === 'audit' && <DashboardAuditPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'duplicates' && <DashboardDuplicatesPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
         {tab === 'loaned' && <DashboardLoanedPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'orderlist' && <DashboardOrderListPanel />}
