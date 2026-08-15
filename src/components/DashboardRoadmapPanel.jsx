@@ -16,12 +16,12 @@ const DONE_ITEMS = [
     title: 'کش هوشمند با Invalidation خودکار',
     desc: 'TTL کوتاه‌تر خودکار برای نتیجه‌ی خالی/شکست‌خورده (به‌جای TTL کامل) در همه‌ی کش‌های cinema_news_cache و director_extras؛ + رفع باگ people_photos که ثبت لینک مصاحبه، fetch بیوگرافی رو برای همیشه بلاک می‌کرد',
   },
+  { title: 'دنبال‌کردن هنرمند', desc: 'دکمه Follow/Unfollow رو PersonModal + تب Following تو Dashboard (گالری کارت با عکس)' },
 ]
 
 const CINEPHILE_ITEMS = [
   { title: 'یادداشت نقد شخصی', desc: 'فیلد یادداشت خصوصی جدا از reviewهای فعلی' },
   { title: 'رتبه‌بندی سالانه', desc: 'تب Top 10 هر سال بر اساس تاریخ تماشا' },
-  { title: 'دنبال‌کردن هنرمند', desc: 'دکمه Follow روی کارگردان/بازیگر + تب دنبال‌شده‌ها' },
   { title: 'تقویم جشنواره‌ها و اکران‌ها', desc: 'بخش جدید تو Cinema News از RSS/TMDB' },
   { title: 'جنبش سینمایی', desc: 'فیلد و فیلتر برای مکتب‌هایی مثل نئورئالیسم' },
   { title: 'گراف رابطه فیلم‌ها', desc: 'based on / remake / sequel از TMDB collections' },

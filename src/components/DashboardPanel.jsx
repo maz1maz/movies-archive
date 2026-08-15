@@ -13,7 +13,8 @@ import DashboardRoadmapPanel from './DashboardRoadmapPanel.jsx'
 import DashboardHealthPanel from './DashboardHealthPanel.jsx'
 import DashboardAuditPanel from './DashboardAuditPanel.jsx'
 import DashboardApiUsagePanel from './DashboardApiUsagePanel.jsx'
-import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper, IconBookshelf, IconLayers, IconHandshake, IconSparkles, IconCheck, IconDocument } from './icons.jsx'
+import DashboardFollowedPanel from './DashboardFollowedPanel.jsx'
+import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper, IconBookshelf, IconLayers, IconHandshake, IconSparkles, IconCheck, IconDocument, IconUser } from './icons.jsx'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: IconBarChart },
@@ -21,6 +22,7 @@ const TABS = [
   { key: 'genretops', label: 'Genre Tops', icon: IconMasks },
   { key: 'crafts', label: 'Crafts', icon: IconClapper },
   { key: 'watchlists', label: 'Watchlists', icon: IconBookshelf },
+  { key: 'followed', label: 'Following', icon: IconUser },
   { key: 'health', label: 'DB Health', icon: IconCheck },
   { key: 'audit', label: 'Audit Trail', icon: IconDocument },
   { key: 'apiusage', label: 'API Usage', icon: IconBarChart },
@@ -84,6 +86,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
         {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'crafts' && <CraftsPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'watchlists' && <DashboardWatchlistsPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
+        {tab === 'followed' && <DashboardFollowedPanel onOpenPerson={onOpenPerson} />}
         {tab === 'health' && <DashboardHealthPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
         {tab === 'audit' && <DashboardAuditPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'apiusage' && <DashboardApiUsagePanel />}

@@ -3,6 +3,7 @@ import { IconClose, IconUser, IconPin, IconDisc } from './icons.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { addToOrderList } from '../utils/orderList.js'
 import { proxyImg } from '../utils/proxyImg.js'
+import { useAuth } from '../context/AuthContext.jsx'
 
 function RecommendationOrderButton({ title, year, director }) {
   const [state, setState] = useState('idle') // idle | adding | added
@@ -26,6 +27,7 @@ function RecommendationOrderButton({ title, year, director }) {
 }
 
 export default function PersonModal({ personName, allFilms, onSelectFilm, onClose, hasBluray }) {
+  const { isGuest, openLogin } = useAuth()
   const [photo, setPhoto] = useState(null)
   const [bio, setBio] = useState(null)
   const [facts, setFacts] = useState({
@@ -151,6 +153,51 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
 
   const isDirector = matchingFilms.some((f) => (f.director || '').toLowerCase().includes(target))
 
+  const [followState, setFollowState] = useState('unknown') // unknown | following | not-following
+  useEffect(() => {
+    setFollowState('unknown')
+    if (!personName) return
+    let cancelled = false
+    fetch('/api/followed')
+      .then((r) => r.json())
+      .then((list) => {
+        if (cancelled) return
+        const isFollowed = Array.isArray(list) && list.some((p) => p.name.toLowerCase() === target)
+        setFollowState(isFollowed ? 'following' : 'not-following')
+      })
+      .catch(() => setFollowState('not-following'))
+    return () => {
+      cancelled = true
+    }
+  }, [personName, target])
+
+  const toggleFollow = async () => {
+    if (isGuest) {
+      openLogin()
+      return
+    }
+    if (followState === 'unknown') return
+    if (followState === 'following') {
+      setFollowState('not-following')
+      try {
+        await fetch(`/api/followed/${encodeURIComponent(personName)}`, { method: 'DELETE' })
+      } catch {
+        setFollowState('following')
+      }
+    } else {
+      setFollowState('following')
+      try {
+        await fetch('/api/followed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: personName, type: isDirector ? 'director' : 'actor', photo }),
+        })
+      } catch {
+        setFollowState('not-following')
+      }
+    }
+  }
+
   const [directorExtras, setDirectorExtras] = useState(null)
   const [extrasLoading, setExtrasLoading] = useState(false)
   useEffect(() => {
@@ -228,6 +275,15 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
               >
                 Letterboxd ↗
               </a>
+              <button
+                type="button"
+                className={followState === 'following' ? 'person-follow-btn person-follow-btn-active' : 'person-follow-btn'}
+                onClick={toggleFollow}
+                disabled={followState === 'unknown'}
+                title={followState === 'following' ? 'Unfollow' : 'Follow'}
+              >
+                {followState === 'following' ? '★ Following' : '☆ Follow'}
+              </button>
             </h2>
             <p className="person-subtitle">
               Found <strong>{matchingFilms.length}</strong> film(s) in your archive
