@@ -5052,6 +5052,25 @@ body.light .folder-back {
   font-size: 9.5px;
 }
 
+.stats-timeline-alphabet {
+  gap: 3px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.stats-timeline-alphabet .timeline-col {
+  flex: 1 1 0;
+  min-width: 18px;
+}
+.stats-timeline-alphabet .timeline-bar {
+  max-width: 16px;
+}
+.stats-timeline-alphabet .timeline-count {
+  font-size: 9px;
+}
+.stats-timeline-alphabet .timeline-label {
+  font-size: 9.5px;
+}
+
 @media (max-width: 640px) {
   .stats-cards-grid-6 {
     grid-template-columns: repeat(3, 1fr);

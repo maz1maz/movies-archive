@@ -109,6 +109,22 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isA
     .sort((a, b) => a[0] - b[0])
   const maxDecadeCount = decadeEntries.reduce((m, [, c]) => Math.max(m, c), 1)
 
+  // شمارش تعداد فیلم/سریال زیر هر حرف الفبا — دقیقاً همون قانونی که تو
+  // بقیه‌ی اپ برای سورت استفاده می‌شه: فقط "The" ابتدای عنوان نادیده گرفته
+  // می‌شه، بقیه‌ی حروف دست‌نخورده می‌مونن.
+  const letterCounts = {}
+  films.forEach((f) => {
+    const raw = (f.title || '').trim()
+    if (!raw) return
+    const sortable = /^the\s+/i.test(raw) ? raw.replace(/^the\s+/i, '') : raw
+    const first = sortable.charAt(0).toUpperCase()
+    const key = /[A-Z]/.test(first) ? first : '#'
+    letterCounts[key] = (letterCounts[key] || 0) + 1
+  })
+  const ALPHABET_ORDER = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))]
+  const letterEntries = ALPHABET_ORDER.filter((l) => letterCounts[l]).map((l) => [l, letterCounts[l]])
+  const maxLetterCount = letterEntries.reduce((m, [, c]) => Math.max(m, c), 1)
+
   const physicalCount = films.filter((f) => f.mediaType !== 'digital').length
   const digitalCount = films.filter((f) => f.mediaType === 'digital').length
   const movieCount = films.filter((f) => f.itemType !== 'series').length
@@ -280,6 +296,24 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isA
                   style={{ height: `${Math.max(6, Math.round((count / maxDecadeCount) * 100))}%` }}
                 />
                 <span className="timeline-label">{decade}s</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {letterEntries.length > 1 && (
+        <div className="stats-box">
+          <h3><IconBookshelf width={15} height={15} /> Titles by Letter</h3>
+          <div className="stats-timeline stats-timeline-alphabet">
+            {letterEntries.map(([letter, count]) => (
+              <div key={letter} className="timeline-col">
+                <span className="timeline-count">{count}</span>
+                <div
+                  className="timeline-bar"
+                  style={{ height: `${Math.max(6, Math.round((count / maxLetterCount) * 100))}%` }}
+                />
+                <span className="timeline-label">{letter}</span>
               </div>
             ))}
           </div>
