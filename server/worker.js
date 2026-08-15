@@ -3526,6 +3526,7 @@ async function fetchDirectorRecommendations(db, name, env) {
       if (seen.has(key)) continue
       seen.add(key)
       candidates.push({
+        tmdbId: c.id,
         title: c.title,
         year: parseInt(c.release_date.slice(0, 4), 10),
         popularity: c.popularity || 0,
@@ -3559,6 +3560,15 @@ async function fetchDirectorRecommendations(db, name, env) {
       // خیلی وقتا hotlinking از دامنه‌های دیگه رو بلاک می‌کنه و تصویر شکسته میاد).
       let poster = c.posterPath ? `https://image.tmdb.org/t/p/w300${c.posterPath}` : null
 
+      // مدت‌زمان رو مستقیم از خود TMDB می‌گیریم (منبع اصلی و مطمئن‌تر از
+      // OMDb برای این مورد) تا مطمئن بشیم فیلم کوتاه نیست.
+      try {
+        const details = await tmdbGet(`/movie/${c.tmdbId}`, {})
+        if (typeof details?.runtime === 'number' && details.runtime > 0) {
+          runtimeMins = details.runtime
+        }
+      } catch {}
+
       // OMDb فقط best-effort: اگه کوتاش تموم شده باشه یا جواب نده، مشکلی
       // نیست — امتیاز TMDB رو به‌جاش نگه می‌داریم، نه این‌که کل پیشنهاد رو حذف کنیم.
       try {
@@ -3573,19 +3583,21 @@ async function fetchDirectorRecommendations(db, name, env) {
             if (!isNaN(parsed)) imdbRating = parsed
             if (!poster && omdbData.Poster && omdbData.Poster !== 'N/A') poster = omdbData.Poster
           }
-          const runtimeMatch = (omdbData.Runtime || '').match(/(\d+)/)
-          if (runtimeMatch) runtimeMins = parseInt(runtimeMatch[1], 10)
+          if (runtimeMins == null) {
+            const runtimeMatch = (omdbData.Runtime || '').match(/(\d+)/)
+            if (runtimeMatch) runtimeMins = parseInt(runtimeMatch[1], 10)
+          }
         }
       } catch {}
+
+      // فقط فیلم بلند (۴۰ دقیقه به بالا) — اگه مدت‌زمانش از هیچ منبعی معلوم
+      // نشد (نه TMDB نه OMDb)، به‌جای اینکه با شک نشونش بدیم، حذفش می‌کنیم.
+      if (runtimeMins == null || runtimeMins < 40) continue
 
       // لترباکس هم best-effort — اگه واقعاً امتیازش پایینه (زیر ۳.۵) حذفش
       // می‌کنیم، ولی اگه فقط جواب نداد (بلاک/تغییر مارک‌آپ) نادیده می‌گیریم.
       const lb = await fetchLetterboxdRating(c.title, c.year)
       if (lb && lb.rating <= 3.5) continue
-
-      // فیلم کوتاه (زیر ۴۰ دقیقه) رو پیشنهاد نده — همون قانونی که تو
-      // PersonModal برای فیلموگرافی/همکاری‌ها اعمال می‌شه.
-      if (typeof runtimeMins === 'number' && runtimeMins > 0 && runtimeMins < 40) continue
 
       results.push({
         title: c.title,
