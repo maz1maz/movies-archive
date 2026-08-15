@@ -3467,20 +3467,49 @@ async function fetchDirectorAwards(name) {
     if (!res.ok) return []
     const data = await res.json()
     const claims = data?.entities?.[qid]?.claims || {}
-    const awardIds = (claims.P166 || []).map((c) => c.mainsnak?.datavalue?.value?.id).filter(Boolean)
-    if (!awardIds.length) return []
+    const awardClaims = claims.P166 || []
+    if (!awardClaims.length) return []
 
+    const awardIds = awardClaims.map((c) => c.mainsnak?.datavalue?.value?.id).filter(Boolean)
     const labels = await resolveWikidataLabels(awardIds)
-    const counts = new Map()
-    for (const id of awardIds) {
-      const label = labels[id]
+
+    // هر جایزه با سالش جدا نگه داشته می‌شه (نه فقط شمارش) — اگه شخص یه جایزه
+    // رو چند سال برده باشه، هر سالش جدا لیست می‌شه. P585 = «point in time».
+    const results = []
+    for (const c of awardClaims) {
+      const id = c.mainsnak?.datavalue?.value?.id
+      const label = id && labels[id]
       if (!label) continue
-      counts.set(label, (counts.get(label) || 0) + 1)
+      const timeVal = c.qualifiers?.P585?.[0]?.datavalue?.value?.time
+      let year = null
+      if (timeVal) {
+        const m = timeVal.match(/^\+?(-?\d{1,4})-/)
+        if (m) year = parseInt(m[1], 10)
+      }
+      // اگه برای یه فیلم/کار خاص بوده (P1686 «for work»)، اسمش رو هم می‌گیریم.
+      const workId = c.qualifiers?.P1686?.[0]?.datavalue?.value?.id
+      results.push({ label, year, workId })
     }
-    return Array.from(counts.entries())
-      .map(([label, count]) => ({ label, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 12)
+
+    // اسم فیلم‌هایی که جایزه بابتشون بوده رو resolve می‌کنیم.
+    const workIds = [...new Set(results.map((r) => r.workId).filter(Boolean))]
+    const workLabels = workIds.length ? await resolveWikidataLabels(workIds) : {}
+    for (const r of results) {
+      r.forWork = r.workId ? workLabels[r.workId] || null : null
+      delete r.workId
+    }
+
+    // یکتاسازی (همون جایزه/سال/کار ممکنه از چند claim تکراری بیاد)
+    const seen = new Set()
+    const deduped = results.filter((r) => {
+      const key = `${r.label}|${r.year}|${r.forWork}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+
+    deduped.sort((a, b) => (b.year || 0) - (a.year || 0))
+    return deduped.slice(0, 40)
   } catch {
     return []
   }
@@ -3868,9 +3897,11 @@ const FESTIVAL_BADGES = [
   { test: /sundance/i, festival: 'Sundance', icon: '🏔️', color: '#4a90d9' },
 ]
 
-// جوایز جشنواره‌ای — خودکار از Wikidata P166 «award received». فقط جوایز
-// شناخته‌شده‌ی ۵ جشنواره‌ی بالا رو برمی‌گردونه (نه هر جایزه‌ای که فیلم گرفته).
-// festivalAwards=NULL یعنی هنوز چک‌نشده، '[]'=چک‌شده بدون جایزه‌ی شناخته‌شده.
+// همه‌ی جوایز واقعی فیلم — خودکار از Wikidata P166 «award received»، با سال
+// دقیق (P585 قید «point in time») و دسته/عنوان جایزه (مثلاً «Academy Award
+// for Best Actor»). ۵ جشنواره‌ی اصلی (بالا) بج و آیکون رنگی می‌گیرن، بقیه‌ی
+// جوایز (گلدن گلوب، بفتا، اسکار، امی، جوایز صنفی و ...) هم لیست می‌شن ولی با
+// آیکون عمومی. festivalAwards=NULL یعنی هنوز چک‌نشده، '[]'=چک‌شده بدون جایزه.
 async function resolveFestivalAwards(db, env, film) {
   if (film.festivalAwards != null) {
     try {
@@ -3886,11 +3917,15 @@ async function resolveFestivalAwards(db, env, film) {
       'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive; personal, single-user film archive app)',
       accept: 'application/sparql-results+json',
     }
-    const sparql = `SELECT ?awardLabel WHERE {
+    // p:P166/ps:P166 + pq:P585 برای گرفتن قید «سال» روی خودِ claim
+    // (wdt:P166 ساده فقط اسم جایزه رو می‌ده، بدون سال).
+    const sparql = `SELECT ?awardLabel ?year WHERE {
       ?film wdt:P345 "${film.imdbId}".
-      ?film wdt:P166 ?award.
+      ?film p:P166 ?statement.
+      ?statement ps:P166 ?award.
+      OPTIONAL { ?statement pq:P585 ?time. BIND(YEAR(?time) AS ?year) }
       SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
-    } LIMIT 20`
+    } LIMIT 60`
 
     let res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
     if (!res.ok) {
@@ -3901,16 +3936,25 @@ async function resolveFestivalAwards(db, env, film) {
     const rows = data?.results?.bindings || []
 
     const matched = []
-    const seenFestivals = new Set()
+    const seen = new Set()
     for (const r of rows) {
       const label = r.awardLabel?.value
       if (!label) continue
+      const year = r.year?.value ? parseInt(r.year.value, 10) : null
+      const key = `${label}|${year}`
+      if (seen.has(key)) continue
+      seen.add(key)
       const badge = FESTIVAL_BADGES.find((b) => b.test.test(label))
-      if (!badge || seenFestivals.has(badge.festival)) continue
-      seenFestivals.add(badge.festival)
-      matched.push({ award: label, festival: badge.festival, icon: badge.icon, color: badge.color })
+      matched.push({
+        award: label,
+        year,
+        festival: badge?.festival || null,
+        icon: badge?.icon || '🏅',
+        color: badge?.color || '#8a8a8a',
+      })
     }
 
+    matched.sort((a, b) => (b.year || 0) - (a.year || 0))
     await db.prepare('UPDATE films SET festivalAwards = ? WHERE id = ?').bind(JSON.stringify(matched), film.id).run()
     return matched
   } catch {

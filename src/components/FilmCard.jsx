@@ -170,16 +170,19 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         )}
         {(film.criterion || hasBluray || festivalAwards.length > 0) && (
           <div className="poster-badge-stack poster-badge-stack-left">
-            {festivalAwards.slice(0, 1).map((a) => (
-              <span
-                key={a.festival}
-                className="festival-award-badge"
-                style={{ background: a.color }}
-                title={a.award}
-              >
-                {a.icon} {a.festival}
-              </span>
-            ))}
+            {festivalAwards
+              .filter((a) => a.festival)
+              .slice(0, 1)
+              .map((a) => (
+                <span
+                  key={a.festival}
+                  className="festival-award-badge"
+                  style={{ background: a.color }}
+                  title={a.year ? `${a.award} (${a.year})` : a.award}
+                >
+                  {a.icon} {a.festival}
+                </span>
+              ))}
             {film.criterion && (
               <span className="criterion-badge">
                 CRITERION{film.criterionCopies > 1 ? ` ×${film.criterionCopies}` : ''}

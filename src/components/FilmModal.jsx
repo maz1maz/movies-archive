@@ -545,11 +545,12 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
             {festivalAwards.length > 0 && (
               <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
-                <div className="cine-section-label">FESTIVAL AWARDS</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-                  {festivalAwards.map((a) => (
-                    <p key={a.festival} style={{ margin: 0, fontSize: 13.5 }}>
+                <div className="cine-section-label">AWARDS ({festivalAwards.length})</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4, maxHeight: 260, overflowY: 'auto' }}>
+                  {festivalAwards.map((a, i) => (
+                    <p key={`${a.award}-${a.year}-${i}`} style={{ margin: 0, fontSize: 13.5 }}>
                       {a.icon} <strong>{a.award}</strong>
+                      {a.year ? ` — ${a.year}` : ''}
                     </p>
                   ))}
                 </div>
