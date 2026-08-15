@@ -89,6 +89,23 @@ export default function App() {
     () => typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches
   )
   const [selectedPerson, setSelectedPerson] = useState(null)
+  // وقتی از صفحه‌ی یه هنرمند رو یه فیلم کلیک می‌کنیم، اسم اون هنرمند رو اینجا
+  // نگه می‌داریم تا با بستن FilmModal (ضربدر یا کلیک بیرون)، به‌جای اینکه کلاً
+  // ببنده، برگردیم به همون صفحه‌ی هنرمند که ازش اومده بودیم.
+  const [personBeforeFilm, setPersonBeforeFilm] = useState(null)
+  const openFilmFromPerson = (film) => {
+    setPersonBeforeFilm(selectedPerson)
+    setSelectedPerson(null)
+    setSelected(film)
+  }
+  const closeFilmModal = () => {
+    setSelected(null)
+    setForceFilmOverlay(false)
+    if (personBeforeFilm) {
+      setSelectedPerson(personBeforeFilm)
+      setPersonBeforeFilm(null)
+    }
+  }
   const [showLocationBrowser, setShowLocationBrowser] = useState(false)
   const [showBookshelf, setShowBookshelf] = useState(false)
   const [forceFilmOverlay, setForceFilmOverlay] = useState(false)
@@ -742,13 +759,14 @@ export default function App() {
               onNavigate={(film) => setSelected(film)}
               onSelectPerson={(name) => {
                 setSelected(null)
+                setPersonBeforeFilm(null)
                 setSelectedPerson(name)
               }}
               onManageLoan={guardedLoan}
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
               onEdit={guardedEdit}
-              onClose={() => setSelected(null)}
+              onClose={closeFilmModal}
             />
           )}
           {selectedPerson && (
@@ -757,10 +775,7 @@ export default function App() {
               allFilms={allFilmsUnfiltered}
               hasBluray={hasBlurayCopy}
               hasDigital={hasDigitalCopy}
-              onSelectFilm={(film) => {
-                setSelectedPerson(null)
-                setSelected(film)
-              }}
+              onSelectFilm={openFilmFromPerson}
               onSelectPerson={(name) => setSelectedPerson(name)}
               onClose={() => setSelectedPerson(null)}
             />
@@ -801,13 +816,14 @@ export default function App() {
               onNavigate={(film) => setSelected(film)}
               onSelectPerson={(name) => {
                 setSelected(null)
+                setPersonBeforeFilm(null)
                 setSelectedPerson(name)
               }}
               onManageLoan={guardedLoan}
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
               onEdit={guardedEdit}
-              onClose={() => setSelected(null)}
+              onClose={closeFilmModal}
             />
           )}
         </>
@@ -830,13 +846,14 @@ export default function App() {
               onNavigate={(film) => setSelected(film)}
               onSelectPerson={(name) => {
                 setSelected(null)
+                setPersonBeforeFilm(null)
                 setSelectedPerson(name)
               }}
               onManageLoan={guardedLoan}
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
               onEdit={guardedEdit}
-              onClose={() => setSelected(null)}
+              onClose={closeFilmModal}
             />
           )}
           {selectedPerson && (
@@ -845,10 +862,7 @@ export default function App() {
               allFilms={allFilmsUnfiltered}
               hasBluray={hasBlurayCopy}
               hasDigital={hasDigitalCopy}
-              onSelectFilm={(film) => {
-                setSelectedPerson(null)
-                setSelected(film)
-              }}
+              onSelectFilm={openFilmFromPerson}
               onSelectPerson={(name) => setSelectedPerson(name)}
               onClose={() => setSelectedPerson(null)}
             />
@@ -879,13 +893,14 @@ export default function App() {
               onNavigate={(film) => setSelected(film)}
               onSelectPerson={(name) => {
                 setSelected(null)
+                setPersonBeforeFilm(null)
                 setSelectedPerson(name)
               }}
               onManageLoan={guardedLoan}
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
               onEdit={guardedEdit}
-              onClose={() => setSelected(null)}
+              onClose={closeFilmModal}
             />
           )}
           {selectedPerson && (
@@ -894,10 +909,7 @@ export default function App() {
               allFilms={allFilmsUnfiltered}
               hasBluray={hasBlurayCopy}
               hasDigital={hasDigitalCopy}
-              onSelectFilm={(film) => {
-                setSelectedPerson(null)
-                setSelected(film)
-              }}
+              onSelectFilm={openFilmFromPerson}
               onSelectPerson={(name) => setSelectedPerson(name)}
               onClose={() => setSelectedPerson(null)}
             />
@@ -1009,13 +1021,14 @@ export default function App() {
                 onNavigate={(film) => setSelected(film)}
                 onSelectPerson={(name) => {
                   setSelected(null)
+                  setPersonBeforeFilm(null)
                   setSelectedPerson(name)
                 }}
                 onManageLoan={guardedLoan}
                 onRateFilm={guardedRate}
                 onSaveSeasonDrive={guardedSeasonDrive}
                 onEdit={guardedEdit}
-                onClose={() => setSelected(null)}
+                onClose={closeFilmModal}
               />
             </div>
           </div>
@@ -1053,16 +1066,14 @@ export default function App() {
           onSelectPerson={(name) => {
             setSelected(null)
             setForceFilmOverlay(false)
+            setPersonBeforeFilm(null)
             setSelectedPerson(name)
           }}
           onManageLoan={guardedLoan}
           onRateFilm={guardedRate}
           onSaveSeasonDrive={guardedSeasonDrive}
           onEdit={guardedEdit}
-          onClose={() => {
-            setSelected(null)
-            setForceFilmOverlay(false)
-          }}
+          onClose={closeFilmModal}
         />
       )}
 
@@ -1072,10 +1083,7 @@ export default function App() {
           allFilms={allFilmsUnfiltered}
           hasBluray={hasBlurayCopy}
           hasDigital={hasDigitalCopy}
-          onSelectFilm={(film) => {
-            setSelectedPerson(null)
-            setSelected(film)
-          }}
+          onSelectFilm={openFilmFromPerson}
           onSelectPerson={(name) => setSelectedPerson(name)}
           onClose={() => setSelectedPerson(null)}
         />
