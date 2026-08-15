@@ -119,7 +119,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     return () => {
       cancelled = true
     }
-  }, [film?.id, film?.itemType])
+  }, [film?.id, film?.itemType, film?.title])
 
   // اقتباس از کتاب — خودکار از Wikidata (P144). اگه basedOnBook از قبل دستی
   // پر شده باشه (تو EditModal)، سرور همون رو برمی‌گردونه بدون fetch مجدد.

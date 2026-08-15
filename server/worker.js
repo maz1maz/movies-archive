@@ -1195,10 +1195,14 @@ export default {
           if (!details) return json({ collection: null }, 200, corsHeaders)
 
           // چک کن کدوم فیلم‌های مجموعه از قبل تو آرشیو هستن (بر اساس عنوان+سال،
-          // نادیده گرفتن "The" مثل بقیه‌ی جاهای اپ)
+          // نادیده گرفتن "The" مثل بقیه‌ی جاهای اپ؛ فاصله‌های تکراری/کوتیشن‌های
+          // فرقی هم نادیده گرفته می‌شن تا یه ویرایش جزئی عنوان match رو خراب نکنه)
           const normTitle = (t) =>
             (t || '')
               .toLowerCase()
+              .replace(/[\u2018\u2019]/g, "'")
+              .replace(/[\u201c\u201d]/g, '"')
+              .replace(/\s+/g, ' ')
               .replace(/^the\s+/, '')
               .trim()
           const allTitlesRes = await db.prepare('SELECT id, title, year FROM films').all()
