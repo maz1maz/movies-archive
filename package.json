@@ -11,6 +11,7 @@
     "start": "node server/index.js",
     "template": "node server/make-template.js",
     "deploy": "npm run build && npx wrangler deploy",
+    "predeploy": "node scripts/pre-deploy-check.mjs",
     "db:init": "npx wrangler d1 execute movies-archive --file=schema.sql",
     "gallery:build": "node scripts/build-gallery-media.mjs",
     "sphere:build": "node scripts/build-sphere-atlas.mjs"
