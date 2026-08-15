@@ -168,6 +168,9 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         </h3>
         <p className="card-meta">
           {film.year || '—'} · {(Array.isArray(film.genre) ? film.genre : (film.genre || '').split(',').map(g => g.trim()).filter(Boolean)).slice(0, 2).join(', ')}
+          {film.editionType && !/^theatrical$/i.test(film.editionType.trim()) && (
+            <span className="edition-type-tag"> · {film.editionType}</span>
+          )}
         </p>
         {film.myRating > 0 && <StarRating value={film.myRating} size={13} />}
       </div>

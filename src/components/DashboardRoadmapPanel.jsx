@@ -29,6 +29,7 @@ const DONE_ITEMS = [
   { title: 'پوستر جایگزین', desc: 'اسلایدشو خودکار روی کارت گرید — هر ۵ ثانیه یکی از پوسترهای TMDB عوض می‌شه؛ fetch فقط وقتی کارت تو دیدرسه (IntersectionObserver)، کش ۳۰ روزه' },
   { title: 'همکاری کارگردان–بازیگر', desc: 'بخش «بازیگرهای پرتکرار» (روی صفحه کارگردان) یا «همکاری با کارگردان‌ها» (روی صفحه بازیگر) تو PersonModal — کاملاً از دیتای موجود، فقط همکاری‌های بیش از ۱ فیلم' },
   { title: 'لوکیشن فیلم‌برداری', desc: 'خودکار از Wikidata (P915 «filming location»)، بر اساس imdbId؛ نمایش «Filmed in» تو FilmModal — بدون فیلتر جغرافیایی (فقط نمایش)' },
+  { title: 'نسخه اکستندد / دایرکتور کات', desc: 'ستون editionType (دستی، تو EditModal) — حالا تو FilmModal ردیف «Edition» و رو کارت گرید تگ کوچیک نشون داده می‌شه' },
 ]
 
 const CINEPHILE_ITEMS = [
@@ -38,7 +39,6 @@ const CINEPHILE_ITEMS = [
   { title: 'فیلم‌های الهام‌گرفته از هم', desc: 'لینک دستی بین دو فیلم با توضیح ارتباط' },
   { title: 'تریلر دیده‌شده', desc: 'تیک و تاریخ جدا برای دیدن تریلر هر فیلم' },
   { title: 'برچسب فیلم‌های کالت', desc: 'تگ دستی cult classic + فیلتر مخصوص' },
-  { title: 'نسخه اکستندد / دایرکتور کات', desc: 'فیلد نسخه (Theatrical/Extended/Director’s Cut)' },
   { title: 'جشنواره‌ای برنده جایزه', desc: 'بج طلایی برای فیلم‌های برنده Cannes/Oscar/Berlinale' },
   { title: 'فرمت اصلی اکران', desc: 'بج 35mm / 70mm / IMAX / دیجیتال' },
   { title: 'عکس پشت‌صحنه', desc: 'گالری behind-the-scenes از TMDB تو MovieModal' },

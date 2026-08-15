@@ -269,6 +269,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     { label: 'Cinematography', value: film.cinematographer },
     { label: 'Country', value: film.country },
     { label: 'Filmed in', value: shootingLocation },
+    { label: 'Edition', value: film.editionType },
     { label: 'Runtime', value: film.runtime ? `${film.runtime} mins (${runtimeText})` : null },
   ].filter((item) => item.value)
 
