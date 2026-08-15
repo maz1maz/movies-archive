@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { IconClose, IconUser, IconPin, IconDisc } from './icons.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { addToOrderList } from '../utils/orderList.js'
@@ -26,7 +26,7 @@ function RecommendationOrderButton({ title, year, director }) {
   )
 }
 
-export default function PersonModal({ personName, allFilms, onSelectFilm, onClose, hasBluray }) {
+export default function PersonModal({ personName, allFilms, onSelectFilm, onSelectPerson, onClose, hasBluray }) {
   const { isGuest, openLogin } = useAuth()
   const [photo, setPhoto] = useState(null)
   const [bio, setBio] = useState(null)
@@ -152,6 +152,27 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
   const matchingFilms = Array.from(seenKeys.values())
 
   const isDirector = matchingFilms.some((f) => (f.director || '').toLowerCase().includes(target))
+
+  // هم‌بازی‌های پرتکرار — کاملاً از دیتای cast موجود تو آرشیو، بدون API.
+  // برای هر فیلمی که این شخص توش بازی کرده، بقیه‌ی cast رو می‌شماریم و
+  // بیشترین همکاری‌ها رو نشون می‌دیم.
+  const coStars = useMemo(() => {
+    const tally = new Map()
+    for (const f of matchingFilms) {
+      const castList = Array.isArray(f.cast) ? f.cast : []
+      const namesInFilm = castList.map((a) => (typeof a === 'object' ? a.name : a)).filter(Boolean)
+      // اگه خود این شخص تو cast این فیلم نبود (مثلاً فقط کارگردانش بوده)، این
+      // فیلم برای «هم‌بازی» حساب نمی‌شه — چون شریک بازیگری نداشته، نه شریک کارگردانی.
+      if (!namesInFilm.some((n) => n.toLowerCase() === target)) continue
+      for (const name of namesInFilm) {
+        const lower = name.toLowerCase()
+        if (lower === target) continue
+        if (!tally.has(lower)) tally.set(lower, { name, count: 0 })
+        tally.get(lower).count++
+      }
+    }
+    return [...tally.values()].sort((a, b) => b.count - a.count).slice(0, 12)
+  }, [matchingFilms, target])
 
   const [followState, setFollowState] = useState('unknown') // unknown | following | not-following
   useEffect(() => {
@@ -435,6 +456,25 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onClos
             ))
           )}
         </div>
+
+        {coStars.length > 0 && (
+          <div className="stats-box" style={{ marginTop: 18 }}>
+            <h3>هم‌بازی‌های پرتکرار</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+              {coStars.map((cs) => (
+                <button
+                  key={cs.name}
+                  type="button"
+                  className="person-follow-btn"
+                  style={{ fontSize: 12.5, padding: '5px 10px' }}
+                  onClick={() => onSelectPerson && onSelectPerson(cs.name)}
+                >
+                  {cs.name} <span style={{ opacity: 0.65 }}>· {cs.count} فیلم</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       </div>
 

@@ -761,6 +761,7 @@ export default function App() {
                 setSelectedPerson(null)
                 setSelected(film)
               }}
+              onSelectPerson={(name) => setSelectedPerson(name)}
               onClose={() => setSelectedPerson(null)}
             />
           )}
@@ -848,6 +849,7 @@ export default function App() {
                 setSelectedPerson(null)
                 setSelected(film)
               }}
+              onSelectPerson={(name) => setSelectedPerson(name)}
               onClose={() => setSelectedPerson(null)}
             />
           )}
@@ -896,6 +898,7 @@ export default function App() {
                 setSelectedPerson(null)
                 setSelected(film)
               }}
+              onSelectPerson={(name) => setSelectedPerson(name)}
               onClose={() => setSelectedPerson(null)}
             />
           )}
@@ -1073,6 +1076,7 @@ export default function App() {
             setSelectedPerson(null)
             setSelected(film)
           }}
+          onSelectPerson={(name) => setSelectedPerson(name)}
           onClose={() => setSelectedPerson(null)}
         />
       )}
