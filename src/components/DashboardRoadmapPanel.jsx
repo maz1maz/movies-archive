@@ -17,7 +17,7 @@ const DONE_ITEMS = [
     desc: 'TTL کوتاه‌تر خودکار برای نتیجه‌ی خالی/شکست‌خورده (به‌جای TTL کامل) در همه‌ی کش‌های cinema_news_cache و director_extras؛ + رفع باگ people_photos که ثبت لینک مصاحبه، fetch بیوگرافی رو برای همیشه بلاک می‌کرد',
   },
   { title: 'دنبال‌کردن هنرمند', desc: 'دکمه Follow/Unfollow رو PersonModal + تب Following تو Dashboard (گالری کارت با عکس)' },
-  { title: 'تقویم جشنواره‌ها و اکران‌ها', desc: 'تب Festivals تو Cinema News — لیست دستی‌نگه‌داری‌شده‌ی جشنواره‌های معتبر (Cannes/Venice/Berlinale/Sundance/TIFF/Oscars) با نشانگر «در حال برگزاری» و «X روز مانده»' },
+  { title: 'تقویم جشنواره‌ها و اکران‌ها', desc: 'تب Festivals تو Cinema News — کاملاً خودکار از Wikidata (بدون لیست دستی): P179 پیدا می‌کنه نزدیک‌ترین ادیشن هر جشنواره رو، کش ۱۴ روزه' },
 ]
 
 const CINEPHILE_ITEMS = [

@@ -1504,7 +1504,7 @@ export default {
 
       if (method === 'GET' && pathname === '/api/cinema-news') {
         try {
-          const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneralRaw] =
+          const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneralRaw, festivals] =
             await Promise.all([
               fetchTodaysBirthdays(db),
               fetchUpcomingFromCollection(db, env),
@@ -1515,6 +1515,7 @@ export default {
               fetchTrendingAndBoxOffice(db, env),
               fetchTrendingPeople(db, env),
               fetchBornTodayGeneral(db),
+              fetchFestivalCalendar(db),
             ])
           // اونایی که تو «تولدهای امروزِ کالکشن» هستن رو از لیست عمومی حذف کن که یه
           // آدم دوبار نیاد. birthdays فقط از people_photos (کشِ PersonModal) میاد،
@@ -1553,7 +1554,7 @@ export default {
           } catch {}
 
           return json(
-            { birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneral, newsUpdatedAt },
+            { birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneral, newsUpdatedAt, festivals },
             200,
             corsHeaders
           )
@@ -1569,6 +1570,7 @@ export default {
               trending: { trendingMoviesWeek: [], trendingSeriesWeek: [], popularMonth: [], boxOffice: [] },
               trendingPeople: [],
               bornTodayGeneral: [],
+              festivals: [],
             },
             200,
             corsHeaders
@@ -3138,6 +3140,106 @@ async function fetchBornTodayGeneral(db) {
     return []
   }
 }
+
+// تقویم جشنواره‌های مهم سینمایی (Cannes/Venice/Berlinale/Sundance/TIFF/Oscars)
+// — کاملاً خودکار، بدون هیچ لیست دستی. برای هر جشنواره:
+//   ۱) با wbsearchentities اسم رو به Wikidata Q-ID تبدیل می‌کنیم (کش نمی‌شه چون
+//      خودش سریعه و به‌ندرت عوض می‌شه، ولی نتیجه‌ی نهایی کل تابع کش می‌شه)
+//   ۲) با SPARQL دنبال آیتم‌هایی می‌گردیم که «جزئی از سری» (P179) همون
+//      جشنواره‌ن و تاریخ شروع (P580) دارن؛ نزدیک‌ترین ادیشن به امروز (چه در
+//      حال برگزاری، چه در آینده) رو انتخاب می‌کنیم.
+// کل نتیجه ۱۴ روز کش می‌شه (isCacheFresh) — چون تاریخ جشنواره‌ها به‌ندرت عوض می‌شه.
+const FESTIVAL_SERIES = [
+  'Cannes Film Festival',
+  'Venice Film Festival',
+  'Berlin International Film Festival',
+  'Sundance Film Festival',
+  'Toronto International Film Festival',
+  'Academy Awards',
+]
+
+async function fetchFestivalCalendar(db) {
+  try {
+    const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('festivals').first()
+    const fresh = isCacheFresh(cached?.fetchedAt, cached?.data, 14 * 24 * 60 * 60 * 1000)
+    if (fresh) {
+      try {
+        return JSON.parse(cached.data || '[]')
+      } catch {
+        return []
+      }
+    }
+
+    const wikidataHeaders = {
+      'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive; personal, single-user film archive app)',
+      accept: 'application/sparql-results+json',
+    }
+
+    const results = await Promise.all(FESTIVAL_SERIES.map((name) => fetchOneFestival(name, wikidataHeaders)))
+    const festivals = results.filter(Boolean)
+
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind('festivals', JSON.stringify(festivals))
+      .run()
+
+    return festivals
+  } catch {
+    return []
+  }
+}
+
+async function fetchOneFestival(seriesName, headers) {
+  try {
+    // ۱) اسم رو به Wikidata Q-ID تبدیل کن
+    const searchRes = await fetch(
+      `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(seriesName)}&language=en&type=item&format=json&limit=1`,
+      { headers }
+    )
+    if (!searchRes.ok) return null
+    const searchData = await searchRes.json()
+    const qid = searchData?.search?.[0]?.id
+    if (!qid) return null
+
+    // ۲) نزدیک‌ترین ادیشن (P179 = این جشنواره) به امروز رو پیدا کن — چه در حال
+    // برگزاری چه در آینده. از ۳۰ روز پیش شروع می‌کنیم تا جشنوالی که همین الان
+    // در حال برگزاریه رو هم از دست ندیم.
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    const sparql = `SELECT ?item ?itemLabel ?start ?end ?website ?locationLabel WHERE {
+      ?item wdt:P179 wd:${qid} .
+      ?item wdt:P580 ?start .
+      OPTIONAL { ?item wdt:P582 ?end. }
+      OPTIONAL { ?item wdt:P856 ?website. }
+      OPTIONAL { ?item wdt:P276 ?location. }
+      FILTER(?start > "${cutoff}T00:00:00Z"^^xsd:dateTime)
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+    } ORDER BY ASC(?start) LIMIT 1`
+
+    let res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
+    if (!res.ok) {
+      res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
+    }
+    if (!res.ok) return null
+    const data = await res.json()
+    const row = data?.results?.bindings?.[0]
+    if (!row) return null
+
+    const start = row.start?.value ? row.start.value.slice(0, 10) : null
+    const end = row.end?.value ? row.end.value.slice(0, 10) : start
+    if (!start) return null
+
+    return {
+      name: row.itemLabel?.value || seriesName,
+      location: row.locationLabel?.value || null,
+      start,
+      end,
+      url: row.website?.value || null,
+    }
+  } catch {
+    return null
+  }
+}
+
 
 function ageFromBirthDate(birthDate) {
   if (!birthDate) return null

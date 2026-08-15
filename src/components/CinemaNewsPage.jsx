@@ -11,7 +11,6 @@ import {
 } from './icons.jsx'
 import { addToOrderList, lookupDirectorFromTmdbUrl } from '../utils/orderList.js'
 import { proxyImg } from '../utils/proxyImg.js'
-import { FESTIVALS } from '../data/festivals.js'
 
 const TABS = [
   { key: 'news', label: 'News', icon: IconNewspaper },
@@ -333,7 +332,7 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
       .catch(
         () =>
           !cancelled &&
-          setData({ birthdays: [], upcoming: [], trailers: [], headlines: [], headlinesFa: [], generalUpcoming: { movies: [], series: [] } })
+          setData({ birthdays: [], upcoming: [], trailers: [], headlines: [], headlinesFa: [], generalUpcoming: { movies: [], series: [] }, festivals: [] })
       )
       .finally(() => !cancelled && setLoading(false))
     return () => {
@@ -520,7 +519,7 @@ export default function CinemaNewsPage({ onBack, onSelectPerson, theme, setTheme
               <h3>
                 <IconCake width={15} height={15} /> Major film festivals & award ceremonies
               </h3>
-              <FestivalCalendar festivals={FESTIVALS} />
+              <FestivalCalendar festivals={data?.festivals || []} />
             </div>
           )}
 
