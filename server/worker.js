@@ -1927,6 +1927,19 @@ export default {
         })
       }
 
+      // ---- POST /api/backups/run-now (admin) — اجرای فوری بکاپ روزانه (KV + GitHub)
+      // بدون نیاز به صبر تا کرون ساعت ۴ بامداد؛ برای تست تنظیمات GitHub مفیده. ----
+      if (method === 'POST' && pathname === '/api/backups/run-now') {
+        const denied = requireAdmin()
+        if (denied) return denied
+        try {
+          await runDailyBackup(env)
+          return json({ ok: true, githubConfigured: !!env.GITHUB_BACKUP_TOKEN }, 200, corsHeaders)
+        } catch (e) {
+          return json({ ok: false, error: String(e) }, 500, corsHeaders)
+        }
+      }
+
       // ---- SPA fallback ----
       // Static assets are handled by wrangler's asset system; this Worker only
       // deals with /api/* routes. Return 404 for anything else.
@@ -1965,6 +1978,12 @@ export default {
 // JSON در KV ذخیره می‌کنه؛ کلید بر اساس تاریخ ساخته می‌شه (backup:YYYY-MM-DD) تا
 // تاریخچه‌ی روزانه حفظ بشه. بکاپ‌های قدیمی‌تر از ۳۰ روز خودکار پاک می‌شن تا فضای
 // KV پر نشه. یه کلید ثابت "backup:latest" هم برای دسترسی سریع نگه داشته می‌شه.
+//
+// علاوه بر KV (که هر دو رو Cloudflare نگه می‌داره)، یه کپی هم رو GitHub push
+// می‌شه (backups/latest-backup.json تو همون repo) تا اگه یه روز خود اکانت
+// Cloudflare مشکل پیدا کرد (هک/تعلیق/حذف اشتباه)، یه نسخه‌ی کاملاً جدا هم
+// وجود داشته باشه. این بخش نیاز به GITHUB_BACKUP_TOKEN داره (wrangler secret)؛
+// اگه ست نشده باشه، فقط رد می‌شه و بکاپ KV طبق معمول انجام می‌شه.
 async function runDailyBackup(env) {
   const db = env.DB
   const result = await db
@@ -1990,6 +2009,67 @@ async function runDailyBackup(env) {
   }
 
   console.log(`Daily backup: saved ${films.length} films as backup:${dateKey}`)
+
+  try {
+    await pushBackupToGitHub(env, payload, dateKey)
+  } catch (e) {
+    console.log(`GitHub backup skipped/failed: ${e.message}`)
+  }
+}
+
+// بکاپ روزانه رو به‌صورت یه فایل ثابت (backups/latest-backup.json) تو
+// repo خود پروژه commit می‌کنه — هر بار overwrite می‌شه، تا تاریخچه‌ی
+// git بی‌جهت با فایل‌های چندمگابایتی روزانه پر نشه. اگه GITHUB_BACKUP_TOKEN
+// ست نشده باشه (یا repo تنظیم نشده)، بی‌سروصدا رد می‌شه.
+async function pushBackupToGitHub(env, payload, dateKey) {
+  const token = env.GITHUB_BACKUP_TOKEN
+  if (!token) return
+  const owner = env.GITHUB_BACKUP_OWNER || 'maz1maz'
+  const repo = env.GITHUB_BACKUP_REPO || 'movies-archive'
+  const filePath = 'backups/latest-backup.json'
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/vnd.github+json',
+    'User-Agent': 'CinefilmArchive-Backup/1.0',
+  }
+
+  let sha = null
+  try {
+    const getRes = await fetch(apiUrl, { headers })
+    if (getRes.ok) {
+      const existing = await getRes.json()
+      sha = existing.sha || null
+    }
+  } catch {}
+
+  const body = {
+    message: `Daily backup ${dateKey}`,
+    content: uint8ToBase64(new TextEncoder().encode(payload)),
+    ...(sha ? { sha } : {}),
+  }
+
+  const putRes = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!putRes.ok) {
+    const errText = await putRes.text().catch(() => '')
+    throw new Error(`GitHub API ${putRes.status}: ${errText.slice(0, 300)}`)
+  }
+  console.log(`GitHub backup: pushed backups/latest-backup.json (${dateKey})`)
+}
+
+// base64 encode یه Uint8Array بزرگ بدون خطای call-stack (chunk-by-chunk،
+// چون String.fromCharCode.apply روی آرایه‌های چندمگابایتی کرش می‌کنه)
+function uint8ToBase64(bytes) {
+  const CHUNK = 8192
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+  }
+  return btoa(binary)
 }
 
 // ---------- Helpers ----------
