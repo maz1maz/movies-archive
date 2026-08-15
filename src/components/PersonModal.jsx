@@ -124,8 +124,14 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
   // می‌کنیم تا صفحه خالی نیفته؛ به محض رسیدن جواب سرور، جایگزینش می‌کنیم.
   const source = serverFilms !== null ? serverFilms : allFilms
 
+  // فیلم کوتاه (زیر ۴۰ دقیقه، طبق تعریف رایج) رو تو صفحه‌ی هنرمند نشون نمی‌دیم
+  // — معمولاً مستندهای مصاحبه‌ای/گلچین‌ان که ده‌ها آدم رو یه‌بار مشترک می‌کنن
+  // و لیست هم‌بازی/همکاری رو بی‌معنی می‌کنن.
+  const isShortFilm = (f) => typeof f.runtime === 'number' && f.runtime > 0 && f.runtime < 40
+
   // Filter matching films where personName appears in director, cast, producer, or screenwriter.
   const matchingFilmsRaw = source.filter((f) => {
+    if (isShortFilm(f)) return false
     if ((f.director || '').toLowerCase().includes(target)) return true
     if ((f.producer || '').toLowerCase().includes(target)) return true
     if ((f.screenwriter || '').toLowerCase().includes(target)) return true
@@ -148,9 +154,16 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
       seenKeys.set(key, f)
     }
   }
-  const matchingFilms = Array.from(seenKeys.values())
+  const dedupedFilms = Array.from(seenKeys.values())
 
-  const isDirector = matchingFilms.some((f) => (f.director || '').toLowerCase().includes(target))
+  const isDirector = dedupedFilms.some((f) => (f.director || '').toLowerCase().includes(target))
+
+  // اگه این شخص تو آرشیو به‌عنوان کارگردان شناخته می‌شه، صفحه‌ش رو صرفاً
+  // فیلموگرافی کارگردانی‌ش نشون بده — نه فیلم‌هایی که فقط تهیه‌کننده یا
+  // بازیگرشون بوده، که ترکیبشون گیج‌کننده‌ست.
+  const matchingFilms = isDirector
+    ? dedupedFilms.filter((f) => (f.director || '').toLowerCase().includes(target))
+    : dedupedFilms
 
   // هم‌بازی‌های پرتکرار — کاملاً از دیتای cast موجود تو آرشیو، بدون API.
   // برای هر فیلمی که این شخص توش بازی کرده، بقیه‌ی cast رو می‌شماریم و
@@ -170,7 +183,10 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
         tally.get(lower).count++
       }
     }
-    return [...tally.values()].sort((a, b) => b.count - a.count).slice(0, 12)
+    return [...tally.values()]
+      .filter((c) => c.count > 1)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12)
   }, [matchingFilms, target])
 
   // همکاری کارگردان–بازیگر — کاملاً از دیتای director/cast موجود، بدون API.
