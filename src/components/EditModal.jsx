@@ -57,6 +57,8 @@ function toForm(film) {
     boxOffice: film.boxOffice || '',
     trivia: film.trivia || '',
     quote: film.quote || '',
+    parentsGuide: film.parentsGuide || '',
+    soundtrack: film.soundtrack || '',
   }
 }
 
@@ -276,6 +278,8 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       boxOffice: form.boxOffice || undefined,
       trivia: form.trivia || undefined,
       quote: form.quote || undefined,
+      parentsGuide: form.parentsGuide || undefined,
+      soundtrack: form.soundtrack || undefined,
     }
     onSave(patch)
   }
@@ -683,6 +687,14 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
           <label className="edit-field full">
             <span>نقل‌قول مهم</span>
             <textarea rows="2" value={form.quote} onChange={set('quote')} placeholder="یه دیالوگ ماندگار از فیلم…" />
+          </label>
+          <label className="edit-field full">
+            <span>راهنمای والدین</span>
+            <textarea rows="3" value={form.parentsGuide} onChange={set('parentsGuide')} placeholder="محتوای حساس: خشونت، صحنه‌های بزرگسال، زبان نامناسب و…" />
+          </label>
+          <label className="edit-field full">
+            <span>ساندترک مهم</span>
+            <textarea rows="2" value={form.soundtrack} onChange={set('soundtrack')} placeholder="آهنگ یا موسیقی متن به‌یادماندنی فیلم…" />
           </label>
 
           <label className="edit-field full">

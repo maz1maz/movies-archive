@@ -174,6 +174,7 @@ export const EDITABLE = [
   "letterboxdRating", "watchlisted", "letterboxdVotes", "seasonDrives", "producer",
   "personalReview", "personalReviewUrl", "personalReviewDate", "reviews",
   "imdbId", "imdbVotes", "originalLanguage", "boxOffice", "trivia", "quote",
+  "parentsGuide", "soundtrack",
 ]
 
 // از رو متن آزاد فصل‌ها (مثلاً "Seasons 2, 3, 4 · 18 episodes" یا

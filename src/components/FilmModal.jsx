@@ -574,6 +574,20 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
             )}
 
+            {film.parentsGuide && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">PARENTS GUIDE</div>
+                <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.parentsGuide}</p>
+              </div>
+            )}
+
+            {film.soundtrack && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">SOUNDTRACK</div>
+                <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.soundtrack}</p>
+              </div>
+            )}
+
             {festivalAwards.length > 0 && (
               <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
                 <div className="cine-section-label">AWARDS ({festivalAwards.length})</div>

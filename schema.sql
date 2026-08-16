@@ -67,6 +67,8 @@ CREATE TABLE IF NOT EXISTS films (
   boxOffice TEXT,                         -- مقدار فروش گیشه (از OMDb، خودکار پر می‌شه)
   trivia TEXT,                            -- تراویای فیلم (دستی)
   quote TEXT,                             -- نقل‌قول مهم از فیلم (دستی)
+  parentsGuide TEXT,                      -- راهنمای والدین / محتوای حساس فیلم (دستی)
+  soundtrack TEXT,                        -- موسیقی/ساندترک مهم فیلم (دستی)
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
