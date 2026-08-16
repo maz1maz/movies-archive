@@ -691,9 +691,6 @@ export default {
       }
 
       // ---- POST /api/films/:id ("Auto-fill missing details" on one existing film) ----
-      // این مسیر توی فرانت‌اند (handleAutofillFilm) استفاده می‌شه ولی قبلاً
-      // اصلاً روی این Worker وجود نداشت — برای همین دکمه‌ی Auto-fill عملاً
-      // هیچی پر نمی‌کرد (فقط تو سرور لوکال کار می‌کرد).
       const enrichOneMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
       if (method === 'POST' && enrichOneMatch && enrichOneMatch[1] !== 'enrich') {
         const denied = requireAuth()
@@ -705,7 +702,22 @@ export default {
         let fields = []
         let enriched = parsed
         try {
+          // قبل از OMDb: اگه imdbId هنوز معلوم نیست ولی کارگردان معلومه، دقیقاً
+          // مثل جستجوی دستی کاربر — با عنوان+سال رو TMDB جستجو می‌کنیم و بین
+          // نتایج، اونی که کارگردانش با کارگردان شناخته‌شده یکی هست رو تأیید
+          // می‌کنیم. اینجوری OMDb و fetchTmdbExtras به‌جای جستجوی مبهم عنوان،
+          // مستقیم با آیدی دقیق کار می‌کنن.
+          if (!parsed.imdbId && parsed.title) {
+            try {
+              const verifiedImdbId = await findVerifiedImdbId(parsed.title, parsed.year, parsed.director, parsed.itemType, env)
+              if (verifiedImdbId) parsed.imdbId = verifiedImdbId
+            } catch {}
+          }
           enriched = await enrichFilm(parsed, key, () => bumpApiUsage('omdb'))
+          try {
+            const extras = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
+            applyTmdbExtras(enriched, extras)
+          } catch {}
           fields = ENRICHABLE_FIELDS.filter(
             (f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f])
           )
@@ -3468,6 +3480,69 @@ const LANGUAGE_CODE_NAMES = {
 }
 function languageCodeToName(code) {
   return LANGUAGE_CODE_NAMES[code] || code
+}
+
+// دقیقاً همون کاری که کاربر دستی انجام می‌ده: با عنوان (و سال) جستجو می‌کنه،
+// بعد بین چند نتیجه‌ی بالای TMDB، اونی که کارگردانش با کارگردان شناخته‌شده‌ی
+// فیلم (تو دیتابیس) یکی هست رو به‌عنوان تطبیق تأییدشده انتخاب می‌کنه — نه صرفاً
+// اولین نتیجه‌ی جستجو (که باعث قاطی‌شدن فیلم‌های هم‌اسم می‌شه، مثل Deep Water).
+// در آخر imdbId فیلم تأییدشده رو برمی‌گردونه تا enrichFilm/fetchTmdbExtras با
+// همون آیدی دقیق (نه جستجوی مبهم عنوان) کار کنن.
+function normalizeName(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // حذف اکسان‌ها
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim()
+}
+function directorNamesOverlap(knownDirector, candidateDirectorNames) {
+  if (!knownDirector || !candidateDirectorNames?.length) return false
+  const knownParts = String(knownDirector).split(/[,&]/).map(normalizeName).filter(Boolean)
+  const candParts = candidateDirectorNames.map(normalizeName).filter(Boolean)
+  return knownParts.some((k) => candParts.some((c) => c === k || c.includes(k) || k.includes(c)))
+}
+
+async function findVerifiedImdbId(title, year, knownDirector, itemType, env) {
+  const tmdbKey = env.TMDB_API_KEY
+  if (!title || !tmdbKey) return null
+  async function tmdbGet(path, params) {
+    const qs = new URLSearchParams({ api_key: tmdbKey, ...params }).toString()
+    try {
+      const res = await fetch(`https://api.themoviedb.org/3${path}?${qs}`, { signal: AbortSignal.timeout(8000) })
+      if (!res.ok) return null
+      return res.json()
+    } catch {
+      return null
+    }
+  }
+  const kind = itemType === 'series' ? 'tv' : 'movie'
+  const searchParams = { query: title }
+  if (year) searchParams[kind === 'tv' ? 'first_air_date_year' : 'year'] = String(year)
+  const searchData = await tmdbGet(`/search/${kind}`, searchParams)
+  const candidates = (searchData?.results || []).slice(0, 5)
+  if (!candidates.length) return null
+
+  // اگه کارگردان شناخته‌شده‌ست، بین کاندیدها دنبال تطبیق کارگردان می‌گردیم —
+  // این همون گام تأییدیه‌ای که کاربر دستی انجام می‌ده.
+  if (knownDirector) {
+    for (const cand of candidates) {
+      const credits = await tmdbGet(`/${kind}/${cand.id}/credits`, {})
+      const directorNames = kind === 'tv'
+        ? (credits?.crew || []).filter((c) => c.job === 'Director' || c.department === 'Directing').map((c) => c.name)
+        : (credits?.crew || []).filter((c) => c.job === 'Director').map((c) => c.name)
+      if (directorNamesOverlap(knownDirector, directorNames)) {
+        const ext = await tmdbGet(`/${kind}/${cand.id}/external_ids`, {})
+        if (ext?.imdb_id) return ext.imdb_id
+      }
+    }
+    // هیچ کاندیدی کارگردانش تأیید نشد — به‌جای انتخاب اشتباه، چیزی برنمی‌گردونیم
+    return null
+  }
+
+  // کارگردان شناخته‌شده نیست (خودش هم خالیه) — همون بهترین نتیجه رو با احتیاط برمی‌گردونیم
+  const top = candidates[0]
+  const ext = await tmdbGet(`/${kind}/${top.id}/external_ids`, {})
+  return ext?.imdb_id || null
 }
 
 // خروجی fetchTmdbExtras رو روی فیلم اعمال می‌کنه — فقط فیلدهای خالی رو پر می‌کنه،
