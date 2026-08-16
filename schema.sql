@@ -63,6 +63,10 @@ CREATE TABLE IF NOT EXISTS films (
   collectionId TEXT,                      -- TMDB collection id؛ NULL=چک‌نشده، ''=چک‌شده بدون مجموعه
   collectionName TEXT,                    -- اسم مجموعه‌ی TMDB (مثلاً "The Godfather Collection")
   collectionPoster TEXT,                  -- پوستر مجموعه (از TMDB)
+  originalLanguage TEXT,                  -- زبان اصلی فیلم (از OMDb، خودکار پر می‌شه)
+  boxOffice TEXT,                         -- مقدار فروش گیشه (از OMDb، خودکار پر می‌شه)
+  trivia TEXT,                            -- تراویای فیلم (دستی)
+  quote TEXT,                             -- نقل‌قول مهم از فیلم (دستی)
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );

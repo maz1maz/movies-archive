@@ -173,7 +173,7 @@ export const EDITABLE = [
   "copies", "mediaType", "driveNumber", "itemType", "seasonsEpisodes",
   "letterboxdRating", "watchlisted", "letterboxdVotes", "seasonDrives", "producer",
   "personalReview", "personalReviewUrl", "personalReviewDate", "reviews",
-  "imdbId", "imdbVotes",
+  "imdbId", "imdbVotes", "originalLanguage", "boxOffice", "trivia", "quote",
 ]
 
 // از رو متن آزاد فصل‌ها (مثلاً "Seasons 2, 3, 4 · 18 episodes" یا
@@ -191,7 +191,7 @@ export function countSeasonsFromText(text) {
 export const ENRICHABLE_FIELDS = [
   "originalTitle", "year", "director", "cast", "genre", "rating",
   "runtime", "country", "synopsis", "poster", "rated", "studio",
-  "imdbVotes", "imdbId",
+  "imdbVotes", "imdbId", "originalLanguage", "boxOffice",
 ]
 
 export function isEmptyMetadata(value) {

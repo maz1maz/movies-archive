@@ -53,6 +53,10 @@ function toForm(film) {
     myNotes: film.myNotes || '',
     trailerWatched: film.trailerWatched === true,
     trailerWatchedDate: film.trailerWatchedDate || '',
+    originalLanguage: film.originalLanguage || '',
+    boxOffice: film.boxOffice || '',
+    trivia: film.trivia || '',
+    quote: film.quote || '',
   }
 }
 
@@ -268,6 +272,10 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       myNotes: form.myNotes || undefined,
       trailerWatched: form.trailerWatched,
       trailerWatchedDate: form.trailerWatched ? (form.trailerWatchedDate || new Date().toISOString().slice(0, 10)) : undefined,
+      originalLanguage: form.originalLanguage || undefined,
+      boxOffice: form.boxOffice || undefined,
+      trivia: form.trivia || undefined,
+      quote: form.quote || undefined,
     }
     onSave(patch)
   }
@@ -659,6 +667,22 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
           <label className="edit-field full">
             <span>Synopsis</span>
             <textarea rows="3" value={form.synopsis} onChange={set('synopsis')} />
+          </label>
+          <label className="edit-field">
+            <span>زبان اصلی</span>
+            <input value={form.originalLanguage} onChange={set('originalLanguage')} placeholder="مثلاً English" />
+          </label>
+          <label className="edit-field">
+            <span>فروش گیشه</span>
+            <input value={form.boxOffice} onChange={set('boxOffice')} placeholder="مثلاً $134,821,952" />
+          </label>
+          <label className="edit-field full">
+            <span>تراویا</span>
+            <textarea rows="3" value={form.trivia} onChange={set('trivia')} placeholder="نکته‌های پشت‌صحنه، پارادوکس‌ها، اتفاقات جالب حین ساخت…" />
+          </label>
+          <label className="edit-field full">
+            <span>نقل‌قول مهم</span>
+            <textarea rows="2" value={form.quote} onChange={set('quote')} placeholder="یه دیالوگ ماندگار از فیلم…" />
           </label>
 
           <label className="edit-field full">

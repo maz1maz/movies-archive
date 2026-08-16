@@ -543,6 +543,37 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
             )}
 
+            {(film.originalLanguage || film.boxOffice) && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+                {film.originalLanguage && (
+                  <div>
+                    <div className="cine-section-label">LANGUAGE</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.originalLanguage}</p>
+                  </div>
+                )}
+                {film.boxOffice && (
+                  <div>
+                    <div className="cine-section-label">BOX OFFICE</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.boxOffice}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {film.quote && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">QUOTE</div>
+                <p style={{ margin: '4px 0 0', fontSize: 13.5, fontStyle: 'italic' }}>“{film.quote}”</p>
+              </div>
+            )}
+
+            {film.trivia && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">TRIVIA</div>
+                <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.trivia}</p>
+              </div>
+            )}
+
             {festivalAwards.length > 0 && (
               <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
                 <div className="cine-section-label">AWARDS ({festivalAwards.length})</div>

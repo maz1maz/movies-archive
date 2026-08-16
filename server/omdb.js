@@ -122,6 +122,12 @@ export async function enrichFilm(baseFilm, key, onApiCall) {
   if (data.Production && data.Production !== 'N/A') fillMissing(out, 'studio', data.Production)
   if (data.imdbVotes && data.imdbVotes !== 'N/A') fillMissing(out, 'imdbVotes', data.imdbVotes)
   if (data.imdbID) fillMissing(out, 'imdbId', data.imdbID)
+  // زبان اصلی: OMDb گاهی چند زبان با کاما می‌ده (مثلاً "English, Spanish")؛ اولی رو به عنوان زبان اصلی برمی‌داریم.
+  if (data.Language && data.Language !== 'N/A') {
+    const firstLanguage = data.Language.split(',')[0].trim()
+    if (firstLanguage) fillMissing(out, 'originalLanguage', firstLanguage)
+  }
+  if (data.BoxOffice && data.BoxOffice !== 'N/A') fillMissing(out, 'boxOffice', data.BoxOffice)
   if (data.Type && data.Type !== 'N/A') {
     fillMissing(out, 'itemType', data.Type === 'series' ? 'series' : 'movie')
   }
