@@ -690,7 +690,10 @@ export default {
         return json({ deleted: true, id: deleteMatch[1] }, 200, corsHeaders)
       }
 
-      // ---- POST /api/films/:id ("Auto-fill missing details" on one existing film) ----
+      // ---- POST /api/films/:id ("Auto-fill missing details" preview on one existing film) ----
+      // این دیگه خودش ذخیره نمی‌کنه — فقط پیش‌نمایش داده‌ی جدید رو برمی‌گردونه
+      // تا تو فرم ویرایش نشون داده بشه و کاربر با زدن دکمه‌ی Save صریحاً تأییدش
+      // کنه. ذخیره‌ی واقعی از همون مسیر همیشگی PATCH /api/films/:id انجام می‌شه.
       const enrichOneMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
       if (method === 'POST' && enrichOneMatch && enrichOneMatch[1] !== 'enrich') {
         const denied = requireAuth()
@@ -705,8 +708,7 @@ export default {
           // قبل از OMDb: اگه imdbId هنوز معلوم نیست ولی کارگردان معلومه، دقیقاً
           // مثل جستجوی دستی کاربر — با عنوان+سال رو TMDB جستجو می‌کنیم و بین
           // نتایج، اونی که کارگردانش با کارگردان شناخته‌شده یکی هست رو تأیید
-          // می‌کنیم. اینجوری OMDb و fetchTmdbExtras به‌جای جستجوی مبهم عنوان،
-          // مستقیم با آیدی دقیق کار می‌کنن.
+          // می‌کنیم.
           if (!parsed.imdbId && parsed.title) {
             try {
               const verifiedImdbId = await findVerifiedImdbId(parsed.title, parsed.year, parsed.director, parsed.itemType, env)
@@ -721,15 +723,12 @@ export default {
           fields = ENRICHABLE_FIELDS.filter(
             (f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f])
           )
-          enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
-          await updateFilm(db, enriched)
-          try {
-            await syncSharedMetadataToSibling(db, enriched)
-          } catch {}
+          // توجه: اینجا دیگه updateFilm/syncSharedMetadataToSibling صدا زده نمی‌شه —
+          // فقط پیش‌نمایش برمی‌گردونه، ذخیره‌ی واقعی با دکمه‌ی Save کاربره.
         } catch {
           return json({ ...parsed, _enrichment: { enabled: Boolean(key), fields: [] } }, 200, corsHeaders)
         }
-        return json({ ...parseFilmRow(enriched), _enrichment: { enabled: true, fields } }, 200, corsHeaders)
+        return json({ ...enriched, _enrichment: { enabled: true, fields, preview: true } }, 200, corsHeaders)
       }
 
       // ---- GET /api/films/enrich-status (just the remaining count, no processing) ----

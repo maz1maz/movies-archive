@@ -491,21 +491,17 @@ export default function App() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'auto-fill failed')
 
-      const { _enrichment, ...saved } = data
-      setFilms((prev) => prev.map((film) => (film.id === id ? saved : film)))
-      if (selected?.id === id) setSelected(saved)
-      setEditing(saved)
-      refreshMeta()
-      loadAllFilmsUnfiltered()
-
+      const { _enrichment, ...preview } = data
+      // این فقط یه پیش‌نمایشه — چیزی هنوز ذخیره نشده. فرم ویرایش با این مقادیر
+      // پر می‌شه تا کاربر ببینتشون، و فقط با زدن دکمه‌ی Save واقعاً ذخیره می‌شه.
       if (_enrichment?.fields?.length) {
-        showToast(`Auto-filled ${_enrichment.fields.length} missing detail${_enrichment.fields.length === 1 ? '' : 's'}`)
+        showToast(`Found ${_enrichment.fields.length} new detail${_enrichment.fields.length === 1 ? '' : 's'} — review and click Save to apply`)
       } else if (_enrichment?.enabled === false) {
         showToast('Set OMDB_API_KEY to enable automatic metadata')
       } else {
         showToast('No additional metadata found')
       }
-      return saved
+      return preview
     } catch (e) {
       showToast(e.message)
       return null
