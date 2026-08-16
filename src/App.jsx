@@ -499,7 +499,8 @@ export default function App() {
       } else if (_enrichment?.enabled === false) {
         showToast('Set OMDB_API_KEY to enable automatic metadata')
       } else {
-        showToast('No additional metadata found')
+        const debugBits = [_enrichment?.verifiedDebug, _enrichment?.tmdbDebug].filter(Boolean).join(' | ')
+        showToast(debugBits ? `No additional metadata found (${debugBits})` : 'No additional metadata found')
       }
       return preview
     } catch (e) {

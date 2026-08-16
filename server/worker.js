@@ -518,7 +518,7 @@ export default {
           film = await enrichFilm(film, key, () => bumpApiUsage('omdb'))
         } catch {}
         try {
-          const extras = await fetchTmdbExtras(film.imdbId, film.itemType, env)
+          const { extras } = await fetchTmdbExtras(film.imdbId, film.itemType, env)
           applyTmdbExtras(film, extras)
         } catch {}
         if (film.closet && film.row && film.shelf && film.mediaType !== 'digital') {
@@ -704,6 +704,8 @@ export default {
         const key = env.OMDB_API_KEY
         let fields = []
         let enriched = parsed
+        let tmdbDebug = null
+        let verifiedDebug = null
         try {
           // قبل از OMDb: اگه imdbId هنوز معلوم نیست ولی کارگردان معلومه، دقیقاً
           // مثل جستجوی دستی کاربر — با عنوان+سال رو TMDB جستجو می‌کنیم و بین
@@ -712,14 +714,18 @@ export default {
           if (!parsed.imdbId && parsed.title) {
             try {
               const verifiedImdbId = await findVerifiedImdbId(parsed.title, parsed.year, parsed.director, parsed.itemType, env)
-              if (verifiedImdbId) parsed.imdbId = verifiedImdbId
-            } catch {}
+              if (verifiedImdbId) { parsed.imdbId = verifiedImdbId; verifiedDebug = `verified imdbId=${verifiedImdbId}` }
+              else verifiedDebug = 'no verified match'
+            } catch (e) { verifiedDebug = 'error: ' + String(e) }
           }
           enriched = await enrichFilm(parsed, key, () => bumpApiUsage('omdb'))
           try {
-            const extras = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
+            const { extras, debug } = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
+            tmdbDebug = debug
             applyTmdbExtras(enriched, extras)
-          } catch {}
+          } catch (e) {
+            tmdbDebug = 'threw: ' + String(e)
+          }
           fields = ENRICHABLE_FIELDS.filter(
             (f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f])
           )
@@ -728,7 +734,7 @@ export default {
         } catch {
           return json({ ...parsed, _enrichment: { enabled: Boolean(key), fields: [] } }, 200, corsHeaders)
         }
-        return json({ ...enriched, _enrichment: { enabled: true, fields, preview: true } }, 200, corsHeaders)
+        return json({ ...enriched, _enrichment: { enabled: true, fields, preview: true, tmdbDebug, verifiedDebug } }, 200, corsHeaders)
       }
 
       // ---- GET /api/films/enrich-status (just the remaining count, no processing) ----
@@ -845,7 +851,7 @@ export default {
         try {
           const found = await enrichFilm(before, key, () => bumpApiUsage('omdb'))
           try {
-            const extras = await fetchTmdbExtras(found.imdbId, found.itemType, env)
+            const { extras } = await fetchTmdbExtras(found.imdbId, found.itemType, env)
             applyTmdbExtras(found, extras)
           } catch {}
           const gotNewData = Object.keys(found).some((k) => !(k in before) || found[k] !== before[k])
@@ -3546,20 +3552,24 @@ async function findVerifiedImdbId(title, year, knownDirector, itemType, env) {
 
 // خروجی fetchTmdbExtras رو روی فیلم اعمال می‌کنه — فقط فیلدهای خالی رو پر می‌کنه،
 // هیچ‌وقت چیزی که خود کاربر/OMDb از قبل پر کرده رو رونویسی نمی‌کنه.
+function isEmptyArrayField(v) {
+  if (Array.isArray(v)) return v.length === 0
+  return !v || v === '[]'
+}
 function applyTmdbExtras(film, extras) {
   if (!extras) return
   if (!film.tagline && extras.tagline) film.tagline = extras.tagline
   if (!film.budget && extras.budget) film.budget = extras.budget
   if (!film.revenue && extras.revenue) film.revenue = extras.revenue
   if (!film.originalLanguage && extras.originalLanguage) film.originalLanguage = languageCodeToName(extras.originalLanguage)
-  if ((!film.productionCompanies || film.productionCompanies === '[]') && extras.productionCompanies) {
+  if (isEmptyArrayField(film.productionCompanies) && extras.productionCompanies) {
     film.productionCompanies = JSON.stringify(extras.productionCompanies)
   }
-  if ((!film.productionCountries || film.productionCountries === '[]') && extras.productionCountries) {
+  if (isEmptyArrayField(film.productionCountries) && extras.productionCountries) {
     film.productionCountries = JSON.stringify(extras.productionCountries)
   }
   if (!film.homepage && extras.homepage) film.homepage = extras.homepage
-  if ((!film.spokenLanguages || film.spokenLanguages === '[]') && extras.spokenLanguages) {
+  if (isEmptyArrayField(film.spokenLanguages) && extras.spokenLanguages) {
     film.spokenLanguages = JSON.stringify(extras.spokenLanguages)
   }
   if (!film.status && extras.status) film.status = extras.status
@@ -3571,49 +3581,53 @@ function applyTmdbExtras(film, extras) {
 // فقط توی جزئیات کامل‌ان، نه توی نتیجه‌ی find.
 async function fetchTmdbExtras(imdbId, itemType, env) {
   const tmdbKey = env.TMDB_API_KEY
-  if (!imdbId || !tmdbKey) return null
+  if (!imdbId) return { extras: null, debug: 'no imdbId' }
+  if (!tmdbKey) return { extras: null, debug: 'TMDB_API_KEY not set' }
   async function tmdbGet(url, useBearer) {
     const headers = useBearer
       ? { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' }
       : { accept: 'application/json' }
     const finalUrl = useBearer ? url : `${url}${url.includes('?') ? '&' : '?'}api_key=${encodeURIComponent(tmdbKey)}`
-    const res = await fetch(finalUrl, { headers })
-    if (!res.ok) return null
-    return res.json()
-  }
-  try {
-    let findData = await tmdbGet(`https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id`, false)
-    if (!findData) findData = await tmdbGet(`https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id`, true)
-    if (!findData) return null
-    const movieHit = (findData.movie_results || [])[0]
-    const tvHit = (findData.tv_results || [])[0]
-    const hit = itemType === 'series' ? (tvHit || movieHit) : (movieHit || tvHit)
-    if (!hit) return null
-    const kind = tvHit && !movieHit ? 'tv' : 'movie'
-    let details = await tmdbGet(`https://api.themoviedb.org/3/${kind}/${hit.id}`, false)
-    if (!details) details = await tmdbGet(`https://api.themoviedb.org/3/${kind}/${hit.id}`, true)
-    if (!details) return null
-    return {
-      tagline: details.tagline || undefined,
-      budget: kind === 'movie' && details.budget ? details.budget : undefined,
-      revenue: kind === 'movie' && details.revenue ? details.revenue : undefined,
-      originalLanguage: details.original_language || undefined,
-      productionCompanies: Array.isArray(details.production_companies) && details.production_companies.length
-        ? details.production_companies.map((c) => c.name).filter(Boolean)
-        : undefined,
-      productionCountries: Array.isArray(details.production_countries) && details.production_countries.length
-        ? details.production_countries.map((c) => c.name).filter(Boolean)
-        : undefined,
-      homepage: details.homepage || undefined,
-      spokenLanguages: Array.isArray(details.spoken_languages) && details.spoken_languages.length
-        ? details.spoken_languages.map((l) => l.english_name || l.name).filter(Boolean)
-        : undefined,
-      status: details.status || undefined,
-      popularity: typeof details.popularity === 'number' ? details.popularity : undefined,
+    try {
+      const res = await fetch(finalUrl, { headers })
+      if (!res.ok) return { data: null, status: res.status }
+      return { data: await res.json(), status: res.status }
+    } catch (e) {
+      return { data: null, status: 'fetch-error: ' + String(e) }
     }
-  } catch {
-    return null
   }
+  let r1 = await tmdbGet(`https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id`, false)
+  if (!r1.data) r1 = await tmdbGet(`https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id`, true)
+  if (!r1.data) return { extras: null, debug: `find failed, status=${r1.status}` }
+  const findData = r1.data
+  const movieHit = (findData.movie_results || [])[0]
+  const tvHit = (findData.tv_results || [])[0]
+  const hit = itemType === 'series' ? (tvHit || movieHit) : (movieHit || tvHit)
+  if (!hit) return { extras: null, debug: `find succeeded but no movie/tv match for ${imdbId}` }
+  const kind = tvHit && !movieHit ? 'tv' : 'movie'
+  let r2 = await tmdbGet(`https://api.themoviedb.org/3/${kind}/${hit.id}`, false)
+  if (!r2.data) r2 = await tmdbGet(`https://api.themoviedb.org/3/${kind}/${hit.id}`, true)
+  if (!r2.data) return { extras: null, debug: `details failed, status=${r2.status}` }
+  const details = r2.data
+  const extras = {
+    tagline: details.tagline || undefined,
+    budget: kind === 'movie' && details.budget ? details.budget : undefined,
+    revenue: kind === 'movie' && details.revenue ? details.revenue : undefined,
+    originalLanguage: details.original_language || undefined,
+    productionCompanies: Array.isArray(details.production_companies) && details.production_companies.length
+      ? details.production_companies.map((c) => c.name).filter(Boolean)
+      : undefined,
+    productionCountries: Array.isArray(details.production_countries) && details.production_countries.length
+      ? details.production_countries.map((c) => c.name).filter(Boolean)
+      : undefined,
+    homepage: details.homepage || undefined,
+    spokenLanguages: Array.isArray(details.spoken_languages) && details.spoken_languages.length
+      ? details.spoken_languages.map((l) => l.english_name || l.name).filter(Boolean)
+      : undefined,
+    status: details.status || undefined,
+    popularity: typeof details.popularity === 'number' ? details.popularity : undefined,
+  }
+  return { extras, debug: `ok, tmdbId=${hit.id}, kind=${kind}` }
 }
 
 // جوایز یه شخص (P166 «award received» روی Wikidata)، گروه‌بندی‌شده بر اساس
@@ -4279,7 +4293,7 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
       throw e
     }
     try {
-      const extras = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
+      const { extras } = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
       applyTmdbExtras(enriched, extras)
     } catch {}
     const fields = ENRICHABLE_FIELDS.filter((f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f]))
