@@ -560,31 +560,44 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
             )}
 
-            {film.quote && (
+            {film.tagline && (
               <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
-                <div className="cine-section-label">QUOTE</div>
-                <p style={{ margin: '4px 0 0', fontSize: 13.5, fontStyle: 'italic' }}>“{film.quote}”</p>
+                <div className="cine-section-label">TAGLINE</div>
+                <p style={{ margin: '4px 0 0', fontSize: 13.5, fontStyle: 'italic' }}>“{film.tagline}”</p>
               </div>
             )}
 
-            {film.trivia && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
-                <div className="cine-section-label">TRIVIA</div>
-                <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.trivia}</p>
+            {(film.budget || film.revenue) && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+                {film.budget ? (
+                  <div>
+                    <div className="cine-section-label">BUDGET</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>${film.budget.toLocaleString()}</p>
+                  </div>
+                ) : null}
+                {film.revenue ? (
+                  <div>
+                    <div className="cine-section-label">REVENUE</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>${film.revenue.toLocaleString()}</p>
+                  </div>
+                ) : null}
               </div>
             )}
 
-            {film.parentsGuide && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
-                <div className="cine-section-label">PARENTS GUIDE</div>
-                <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.parentsGuide}</p>
-              </div>
-            )}
-
-            {film.soundtrack && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
-                <div className="cine-section-label">SOUNDTRACK</div>
-                <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.soundtrack}</p>
+            {(film.metascore || film.rottenTomatoes) && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+                {film.metascore ? (
+                  <div>
+                    <div className="cine-section-label">METASCORE</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.metascore}/100</p>
+                  </div>
+                ) : null}
+                {film.rottenTomatoes ? (
+                  <div>
+                    <div className="cine-section-label">ROTTEN TOMATOES</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.rottenTomatoes}</p>
+                  </div>
+                ) : null}
               </div>
             )}
 

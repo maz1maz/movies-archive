@@ -128,6 +128,14 @@ export async function enrichFilm(baseFilm, key, onApiCall) {
     if (firstLanguage) fillMissing(out, 'originalLanguage', firstLanguage)
   }
   if (data.BoxOffice && data.BoxOffice !== 'N/A') fillMissing(out, 'boxOffice', data.BoxOffice)
+  if (data.Metascore && data.Metascore !== 'N/A') {
+    const metascore = parseInt(data.Metascore, 10)
+    if (!Number.isNaN(metascore)) fillMissing(out, 'metascore', metascore)
+  }
+  if (Array.isArray(data.Ratings)) {
+    const rt = data.Ratings.find((r) => r.Source === 'Rotten Tomatoes')
+    if (rt?.Value) fillMissing(out, 'rottenTomatoes', rt.Value)
+  }
   if (data.Type && data.Type !== 'N/A') {
     fillMissing(out, 'itemType', data.Type === 'series' ? 'series' : 'movie')
   }

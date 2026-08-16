@@ -55,10 +55,11 @@ function toForm(film) {
     trailerWatchedDate: film.trailerWatchedDate || '',
     originalLanguage: film.originalLanguage || '',
     boxOffice: film.boxOffice || '',
-    trivia: film.trivia || '',
-    quote: film.quote || '',
-    parentsGuide: film.parentsGuide || '',
-    soundtrack: film.soundtrack || '',
+    tagline: film.tagline || '',
+    budget: film.budget ?? '',
+    revenue: film.revenue ?? '',
+    metascore: film.metascore ?? '',
+    rottenTomatoes: film.rottenTomatoes || '',
   }
 }
 
@@ -276,10 +277,11 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       trailerWatchedDate: form.trailerWatched ? (form.trailerWatchedDate || new Date().toISOString().slice(0, 10)) : undefined,
       originalLanguage: form.originalLanguage || undefined,
       boxOffice: form.boxOffice || undefined,
-      trivia: form.trivia || undefined,
-      quote: form.quote || undefined,
-      parentsGuide: form.parentsGuide || undefined,
-      soundtrack: form.soundtrack || undefined,
+      tagline: form.tagline || undefined,
+      budget: form.budget !== '' ? parseInt(form.budget, 10) : undefined,
+      revenue: form.revenue !== '' ? parseInt(form.revenue, 10) : undefined,
+      metascore: form.metascore !== '' ? parseInt(form.metascore, 10) : undefined,
+      rottenTomatoes: form.rottenTomatoes || undefined,
     }
     onSave(patch)
   }
@@ -681,20 +683,24 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             <input value={form.boxOffice} onChange={set('boxOffice')} placeholder="مثلاً $134,821,952" />
           </label>
           <label className="edit-field full">
-            <span>تراویا</span>
-            <textarea rows="3" value={form.trivia} onChange={set('trivia')} placeholder="نکته‌های پشت‌صحنه، پارادوکس‌ها، اتفاقات جالب حین ساخت…" />
+            <span>تگ‌لاین</span>
+            <input value={form.tagline} onChange={set('tagline')} placeholder="شعار تبلیغاتی فیلم…" />
           </label>
-          <label className="edit-field full">
-            <span>نقل‌قول مهم</span>
-            <textarea rows="2" value={form.quote} onChange={set('quote')} placeholder="یه دیالوگ ماندگار از فیلم…" />
+          <label className="edit-field">
+            <span>بودجه ($)</span>
+            <input type="number" value={form.budget} onChange={set('budget')} />
           </label>
-          <label className="edit-field full">
-            <span>راهنمای والدین</span>
-            <textarea rows="3" value={form.parentsGuide} onChange={set('parentsGuide')} placeholder="محتوای حساس: خشونت، صحنه‌های بزرگسال، زبان نامناسب و…" />
+          <label className="edit-field">
+            <span>فروش جهانی ($)</span>
+            <input type="number" value={form.revenue} onChange={set('revenue')} />
           </label>
-          <label className="edit-field full">
-            <span>ساندترک مهم</span>
-            <textarea rows="2" value={form.soundtrack} onChange={set('soundtrack')} placeholder="آهنگ یا موسیقی متن به‌یادماندنی فیلم…" />
+          <label className="edit-field">
+            <span>Metascore</span>
+            <input type="number" min="0" max="100" value={form.metascore} onChange={set('metascore')} />
+          </label>
+          <label className="edit-field">
+            <span>Rotten Tomatoes</span>
+            <input value={form.rottenTomatoes} onChange={set('rottenTomatoes')} placeholder="مثلاً 87%" />
           </label>
 
           <label className="edit-field full">

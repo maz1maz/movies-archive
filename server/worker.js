@@ -517,6 +517,15 @@ export default {
         try {
           film = await enrichFilm(film, key, () => bumpApiUsage('omdb'))
         } catch {}
+        try {
+          const extras = await fetchTmdbExtras(film.imdbId, film.itemType, env)
+          if (extras) {
+            if (!film.tagline && extras.tagline) film.tagline = extras.tagline
+            if (!film.budget && extras.budget) film.budget = extras.budget
+            if (!film.revenue && extras.revenue) film.revenue = extras.revenue
+            if (!film.originalLanguage && extras.originalLanguage) film.originalLanguage = languageCodeToName(extras.originalLanguage)
+          }
+        } catch {}
         if (film.closet && film.row && film.shelf && film.mediaType !== 'digital') {
           const resCap = await db
             .prepare(
@@ -829,6 +838,15 @@ export default {
         const before = { title, year: yearParam ? parseInt(yearParam, 10) : undefined }
         try {
           const found = await enrichFilm(before, key, () => bumpApiUsage('omdb'))
+          try {
+            const extras = await fetchTmdbExtras(found.imdbId, found.itemType, env)
+            if (extras) {
+              if (!found.tagline && extras.tagline) found.tagline = extras.tagline
+              if (!found.budget && extras.budget) found.budget = extras.budget
+              if (!found.revenue && extras.revenue) found.revenue = extras.revenue
+              if (!found.originalLanguage && extras.originalLanguage) found.originalLanguage = languageCodeToName(extras.originalLanguage)
+            }
+          } catch {}
           const gotNewData = Object.keys(found).some((k) => !(k in before) || found[k] !== before[k])
           if (!gotNewData) return json({ error: 'No film with this title found on IMDb' }, 404, corsHeaders)
           return json(found, 200, corsHeaders)
@@ -3447,6 +3465,59 @@ async function resolveWikidataLabels(ids) {
   }
 }
 
+// TMDB زبان اصلی رو با کد دو-حرفی ISO 639-1 برمی‌گردونه (مثلاً "fr")، ولی برای
+// نمایش به کاربر اسم کامل بهتره؛ فقط زبان‌های رایج توی آرشیو فیلم رو پوشش می‌ده.
+const LANGUAGE_CODE_NAMES = {
+  en: 'English', fr: 'French', de: 'German', it: 'Italian', es: 'Spanish',
+  ja: 'Japanese', ko: 'Korean', zh: 'Chinese', ru: 'Russian', pt: 'Portuguese',
+  fa: 'Persian', ar: 'Arabic', hi: 'Hindi', sv: 'Swedish', no: 'Norwegian',
+  da: 'Danish', fi: 'Finnish', nl: 'Dutch', pl: 'Polish', tr: 'Turkish',
+  he: 'Hebrew', cs: 'Czech', el: 'Greek', hu: 'Hungarian', th: 'Thai',
+  id: 'Indonesian', vi: 'Vietnamese', uk: 'Ukrainian', ro: 'Romanian',
+  ca: 'Catalan', sr: 'Serbian', hr: 'Croatian', bn: 'Bengali', ta: 'Tamil',
+}
+function languageCodeToName(code) {
+  return LANGUAGE_CODE_NAMES[code] || code
+}
+
+// تگ‌لاین/بودجه/فروش/زبان اصلی رو از TMDB می‌گیره — این‌ها توی OMDb نیستن. اول با imdbId، فیلم/سریال رو روی TMDB پیدا می‌کنیم (endpoint find)،
+// بعد جزئیات کامل (endpoint movie/tv) رو می‌گیریم چون budget/revenue/tagline
+// فقط توی جزئیات کامل‌ان، نه توی نتیجه‌ی find.
+async function fetchTmdbExtras(imdbId, itemType, env) {
+  const tmdbKey = env.TMDB_API_KEY
+  if (!imdbId || !tmdbKey) return null
+  async function tmdbGet(url, useBearer) {
+    const headers = useBearer
+      ? { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' }
+      : { accept: 'application/json' }
+    const finalUrl = useBearer ? url : `${url}${url.includes('?') ? '&' : '?'}api_key=${encodeURIComponent(tmdbKey)}`
+    const res = await fetch(finalUrl, { headers })
+    if (!res.ok) return null
+    return res.json()
+  }
+  try {
+    let findData = await tmdbGet(`https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id`, false)
+    if (!findData) findData = await tmdbGet(`https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id`, true)
+    if (!findData) return null
+    const movieHit = (findData.movie_results || [])[0]
+    const tvHit = (findData.tv_results || [])[0]
+    const hit = itemType === 'series' ? (tvHit || movieHit) : (movieHit || tvHit)
+    if (!hit) return null
+    const kind = tvHit && !movieHit ? 'tv' : 'movie'
+    let details = await tmdbGet(`https://api.themoviedb.org/3/${kind}/${hit.id}`, false)
+    if (!details) details = await tmdbGet(`https://api.themoviedb.org/3/${kind}/${hit.id}`, true)
+    if (!details) return null
+    return {
+      tagline: details.tagline || undefined,
+      budget: kind === 'movie' && details.budget ? details.budget : undefined,
+      revenue: kind === 'movie' && details.revenue ? details.revenue : undefined,
+      originalLanguage: details.original_language || undefined,
+    }
+  } catch {
+    return null
+  }
+}
+
 // جوایز یه شخص (P166 «award received» روی Wikidata)، گروه‌بندی‌شده بر اساس
 // اسم جایزه با تعداد تکرار — مثلاً «Academy Award for Best Director ×2».
 async function fetchDirectorAwards(name) {
@@ -4077,6 +4148,15 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
       }
       throw e
     }
+    try {
+      const extras = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
+      if (extras) {
+        if (!enriched.tagline && extras.tagline) enriched.tagline = extras.tagline
+        if (!enriched.budget && extras.budget) enriched.budget = extras.budget
+        if (!enriched.revenue && extras.revenue) enriched.revenue = extras.revenue
+        if (!enriched.originalLanguage && extras.originalLanguage) enriched.originalLanguage = languageCodeToName(extras.originalLanguage)
+      }
+    } catch {}
     const fields = ENRICHABLE_FIELDS.filter((f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f]))
     if (fields.length) updated++
     enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
