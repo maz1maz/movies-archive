@@ -174,7 +174,9 @@ export const EDITABLE = [
   "letterboxdRating", "watchlisted", "letterboxdVotes", "seasonDrives", "producer",
   "personalReview", "personalReviewUrl", "personalReviewDate", "reviews",
   "imdbId", "imdbVotes", "originalLanguage", "boxOffice", "tagline",
-  "budget", "revenue", "metascore", "rottenTomatoes",
+  "budget", "revenue", "metascore", "rottenTomatoes", "releaseDate",
+  "productionCompanies", "productionCountries", "homepage", "spokenLanguages",
+  "status", "popularity", "network", "seriesStatus", "schedule",
 ]
 
 // از رو متن آزاد فصل‌ها (مثلاً "Seasons 2, 3, 4 · 18 episodes" یا
@@ -193,7 +195,9 @@ export const ENRICHABLE_FIELDS = [
   "originalTitle", "year", "director", "cast", "genre", "rating",
   "runtime", "country", "synopsis", "poster", "rated", "studio",
   "imdbVotes", "imdbId", "originalLanguage", "boxOffice",
-  "tagline", "budget", "revenue", "metascore", "rottenTomatoes",
+  "tagline", "budget", "revenue", "metascore", "rottenTomatoes", "releaseDate",
+  "productionCompanies", "productionCountries", "homepage", "spokenLanguages",
+  "status", "popularity", "network", "seriesStatus", "schedule",
 ]
 
 export function isEmptyMetadata(value) {

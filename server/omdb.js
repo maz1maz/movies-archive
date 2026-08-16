@@ -116,6 +116,7 @@ export async function enrichFilm(baseFilm, key, onApiCall) {
   const runtime = (data.Runtime || '').match(/(\d+)/)
   if (runtime) fillMissing(out, 'runtime', parseInt(runtime[1], 10))
   if (data.Country && data.Country !== 'N/A') fillMissing(out, 'country', data.Country)
+  if (data.Released && data.Released !== 'N/A') fillMissing(out, 'releaseDate', data.Released)
   if (data.Plot && data.Plot !== 'N/A') fillMissing(out, 'synopsis', data.Plot)
   if (data.Poster && data.Poster !== 'N/A') fillMissing(out, 'poster', data.Poster)
   if (data.Rated && data.Rated !== 'N/A') fillMissing(out, 'rated', data.Rated)

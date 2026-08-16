@@ -147,6 +147,12 @@ function extractShowFields(show) {
   if (poster) fields.poster = poster
   if (show.externals?.imdb) fields.imdbId = show.externals.imdb
   if (show.name) fields.originalTitle = show.name
+  if (studio) fields.network = studio
+  if (show.status) fields.seriesStatus = show.status
+  if (Array.isArray(show.schedule?.days) && show.schedule.days.length) {
+    const time = show.schedule.time ? ` ${show.schedule.time}` : ''
+    fields.schedule = `${show.schedule.days.join(', ')}${time}`
+  }
 
   return fields
 }

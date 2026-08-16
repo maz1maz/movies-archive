@@ -519,12 +519,7 @@ export default {
         } catch {}
         try {
           const extras = await fetchTmdbExtras(film.imdbId, film.itemType, env)
-          if (extras) {
-            if (!film.tagline && extras.tagline) film.tagline = extras.tagline
-            if (!film.budget && extras.budget) film.budget = extras.budget
-            if (!film.revenue && extras.revenue) film.revenue = extras.revenue
-            if (!film.originalLanguage && extras.originalLanguage) film.originalLanguage = languageCodeToName(extras.originalLanguage)
-          }
+          applyTmdbExtras(film, extras)
         } catch {}
         if (film.closet && film.row && film.shelf && film.mediaType !== 'digital') {
           const resCap = await db
@@ -564,7 +559,7 @@ export default {
         const updated = { ...parseFilmRow(existing) }
         for (const k of EDITABLE) {
           if (k in body) {
-            if ((k === 'cast' || k === 'genre' || k === 'seasonDrives' || k === 'reviews') && Array.isArray(body[k])) {
+            if ((k === 'cast' || k === 'genre' || k === 'seasonDrives' || k === 'reviews' || k === 'productionCompanies' || k === 'productionCountries' || k === 'spokenLanguages') && Array.isArray(body[k])) {
               updated[k] = JSON.stringify(body[k])
             } else if (k === 'watched' || k === 'watchlisted') {
               updated[k] = body[k] ? 1 : 0
@@ -840,12 +835,7 @@ export default {
           const found = await enrichFilm(before, key, () => bumpApiUsage('omdb'))
           try {
             const extras = await fetchTmdbExtras(found.imdbId, found.itemType, env)
-            if (extras) {
-              if (!found.tagline && extras.tagline) found.tagline = extras.tagline
-              if (!found.budget && extras.budget) found.budget = extras.budget
-              if (!found.revenue && extras.revenue) found.revenue = extras.revenue
-              if (!found.originalLanguage && extras.originalLanguage) found.originalLanguage = languageCodeToName(extras.originalLanguage)
-            }
+            applyTmdbExtras(found, extras)
           } catch {}
           const gotNewData = Object.keys(found).some((k) => !(k in before) || found[k] !== before[k])
           if (!gotNewData) return json({ error: 'No film with this title found on IMDb' }, 404, corsHeaders)
@@ -3480,6 +3470,28 @@ function languageCodeToName(code) {
   return LANGUAGE_CODE_NAMES[code] || code
 }
 
+// خروجی fetchTmdbExtras رو روی فیلم اعمال می‌کنه — فقط فیلدهای خالی رو پر می‌کنه،
+// هیچ‌وقت چیزی که خود کاربر/OMDb از قبل پر کرده رو رونویسی نمی‌کنه.
+function applyTmdbExtras(film, extras) {
+  if (!extras) return
+  if (!film.tagline && extras.tagline) film.tagline = extras.tagline
+  if (!film.budget && extras.budget) film.budget = extras.budget
+  if (!film.revenue && extras.revenue) film.revenue = extras.revenue
+  if (!film.originalLanguage && extras.originalLanguage) film.originalLanguage = languageCodeToName(extras.originalLanguage)
+  if ((!film.productionCompanies || film.productionCompanies === '[]') && extras.productionCompanies) {
+    film.productionCompanies = JSON.stringify(extras.productionCompanies)
+  }
+  if ((!film.productionCountries || film.productionCountries === '[]') && extras.productionCountries) {
+    film.productionCountries = JSON.stringify(extras.productionCountries)
+  }
+  if (!film.homepage && extras.homepage) film.homepage = extras.homepage
+  if ((!film.spokenLanguages || film.spokenLanguages === '[]') && extras.spokenLanguages) {
+    film.spokenLanguages = JSON.stringify(extras.spokenLanguages)
+  }
+  if (!film.status && extras.status) film.status = extras.status
+  if (film.popularity == null && extras.popularity != null) film.popularity = extras.popularity
+}
+
 // تگ‌لاین/بودجه/فروش/زبان اصلی رو از TMDB می‌گیره — این‌ها توی OMDb نیستن. اول با imdbId، فیلم/سریال رو روی TMDB پیدا می‌کنیم (endpoint find)،
 // بعد جزئیات کامل (endpoint movie/tv) رو می‌گیریم چون budget/revenue/tagline
 // فقط توی جزئیات کامل‌ان، نه توی نتیجه‌ی find.
@@ -3512,6 +3524,18 @@ async function fetchTmdbExtras(imdbId, itemType, env) {
       budget: kind === 'movie' && details.budget ? details.budget : undefined,
       revenue: kind === 'movie' && details.revenue ? details.revenue : undefined,
       originalLanguage: details.original_language || undefined,
+      productionCompanies: Array.isArray(details.production_companies) && details.production_companies.length
+        ? details.production_companies.map((c) => c.name).filter(Boolean)
+        : undefined,
+      productionCountries: Array.isArray(details.production_countries) && details.production_countries.length
+        ? details.production_countries.map((c) => c.name).filter(Boolean)
+        : undefined,
+      homepage: details.homepage || undefined,
+      spokenLanguages: Array.isArray(details.spoken_languages) && details.spoken_languages.length
+        ? details.spoken_languages.map((l) => l.english_name || l.name).filter(Boolean)
+        : undefined,
+      status: details.status || undefined,
+      popularity: typeof details.popularity === 'number' ? details.popularity : undefined,
     }
   } catch {
     return null
@@ -3751,6 +3775,21 @@ function parseFilmRow(row) {
     try { film.festivalAwards = JSON.parse(film.festivalAwards) } catch { film.festivalAwards = [] }
   } else if (!film.festivalAwards) {
     film.festivalAwards = []
+  }
+  if (typeof film.productionCompanies === 'string' && film.productionCompanies) {
+    try { film.productionCompanies = JSON.parse(film.productionCompanies) } catch { film.productionCompanies = [] }
+  } else if (!film.productionCompanies) {
+    film.productionCompanies = []
+  }
+  if (typeof film.productionCountries === 'string' && film.productionCountries) {
+    try { film.productionCountries = JSON.parse(film.productionCountries) } catch { film.productionCountries = [] }
+  } else if (!film.productionCountries) {
+    film.productionCountries = []
+  }
+  if (typeof film.spokenLanguages === 'string' && film.spokenLanguages) {
+    try { film.spokenLanguages = JSON.parse(film.spokenLanguages) } catch { film.spokenLanguages = [] }
+  } else if (!film.spokenLanguages) {
+    film.spokenLanguages = []
   }
   film.trailerWatched = Boolean(film.trailerWatched)
   film.cultClassic = Boolean(film.cultClassic)
@@ -4080,10 +4119,19 @@ async function fetchAltPosters(db, env, film) {
 }
 
 async function insertFilm(db, film) {
-  const { id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives } = film
+  const { id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives,
+    originalLanguage, boxOffice, tagline, budget, revenue, metascore, rottenTomatoes, releaseDate,
+    productionCompanies, productionCountries, homepage, spokenLanguages, status, popularity,
+    network, seriesStatus, schedule } = film
   await db.prepare(
-    `INSERT INTO films (id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO films (id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives,
+      originalLanguage, boxOffice, tagline, budget, revenue, metascore, rottenTomatoes, releaseDate,
+      productionCompanies, productionCountries, homepage, spokenLanguages, status, popularity,
+      network, seriesStatus, schedule)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?)`
   ).bind(
     id, title || null, originalTitle || null, closet || null, shelf || null, row || null,
     director || null, producer || null, cast ? (Array.isArray(cast) ? JSON.stringify(cast) : cast) : null,
@@ -4096,7 +4144,15 @@ async function insertFilm(db, film) {
     criterion ? (criterionCopies || 1) : null,
     copies || 1, mediaType || 'physical', driveNumber || null,
     itemType || 'movie', seasonsEpisodes || null, letterboxdRating || null, watchlisted ? 1 : 0,
-    seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(seasonDrives) : seasonDrives) : null
+    seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(seasonDrives) : seasonDrives) : null,
+    originalLanguage || null, boxOffice || null, tagline || null, budget || null, revenue || null,
+    metascore || null, rottenTomatoes || null, releaseDate || null,
+    productionCompanies ? (Array.isArray(productionCompanies) ? JSON.stringify(productionCompanies) : productionCompanies) : null,
+    productionCountries ? (Array.isArray(productionCountries) ? JSON.stringify(productionCountries) : productionCountries) : null,
+    homepage || null,
+    spokenLanguages ? (Array.isArray(spokenLanguages) ? JSON.stringify(spokenLanguages) : spokenLanguages) : null,
+    status || null, popularity || null,
+    network || null, seriesStatus || null, schedule || null
   ).run()
 }
 
@@ -4150,12 +4206,7 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
     }
     try {
       const extras = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
-      if (extras) {
-        if (!enriched.tagline && extras.tagline) enriched.tagline = extras.tagline
-        if (!enriched.budget && extras.budget) enriched.budget = extras.budget
-        if (!enriched.revenue && extras.revenue) enriched.revenue = extras.revenue
-        if (!enriched.originalLanguage && extras.originalLanguage) enriched.originalLanguage = languageCodeToName(extras.originalLanguage)
-      }
+      applyTmdbExtras(enriched, extras)
     } catch {}
     const fields = ENRICHABLE_FIELDS.filter((f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f]))
     if (fields.length) updated++
@@ -4177,10 +4228,16 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
 
 async function updateFilm(db, film) {
   const { id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, letterboxdVotes, watchlisted, seasonDrives, personalReview, personalReviewUrl, personalReviewDate, reviews,
-    cinematicMovement, relatedFilms, trailerWatched, trailerWatchedDate, basedOnBook, bookAuthor, screenwriter, cultClassic, shootingLocation, editionType, festivalAwards, screeningFormat, pacing, experimental, myNotes } = film
+    cinematicMovement, relatedFilms, trailerWatched, trailerWatchedDate, basedOnBook, bookAuthor, screenwriter, cultClassic, shootingLocation, editionType, festivalAwards, screeningFormat, pacing, experimental, myNotes,
+    originalLanguage, boxOffice, tagline, budget, revenue, metascore, rottenTomatoes, releaseDate,
+    productionCompanies, productionCountries, homepage, spokenLanguages, status, popularity,
+    network, seriesStatus, schedule } = film
   await db.prepare(
     `UPDATE films SET title=?, originalTitle=?, closet=?, shelf=?, row=?, director=?, producer=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, criterionCopies=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=?, letterboxdRating=?, letterboxdVotes=?, watchlisted=?, seasonDrives=?, personalReview=?, personalReviewUrl=?, personalReviewDate=?, reviews=?,
-      cinematicMovement=?, relatedFilms=?, trailerWatched=?, trailerWatchedDate=?, basedOnBook=?, bookAuthor=?, screenwriter=?, cultClassic=?, shootingLocation=?, editionType=?, festivalAwards=?, screeningFormat=?, pacing=?, experimental=?, myNotes=?
+      cinematicMovement=?, relatedFilms=?, trailerWatched=?, trailerWatchedDate=?, basedOnBook=?, bookAuthor=?, screenwriter=?, cultClassic=?, shootingLocation=?, editionType=?, festivalAwards=?, screeningFormat=?, pacing=?, experimental=?, myNotes=?,
+      originalLanguage=?, boxOffice=?, tagline=?, budget=?, revenue=?, metascore=?, rottenTomatoes=?, releaseDate=?,
+      productionCompanies=?, productionCountries=?, homepage=?, spokenLanguages=?, status=?, popularity=?,
+      network=?, seriesStatus=?, schedule=?
      WHERE id=?`
   ).bind(
     title || null, originalTitle || null, closet || null, shelf || null, row || null,
@@ -4204,6 +4261,14 @@ async function updateFilm(db, film) {
     cultClassic ? 1 : 0, shootingLocation || null, editionType || null,
     festivalAwards ? (Array.isArray(festivalAwards) ? JSON.stringify(festivalAwards) : festivalAwards) : null,
     screeningFormat || null, pacing || null, experimental ? 1 : 0, myNotes || null,
+    originalLanguage || null, boxOffice || null, tagline || null, budget || null, revenue || null,
+    metascore || null, rottenTomatoes || null, releaseDate || null,
+    productionCompanies ? (Array.isArray(productionCompanies) ? JSON.stringify(productionCompanies) : productionCompanies) : null,
+    productionCountries ? (Array.isArray(productionCountries) ? JSON.stringify(productionCountries) : productionCountries) : null,
+    homepage || null,
+    spokenLanguages ? (Array.isArray(spokenLanguages) ? JSON.stringify(spokenLanguages) : spokenLanguages) : null,
+    status || null, popularity || null,
+    network || null, seriesStatus || null, schedule || null,
     id
   ).run()
 }

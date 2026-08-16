@@ -60,6 +60,16 @@ function toForm(film) {
     revenue: film.revenue ?? '',
     metascore: film.metascore ?? '',
     rottenTomatoes: film.rottenTomatoes || '',
+    releaseDate: film.releaseDate || '',
+    productionCompanies: Array.isArray(film.productionCompanies) ? film.productionCompanies.join(', ') : film.productionCompanies || '',
+    productionCountries: Array.isArray(film.productionCountries) ? film.productionCountries.join(', ') : film.productionCountries || '',
+    homepage: film.homepage || '',
+    spokenLanguages: Array.isArray(film.spokenLanguages) ? film.spokenLanguages.join(', ') : film.spokenLanguages || '',
+    status: film.status || '',
+    popularity: film.popularity ?? '',
+    network: film.network || '',
+    seriesStatus: film.seriesStatus || '',
+    schedule: film.schedule || '',
   }
 }
 
@@ -282,6 +292,22 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       revenue: form.revenue !== '' ? parseInt(form.revenue, 10) : undefined,
       metascore: form.metascore !== '' ? parseInt(form.metascore, 10) : undefined,
       rottenTomatoes: form.rottenTomatoes || undefined,
+      releaseDate: form.releaseDate || undefined,
+      productionCompanies: form.productionCompanies
+        ? form.productionCompanies.split(',').map((s) => s.trim()).filter(Boolean)
+        : undefined,
+      productionCountries: form.productionCountries
+        ? form.productionCountries.split(',').map((s) => s.trim()).filter(Boolean)
+        : undefined,
+      homepage: form.homepage || undefined,
+      spokenLanguages: form.spokenLanguages
+        ? form.spokenLanguages.split(',').map((s) => s.trim()).filter(Boolean)
+        : undefined,
+      status: form.status || undefined,
+      popularity: form.popularity !== '' ? parseFloat(form.popularity) : undefined,
+      network: form.network || undefined,
+      seriesStatus: form.seriesStatus || undefined,
+      schedule: form.schedule || undefined,
     }
     onSave(patch)
   }
@@ -702,6 +728,50 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             <span>Rotten Tomatoes</span>
             <input value={form.rottenTomatoes} onChange={set('rottenTomatoes')} placeholder="مثلاً 87%" />
           </label>
+          <label className="edit-field">
+            <span>تاریخ اکران دقیق</span>
+            <input value={form.releaseDate} onChange={set('releaseDate')} placeholder="مثلاً 14 Feb 2020" />
+          </label>
+          <label className="edit-field">
+            <span>وضعیت اکران</span>
+            <input value={form.status} onChange={set('status')} placeholder="Released / Post Production…" />
+          </label>
+          <label className="edit-field">
+            <span>محبوبیت TMDB</span>
+            <input type="number" step="0.1" value={form.popularity} onChange={set('popularity')} />
+          </label>
+          <label className="edit-field full">
+            <span>لینک رسمی فیلم</span>
+            <input value={form.homepage} onChange={set('homepage')} placeholder="https://…" />
+          </label>
+          <label className="edit-field full">
+            <span>شرکت‌های تولیدکننده</span>
+            <input value={form.productionCompanies} onChange={set('productionCompanies')} placeholder="با کاما جدا کن" />
+          </label>
+          <label className="edit-field">
+            <span>کشورهای تولیدکننده</span>
+            <input value={form.productionCountries} onChange={set('productionCountries')} placeholder="با کاما جدا کن" />
+          </label>
+          <label className="edit-field">
+            <span>زبان‌های فیلم</span>
+            <input value={form.spokenLanguages} onChange={set('spokenLanguages')} placeholder="با کاما جدا کن" />
+          </label>
+          {form.itemType === 'series' && (
+            <>
+              <label className="edit-field">
+                <span>شبکه‌ی پخش</span>
+                <input value={form.network} onChange={set('network')} />
+              </label>
+              <label className="edit-field">
+                <span>وضعیت سریال</span>
+                <input value={form.seriesStatus} onChange={set('seriesStatus')} placeholder="Running / Ended / Cancelled" />
+              </label>
+              <label className="edit-field">
+                <span>روز/ساعت پخش</span>
+                <input value={form.schedule} onChange={set('schedule')} placeholder="مثلاً Friday 21:00" />
+              </label>
+            </>
+          )}
 
           <label className="edit-field full">
             <span>یادداشت شخصی (خصوصی)</span>

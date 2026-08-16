@@ -601,6 +601,71 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
             )}
 
+            {(film.releaseDate || film.status) && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+                {film.releaseDate ? (
+                  <div>
+                    <div className="cine-section-label">RELEASE DATE</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.releaseDate}</p>
+                  </div>
+                ) : null}
+                {film.status ? (
+                  <div>
+                    <div className="cine-section-label">STATUS</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.status}</p>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {Array.isArray(film.productionCompanies) && film.productionCompanies.length > 0 && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">PRODUCTION COMPANIES</div>
+                <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.productionCompanies.join(', ')}</p>
+              </div>
+            )}
+
+            {Array.isArray(film.spokenLanguages) && film.spokenLanguages.length > 0 && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">SPOKEN LANGUAGES</div>
+                <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.spokenLanguages.join(', ')}</p>
+              </div>
+            )}
+
+            {film.homepage && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">OFFICIAL SITE</div>
+                <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>
+                  <a href={film.homepage} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                    {film.homepage}
+                  </a>
+                </p>
+              </div>
+            )}
+
+            {(film.network || film.seriesStatus || film.schedule) && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+                {film.network ? (
+                  <div>
+                    <div className="cine-section-label">NETWORK</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.network}</p>
+                  </div>
+                ) : null}
+                {film.seriesStatus ? (
+                  <div>
+                    <div className="cine-section-label">SERIES STATUS</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.seriesStatus}</p>
+                  </div>
+                ) : null}
+                {film.schedule ? (
+                  <div>
+                    <div className="cine-section-label">SCHEDULE</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.schedule}</p>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
             {festivalAwards.length > 0 && (
               <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
                 <div className="cine-section-label">AWARDS ({festivalAwards.length})</div>

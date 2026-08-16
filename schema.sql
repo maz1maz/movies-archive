@@ -70,6 +70,16 @@ CREATE TABLE IF NOT EXISTS films (
   revenue INTEGER,                        -- فروش جهانی فیلم به دلار (از TMDB، خودکار پر می‌شه)
   metascore INTEGER,                      -- امتیاز Metacritic (از OMDb، خودکار پر می‌شه)
   rottenTomatoes TEXT,                    -- درصد Rotten Tomatoes (از OMDb، خودکار پر می‌شه)
+  releaseDate TEXT,                       -- تاریخ دقیق اکران (از OMDb، خودکار پر می‌شه)
+  productionCompanies TEXT,               -- JSON آرایه: شرکت‌های تولیدکننده (از TMDB، خودکار پر می‌شه)
+  productionCountries TEXT,               -- JSON آرایه: کشورهای تولیدکننده (از TMDB، خودکار پر می‌شه)
+  homepage TEXT,                          -- لینک رسمی فیلم (از TMDB، خودکار پر می‌شه)
+  spokenLanguages TEXT,                   -- JSON آرایه: زبان‌های فیلم (از TMDB، خودکار پر می‌شه)
+  status TEXT,                            -- وضعیت اکران (از TMDB، خودکار پر می‌شه)
+  popularity REAL,                        -- شاخص محبوبیت TMDB (خودکار پر می‌شه)
+  network TEXT,                           -- شبکه‌ی پخش سریال (از TVMaze، خودکار پر می‌شه)
+  seriesStatus TEXT,                      -- وضعیت سریال: در حال پخش/تمام‌شده/لغوشده (از TVMaze، خودکار پر می‌شه)
+  schedule TEXT,                          -- روز/ساعت پخش سریال (از TVMaze، خودکار پر می‌شه)
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
