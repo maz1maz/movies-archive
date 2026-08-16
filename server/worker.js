@@ -701,6 +701,7 @@ export default {
         const existing = await db.prepare('SELECT * FROM films WHERE id = ?').bind(enrichOneMatch[1]).first()
         if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
         const parsed = parseFilmRow(existing)
+        const before = { ...parsed }
         const key = env.OMDB_API_KEY
         let fields = []
         let enriched = parsed
@@ -727,7 +728,7 @@ export default {
             tmdbDebug = 'threw: ' + String(e)
           }
           fields = ENRICHABLE_FIELDS.filter(
-            (f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f])
+            (f) => isEmptyMetadata(before[f]) && !isEmptyMetadata(enriched[f])
           )
           // توجه: اینجا دیگه updateFilm/syncSharedMetadataToSibling صدا زده نمی‌شه —
           // فقط پیش‌نمایش برمی‌گردونه، ذخیره‌ی واقعی با دکمه‌ی Save کاربره.
@@ -4282,6 +4283,7 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
   let quotaExceeded = false
   for (const film of candidates) {
     const parsed = parseFilmRow(film)
+    const before = { ...parsed }
     let enriched
     try {
       enriched = await enrichFilm(parsed, env.OMDB_API_KEY, () => bumpApiUsage('omdb'))
@@ -4296,7 +4298,7 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
       const { extras } = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
       applyTmdbExtras(enriched, extras)
     } catch {}
-    const fields = ENRICHABLE_FIELDS.filter((f) => isEmptyMetadata(parsed[f]) && !isEmptyMetadata(enriched[f]))
+    const fields = ENRICHABLE_FIELDS.filter((f) => isEmptyMetadata(before[f]) && !isEmptyMetadata(enriched[f]))
     if (fields.length) updated++
     enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
     await updateFilm(db, enriched)
