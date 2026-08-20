@@ -256,6 +256,25 @@ app.post('/api/films/bulk-move', (req, res) => {
   res.json({ moved })
 })
 
+app.post('/api/films/bulk-set-drive', (req, res) => {
+  const { ids, driveNumber } = req.body || {}
+  const idList = Array.isArray(ids) ? ids.map((x) => String(x)).filter(Boolean) : []
+  if (!idList.length) return res.status(400).json({ error: 'ids are required' })
+  const d = String(driveNumber || '').trim()
+  if (!d) return res.status(400).json({ error: 'driveNumber is required' })
+  const films = readFilms()
+  const idSet = new Set(idList)
+  let moved = 0
+  for (const f of films) {
+    if (idSet.has(String(f.id))) {
+      f.driveNumber = d
+      moved++
+    }
+  }
+  writeFilms(films)
+  res.json({ moved })
+})
+
 app.post('/api/films/reset-locations', (req, res) => {
   const films = readFilms()
   let reset = 0

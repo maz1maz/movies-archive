@@ -238,6 +238,15 @@ export const IconDisc = (props) => (
   </svg>
 )
 
+export const IconHardDrive = (props) => (
+  <svg {...base} {...props}>
+    <rect x="2.5" y="9" width="19" height="10" rx="2" />
+    <path d="M4 9l3-5h10l3 5" />
+    <circle cx="7" cy="14" r="0.6" fill="currentColor" stroke="none" />
+    <path d="M11 14h7" />
+  </svg>
+)
+
 export const IconMasks = (props) => (
   <svg {...base} {...props}>
     <path d="M4 9c0-3 2.5-5 5.5-5S14 6 14 8c0 2.5-1.5 3.5-3.5 3.5S8 10.2 8 9" />

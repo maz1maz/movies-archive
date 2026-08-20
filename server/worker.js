@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx'
 import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader } from './auth.js'
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url)
     const { pathname } = url
     const method = request.method
@@ -92,7 +92,10 @@ export default {
             { ...corsHeaders, 'Retry-After': '60' }
           )
         }
-        await env.RATE_LIMIT.put(rlKey, String(current + 1), { expirationTtl: 70 })
+        // نوشتن شمارنده منتظر نمی‌مونیم — این فقط برای درخواست بعدی لازمه، نه پاسخ فعلی.
+        // await کردنش یه round-trip کامل به KV رو جلوی هر درخواست guest می‌ذاشت.
+        const putPromise = env.RATE_LIMIT.put(rlKey, String(current + 1), { expirationTtl: 70 }).catch(() => {})
+        if (ctx?.waitUntil) ctx.waitUntil(putPromise)
       } catch {
         // اگه خود KV مشکل داشت، درخواست رو بلاک نکن — فقط rate limiting رد می‌شه
       }
@@ -411,7 +414,8 @@ export default {
           .prepare(
             `SELECT * FROM films WHERE
              LOWER(director) LIKE ? OR LOWER(producer) LIKE ? OR LOWER("cast") LIKE ? OR LOWER(screenwriter) LIKE ?
-             ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
+             ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC
+             LIMIT 500`
           )
           .bind(s, s, s, s)
           .all()
@@ -674,6 +678,24 @@ export default {
           "UPDATE films SET closet = ?, row = ?, shelf = ?, updatedAt = datetime('now') WHERE id = ?"
         )
         const batch = ids.map((id) => stmt.bind(closet, row, shelf, id))
+        await db.batch(batch)
+        return json({ moved: ids.length }, 200, corsHeaders)
+      }
+
+      // ---- POST /api/films/bulk-set-drive (assign the same hard drive to
+      // many digital items at once) — برخلاف bulk-move (کمد فیزیکی)، محدودیت
+      // ظرفیتی نداره چون حجم هاردها تو دیتابیس ثبت نمی‌شه ----
+      if (method === 'POST' && pathname === '/api/films/bulk-set-drive') {
+        const denied = requireAuth()
+        if (denied) return denied
+        const body = await request.json().catch(() => ({}))
+        const ids = Array.isArray(body.ids) ? body.ids.map((x) => String(x)).filter(Boolean) : []
+        if (!ids.length) return json({ error: 'ids are required' }, 400, corsHeaders)
+        const driveNumber = String(body.driveNumber || '').trim()
+        if (!driveNumber) return json({ error: 'driveNumber is required' }, 400, corsHeaders)
+        const placeholders = ids.map(() => '?').join(',')
+        const stmt = db.prepare("UPDATE films SET driveNumber = ?, updatedAt = datetime('now') WHERE id = ?")
+        const batch = ids.map((id) => stmt.bind(driveNumber, id))
         await db.batch(batch)
         return json({ moved: ids.length }, 200, corsHeaders)
       }

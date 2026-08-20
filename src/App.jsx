@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, lazy, Suspense } from 'react'
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
 import Header from './components/Header.jsx'
 import FilmGrid from './components/FilmGrid.jsx'
 import FilmList from './components/FilmList.jsx'
@@ -9,6 +9,7 @@ import FolderNav from './components/FolderNav.jsx'
 import DashboardPanel from './components/DashboardPanel.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import LocationBrowserModal from './components/LocationBrowserModal.jsx'
+import DriveBrowserModal from './components/DriveBrowserModal.jsx'
 import BookshelfView from './components/BookshelfView.jsx'
 import CinemaNewsPage from './components/CinemaNewsPage.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
@@ -107,6 +108,7 @@ export default function App() {
     }
   }
   const [showLocationBrowser, setShowLocationBrowser] = useState(false)
+  const [showDriveBrowser, setShowDriveBrowser] = useState(false)
   const [showBookshelf, setShowBookshelf] = useState(false)
   const [forceFilmOverlay, setForceFilmOverlay] = useState(false)
   const [loanFilm, setLoanFilm] = useState(null)
@@ -231,6 +233,16 @@ export default function App() {
         }
         setFilms(data)
         setLoading(false)
+        // اگه هیچ فیلتری فعال نبود، این جواب همون کل آرشیوه (فقط با sort
+        // فعلی) — دقیقاً همون چیزی که loadAllFilmsUnfiltered() جدا درخواست
+        // می‌کرد. همینو برای allFilmsUnfiltered هم استفاده می‌کنیم تا موقع
+        // بارگذاری اول صفحه، کل آرشیو (چند مگابایت) دوبار دانلود/پارس نشه.
+        // ترتیب ردیف‌ها (sort) برای مصرف‌کننده‌های allFilmsUnfiltered
+        // (شمارش‌ها، Set/map های بلوری-دیجیتال، کلاژ پوستر پس‌زمینه) اهمیتی
+        // نداره.
+        if (params.toString() === '' || Array.from(params.keys()).every((k) => k === 'sort')) {
+          setAllFilmsUnfiltered(data)
+        }
       })
       .catch(() => {
         if (requestId === requestIdRef.current) setLoading(false)
@@ -257,7 +269,12 @@ export default function App() {
       .then((r) => r.json())
       .then((data) => setDecades(Array.isArray(data) ? data : []))
       .catch(() => {})
-    loadAllFilmsUnfiltered()
+    // loadAllFilmsUnfiltered() اینجا دیگه صدا زده نمی‌شه — چون effect
+    // دیباونس‌شده‌ی فیلتر (loadFilms) هم همین موقع mount، با فیلترهای
+    // پیش‌فرض (یعنی بدون فیلتر) اجرا می‌شه و حالا خودش allFilmsUnfiltered
+    // رو هم از همون جواب پر می‌کنه؛ یه fetch کامل و تکراری از کل آرشیو
+    // حذف شد. (loadAllFilmsUnfiltered خودش برای رفرش‌های بعدی که ممکنه
+    // فیلتری هم فعال باشه، دست‌نخورده می‌مونه.)
   }, [])
 
   const refreshMeta = () => {
@@ -626,44 +643,62 @@ export default function App() {
 
   // فیلم‌های همین صفحه بسته به این‌که کدوم بخش (فیزیکی/دیجیتال-فیلم/
   // دیجیتال-سریال) رو انتخاب کرده باشیم، محدود می‌شن
-  const sectionFilms = films.filter((f) => {
-    if (section === 'physical') return f.mediaType !== 'digital' && f.itemType !== 'series'
-    if (section === 'physical-series') return f.mediaType !== 'digital' && f.itemType === 'series'
-    if (section === 'digital-movie') return f.mediaType === 'digital' && f.itemType !== 'series'
-    if (section === 'digital-series') return f.mediaType === 'digital' && f.itemType === 'series'
-    return true
-  })
+  // useMemo: این فیلتر و همه‌ی موارد allFilmsUnfiltered زیرش قبلاً هر
+  // رندر (مثلاً هر keystroke تو سرچ) دوباره کامل روی کل آرشیو اجرا می‌شدن؛
+  // الان فقط وقتی dependency واقعاً عوض بشه دوباره حساب می‌شن.
+  const sectionFilms = useMemo(
+    () =>
+      films.filter((f) => {
+        if (section === 'physical') return f.mediaType !== 'digital' && f.itemType !== 'series'
+        if (section === 'physical-series') return f.mediaType !== 'digital' && f.itemType === 'series'
+        if (section === 'digital-movie') return f.mediaType === 'digital' && f.itemType !== 'series'
+        if (section === 'digital-series') return f.mediaType === 'digital' && f.itemType === 'series'
+        return true
+      }),
+    [films, section]
+  )
   const pageCount = Math.max(1, Math.ceil(sectionFilms.length / PAGE_SIZE))
   const visibleFilms = sectionFilms.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   // کلیدهای فیلم‌هایی که نسخه‌ی فیزیکی بلوری‌شون توی آرشیو موجوده؛ برای
   // نشون‌دادن نشان «بلوری هم داره» روی کارت‌های دیجیتال همون فیلم
-  const blurayKeys = new Set(
-    allFilmsUnfiltered
-      .filter((f) => f.mediaType !== 'digital' && (f.format || '').toLowerCase().includes('blu-ray'))
-      .map((f) => `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
+  const blurayKeys = useMemo(
+    () =>
+      new Set(
+        allFilmsUnfiltered
+          .filter((f) => f.mediaType !== 'digital' && (f.format || '').toLowerCase().includes('blu-ray'))
+          .map((f) => `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
+      ),
+    [allFilmsUnfiltered]
   )
   const hasBlurayCopy = (f) =>
     f.mediaType === 'digital' && blurayKeys.has(`${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
   // برعکسش: کلیدهای فیلم‌هایی که نسخه‌ی دیجیتال هم دارن، برای نشون‌دادن نشان
   // «دیجیتال هم داره» روی کارت‌های بلوری همون فیلم/سریال
-  const digitalKeys = new Set(
-    allFilmsUnfiltered
-      .filter((f) => f.mediaType === 'digital')
-      .map((f) => `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
+  const digitalKeys = useMemo(
+    () =>
+      new Set(
+        allFilmsUnfiltered
+          .filter((f) => f.mediaType === 'digital')
+          .map((f) => `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
+      ),
+    [allFilmsUnfiltered]
   )
   const hasDigitalCopy = (f) =>
     f.mediaType !== 'digital' && digitalKeys.has(`${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
 
   // نسخه‌ی مقابل (فیزیکی/دیجیتال) همون فیلم رو برمی‌گردونه — برای نشون‌دادن
   // لوکیشن نسخه‌ی دیگه (قفسه یا هارد) کنار بج «هم داره»، نه فقط خود بولین.
-  const physicalByKey = {}
-  const digitalByKey = {}
-  for (const f of allFilmsUnfiltered) {
-    const key = `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`
-    if (f.mediaType === 'digital') digitalByKey[key] = f
-    else physicalByKey[key] = f
-  }
+  const { physicalByKey, digitalByKey } = useMemo(() => {
+    const physicalByKey = {}
+    const digitalByKey = {}
+    for (const f of allFilmsUnfiltered) {
+      const key = `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`
+      if (f.mediaType === 'digital') digitalByKey[key] = f
+      else physicalByKey[key] = f
+    }
+    return { physicalByKey, digitalByKey }
+  }, [allFilmsUnfiltered])
   const findSiblingFilm = (f) => {
     if (!f) return null
     const key = `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`
@@ -675,37 +710,46 @@ export default function App() {
   // حالا همیشه از همون مودال کامل و وسط‌چین استفاده می‌شه، مثل جاهای دیگه‌ی اپ.
   const useSplitView = false
 
-  const folderCounts = {
-    physical: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital' && f.itemType !== 'series').length,
-    physicalSeries: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital' && f.itemType === 'series').length,
-    digital: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital').length,
-    digitalMovies: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType !== 'series').length,
-    digitalSeries: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType === 'series').length,
-  }
+  const folderCounts = useMemo(
+    () => ({
+      physical: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital' && f.itemType !== 'series').length,
+      physicalSeries: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital' && f.itemType === 'series').length,
+      digital: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital').length,
+      digitalMovies: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType !== 'series').length,
+      digitalSeries: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType === 'series').length,
+    }),
+    [allFilmsUnfiltered]
+  )
   // برای کلاژ پس‌زمینه‌ی صفحات پوشه‌ای: صفحه‌ی اصلی از کل آرشیو، صفحه‌ی
   // دیجیتال فقط از پوسترهای آیتم‌های دیجیتال
-  const homePosters = allFilmsUnfiltered.map((f) => f.poster).filter(Boolean)
-  const digitalPosters = allFilmsUnfiltered
-    .filter((f) => f.mediaType === 'digital')
-    .map((f) => f.poster)
-    .filter(Boolean)
-  // برای پس‌زمینه‌ی صفحات محتوا (بعد از انتخاب بخش)، فقط از پوسترهای همون بخش
-  const physicalPosters = allFilmsUnfiltered
-    .filter((f) => f.mediaType !== 'digital' && f.itemType !== 'series')
-    .map((f) => f.poster)
-    .filter(Boolean)
-  const physicalSeriesPosters = allFilmsUnfiltered
-    .filter((f) => f.mediaType !== 'digital' && f.itemType === 'series')
-    .map((f) => f.poster)
-    .filter(Boolean)
-  const digitalMoviePosters = allFilmsUnfiltered
-    .filter((f) => f.mediaType === 'digital' && f.itemType !== 'series')
-    .map((f) => f.poster)
-    .filter(Boolean)
-  const digitalSeriesPosters = allFilmsUnfiltered
-    .filter((f) => f.mediaType === 'digital' && f.itemType === 'series')
-    .map((f) => f.poster)
-    .filter(Boolean)
+  const { homePosters, digitalPosters, physicalPosters, physicalSeriesPosters, digitalMoviePosters, digitalSeriesPosters } =
+    useMemo(
+      () => ({
+        homePosters: allFilmsUnfiltered.map((f) => f.poster).filter(Boolean),
+        digitalPosters: allFilmsUnfiltered
+          .filter((f) => f.mediaType === 'digital')
+          .map((f) => f.poster)
+          .filter(Boolean),
+        // برای پس‌زمینه‌ی صفحات محتوا (بعد از انتخاب بخش)، فقط از پوسترهای همون بخش
+        physicalPosters: allFilmsUnfiltered
+          .filter((f) => f.mediaType !== 'digital' && f.itemType !== 'series')
+          .map((f) => f.poster)
+          .filter(Boolean),
+        physicalSeriesPosters: allFilmsUnfiltered
+          .filter((f) => f.mediaType !== 'digital' && f.itemType === 'series')
+          .map((f) => f.poster)
+          .filter(Boolean),
+        digitalMoviePosters: allFilmsUnfiltered
+          .filter((f) => f.mediaType === 'digital' && f.itemType !== 'series')
+          .map((f) => f.poster)
+          .filter(Boolean),
+        digitalSeriesPosters: allFilmsUnfiltered
+          .filter((f) => f.mediaType === 'digital' && f.itemType === 'series')
+          .map((f) => f.poster)
+          .filter(Boolean),
+      }),
+      [allFilmsUnfiltered]
+    )
   const sectionPosters =
     section === 'physical'
       ? physicalPosters
@@ -742,6 +786,7 @@ export default function App() {
             onSelectDigitalType={(type) => changeSection(type === 'series' ? 'digital-series' : 'digital-movie')}
             onSelectSpecialCollections={() => changeSection('special-collections')}
             onOpenBookshelf={() => setShowBookshelf(true)}
+            onOpenDriveBrowser={() => setShowDriveBrowser(true)}
             onSelectDashboard={() => changeSection('dashboard')}
             onSelectGallery={() => changeSection('gallery')}
             onSelectCinemaNews={() => changeSection('cinema-news')}
@@ -1143,6 +1188,19 @@ export default function App() {
           }}
           onFilmsChanged={loadAllFilmsUnfiltered}
           onClose={() => setShowLocationBrowser(false)}
+        />
+      )}
+
+      {showDriveBrowser && (
+        <DriveBrowserModal
+          films={allFilmsUnfiltered}
+          canEdit={!isGuest}
+          onSelectFilm={(film) => {
+            setForceFilmOverlay(true)
+            setSelected(film)
+          }}
+          onFilmsChanged={loadAllFilmsUnfiltered}
+          onClose={() => setShowDriveBrowser(false)}
         />
       )}
 

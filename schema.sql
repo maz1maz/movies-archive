@@ -89,6 +89,9 @@ CREATE INDEX IF NOT EXISTS idx_films_shelf ON films(shelf);
 CREATE INDEX IF NOT EXISTS idx_films_closet ON films(closet);
 CREATE INDEX IF NOT EXISTS idx_films_year ON films(year);
 CREATE INDEX IF NOT EXISTS idx_films_watched ON films(watched);
+-- migrations/0006_perf-indexes.sql: mediaType+itemType تقریباً هر بار
+-- بارگذاری لیست فیلم‌ها با هم فیلتر می‌شن.
+CREATE INDEX IF NOT EXISTS idx_films_mediaType_itemType ON films(mediaType, itemType);
 
 -- لیست‌های تماشا (سفارشی، جدا از فیلد watchlisted روی هر فیلم)
 CREATE TABLE IF NOT EXISTS watchlists (
