@@ -1805,6 +1805,17 @@ body.light .header {
   background: var(--accent);
   transition: width 0.3s ease;
 }
+.shelf-group-heading {
+  margin: 18px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #999);
+  opacity: 0.8;
+}
+.shelf-group-heading:first-child {
+  margin-top: 0;
+}
 .shelf-film-list {
   list-style: none;
   margin: 0;

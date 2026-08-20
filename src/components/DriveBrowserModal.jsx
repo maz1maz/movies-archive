@@ -93,6 +93,9 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
     return itemsOnDrive(digitalSorted, drive)
   }, [digitalSorted, drive])
 
+  const driveMovies = useMemo(() => driveFilms.filter((f) => f.itemType !== 'series'), [driveFilms])
+  const driveSeries = useMemo(() => driveFilms.filter((f) => f.itemType === 'series'), [driveFilms])
+
   const addDrive = () => {
     const name = newDriveInput.trim()
     if (!name) return
@@ -237,31 +240,68 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                     <p>Nothing on this drive yet. Move available items from inventory below.</p>
                   </div>
                 ) : (
-                  <ul className="shelf-film-list">
-                    {driveFilms.map((f) => (
-                      <li key={f.id} className="shelf-film-item">
-                        <button className="location-title-row" onClick={() => onSelectFilm(f)}>
-                          <span className="location-title-icon">
-                            {f.itemType === 'series' ? <IconBookshelf width={13} height={13} /> : <IconFilm width={13} height={13} />}
-                          </span>
-                          <span className="location-title-main">
-                            <span className="location-title-line1">
-                              <span className="location-title-text">{f.title}</span>
-                              {f.year && <span className="location-title-year">{f.year}</span>}
-                            </span>
-                            {f.director && <span className="location-title-director">{f.director}</span>}
-                          </span>
-                          <span className="location-title-loc">
-                            {parseDriveNumbers(f.driveNumber).includes(drive)
-                              ? f.driveNumber && f.driveNumber !== drive
-                                ? driveLabel(f.driveNumber)
-                                : driveLabel(drive)
-                              : 'Season split across drives'}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  <>
+                    {driveMovies.length > 0 && (
+                      <>
+                        <h4 className="shelf-group-heading">Movies ({driveMovies.length})</h4>
+                        <ul className="shelf-film-list">
+                          {driveMovies.map((f) => (
+                            <li key={f.id} className="shelf-film-item">
+                              <button className="location-title-row" onClick={() => onSelectFilm(f)}>
+                                <span className="location-title-icon">
+                                  <IconFilm width={13} height={13} />
+                                </span>
+                                <span className="location-title-main">
+                                  <span className="location-title-line1">
+                                    <span className="location-title-text">{f.title}</span>
+                                    {f.year && <span className="location-title-year">{f.year}</span>}
+                                  </span>
+                                  {f.director && <span className="location-title-director">{f.director}</span>}
+                                </span>
+                                <span className="location-title-loc">
+                                  {parseDriveNumbers(f.driveNumber).includes(drive)
+                                    ? f.driveNumber && f.driveNumber !== drive
+                                      ? driveLabel(f.driveNumber)
+                                      : driveLabel(drive)
+                                    : 'Season split across drives'}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    {driveSeries.length > 0 && (
+                      <>
+                        <h4 className="shelf-group-heading">Series ({driveSeries.length})</h4>
+                        <ul className="shelf-film-list">
+                          {driveSeries.map((f) => (
+                            <li key={f.id} className="shelf-film-item">
+                              <button className="location-title-row" onClick={() => onSelectFilm(f)}>
+                                <span className="location-title-icon">
+                                  <IconBookshelf width={13} height={13} />
+                                </span>
+                                <span className="location-title-main">
+                                  <span className="location-title-line1">
+                                    <span className="location-title-text">{f.title}</span>
+                                    {f.year && <span className="location-title-year">{f.year}</span>}
+                                  </span>
+                                  {f.director && <span className="location-title-director">{f.director}</span>}
+                                </span>
+                                <span className="location-title-loc">
+                                  {parseDriveNumbers(f.driveNumber).includes(drive)
+                                    ? f.driveNumber && f.driveNumber !== drive
+                                      ? driveLabel(f.driveNumber)
+                                      : driveLabel(drive)
+                                    : 'Season split across drives'}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </>
                 )}
               </div>
             )}
