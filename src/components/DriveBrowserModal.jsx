@@ -25,6 +25,14 @@ function parseDriveNumbers(raw) {
     .filter(Boolean)
 }
 
+// بعضی ردیف‌ها driveNumber رو «Drive 7» ذخیره کردن، بعضی فقط «7» — این
+// دوتا رو یکی نشون می‌ده تا «Drive Drive 7» ساخته نشه
+function driveLabel(raw) {
+  return parseDriveNumbers(raw)
+    .map((d) => `Drive ${d.replace(/^drive\s*/i, '')}`)
+    .join(', ')
+}
+
 // چند فیلم روی همین درایو هستن، شامل فصل‌های سریال‌هایی که فصل‌هاشون رو
 // جداگونه رو هاردهای مختلف پخش کردیم (seasonDrives)
 function itemsOnDrive(digitalFilms, drive) {
@@ -156,7 +164,7 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
             )}
             <div className="location-browser-title">
               <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <IconHardDrive width={18} height={18} /> {drive ? `Drive ${drive}` : 'Browse by Drive'}
+                <IconHardDrive width={18} height={18} /> {drive ? driveLabel(drive) : 'Browse by Drive'}
               </h2>
               <p className="export-sub" style={{ margin: '4px 0 0' }}>
                 {drive
@@ -179,7 +187,7 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                     const n = itemsOnDrive(digitalFilms, d).length
                     return (
                       <button key={d} className="closet-card" onClick={() => setDrive(d)}>
-                        <span className="closet-card-idx">{d}</span>
+                        <span className="closet-card-idx">{driveLabel(d)}</span>
                         <span className="closet-card-count">
                           {n} item{n === 1 ? '' : 's'}
                         </span>
@@ -246,8 +254,8 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                           <span className="location-title-loc">
                             {parseDriveNumbers(f.driveNumber).includes(drive)
                               ? f.driveNumber && f.driveNumber !== drive
-                                ? `Drive ${f.driveNumber}`
-                                : `Drive ${drive}`
+                                ? driveLabel(f.driveNumber)
+                                : driveLabel(drive)
                               : 'Season split across drives'}
                           </span>
                         </button>
@@ -266,7 +274,7 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                   <h3>Available Digital Items ({filteredAvailable.length})</h3>
                   <span className="film-selector-sub">
                     {drive
-                      ? `Select items to move onto Drive ${drive}.`
+                      ? `Select items to move onto ${driveLabel(drive)}.`
                       : 'Pick a drive above (or add a new one), then select items below to move onto it.'}
                   </span>
                 </div>
@@ -318,7 +326,7 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                           <span className="film-selector-title-text">{f.title}</span>
                           {f.year && <span className="film-selector-year">{f.year}</span>}
                         </span>
-                        <span className="film-selector-loc">{f.driveNumber ? `Drive ${f.driveNumber}` : 'Unassigned'}</span>
+                        <span className="film-selector-loc">{f.driveNumber ? driveLabel(f.driveNumber) : 'Unassigned'}</span>
                       </label>
                     )
                   })
