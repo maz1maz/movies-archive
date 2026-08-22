@@ -4,7 +4,7 @@ import { IconClose, IconCamera, IconCheck } from './icons.jsx'
 // حداکثر ابعاد قبل از فرستادن به Claude — عکس‌های موبایل معمولاً چند مگابایت
 // هستن؛ قبل از ارسال کوچیک‌شون می‌کنیم تا هم سریع‌تر آپلود بشه هم داخل
 // محدودیت درخواست Worker جا بشه.
-const MAX_DIM = 1600
+const MAX_DIM = 1280
 
 function fileToResizedBase64(file) {
   return new Promise((resolve, reject) => {
@@ -25,7 +25,7 @@ function fileToResizedBase64(file) {
         canvas.height = height
         const ctx = canvas.getContext('2d')
         ctx.drawImage(img, 0, 0, width, height)
-        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.85), previewUrl: reader.result })
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.75), previewUrl: reader.result })
       }
       img.src = reader.result
     }

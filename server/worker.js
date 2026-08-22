@@ -1960,28 +1960,37 @@ async function handleFetch(request, env, ctx) {
 اگه سال رو مطمئن نیستی، year رو null بذار. عنوان رو به همون زبان اصلی/انگلیسی روی جلد بنویس، نه ترجمه.
 اگه یه عنوان کامل خونا نیست یا نامشخصه، از لیست حذفش کن. عنوان‌های تکراری رو فقط یه‌بار بیار.`
 
+        const callGemini = () =>
+          fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-goog-api-key': env.GEMINI_API_KEY,
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [{ text: prompt }, { inline_data: { mime_type: mediaType, data: base64Data } }],
+                },
+              ],
+              generationConfig: { responseMimeType: 'application/json' },
+            }),
+          })
+
         let aiRes
-        try {
-          aiRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
-            {
-              method: 'POST',
-              headers: {
-                'content-type': 'application/json',
-                'x-goog-api-key': env.GEMINI_API_KEY,
-              },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    parts: [{ text: prompt }, { inline_data: { mime_type: mediaType, data: base64Data } }],
-                  },
-                ],
-                generationConfig: { responseMimeType: 'application/json' },
-              }),
-            }
-          )
-        } catch (e) {
-          return json({ error: `Failed to reach Gemini API: ${e.message}` }, 502, corsHeaders)
+        let lastErr
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            aiRes = await callGemini()
+            lastErr = null
+            break
+          } catch (e) {
+            lastErr = e
+            if (attempt < 2) await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
+          }
+        }
+        if (lastErr) {
+          return json({ error: `Failed to reach Gemini API after 3 tries: ${lastErr.message}` }, 502, corsHeaders)
         }
         if (!aiRes.ok) {
           const errText = await aiRes.text().catch(() => '')
