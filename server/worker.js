@@ -1930,14 +1930,13 @@ async function handleFetch(request, env, ctx) {
       }
 
       // ---- POST /api/films/scan-photo (عکس از قفسه/جلد بلوری‌ها، تشخیص
-      // عنوان‌ها با Gemini vision — رایگان تا سقف سهمیه‌ی روزانه‌ی Google AI
-      // Studio) — فقط لیست {title, year} برمی‌گردونه؛ افزودن واقعی فیلم‌ها
-      // با POST /api/films معمولی (که خودش enrich می‌کنه) انجام می‌شه ----
+      // عنوان‌ها با OpenAI vision) — فقط لیست {title, year} برمی‌گردونه؛
+      // افزودن واقعی فیلم‌ها با POST /api/films معمولی (که خودش enrich می‌کنه) انجام می‌شه ----
       if (method === 'POST' && pathname === '/api/films/scan-photo') {
         const denied = requireAuth()
         if (denied) return denied
-        if (!env.GEMINI_API_KEY) {
-          return json({ error: 'GEMINI_API_KEY not configured on the server' }, 400, corsHeaders)
+        if (!env.OPENAI_API_KEY) {
+          return json({ error: 'OPENAI_API_KEY not configured on the server' }, 400, corsHeaders)
         }
         const body = await request.json().catch(() => ({}))
         const { image, mediaType: imgMediaType } = body
@@ -1953,37 +1952,41 @@ async function handleFetch(request, env, ctx) {
           mediaType = dataUrlMatch[1]
           base64Data = dataUrlMatch[2]
         }
+        const dataUrl = `data:${mediaType};base64,${base64Data}`
         const prompt = `این عکسی از چند تا جلد یا لبه‌ی بلوری/دی‌وی‌دی روی هم یا کنار همه.
 هر عنوان فیلمی که می‌تونی بخونی رو پیدا کن (چه از روی جلد، چه از روی لبه‌ی باریک جعبه).
-فقط یه آرایه‌ی JSON خالص برگردون، بدون هیچ توضیح یا Markdown، به این فرمت دقیق:
-[{"title":"Original English Title","year":1999}]
+فقط یه آبجکت JSON خالص برگردون، بدون هیچ توضیح یا Markdown، دقیقاً به این فرمت:
+{"films":[{"title":"Original English Title","year":1999}]}
 اگه سال رو مطمئن نیستی، year رو null بذار. عنوان رو به همون زبان اصلی/انگلیسی روی جلد بنویس، نه ترجمه.
 اگه یه عنوان کامل خونا نیست یا نامشخصه، از لیست حذفش کن. عنوان‌های تکراری رو فقط یه‌بار بیار.`
 
-        const callGemini = () => {
-          console.log('Gemini request: mediaType=', mediaType, 'base64 length=', base64Data.length)
-          return fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+        const callOpenAI = () =>
+          fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
               'content-type': 'application/json',
-              'x-goog-api-key': env.GEMINI_API_KEY,
+              authorization: `Bearer ${env.OPENAI_API_KEY}`,
             },
             body: JSON.stringify({
-              contents: [
+              model: 'gpt-5-mini',
+              response_format: { type: 'json_object' },
+              messages: [
                 {
-                  parts: [{ text: prompt }, { inline_data: { mime_type: mediaType, data: base64Data } }],
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: prompt },
+                    { type: 'image_url', image_url: { url: dataUrl } },
+                  ],
                 },
               ],
-              generationConfig: { responseMimeType: 'application/json' },
             }),
           })
-        }
 
         let aiRes
         let lastErr
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
-            aiRes = await callGemini()
+            aiRes = await callOpenAI()
             lastErr = null
             break
           } catch (e) {
@@ -1992,26 +1995,23 @@ async function handleFetch(request, env, ctx) {
           }
         }
         if (lastErr) {
-          return json({ error: `Failed to reach Gemini API after 3 tries: ${lastErr.message}` }, 502, corsHeaders)
+          return json({ error: `Failed to reach OpenAI API after 3 tries: ${lastErr.message}` }, 502, corsHeaders)
         }
         if (!aiRes.ok) {
           const errText = await aiRes.text().catch(() => '')
-          const hdrs = {}
-          aiRes.headers.forEach((v, k) => { hdrs[k] = v })
-          console.log('Gemini error status:', aiRes.status, 'bodyLen:', errText.length, 'headers:', JSON.stringify(hdrs))
-          console.log('Gemini error body:', errText.slice(0, 1000))
-          return json({ error: `Gemini API error (${aiRes.status}): ${errText.slice(0, 300) || '(empty body)'}` }, 502, corsHeaders)
+          return json({ error: `OpenAI API error (${aiRes.status}): ${errText.slice(0, 300) || '(empty body)'}` }, 502, corsHeaders)
         }
         const aiData = await aiRes.json()
-        const raw = (aiData.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().replace(/^```json\s*|\s*```$/g, '')
-        let detected
+        const raw = (aiData.choices?.[0]?.message?.content || '').trim().replace(/^```json\s*|\s*```$/g, '')
+        let parsed
         try {
-          detected = JSON.parse(raw)
+          parsed = JSON.parse(raw)
         } catch {
           return json({ error: 'Could not parse titles from the photo — try a clearer/closer shot' }, 502, corsHeaders)
         }
+        const detected = Array.isArray(parsed) ? parsed : parsed.films
         if (!Array.isArray(detected)) {
-          return json({ error: 'Unexpected response format from Gemini' }, 502, corsHeaders)
+          return json({ error: 'Unexpected response format from OpenAI' }, 502, corsHeaders)
         }
         const cleaned = detected
           .map((d) => ({
