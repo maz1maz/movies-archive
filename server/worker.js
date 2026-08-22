@@ -1930,13 +1930,14 @@ async function handleFetch(request, env, ctx) {
       }
 
       // ---- POST /api/films/scan-photo (عکس از قفسه/جلد بلوری‌ها، تشخیص
-      // عنوان‌ها با Claude vision) — فقط لیست {title, year} برمی‌گردونه؛
-      // افزودن واقعی فیلم‌ها با POST /api/films معمولی (که خودش enrich می‌کنه) انجام می‌شه ----
+      // عنوان‌ها با Gemini vision — رایگان تا سقف سهمیه‌ی روزانه‌ی Google AI
+      // Studio) — فقط لیست {title, year} برمی‌گردونه؛ افزودن واقعی فیلم‌ها
+      // با POST /api/films معمولی (که خودش enrich می‌کنه) انجام می‌شه ----
       if (method === 'POST' && pathname === '/api/films/scan-photo') {
         const denied = requireAuth()
         if (denied) return denied
-        if (!env.ANTHROPIC_API_KEY) {
-          return json({ error: 'ANTHROPIC_API_KEY not configured on the server' }, 400, corsHeaders)
+        if (!env.GEMINI_API_KEY) {
+          return json({ error: 'GEMINI_API_KEY not configured on the server' }, 400, corsHeaders)
         }
         const body = await request.json().catch(() => ({}))
         const { image, mediaType: imgMediaType } = body
@@ -1961,37 +1962,30 @@ async function handleFetch(request, env, ctx) {
 
         let aiRes
         try {
-          aiRes = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              'x-api-key': env.ANTHROPIC_API_KEY,
-              'anthropic-version': '2023-06-01',
-            },
-            body: JSON.stringify({
-              model: 'claude-sonnet-5',
-              max_tokens: 2000,
-              messages: [
-                {
-                  role: 'user',
-                  content: [
-                    { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
-                    { type: 'text', text: prompt },
-                  ],
-                },
-              ],
-            }),
-          })
+          aiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+            {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [{ text: prompt }, { inline_data: { mime_type: mediaType, data: base64Data } }],
+                  },
+                ],
+                generationConfig: { responseMimeType: 'application/json' },
+              }),
+            }
+          )
         } catch (e) {
-          return json({ error: `Failed to reach Claude API: ${e.message}` }, 502, corsHeaders)
+          return json({ error: `Failed to reach Gemini API: ${e.message}` }, 502, corsHeaders)
         }
         if (!aiRes.ok) {
           const errText = await aiRes.text().catch(() => '')
-          return json({ error: `Claude API error (${aiRes.status}): ${errText.slice(0, 300)}` }, 502, corsHeaders)
+          return json({ error: `Gemini API error (${aiRes.status}): ${errText.slice(0, 300)}` }, 502, corsHeaders)
         }
         const aiData = await aiRes.json()
-        const textBlock = (aiData.content || []).find((c) => c.type === 'text')
-        const raw = (textBlock?.text || '').trim().replace(/^```json\s*|\s*```$/g, '')
+        const raw = (aiData.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().replace(/^```json\s*|\s*```$/g, '')
         let detected
         try {
           detected = JSON.parse(raw)
@@ -1999,7 +1993,7 @@ async function handleFetch(request, env, ctx) {
           return json({ error: 'Could not parse titles from the photo — try a clearer/closer shot' }, 502, corsHeaders)
         }
         if (!Array.isArray(detected)) {
-          return json({ error: 'Unexpected response format from Claude' }, 502, corsHeaders)
+          return json({ error: 'Unexpected response format from Gemini' }, 502, corsHeaders)
         }
         const cleaned = detected
           .map((d) => ({
