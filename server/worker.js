@@ -1960,8 +1960,9 @@ async function handleFetch(request, env, ctx) {
 اگه سال رو مطمئن نیستی، year رو null بذار. عنوان رو به همون زبان اصلی/انگلیسی روی جلد بنویس، نه ترجمه.
 اگه یه عنوان کامل خونا نیست یا نامشخصه، از لیست حذفش کن. عنوان‌های تکراری رو فقط یه‌بار بیار.`
 
-        const callGemini = () =>
-          fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+        const callGemini = () => {
+          console.log('Gemini request: mediaType=', mediaType, 'base64 length=', base64Data.length)
+          return fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
             method: 'POST',
             headers: {
               'content-type': 'application/json',
@@ -1976,6 +1977,7 @@ async function handleFetch(request, env, ctx) {
               generationConfig: { responseMimeType: 'application/json' },
             }),
           })
+        }
 
         let aiRes
         let lastErr
@@ -1994,6 +1996,9 @@ async function handleFetch(request, env, ctx) {
         }
         if (!aiRes.ok) {
           const errText = await aiRes.text().catch(() => '')
+          const hdrs = {}
+          aiRes.headers.forEach((v, k) => { hdrs[k] = v })
+          console.log('Gemini error status:', aiRes.status, 'bodyLen:', errText.length, 'headers:', JSON.stringify(hdrs))
           console.log('Gemini error body:', errText.slice(0, 1000))
           return json({ error: `Gemini API error (${aiRes.status}): ${errText.slice(0, 300) || '(empty body)'}` }, 502, corsHeaders)
         }
