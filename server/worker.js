@@ -1979,7 +1979,13 @@ async function handleFetch(request, env, ctx) {
         } catch (e) {
           return json({ error: `Workers AI error: ${e.message}` }, 502, corsHeaders)
         }
-        const raw = (aiData.response || '').trim().replace(/^```json\s*|\s*```$/g, '')
+        // aiData.response معمولاً رشته است، ولی گاهی مدل یه object/array
+        // برمی‌گردونه (بسته به نسخه‌ی مدل) — این حالت رو هم پوشش می‌دیم
+        let rawResponse = aiData.response
+        if (typeof rawResponse !== 'string') {
+          rawResponse = rawResponse == null ? '' : JSON.stringify(rawResponse)
+        }
+        const raw = rawResponse.trim().replace(/^```json\s*|\s*```$/g, '')
         console.log('Workers AI raw response (first 2000 chars):', raw.slice(0, 2000))
         let parsed
         try {
