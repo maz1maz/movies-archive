@@ -1930,13 +1930,15 @@ async function handleFetch(request, env, ctx) {
       }
 
       // ---- POST /api/films/scan-photo (عکس از قفسه/جلد بلوری‌ها، تشخیص
-      // عنوان‌ها با OpenAI vision) — فقط لیست {title, year} برمی‌گردونه؛
-      // افزودن واقعی فیلم‌ها با POST /api/films معمولی (که خودش enrich می‌کنه) انجام می‌شه ----
+      // عنوان‌ها با Cloudflare Workers AI — مستقیم روی زیرساخت خود Cloudflare
+      // اجرا می‌شه (نه یه fetch بیرونی به یه شرکت دیگه)، پس محدودیت جغرافیایی
+      // ندارد. فقط لیست {title, year} برمی‌گردونه؛ افزودن واقعی فیلم‌ها با
+      // POST /api/films معمولی (که خودش enrich می‌کنه) انجام می‌شه ----
       if (method === 'POST' && pathname === '/api/films/scan-photo') {
         const denied = requireAuth()
         if (denied) return denied
-        if (!env.OPENAI_API_KEY) {
-          return json({ error: 'OPENAI_API_KEY not configured on the server' }, 400, corsHeaders)
+        if (!env.AI) {
+          return json({ error: 'AI binding not configured on the Worker' }, 400, corsHeaders)
         }
         const body = await request.json().catch(() => ({}))
         const { image, mediaType: imgMediaType } = body
@@ -1960,58 +1962,42 @@ async function handleFetch(request, env, ctx) {
 اگه سال رو مطمئن نیستی، year رو null بذار. عنوان رو به همون زبان اصلی/انگلیسی روی جلد بنویس، نه ترجمه.
 اگه یه عنوان کامل خونا نیست یا نامشخصه، از لیست حذفش کن. عنوان‌های تکراری رو فقط یه‌بار بیار.`
 
-        const callOpenAI = () =>
-          fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              authorization: `Bearer ${env.OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: 'gpt-5-mini',
-              response_format: { type: 'json_object' },
-              messages: [
-                {
-                  role: 'user',
-                  content: [
-                    { type: 'text', text: prompt },
-                    { type: 'image_url', image_url: { url: dataUrl } },
-                  ],
-                },
-              ],
-            }),
+        let aiData
+        try {
+          aiData = await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct', {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: prompt },
+                  { type: 'image_url', image_url: { url: dataUrl } },
+                ],
+              },
+            ],
+            max_tokens: 2000,
           })
-
-        let aiRes
-        let lastErr
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            aiRes = await callOpenAI()
-            lastErr = null
-            break
-          } catch (e) {
-            lastErr = e
-            if (attempt < 2) await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
-          }
+        } catch (e) {
+          return json({ error: `Workers AI error: ${e.message}` }, 502, corsHeaders)
         }
-        if (lastErr) {
-          return json({ error: `Failed to reach OpenAI API after 3 tries: ${lastErr.message}` }, 502, corsHeaders)
-        }
-        if (!aiRes.ok) {
-          const errText = await aiRes.text().catch(() => '')
-          return json({ error: `OpenAI API error (${aiRes.status}): ${errText.slice(0, 300) || '(empty body)'}` }, 502, corsHeaders)
-        }
-        const aiData = await aiRes.json()
-        const raw = (aiData.choices?.[0]?.message?.content || '').trim().replace(/^```json\s*|\s*```$/g, '')
+        const raw = (aiData.response || '').trim().replace(/^```json\s*|\s*```$/g, '')
         let parsed
         try {
           parsed = JSON.parse(raw)
         } catch {
+          // مدل گاهی متن اضافه دور JSON می‌ذاره؛ سعی می‌کنیم فقط بخش {...} رو دربیاریم
+          const match = raw.match(/\{[\s\S]*\}/)
+          if (match) {
+            try {
+              parsed = JSON.parse(match[0])
+            } catch {}
+          }
+        }
+        if (!parsed) {
           return json({ error: 'Could not parse titles from the photo — try a clearer/closer shot' }, 502, corsHeaders)
         }
         const detected = Array.isArray(parsed) ? parsed : parsed.films
         if (!Array.isArray(detected)) {
-          return json({ error: 'Unexpected response format from OpenAI' }, 502, corsHeaders)
+          return json({ error: 'Unexpected response format from Workers AI' }, 502, corsHeaders)
         }
         const cleaned = detected
           .map((d) => ({
