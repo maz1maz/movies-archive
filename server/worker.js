@@ -6,8 +6,72 @@ import { fetchTotalSeasons, enrichSeriesFromTVMazeById } from './tvmaze.js'
 import * as XLSX from 'xlsx'
 import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader } from './auth.js'
 
+// کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
+// (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
+// کند بود؛ حالا ۱۸۰ ثانیه کش می‌شه و با هر نوشتن روی films/import باطل می‌شه.
+const FILMS_CACHE_KEY = 'filmscache:all'
+const FILMS_CACHE_TTL = 180
+
+async function invalidateFilmsCache(env) {
+  if (!env.BACKUPS) return
+  try {
+    const list = await env.BACKUPS.list({ prefix: FILMS_CACHE_KEY })
+    await Promise.all((list.keys || []).map((k) => env.BACKUPS.delete(k.name)))
+  } catch {}
+}
+
 export default {
   async fetch(request, env, ctx) {
+    const response = await handleFetch(request, env, ctx)
+    try {
+      const { pathname } = new URL(request.url)
+      if (
+        request.method !== 'GET' &&
+        env.BACKUPS &&
+        response.status < 400 &&
+        (pathname.startsWith('/api/films') || pathname === '/api/import')
+      ) {
+        ctx.waitUntil(invalidateFilmsCache(env))
+      }
+    } catch {}
+    return response
+  },
+
+  // هر روز خودکار (بدون این‌که کاربر دکمه رو بزنه) یه دسته از فیلم‌های
+  // بی‌اطلاعات رو enrich می‌کنه — تا سهمیه‌ی روزانه‌ی رایگان OMDb (۱۰۰۰
+  // درخواست) تموم بشه یا فیلمی برای enrich کردن نمونه، هرکدوم زودتر.
+  async scheduled(event, env, ctx) {
+    // این تابع با دو زمان‌بندی متفاوت صدا زده می‌شه (به wrangler.jsonc نگاه کن)؛
+    // event.cron مشخص می‌کنه کدوم کرون بوده تا کار درست انجام بشه.
+    if (event.cron === '0 4 * * *') {
+      try {
+        await runDailyBackup(env)
+      } catch (e) {
+        await notifyServerError(env, `Daily backup (cron 0 4 * * *) failed: ${e.message}`).catch(() => {})
+        throw e
+      }
+      return
+    }
+
+    try {
+      const db = env.DB
+      let totalProcessed = 0
+      let totalUpdated = 0
+      for (let i = 0; i < 65; i++) {
+        const result = await enrichBatch(db, env, 15)
+        totalProcessed += result.processed
+        totalUpdated += result.updated
+        if (result.quotaExceeded || result.processed === 0 || result.remaining === 0) break
+      }
+      console.log(`Daily enrichment: processed ${totalProcessed}, updated ${totalUpdated}`)
+    } catch (e) {
+      await notifyServerError(env, `Daily enrichment (cron 0 3 * * *) failed: ${e.message}`).catch(() => {})
+      throw e
+    }
+  },
+}
+
+async function handleFetch(request, env, ctx) {
     const url = new URL(request.url)
     const { pathname } = url
     const method = request.method
@@ -426,6 +490,17 @@ export default {
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
         const { q, genre, shelf, closet, sort, alpha, decade, drive, loaned, watched, minRating } = Object.fromEntries(url.searchParams)
+        // «بدون فیلتر» یعنی هیچ‌کدوم از فیلترها ست نشده — sort رو حساب
+        // نمی‌کنیم چون فرانت‌اند پیش‌فرض sort=random می‌فرسته و اگه اونم شرط
+        // بذاریم، دقیقاً همون درخواستِ پرتکرارِ لود اول صفحه هیچ‌وقت کش نمی‌شه.
+        const isUnfiltered = !q && !genre && !shelf && !closet && !decade && !drive && !loaned && !watched && !minRating && !alpha
+        const filmsCacheKey = `${FILMS_CACHE_KEY}:${sort || 'default'}`
+        if (isUnfiltered && env.BACKUPS) {
+          try {
+            const cached = await env.BACKUPS.get(filmsCacheKey, 'json')
+            if (cached) return json(cached, 200, corsHeaders)
+          } catch {}
+        }
         let sql = 'SELECT * FROM films WHERE 1=1'
         const params = []
 
@@ -484,6 +559,9 @@ export default {
         const result = await db.prepare(sql).bind(...params).all()
         // Parse JSON string fields
         const films = (result.results || []).map(parseFilmRow)
+        if (isUnfiltered && env.BACKUPS) {
+          ctx.waitUntil(env.BACKUPS.put(filmsCacheKey, JSON.stringify(films), { expirationTtl: FILMS_CACHE_TTL }).catch(() => {}))
+        }
         return json(films, 200, corsHeaders)
       }
 
@@ -2171,42 +2249,7 @@ export default {
       } catch {}
       return json({ error: err.message }, 500, corsHeaders)
     }
-  },
-
-  // هر روز خودکار (بدون این‌که کاربر دکمه رو بزنه) یه دسته از فیلم‌های
-  // بی‌اطلاعات رو enrich می‌کنه — تا سهمیه‌ی روزانه‌ی رایگان OMDb (۱۰۰۰
-  // درخواست) تموم بشه یا فیلمی برای enrich کردن نمونه، هرکدوم زودتر.
-  async scheduled(event, env, ctx) {
-    // این تابع با دو زمان‌بندی متفاوت صدا زده می‌شه (به wrangler.jsonc نگاه کن)؛
-    // event.cron مشخص می‌کنه کدوم کرون بوده تا کار درست انجام بشه.
-    if (event.cron === '0 4 * * *') {
-      try {
-        await runDailyBackup(env)
-      } catch (e) {
-        await notifyServerError(env, `Daily backup (cron 0 4 * * *) failed: ${e.message}`).catch(() => {})
-        throw e
-      }
-      return
-    }
-
-    try {
-      const db = env.DB
-      let totalProcessed = 0
-      let totalUpdated = 0
-      for (let i = 0; i < 65; i++) {
-        const result = await enrichBatch(db, env, 15)
-        totalProcessed += result.processed
-        totalUpdated += result.updated
-        if (result.quotaExceeded || result.processed === 0 || result.remaining === 0) break
-      }
-      console.log(`Daily enrichment: processed ${totalProcessed}, updated ${totalUpdated}`)
-    } catch (e) {
-      await notifyServerError(env, `Daily enrichment (cron 0 3 * * *) failed: ${e.message}`).catch(() => {})
-      throw e
-    }
-  },
-}
-
+  }
 // هشدار خطای سرور از طریق تلگرام — اگه TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID
 // (هر دو wrangler secret) ست نشده باشن، بی‌سروصدا رد می‌شه. برای گرفتن این دوتا:
 //   ۱) با @BotFather تو تلگرام یه بات بساز، توکنش رو بگیر (TELEGRAM_BOT_TOKEN)
