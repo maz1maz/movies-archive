@@ -795,7 +795,7 @@ async function handleFetch(request, env, ctx) {
       // تا تو فرم ویرایش نشون داده بشه و کاربر با زدن دکمه‌ی Save صریحاً تأییدش
       // کنه. ذخیره‌ی واقعی از همون مسیر همیشگی PATCH /api/films/:id انجام می‌شه.
       const enrichOneMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
-      if (method === 'POST' && enrichOneMatch && enrichOneMatch[1] !== 'enrich') {
+      if (method === 'POST' && enrichOneMatch && enrichOneMatch[1] !== 'enrich' && enrichOneMatch[1] !== 'scan-photo') {
         const denied = requireAuth()
         if (denied) return denied
         const existing = await db.prepare('SELECT * FROM films WHERE id = ?').bind(enrichOneMatch[1]).first()
