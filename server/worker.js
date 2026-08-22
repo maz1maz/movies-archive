@@ -1994,7 +1994,8 @@ async function handleFetch(request, env, ctx) {
         }
         if (!aiRes.ok) {
           const errText = await aiRes.text().catch(() => '')
-          return json({ error: `Gemini API error (${aiRes.status}): ${errText.slice(0, 300)}` }, 502, corsHeaders)
+          console.log('Gemini error body:', errText.slice(0, 1000))
+          return json({ error: `Gemini API error (${aiRes.status}): ${errText.slice(0, 300) || '(empty body)'}` }, 502, corsHeaders)
         }
         const aiData = await aiRes.json()
         const raw = (aiData.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().replace(/^```json\s*|\s*```$/g, '')
