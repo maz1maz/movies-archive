@@ -240,9 +240,9 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                     <p>Nothing on this drive yet. Move available items from inventory below.</p>
                   </div>
                 ) : (
-                  <>
+                  <div className="shelf-columns">
                     {driveMovies.length > 0 && (
-                      <>
+                      <div className="shelf-column">
                         <h4 className="shelf-group-heading">Movies ({driveMovies.length})</h4>
                         <ul className="shelf-film-list">
                           {driveMovies.map((f) => (
@@ -269,10 +269,10 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                             </li>
                           ))}
                         </ul>
-                      </>
+                      </div>
                     )}
                     {driveSeries.length > 0 && (
-                      <>
+                      <div className="shelf-column">
                         <h4 className="shelf-group-heading">Series ({driveSeries.length})</h4>
                         <ul className="shelf-film-list">
                           {driveSeries.map((f) => (
@@ -299,9 +299,9 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                             </li>
                           ))}
                         </ul>
-                      </>
+                      </div>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             )}

@@ -1816,6 +1816,12 @@ body.light .header {
 .shelf-group-heading:first-child {
   margin-top: 0;
 }
+.shelf-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 32px;
+  align-items: start;
+}
 .shelf-film-list {
   list-style: none;
   margin: 0;
@@ -2074,6 +2080,9 @@ body.light .header {
   }
   .shelf-view-loc {
     font-size: 21px;
+  }
+  .shelf-columns {
+    grid-template-columns: 1fr;
   }
 }
 
