@@ -1822,6 +1822,31 @@ body.light .header {
   gap: 0 32px;
   align-items: start;
 }
+.shelf-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.shelf-type-filter {
+  display: flex;
+  gap: 4px;
+}
+.shelf-type-filter .btn.active {
+  background: var(--accent, #d4a017);
+  color: #111;
+}
+.shelf-move-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.shelf-film-item .film-selector-check {
+  flex-shrink: 0;
+}
 .shelf-film-list {
   list-style: none;
   margin: 0;

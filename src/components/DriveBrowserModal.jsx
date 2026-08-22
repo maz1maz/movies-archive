@@ -53,6 +53,11 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
   const [filmQuery, setFilmQuery] = useState('')
   const [moving, setMoving] = useState(false)
   const [hideAssigned, setHideAssigned] = useState(false)
+  const [driveItemQuery, setDriveItemQuery] = useState('')
+  const [driveTypeFilter, setDriveTypeFilter] = useState('all') // 'all' | 'movie' | 'series'
+  const [driveSelectedIds, setDriveSelectedIds] = useState(() => new Set())
+  const [moveTarget, setMoveTarget] = useState('')
+  const [movingOut, setMovingOut] = useState(false)
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -93,8 +98,63 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
     return itemsOnDrive(digitalSorted, drive)
   }, [digitalSorted, drive])
 
-  const driveMovies = useMemo(() => driveFilms.filter((f) => f.itemType !== 'series'), [driveFilms])
-  const driveSeries = useMemo(() => driveFilms.filter((f) => f.itemType === 'series'), [driveFilms])
+  const driveFilmsFiltered = useMemo(() => {
+    const q = driveItemQuery.trim().toLowerCase()
+    if (!q) return driveFilms
+    return driveFilms.filter(
+      (f) => String(f.title || '').toLowerCase().includes(q) || String(f.year || '').includes(q)
+    )
+  }, [driveFilms, driveItemQuery])
+
+  const driveMovies = useMemo(
+    () => (driveTypeFilter === 'series' ? [] : driveFilmsFiltered.filter((f) => f.itemType !== 'series')),
+    [driveFilmsFiltered, driveTypeFilter]
+  )
+  const driveSeries = useMemo(
+    () => (driveTypeFilter === 'movie' ? [] : driveFilmsFiltered.filter((f) => f.itemType === 'series')),
+    [driveFilmsFiltered, driveTypeFilter]
+  )
+
+  useEffect(() => {
+    setDriveSelectedIds(new Set())
+    setDriveItemQuery('')
+    setDriveTypeFilter('all')
+    setMoveTarget('')
+  }, [drive])
+
+  const driveSelectedCount = driveSelectedIds.size
+  const toggleDriveSelect = (id) => {
+    setDriveSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+  const selectAllDriveFiltered = () => setDriveSelectedIds(new Set(driveFilmsFiltered.map((f) => f.id)))
+  const clearDriveSelection = () => setDriveSelectedIds(new Set())
+
+  const moveDriveSelected = async () => {
+    if (!moveTarget || !driveSelectedCount || movingOut) return
+    setMovingOut(true)
+    try {
+      const res = await fetch('/api/films/bulk-set-drive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(driveSelectedIds), driveNumber: moveTarget }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'move failed')
+      setDriveSelectedIds(new Set())
+      setMoveTarget('')
+      if (onFilmsChanged) onFilmsChanged()
+    } catch (e) {
+      console.error(e)
+      alert(e.message)
+    } finally {
+      setMovingOut(false)
+    }
+  }
 
   const addDrive = () => {
     const name = newDriveInput.trim()
@@ -240,6 +300,56 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                     <p>Nothing on this drive yet. Move available items from inventory below.</p>
                   </div>
                 ) : (
+                  <>
+                    <div className="shelf-toolbar">
+                      <input
+                        className="film-selector-search"
+                        type="text"
+                        placeholder={`Search on ${driveLabel(drive)}…`}
+                        value={driveItemQuery}
+                        onChange={(e) => setDriveItemQuery(e.target.value)}
+                      />
+                      <div className="shelf-type-filter">
+                        <button type="button" className={'btn btn-ghost btn-sm' + (driveTypeFilter === 'all' ? ' active' : '')} onClick={() => setDriveTypeFilter('all')}>All</button>
+                        <button type="button" className={'btn btn-ghost btn-sm' + (driveTypeFilter === 'movie' ? ' active' : '')} onClick={() => setDriveTypeFilter('movie')}>Movies</button>
+                        <button type="button" className={'btn btn-ghost btn-sm' + (driveTypeFilter === 'series' ? ' active' : '')} onClick={() => setDriveTypeFilter('series')}>Series</button>
+                      </div>
+                      {canEdit && (
+                        <div className="shelf-move-bar">
+                          <span className="film-selector-count">{driveSelectedCount} selected</span>
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={selectAllDriveFiltered} disabled={!driveFilmsFiltered.length}>
+                            Select all ({driveFilmsFiltered.length})
+                          </button>
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={clearDriveSelection} disabled={!driveSelectedCount}>
+                            Clear
+                          </button>
+                          <select
+                            className="film-selector-search"
+                            value={moveTarget}
+                            onChange={(e) => setMoveTarget(e.target.value)}
+                            disabled={!driveSelectedCount}
+                          >
+                            <option value="">Move to drive…</option>
+                            {drives.filter((d) => d !== drive).map((d) => (
+                              <option key={d} value={d}>{driveLabel(d)}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={moveDriveSelected}
+                            disabled={!driveSelectedCount || !moveTarget || movingOut}
+                          >
+                            {movingOut ? 'Moving…' : 'Move'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {driveFilmsFiltered.length === 0 ? (
+                      <div className="status empty-state">
+                        <p>No items match.</p>
+                      </div>
+                    ) : (
                   <div className="shelf-columns">
                     {driveMovies.length > 0 && (
                       <div className="shelf-column">
@@ -247,6 +357,15 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                         <ul className="shelf-film-list">
                           {driveMovies.map((f) => (
                             <li key={f.id} className="shelf-film-item">
+                              {canEdit && (
+                                <input
+                                  type="checkbox"
+                                  className="film-selector-check"
+                                  checked={driveSelectedIds.has(f.id)}
+                                  onChange={() => toggleDriveSelect(f.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              )}
                               <button className="location-title-row" onClick={() => onSelectFilm(f)}>
                                 <span className="location-title-icon">
                                   <IconFilm width={13} height={13} />
@@ -277,6 +396,15 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                         <ul className="shelf-film-list">
                           {driveSeries.map((f) => (
                             <li key={f.id} className="shelf-film-item">
+                              {canEdit && (
+                                <input
+                                  type="checkbox"
+                                  className="film-selector-check"
+                                  checked={driveSelectedIds.has(f.id)}
+                                  onChange={() => toggleDriveSelect(f.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              )}
                               <button className="location-title-row" onClick={() => onSelectFilm(f)}>
                                 <span className="location-title-icon">
                                   <IconBookshelf width={13} height={13} />
@@ -302,6 +430,8 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                       </div>
                     )}
                   </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
