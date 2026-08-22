@@ -40,7 +40,7 @@ export default function PhotoScanModal({ onClose, onAddFilm, defaultMediaType = 
   const [scanning, setScanning] = useState(false)
   const [results, setResults] = useState(null) // [{title, year, selected, itemType, isDuplicate}]
   const [error, setError] = useState('')
-  const [mediaType, setMediaType] = useState(defaultMediaType)
+  const mediaType = defaultMediaType
   const [adding, setAdding] = useState(false)
   const [addedCount, setAddedCount] = useState(0)
 
@@ -112,11 +112,6 @@ export default function PhotoScanModal({ onClose, onAddFilm, defaultMediaType = 
         return next
       })
     )
-  }
-
-  const changeMediaType = (mt) => {
-    setMediaType(mt)
-    setResults((prev) => (prev ? applyDuplicateFlags(prev, mt) : prev))
   }
 
   const selectedCount = (results || []).filter((r) => r.selected).length
@@ -204,10 +199,6 @@ export default function PhotoScanModal({ onClose, onAddFilm, defaultMediaType = 
                     Title {step + 1} of {results.length}
                     {duplicateCount > 0 && ` — ${duplicateCount} already in archive`}
                   </span>
-                  <select className="film-selector-search" value={mediaType} onChange={(e) => changeMediaType(e.target.value)} style={{ width: 'auto' }}>
-                    <option value="physical">Physical (Blu-ray)</option>
-                    <option value="digital">Digital</option>
-                  </select>
                 </div>
 
                 {error && <p className="status" style={{ color: 'var(--danger, #e05252)' }}>{error}</p>}

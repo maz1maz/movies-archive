@@ -1956,11 +1956,12 @@ async function handleFetch(request, env, ctx) {
         }
         const dataUrl = `data:${mediaType};base64,${base64Data}`
         const prompt = `این عکسی از چند تا جلد یا لبه‌ی بلوری/دی‌وی‌دی روی هم یا کنار همه.
-هر عنوان فیلمی که می‌تونی بخونی رو پیدا کن (چه از روی جلد، چه از روی لبه‌ی باریک جعبه).
+فقط عنوان‌هایی که واقعاً و به‌وضوح تو همین عکس می‌بینی رو لیست کن — هرگز عنوانی رو از خودت نساز یا حدس نزن،
+و هیچ عنوانی رو بیشتر از یه‌بار تکرار نکن. تعداد آیتم‌های لیست باید دقیقاً برابر با تعداد جلد/باکسی باشه که تو عکس می‌بینی، نه بیشتر.
 فقط یه آبجکت JSON خالص برگردون، بدون هیچ توضیح یا Markdown، دقیقاً به این فرمت:
 {"films":[{"title":"Original English Title","year":1999}]}
 اگه سال رو مطمئن نیستی، year رو null بذار. عنوان رو به همون زبان اصلی/انگلیسی روی جلد بنویس، نه ترجمه.
-اگه یه عنوان کامل خونا نیست یا نامشخصه، از لیست حذفش کن. عنوان‌های تکراری رو فقط یه‌بار بیار.`
+اگه یه عنوان کامل خونا نیست یا نامشخصه، از لیست حذفش کن.`
 
         let aiData
         try {
@@ -1974,7 +1975,8 @@ async function handleFetch(request, env, ctx) {
                 ],
               },
             ],
-            max_tokens: 4000,
+            max_tokens: 3000,
+            temperature: 0.2,
           })
         } catch (e) {
           return json({ error: `Workers AI error: ${e.message}` }, 502, corsHeaders)
@@ -2021,7 +2023,19 @@ async function handleFetch(request, env, ctx) {
             year: d.year ? parseInt(d.year, 10) || null : null,
           }))
           .filter((d) => d.title)
-        return json({ films: cleaned }, 200, corsHeaders)
+        // dedupe (case-insensitive عنوان+سال) و سقف منطقی — اگه مدل توهم زده
+        // باشه و صدها ردیف ساخته باشه، بیش از این تعداد قابل قبول برای یه
+        // عکس نیست
+        const seen = new Set()
+        const deduped = []
+        for (const f of cleaned) {
+          const key = `${f.title.toLowerCase()}::${f.year || ''}`
+          if (seen.has(key)) continue
+          seen.add(key)
+          deduped.push(f)
+          if (deduped.length >= 60) break
+        }
+        return json({ films: deduped }, 200, corsHeaders)
       }
 
       // ---- POST /api/import (Excel import) ----

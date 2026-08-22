@@ -739,6 +739,8 @@ body.light .header {
   border-radius: 14px;
   padding: 28px;
   background: var(--surface-2);
+  box-sizing: border-box;
+  width: 100%;
 }
 .photo-scan-step-toggle {
   display: flex;
@@ -755,8 +757,10 @@ body.light .header {
 }
 .photo-scan-step-fields {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px 140px;
+  grid-template-columns: 3fr 1fr 1fr;
   gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .photo-scan-step-fields input,
 .photo-scan-step-fields select {
@@ -764,6 +768,7 @@ body.light .header {
   box-sizing: border-box;
   font-size: 16px;
   padding: 10px 12px;
+  min-width: 0;
 }
 .photo-scan-dup-card {
   display: flex;
