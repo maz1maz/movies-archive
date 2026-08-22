@@ -1929,6 +1929,87 @@ async function handleFetch(request, env, ctx) {
         })
       }
 
+      // ---- POST /api/films/scan-photo (عکس از قفسه/جلد بلوری‌ها، تشخیص
+      // عنوان‌ها با Claude vision) — فقط لیست {title, year} برمی‌گردونه؛
+      // افزودن واقعی فیلم‌ها با POST /api/films معمولی (که خودش enrich می‌کنه) انجام می‌شه ----
+      if (method === 'POST' && pathname === '/api/films/scan-photo') {
+        const denied = requireAuth()
+        if (denied) return denied
+        if (!env.ANTHROPIC_API_KEY) {
+          return json({ error: 'ANTHROPIC_API_KEY not configured on the server' }, 400, corsHeaders)
+        }
+        const body = await request.json().catch(() => ({}))
+        const { image, mediaType: imgMediaType } = body
+        if (!image || typeof image !== 'string') {
+          return json({ error: 'image (base64) is required' }, 400, corsHeaders)
+        }
+        // ورودی ممکنه data URL کامل باشه (data:image/jpeg;base64,....) یا فقط
+        // خود base64؛ هر دو رو پشتیبانی می‌کنیم.
+        let mediaType = imgMediaType || 'image/jpeg'
+        let base64Data = image
+        const dataUrlMatch = image.match(/^data:([^;]+);base64,(.*)$/s)
+        if (dataUrlMatch) {
+          mediaType = dataUrlMatch[1]
+          base64Data = dataUrlMatch[2]
+        }
+        const prompt = `این عکسی از چند تا جلد یا لبه‌ی بلوری/دی‌وی‌دی روی هم یا کنار همه.
+هر عنوان فیلمی که می‌تونی بخونی رو پیدا کن (چه از روی جلد، چه از روی لبه‌ی باریک جعبه).
+فقط یه آرایه‌ی JSON خالص برگردون، بدون هیچ توضیح یا Markdown، به این فرمت دقیق:
+[{"title":"Original English Title","year":1999}]
+اگه سال رو مطمئن نیستی، year رو null بذار. عنوان رو به همون زبان اصلی/انگلیسی روی جلد بنویس، نه ترجمه.
+اگه یه عنوان کامل خونا نیست یا نامشخصه، از لیست حذفش کن. عنوان‌های تکراری رو فقط یه‌بار بیار.`
+
+        let aiRes
+        try {
+          aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-api-key': env.ANTHROPIC_API_KEY,
+              'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+              model: 'claude-sonnet-5',
+              max_tokens: 2000,
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
+                    { type: 'text', text: prompt },
+                  ],
+                },
+              ],
+            }),
+          })
+        } catch (e) {
+          return json({ error: `Failed to reach Claude API: ${e.message}` }, 502, corsHeaders)
+        }
+        if (!aiRes.ok) {
+          const errText = await aiRes.text().catch(() => '')
+          return json({ error: `Claude API error (${aiRes.status}): ${errText.slice(0, 300)}` }, 502, corsHeaders)
+        }
+        const aiData = await aiRes.json()
+        const textBlock = (aiData.content || []).find((c) => c.type === 'text')
+        const raw = (textBlock?.text || '').trim().replace(/^```json\s*|\s*```$/g, '')
+        let detected
+        try {
+          detected = JSON.parse(raw)
+        } catch {
+          return json({ error: 'Could not parse titles from the photo — try a clearer/closer shot' }, 502, corsHeaders)
+        }
+        if (!Array.isArray(detected)) {
+          return json({ error: 'Unexpected response format from Claude' }, 502, corsHeaders)
+        }
+        const cleaned = detected
+          .map((d) => ({
+            title: String(d.title || '').trim(),
+            year: d.year ? parseInt(d.year, 10) || null : null,
+          }))
+          .filter((d) => d.title)
+        return json({ films: cleaned }, 200, corsHeaders)
+      }
+
       // ---- POST /api/import (Excel import) ----
       if (method === 'POST' && pathname === '/api/import') {
         const denied = requireAuth()

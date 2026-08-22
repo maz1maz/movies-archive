@@ -10,6 +10,7 @@ import DashboardPanel from './components/DashboardPanel.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import LocationBrowserModal from './components/LocationBrowserModal.jsx'
 import DriveBrowserModal from './components/DriveBrowserModal.jsx'
+import PhotoScanModal from './components/PhotoScanModal.jsx'
 import BookshelfView from './components/BookshelfView.jsx'
 import CinemaNewsPage from './components/CinemaNewsPage.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
@@ -114,6 +115,7 @@ export default function App() {
   const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
+  const [photoScanOpen, setPhotoScanOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [enrichingCatalog, setEnrichingCatalog] = useState(false)
   const [enrichRemaining, setEnrichRemaining] = useState(null)
@@ -996,6 +998,7 @@ export default function App() {
         onImport={handleImport}
         onImportRatings={handleImportRatings}
         onAddFilm={() => setAdding('blank')}
+        onAddViaPhoto={() => setPhotoScanOpen(true)}
         onEnrichCatalog={handleEnrichCatalog}
         enrichScopeLabel={enrichScopeLabel(section)}
         enrichingCatalog={enrichingCatalog}
@@ -1145,6 +1148,14 @@ export default function App() {
           film={loanFilm}
           onClose={() => setLoanFilm(null)}
           onSaveLoan={(id, patch) => handleSaveFilm(id, patch)}
+        />
+      )}
+
+      {photoScanOpen && (
+        <PhotoScanModal
+          onClose={() => setPhotoScanOpen(false)}
+          onAddFilm={handleAddFilm}
+          defaultMediaType={section === 'digital-movie' || section === 'digital-series' ? 'digital' : 'physical'}
         />
       )}
 

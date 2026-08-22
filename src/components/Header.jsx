@@ -13,6 +13,7 @@ import {
   IconClapper,
   IconBookshelf,
   IconPin,
+  IconCamera,
 } from './icons.jsx'
 
 function IconHamburger(props) {
@@ -74,6 +75,7 @@ export default function Header({
   onImport,
   onImportRatings,
   onAddFilm,
+  onAddViaPhoto,
   onEnrichCatalog,
   enrichingCatalog,
   enrichRemaining,
@@ -354,6 +356,16 @@ export default function Header({
                   })}
                 >
                   + Add Film
+                </button>
+                <button
+                  type="button"
+                  onClick={guarded(() => {
+                    onAddViaPhoto()
+                    setMenuOpen(false)
+                  })}
+                  title="Take or upload a photo of your Blu-ray/DVD spines — Claude reads the titles for you"
+                >
+                  <IconCamera width={15} height={15} /> Add via Photo
                 </button>
               </div>
               <div className="header-menu-section">
