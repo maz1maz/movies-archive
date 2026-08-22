@@ -33,22 +33,38 @@ function fileToResizedBase64(file) {
   })
 }
 
-export default function PhotoScanModal({ onClose, onAddFilm, defaultMediaType = 'physical' }) {
+export default function PhotoScanModal({ onClose, onAddFilm, defaultMediaType = 'physical', existingFilms = [] }) {
   const fileRef = useRef(null)
   const [preview, setPreview] = useState(null)
   const [pendingDataUrl, setPendingDataUrl] = useState(null)
   const [scanning, setScanning] = useState(false)
-  const [results, setResults] = useState(null) // [{title, year, selected, itemType}]
+  const [results, setResults] = useState(null) // [{title, year, selected, itemType, isDuplicate}]
   const [error, setError] = useState('')
   const [mediaType, setMediaType] = useState(defaultMediaType)
   const [adding, setAdding] = useState(false)
   const [addedCount, setAddedCount] = useState(0)
+
+  // نرمال‌سازی برای مقایسه: کوچیک، بدون فاصله‌ی اضافه — چون OCR ممکنه
+  // حروف بزرگ/کوچیک یا فاصله رو کمی فرق بذاره
+  const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ')
+
+  const findDuplicate = (title, mt) =>
+    existingFilms.find((f) => f.mediaType === mt && norm(f.title) === norm(title))
+
+  const applyDuplicateFlags = (list, mt) =>
+    list.map((r) => {
+      const dup = findDuplicate(r.title, mt)
+      return { ...r, duplicateOf: dup || null, selected: dup ? false : r.selected }
+    })
+
+  const [step, setStep] = useState(-1) // -1 = list view, 0..n-1 = reviewing one-by-one, n = final summary
 
   const pickFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     setError('')
     setResults(null)
+    setStep(-1)
     try {
       const { dataUrl, previewUrl } = await fileToResizedBase64(file)
       setPreview(previewUrl)
@@ -74,9 +90,9 @@ export default function PhotoScanModal({ onClose, onAddFilm, defaultMediaType = 
         setError('No titles could be recognized in this photo — try a closer, better-lit shot.')
         setResults([])
       } else {
-        setResults(
-          data.films.map((f) => ({ title: f.title, year: f.year || '', selected: true, itemType: 'movie' }))
-        )
+        const withMeta = data.films.map((f) => ({ title: f.title, year: f.year || '', selected: true, itemType: 'movie' }))
+        setResults(applyDuplicateFlags(withMeta, mediaType))
+        setStep(0)
       }
     } catch (err) {
       setError(err.message)
@@ -86,10 +102,25 @@ export default function PhotoScanModal({ onClose, onAddFilm, defaultMediaType = 
   }
 
   const updateResult = (i, patch) => {
-    setResults((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
+    setResults((prev) =>
+      prev.map((r, idx) => {
+        if (idx !== i) return r
+        const next = { ...r, ...patch }
+        if (patch.title !== undefined) {
+          next.duplicateOf = findDuplicate(next.title, mediaType) || null
+        }
+        return next
+      })
+    )
+  }
+
+  const changeMediaType = (mt) => {
+    setMediaType(mt)
+    setResults((prev) => (prev ? applyDuplicateFlags(prev, mt) : prev))
   }
 
   const selectedCount = (results || []).filter((r) => r.selected).length
+  const duplicateCount = (results || []).filter((r) => r.duplicateOf).length
 
   const addSelected = async () => {
     if (!results || !selectedCount || adding) return
@@ -164,71 +195,132 @@ export default function PhotoScanModal({ onClose, onAddFilm, defaultMediaType = 
             </>
           )}
 
-          {results && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
-                <span className="film-selector-count">
-                  {results.length} title{results.length === 1 ? '' : 's'} found — {selectedCount} selected
-                </span>
-                <label className="film-selector-toggle" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>Add as:</span>
-                  <select className="film-selector-search" value={mediaType} onChange={(e) => setMediaType(e.target.value)}>
+          {results && step >= 0 && step < results.length && (() => {
+            const r = results[step]
+            return (
+              <>
+                <div className="photo-scan-step-head">
+                  <span className="film-selector-count">
+                    Title {step + 1} of {results.length}
+                    {duplicateCount > 0 && ` — ${duplicateCount} already in archive`}
+                  </span>
+                  <select className="film-selector-search" value={mediaType} onChange={(e) => changeMediaType(e.target.value)} style={{ width: 'auto' }}>
                     <option value="physical">Physical (Blu-ray)</option>
                     <option value="digital">Digital</option>
                   </select>
-                </label>
+                </div>
+
+                {error && <p className="status" style={{ color: 'var(--danger, #e05252)' }}>{error}</p>}
+
+                <div className="photo-scan-step-card">
+                  <label className="photo-scan-step-toggle">
+                    <input
+                      type="checkbox"
+                      checked={r.selected}
+                      onChange={(e) => updateResult(step, { selected: e.target.checked })}
+                    />
+                    <span>Add this one</span>
+                  </label>
+
+                  <div className="photo-scan-step-fields">
+                    <input
+                      type="text"
+                      className="film-selector-search"
+                      value={r.title}
+                      onChange={(e) => updateResult(step, { title: e.target.value })}
+                    />
+                    <input
+                      type="number"
+                      className="film-selector-search"
+                      placeholder="Year"
+                      value={r.year}
+                      onChange={(e) => updateResult(step, { year: e.target.value })}
+                    />
+                    <select
+                      className="film-selector-search"
+                      value={r.itemType}
+                      onChange={(e) => updateResult(step, { itemType: e.target.value })}
+                    >
+                      <option value="movie">Movie</option>
+                      <option value="series">Series</option>
+                    </select>
+                  </div>
+
+                  {r.duplicateOf && (
+                    <div className="photo-scan-dup-card">
+                      {r.duplicateOf.poster ? (
+                        <img src={r.duplicateOf.poster} alt="" className="photo-scan-dup-poster" />
+                      ) : (
+                        <div className="photo-scan-dup-poster photo-scan-dup-poster-empty" />
+                      )}
+                      <div>
+                        <div className="photo-scan-dup-badge">Already in your archive</div>
+                        <div className="photo-scan-dup-title">
+                          {r.duplicateOf.title} {r.duplicateOf.year ? `(${r.duplicateOf.year})` : ''}
+                        </div>
+                        <div className="export-sub" style={{ margin: '2px 0 0' }}>
+                          Unchecked by default — check "Add this one" if you still want a duplicate.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '14px', justifyContent: 'space-between' }}>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setResults(null); setStep(-1); setError('') }}>
+                    ← Scan a different photo
+                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
+                      ← Back
+                    </button>
+                    <button type="button" className="btn btn-primary btn-sm" onClick={() => setStep((s) => s + 1)}>
+                      {step === results.length - 1 ? 'Review & Add →' : 'Next →'}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )
+          })()}
+
+          {results && step === results.length && (
+            <>
+              <div style={{ marginBottom: '10px' }}>
+                <span className="film-selector-count">
+                  {selectedCount} of {results.length} selected to add
+                  {duplicateCount > 0 && ` — ${duplicateCount} flagged as already in archive`}
+                </span>
               </div>
 
               {error && <p className="status" style={{ color: 'var(--danger, #e05252)' }}>{error}</p>}
 
               <div className="film-selector-list">
                 {results.map((r, i) => (
-                  <label key={i} className={'film-selector-row' + (r.selected ? ' film-selector-row-selected' : '')}>
-                    <input
-                      type="checkbox"
-                      className="film-selector-check"
-                      checked={r.selected}
-                      onChange={(e) => updateResult(i, { selected: e.target.checked })}
-                    />
-                    <input
-                      type="text"
-                      className="film-selector-search"
-                      style={{ flex: 1 }}
-                      value={r.title}
-                      onChange={(e) => updateResult(i, { title: e.target.value })}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <input
-                      type="number"
-                      className="film-selector-search"
-                      style={{ width: '80px' }}
-                      placeholder="Year"
-                      value={r.year}
-                      onChange={(e) => updateResult(i, { year: e.target.value })}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <select
-                      className="film-selector-search"
-                      style={{ width: '90px' }}
-                      value={r.itemType}
-                      onChange={(e) => updateResult(i, { itemType: e.target.value })}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <option value="movie">Movie</option>
-                      <option value="series">Series</option>
-                    </select>
-                  </label>
+                  <button
+                    type="button"
+                    key={i}
+                    className={'photo-scan-summary-row' + (r.selected ? ' photo-scan-row-selected' : '')}
+                    onClick={() => setStep(i)}
+                  >
+                    <span className={r.selected ? 'photo-scan-summary-check on' : 'photo-scan-summary-check'}>
+                      {r.selected ? <IconCheck width={12} height={12} /> : null}
+                    </span>
+                    <span className="photo-scan-summary-title">
+                      {r.title} {r.year && `(${r.year})`}
+                    </span>
+                    {r.duplicateOf && <span className="photo-scan-dup-badge">already have</span>}
+                  </button>
                 ))}
               </div>
 
-              <div style={{ display: 'flex', gap: '8px', marginTop: '14px', justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setResults(null); setError('') }} disabled={adding}>
-                  ← Scan a different photo
+              <div style={{ display: 'flex', gap: '8px', marginTop: '14px', justifyContent: 'space-between' }}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setStep(results.length - 1)} disabled={adding}>
+                  ← Back to review
                 </button>
                 <button type="button" className="btn btn-primary btn-sm" onClick={addSelected} disabled={!selectedCount || adding}>
                   {adding ? `Adding… (${addedCount}/${selectedCount})` : (
                     <>
-                      <IconCheck width={14} height={14} /> Add {selectedCount} film{selectedCount === 1 ? '' : 's'}
+                      <IconCheck width={14} height={14} /> Confirm — Add {selectedCount} film{selectedCount === 1 ? '' : 's'}
                     </>
                   )}
                 </button>

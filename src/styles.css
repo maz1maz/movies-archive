@@ -720,6 +720,119 @@ body.light .header {
   color: var(--muted);
   cursor: pointer;
 }
+.photo-scan-modal {
+  width: min(960px, 96vw);
+}
+.photo-scan-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.photo-scan-step-card {
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 18px;
+  background: var(--surface-2);
+}
+.photo-scan-step-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+.photo-scan-step-fields {
+  display: grid;
+  grid-template-columns: 1fr 110px 130px;
+  gap: 10px;
+}
+.photo-scan-dup-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+}
+.photo-scan-dup-poster {
+  width: 60px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex: 0 0 auto;
+  background: var(--surface);
+}
+.photo-scan-dup-title {
+  font-weight: 600;
+  margin-top: 4px;
+}
+.photo-scan-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 8px;
+  border-radius: 7px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+.photo-scan-summary-row:hover {
+  background: var(--surface-3);
+}
+.photo-scan-summary-check {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  display: grid;
+  place-items: center;
+}
+.photo-scan-summary-check.on {
+  background: var(--accent, #d4a017);
+  color: #111;
+  border-color: var(--accent, #d4a017);
+}
+.photo-scan-summary-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.photo-scan-row {
+  display: grid;
+  grid-template-columns: auto 1fr 70px 90px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+}
+.photo-scan-row:hover {
+  background: var(--surface-3);
+}
+.photo-scan-row-selected {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-3));
+}
+.photo-scan-dup-badge {
+  flex: 0 0 auto;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--danger, #e05252) 18%, var(--surface-3));
+  color: var(--danger, #e05252);
+  white-space: nowrap;
+}
 .photo-scan-dropzone {
   border: 1.5px dashed var(--border-strong);
   border-radius: 12px;
@@ -2133,6 +2246,13 @@ body.light .header {
   }
   .shelf-columns {
     grid-template-columns: 1fr;
+  }
+  .photo-scan-step-fields {
+    grid-template-columns: 1fr;
+  }
+  .photo-scan-dup-card {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

@@ -1156,6 +1156,7 @@ export default function App() {
           onClose={() => setPhotoScanOpen(false)}
           onAddFilm={handleAddFilm}
           defaultMediaType={section === 'digital-movie' || section === 'digital-series' ? 'digital' : 'physical'}
+          existingFilms={allFilmsUnfiltered}
         />
       )}
 
