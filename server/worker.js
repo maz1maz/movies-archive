@@ -1974,12 +1974,13 @@ async function handleFetch(request, env, ctx) {
                 ],
               },
             ],
-            max_tokens: 2000,
+            max_tokens: 4000,
           })
         } catch (e) {
           return json({ error: `Workers AI error: ${e.message}` }, 502, corsHeaders)
         }
         const raw = (aiData.response || '').trim().replace(/^```json\s*|\s*```$/g, '')
+        console.log('Workers AI raw response (first 2000 chars):', raw.slice(0, 2000))
         let parsed
         try {
           parsed = JSON.parse(raw)
@@ -1989,11 +1990,20 @@ async function handleFetch(request, env, ctx) {
           if (match) {
             try {
               parsed = JSON.parse(match[0])
-            } catch {}
+            } catch {
+              // ممکنه به‌خاطر محدودیت max_tokens وسط آرایه بریده شده باشه — سعی
+              // می‌کنیم تا آخرین آبجکت کامل رو نگه داریم و JSON رو ببندیم
+              const lastComplete = match[0].lastIndexOf('},')
+              if (lastComplete > -1) {
+                try {
+                  parsed = JSON.parse(match[0].slice(0, lastComplete + 1) + ']}')
+                } catch {}
+              }
+            }
           }
         }
         if (!parsed) {
-          return json({ error: 'Could not parse titles from the photo — try a clearer/closer shot' }, 502, corsHeaders)
+          return json({ error: 'Could not parse titles from the photo — try a clearer/closer shot, or fewer covers per photo' }, 502, corsHeaders)
         }
         const detected = Array.isArray(parsed) ? parsed : parsed.films
         if (!Array.isArray(detected)) {

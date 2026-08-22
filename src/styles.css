@@ -721,7 +721,9 @@ body.light .header {
   cursor: pointer;
 }
 .photo-scan-modal {
-  width: min(960px, 96vw);
+  width: min(1040px, 94vw);
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 .photo-scan-step-head {
   display: flex;
@@ -729,26 +731,39 @@ body.light .header {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  font-size: 15px;
 }
 .photo-scan-step-card {
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  padding: 18px;
+  border-radius: 14px;
+  padding: 28px;
   background: var(--surface-2);
 }
 .photo-scan-step-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-weight: 600;
-  margin-bottom: 12px;
+  font-size: 17px;
+  margin-bottom: 18px;
   cursor: pointer;
+}
+.photo-scan-step-toggle input {
+  width: 20px;
+  height: 20px;
 }
 .photo-scan-step-fields {
   display: grid;
-  grid-template-columns: 1fr 110px 130px;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 120px 140px;
+  gap: 12px;
+}
+.photo-scan-step-fields input,
+.photo-scan-step-fields select {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 16px;
+  padding: 10px 12px;
 }
 .photo-scan-dup-card {
   display: flex;
