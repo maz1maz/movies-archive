@@ -1963,10 +1963,13 @@ async function handleFetch(request, env, ctx) {
         let aiRes
         try {
           aiRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
             {
               method: 'POST',
-              headers: { 'content-type': 'application/json' },
+              headers: {
+                'content-type': 'application/json',
+                'x-goog-api-key': env.GEMINI_API_KEY,
+              },
               body: JSON.stringify({
                 contents: [
                   {
