@@ -1,4 +1,14 @@
 import { IconFilm, IconPin, IconStar, IconEdit, IconDisc, IconClapper } from './icons.jsx'
+import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
+
+function seriesDriveDisplay(f) {
+  if (f.itemType === 'series' && Array.isArray(f.seasonDrives) && f.seasonDrives.length) {
+    const set = new Set()
+    f.seasonDrives.forEach((sd) => parseDriveNumbers(sd.drive).forEach((d) => set.add(d)))
+    if (set.size) return [...set].sort((a, b) => driveSortValue(a) - driveSortValue(b)).map((d) => `Drive ${d}`).join(', ')
+  }
+  return f.driveNumber ? driveLabel(f.driveNumber) : ''
+}
 
 export default function FilmList({ films, onSelect, onEdit, hasBluray, hasDigital }) {
   return (
@@ -62,7 +72,7 @@ export default function FilmList({ films, onSelect, onEdit, hasBluray, hasDigita
             <span className="list-loc">
               <IconPin width={11} height={11} />{' '}
               {f.mediaType === 'digital'
-                ? f.driveNumber || '–'
+                ? seriesDriveDisplay(f) || '–'
                 : `C${f.closet || '–'} R${f.row || '–'} S${f.shelf || '–'}`}
             </span>
             {typeof f.rating === 'number' && (

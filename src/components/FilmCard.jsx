@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { IconStar, IconPin, IconDisc, IconClapper } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import { proxyImg } from '../utils/proxyImg.js'
+import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
 
 // پالت رنگی برای کارت‌هایی که پوستر ندارن
 const PALETTE = [
@@ -25,7 +26,20 @@ function hashCode(str) {
 export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, hasDigital }) {
   const [c1, c2] = PALETTE[hashCode(String(film.id)) % PALETTE.length]
   const isDigital = film.mediaType === 'digital'
-  const hasLocation = isDigital ? film.driveNumber : film.closet || film.shelf || film.row
+
+  // برای سریال‌ها، فیلد کلی driveNumber می‌تونه با seasonDrives هماهنگ نباشه
+  // (چون هر فصل جدا جابه‌جا می‌شه) — پس بج رو از مجموع درایوهای همه‌ی
+  // فصل‌ها می‌سازیم، نه از فیلد کلی
+  const driveDisplay = (() => {
+    if (!isDigital) return ''
+    if (film.itemType === 'series' && Array.isArray(film.seasonDrives) && film.seasonDrives.length) {
+      const set = new Set()
+      film.seasonDrives.forEach((sd) => parseDriveNumbers(sd.drive).forEach((d) => set.add(d)))
+      if (set.size) return [...set].sort((a, b) => driveSortValue(a) - driveSortValue(b)).map((d) => `Drive ${d}`).join(', ')
+    }
+    return film.driveNumber ? driveLabel(film.driveNumber) : ''
+  })()
+  const hasLocation = isDigital ? driveDisplay : film.closet || film.shelf || film.row
 
   // پوسترهای جایگزین (از TMDB) — فقط وقتی کارت واقعاً تو دیدرسه fetch می‌شن
   // (IntersectionObserver)، تا برای صدها کارت خارج از صفحه درخواست الکی نره.
@@ -152,7 +166,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
           <div className="poster-badge-stack poster-badge-stack-right">
             <span className="location-badge">
               <IconPin width={11} height={11} />{' '}
-              {isDigital ? film.driveNumber : `C${film.closet || '–'} R${film.row || '–'} S${film.shelf || '–'}`}
+              {isDigital ? driveDisplay : `C${film.closet || '–'} R${film.row || '–'} S${film.shelf || '–'}`}
             </span>
             {hasDigital && (
               <span className="digital-badge" title="Digital copy also owned">
