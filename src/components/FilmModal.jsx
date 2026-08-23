@@ -4,6 +4,7 @@ import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { shareFilmCard } from '../utils/shareCard.js'
 import { addToOrderList } from '../utils/orderList.js'
+import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
 
 function CollectionOrderButton({ title, year }) {
   const [state, setState] = useState('idle') // idle | adding | added
@@ -395,13 +396,24 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                         <IconPin width={13} height={13} />
                       </span>
                       <span>
-                        {/^drive\b/i.test(digitalRecord.driveNumber || '') ? (
-                          <strong>{digitalRecord.driveNumber}</strong>
-                        ) : (
-                          <>
-                            Drive <strong>{digitalRecord.driveNumber || '—'}</strong>
-                          </>
-                        )}
+                        {(() => {
+                          // برای سریال‌ها، فیلد کلی driveNumber می‌تونه با
+                          // seasonDrives هماهنگ نباشه (چون هر فصل جدا جابه‌جا
+                          // می‌شه) — پس بج بالا رو از مجموع درایوهای همه‌ی
+                          // فصل‌ها می‌سازیم، نه از فیلد کلی
+                          const seasonDriveSet = new Set()
+                          if (digitalRecord.itemType === 'series' && Array.isArray(digitalRecord.seasonDrives)) {
+                            digitalRecord.seasonDrives.forEach((sd) => {
+                              parseDriveNumbers(sd.drive).forEach((d) => seasonDriveSet.add(d))
+                            })
+                          }
+                          const label = seasonDriveSet.size
+                            ? [...seasonDriveSet].sort((a, b) => driveSortValue(a) - driveSortValue(b)).map((d) => `Drive ${d}`).join(', ')
+                            : digitalRecord.driveNumber
+                              ? driveLabel(digitalRecord.driveNumber)
+                              : ''
+                          return label ? <strong>{label}</strong> : <>Drive <strong>—</strong></>
+                        })()}
                       </span>
                     </div>
                   </div>
