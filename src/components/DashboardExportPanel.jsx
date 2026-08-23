@@ -43,17 +43,22 @@ export default function DashboardExportPanel({ films }) {
   const [drive, setDrive] = useState('')
   const scope = SCOPES.find((s) => s.key === scopeKey)
 
+  const changeScope = (key) => {
+    setScopeKey(key)
+    setDrive('')
+  }
+
   const scopedFilms = useMemo(() => {
     let list = filterByScope(films, scope)
     if (letter) list = list.filter((f) => titleStartsWithLetter(f.title, letter))
-    if (drive && scope.mediaType === 'digital') list = list.filter((f) => String(f.driveNumber || '') === drive)
+    if (drive) list = list.filter((f) => f.mediaType === 'digital' && String(f.driveNumber || '') === drive)
     return list
   }, [films, scope, letter, drive])
 
-  // درایوهای موجود، فقط برای وقتی که اسکوپ روی «دیجیتال» هست
+  // درایوهای موجود — از بخش دیجیتالِ همین اسکوپ (حتی اگه اسکوپ ترکیبی
+  // فیزیکی+دیجیتال باشه، مثل «Series Only»)
   const availableDrives = useMemo(() => {
-    if (scope.mediaType !== 'digital') return []
-    const base = filterByScope(films, scope)
+    const base = filterByScope(films, scope).filter((f) => f.mediaType === 'digital')
     return [...new Set(base.map((f) => String(f.driveNumber || '').trim()).filter(Boolean))].sort((a, b) =>
       a.localeCompare(b, undefined, { numeric: true })
     )
@@ -63,17 +68,17 @@ export default function DashboardExportPanel({ films }) {
   if (scope.mediaType) scopeParams.set('mediaType', scope.mediaType)
   if (scope.itemType) scopeParams.set('itemType', scope.itemType)
   if (letter) scopeParams.set('letter', letter)
-  if (drive && scope.mediaType === 'digital') scopeParams.set('drive', drive)
+  if (drive) scopeParams.set('drive', drive)
   const scopeQuery = scopeParams.toString() ? `?${scopeParams.toString()}` : ''
 
   const scopeLabel = [
     scope.label,
     letter ? `starting with "${letter}"` : null,
-    drive && scope.mediaType === 'digital' ? `on Drive ${drive}` : null,
+    drive ? `on Drive ${drive}` : null,
   ]
     .filter(Boolean)
     .join(' ')
-  const scopeFileTag = [scope.key, letter, drive && scope.mediaType === 'digital' ? `drive${drive}` : null].filter(Boolean).join('-')
+  const scopeFileTag = [scope.key, letter, drive ? `drive${drive}` : null].filter(Boolean).join('-')
 
   const handleLetterboxdExport = () => {
     const esc = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
@@ -180,7 +185,7 @@ export default function DashboardExportPanel({ films }) {
         <div className="row row-wrap oscars-filters">
           <div className="oscars-field">
             <label>Which archive?</label>
-            <select className="input" value={scopeKey} onChange={(e) => setScopeKey(e.target.value)}>
+            <select className="input" value={scopeKey} onChange={(e) => changeScope(e.target.value)}>
               {SCOPES.map((s) => (
                 <option key={s.key} value={s.key}>
                   {s.label}
@@ -189,7 +194,7 @@ export default function DashboardExportPanel({ films }) {
             </select>
           </div>
 
-          {scope.mediaType === 'digital' && availableDrives.length > 0 && (
+          {availableDrives.length > 0 && (
             <div className="oscars-field">
               <label>Which drive?</label>
               <select className="input" value={drive} onChange={(e) => setDrive(e.target.value)}>
