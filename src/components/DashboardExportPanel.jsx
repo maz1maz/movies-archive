@@ -3,6 +3,18 @@ import { IconDocument, IconPrinter, IconBarChart, IconDownload, IconSave } from 
 import { escapeHtml } from '../utils/escapeHtml.js'
 import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
 
+// نمایش درایو برای یه فیلم/سریال تو خروجی‌ها — برای سریال‌هایی که فصل‌هاشون
+// روی هاردهای جدا هستن، از seasonDrives استفاده می‌کنه (چون فیلد کلی
+// driveNumber می‌تونه باهاش هماهنگ نباشه)
+function exportDriveLabel(f) {
+  if (f.itemType === 'series' && Array.isArray(f.seasonDrives) && f.seasonDrives.length) {
+    const set = new Set()
+    f.seasonDrives.forEach((sd) => parseDriveNumbers(sd.drive).forEach((d) => set.add(d)))
+    if (set.size) return [...set].sort((a, b) => driveSortValue(a) - driveSortValue(b)).map((d) => `Drive ${d}`).join(', ')
+  }
+  return f.driveNumber ? driveLabel(f.driveNumber) : '—'
+}
+
 const SCOPES = [
   { key: 'all', label: 'All Archive', mediaType: null, itemType: null },
   { key: 'physical', label: 'Physical Collection', mediaType: 'physical', itemType: null },
@@ -128,7 +140,7 @@ export default function DashboardExportPanel({ films }) {
       <tr>
         <td>${i + 1}</td>
         <td><strong>${escapeHtml(f.title)}</strong><br><small style="color:#666">${escapeHtml(f.originalTitle)}</small></td>
-        <td>${f.mediaType === 'digital' ? `Drive ${escapeHtml(f.driveNumber) || '—'}` : `Closet ${escapeHtml(f.closet) || '—'} / Row ${escapeHtml(f.row) || '—'} / Section ${escapeHtml(f.shelf) || '—'}`}</td>
+        <td>${f.mediaType === 'digital' ? escapeHtml(exportDriveLabel(f)) : `Closet ${escapeHtml(f.closet) || '—'} / Row ${escapeHtml(f.row) || '—'} / Section ${escapeHtml(f.shelf) || '—'}`}</td>
         <td>${escapeHtml(f.format) || 'Blu-ray'}</td>
         <td>${f.year || '—'}</td>
         <td>${escapeHtml(f.director) || '—'}</td>
