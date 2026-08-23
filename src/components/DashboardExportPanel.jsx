@@ -52,7 +52,13 @@ export default function DashboardExportPanel({ films }) {
   const scopedFilms = useMemo(() => {
     let list = filterByScope(films, scope)
     if (letter) list = list.filter((f) => titleStartsWithLetter(f.title, letter))
-    if (drive) list = list.filter((f) => f.mediaType === 'digital' && parseDriveNumbers(f.driveNumber).includes(drive))
+    if (drive)
+      list = list.filter(
+        (f) =>
+          f.mediaType === 'digital' &&
+          (parseDriveNumbers(f.driveNumber).includes(drive) ||
+            (Array.isArray(f.seasonDrives) && f.seasonDrives.some((sd) => parseDriveNumbers(sd.drive).includes(drive))))
+      )
     return list
   }, [films, scope, letter, drive])
 
@@ -62,7 +68,10 @@ export default function DashboardExportPanel({ films }) {
   const availableDrives = useMemo(() => {
     const base = filterByScope(films, scope).filter((f) => f.mediaType === 'digital')
     const set = new Set()
-    base.forEach((f) => parseDriveNumbers(f.driveNumber).forEach((d) => set.add(d)))
+    base.forEach((f) => {
+      parseDriveNumbers(f.driveNumber).forEach((d) => set.add(d))
+      if (Array.isArray(f.seasonDrives)) f.seasonDrives.forEach((sd) => parseDriveNumbers(sd.drive).forEach((d) => set.add(d)))
+    })
     return [...set].sort((a, b) => driveSortValue(a) - driveSortValue(b))
   }, [films, scope])
 

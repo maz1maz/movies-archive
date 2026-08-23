@@ -511,8 +511,29 @@ async function handleFetch(request, env, ctx) {
         if (shelf) { sql += ' AND shelf = ?'; params.push(shelf) }
         if (closet) { sql += ' AND closet = ?'; params.push(closet) }
         if (drive) {
-          sql += ' AND (driveNumber = ? OR driveNumber LIKE ? OR driveNumber LIKE ? OR driveNumber LIKE ?)'
-          params.push(drive, `${drive},%`, `%, ${drive}`, `%, ${drive},%`)
+          // driveNumber ممکنه «7» یا «Drive 7» ذخیره شده باشه، comma-separated
+          // هم باشه؛ برای سریال‌ها ممکنه فقط تو seasonDrives (فصل‌های
+          // جداگونه) ثبت شده باشه، نه فیلد کلی driveNumber
+          sql += ` AND (
+            driveNumber = ? OR driveNumber = ? OR
+            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ?
+          )`
+          params.push(
+            drive, `Drive ${drive}`,
+            `${drive},%`, `Drive ${drive},%`,
+            `%, ${drive}`, `%, Drive ${drive}`,
+            `%, ${drive},%`, `%, Drive ${drive},%`,
+            `%"drive":"${drive}"%`, `%"drive":"Drive ${drive}"%`,
+            `%"drive":"${drive},%`, `%"drive":"Drive ${drive},%`,
+            `%, ${drive}"%`, `%, Drive ${drive}"%`,
+            `%, ${drive},%`, `%, Drive ${drive},%`
+          )
         }
         if (genre) { sql += ' AND genre LIKE ?'; params.push(`%"${genre}"%`) }
         if (q) {
@@ -2154,18 +2175,27 @@ async function handleFetch(request, env, ctx) {
         if (mediaType) { conditions.push('mediaType = ?'); params.push(mediaType) }
         if (itemType) { conditions.push('itemType = ?'); params.push(itemType) }
         if (driveParam) {
-          // driveNumber ممکنه «7» یا «Drive 7» ذخیره شده باشه، و ممکنه
-          // comma-separated باشه (چندتا هارد) — همه‌ی این حالت‌ها رو پوشش می‌دیم
+          // driveNumber ممکنه «7» یا «Drive 7» ذخیره شده باشه، comma-separated
+          // هم باشه؛ برای سریال‌ها ممکنه فقط تو seasonDrives (فصل‌های
+          // جداگونه) ثبت شده باشه، نه فیلد کلی driveNumber
           conditions.push(`(
             driveNumber = ? OR driveNumber = ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
-            driveNumber LIKE ? OR driveNumber LIKE ?
+            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ?
           )`)
           params.push(
             driveParam, `Drive ${driveParam}`,
             `${driveParam},%`, `Drive ${driveParam},%`,
             `%, ${driveParam}`, `%, Drive ${driveParam}`,
+            `%, ${driveParam},%`, `%, Drive ${driveParam},%`,
+            `%"drive":"${driveParam}"%`, `%"drive":"Drive ${driveParam}"%`,
+            `%"drive":"${driveParam},%`, `%"drive":"Drive ${driveParam},%`,
+            `%, ${driveParam}"%`, `%, Drive ${driveParam}"%`,
             `%, ${driveParam},%`, `%, Drive ${driveParam},%`
           )
         }
@@ -2210,18 +2240,27 @@ async function handleFetch(request, env, ctx) {
         if (rowParam) { conditions.push('row = ?'); params.push(rowParam) }
         if (shelfParam) { conditions.push('shelf = ?'); params.push(shelfParam) }
         if (driveParam) {
-          // driveNumber ممکنه «7» یا «Drive 7» ذخیره شده باشه، و ممکنه
-          // comma-separated باشه (چندتا هارد) — همه‌ی این حالت‌ها رو پوشش می‌دیم
+          // driveNumber ممکنه «7» یا «Drive 7» ذخیره شده باشه، comma-separated
+          // هم باشه؛ برای سریال‌ها ممکنه فقط تو seasonDrives (فصل‌های
+          // جداگونه) ثبت شده باشه، نه فیلد کلی driveNumber
           conditions.push(`(
             driveNumber = ? OR driveNumber = ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
-            driveNumber LIKE ? OR driveNumber LIKE ?
+            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
+            seasonDrives LIKE ? OR seasonDrives LIKE ?
           )`)
           params.push(
             driveParam, `Drive ${driveParam}`,
             `${driveParam},%`, `Drive ${driveParam},%`,
             `%, ${driveParam}`, `%, Drive ${driveParam}`,
+            `%, ${driveParam},%`, `%, Drive ${driveParam},%`,
+            `%"drive":"${driveParam}"%`, `%"drive":"Drive ${driveParam}"%`,
+            `%"drive":"${driveParam},%`, `%"drive":"Drive ${driveParam},%`,
+            `%, ${driveParam}"%`, `%, Drive ${driveParam}"%`,
             `%, ${driveParam},%`, `%, Drive ${driveParam},%`
           )
         }
