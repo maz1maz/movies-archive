@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { IconDocument, IconPrinter, IconBarChart, IconDownload, IconSave } from './icons.jsx'
 import { escapeHtml } from '../utils/escapeHtml.js'
+import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
 
 const SCOPES = [
   { key: 'all', label: 'All Archive', mediaType: null, itemType: null },
@@ -51,17 +52,18 @@ export default function DashboardExportPanel({ films }) {
   const scopedFilms = useMemo(() => {
     let list = filterByScope(films, scope)
     if (letter) list = list.filter((f) => titleStartsWithLetter(f.title, letter))
-    if (drive) list = list.filter((f) => f.mediaType === 'digital' && String(f.driveNumber || '') === drive)
+    if (drive) list = list.filter((f) => f.mediaType === 'digital' && parseDriveNumbers(f.driveNumber).includes(drive))
     return list
   }, [films, scope, letter, drive])
 
   // درایوهای موجود — از بخش دیجیتالِ همین اسکوپ (حتی اگه اسکوپ ترکیبی
-  // فیزیکی+دیجیتال باشه، مثل «Series Only»)
+  // فیزیکی+دیجیتال باشه، مثل «Series Only»). driveNumber می‌تونه چندتایی
+  // (comma-separated) باشه، پس تک‌تک جدا و یکتا می‌کنیم.
   const availableDrives = useMemo(() => {
     const base = filterByScope(films, scope).filter((f) => f.mediaType === 'digital')
-    return [...new Set(base.map((f) => String(f.driveNumber || '').trim()).filter(Boolean))].sort((a, b) =>
-      a.localeCompare(b, undefined, { numeric: true })
-    )
+    const set = new Set()
+    base.forEach((f) => parseDriveNumbers(f.driveNumber).forEach((d) => set.add(d)))
+    return [...set].sort((a, b) => driveSortValue(a) - driveSortValue(b))
   }, [films, scope])
 
   const scopeParams = new URLSearchParams()
@@ -201,7 +203,7 @@ export default function DashboardExportPanel({ films }) {
                 <option value="">All drives</option>
                 {availableDrives.map((d) => (
                   <option key={d} value={d}>
-                    Drive {d}
+                    {driveLabel(d)}
                   </option>
                 ))}
               </select>

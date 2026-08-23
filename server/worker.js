@@ -2153,7 +2153,22 @@ async function handleFetch(request, env, ctx) {
         const params = []
         if (mediaType) { conditions.push('mediaType = ?'); params.push(mediaType) }
         if (itemType) { conditions.push('itemType = ?'); params.push(itemType) }
-        if (driveParam) { conditions.push('driveNumber = ?'); params.push(driveParam) }
+        if (driveParam) {
+          // driveNumber ممکنه «7» یا «Drive 7» ذخیره شده باشه، و ممکنه
+          // comma-separated باشه (چندتا هارد) — همه‌ی این حالت‌ها رو پوشش می‌دیم
+          conditions.push(`(
+            driveNumber = ? OR driveNumber = ? OR
+            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            driveNumber LIKE ? OR driveNumber LIKE ?
+          )`)
+          params.push(
+            driveParam, `Drive ${driveParam}`,
+            `${driveParam},%`, `Drive ${driveParam},%`,
+            `%, ${driveParam}`, `%, Drive ${driveParam}`,
+            `%, ${driveParam},%`, `%, Drive ${driveParam},%`
+          )
+        }
         if (letterParam) {
           // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The " ابتدای عنوان
           const sortableTitle = `CASE WHEN title LIKE 'The %' THEN substr(title,5) ELSE title END`
@@ -2194,7 +2209,22 @@ async function handleFetch(request, env, ctx) {
         if (closetParam) { conditions.push('closet = ?'); params.push(closetParam) }
         if (rowParam) { conditions.push('row = ?'); params.push(rowParam) }
         if (shelfParam) { conditions.push('shelf = ?'); params.push(shelfParam) }
-        if (driveParam) { conditions.push('driveNumber = ?'); params.push(driveParam) }
+        if (driveParam) {
+          // driveNumber ممکنه «7» یا «Drive 7» ذخیره شده باشه، و ممکنه
+          // comma-separated باشه (چندتا هارد) — همه‌ی این حالت‌ها رو پوشش می‌دیم
+          conditions.push(`(
+            driveNumber = ? OR driveNumber = ? OR
+            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            driveNumber LIKE ? OR driveNumber LIKE ?
+          )`)
+          params.push(
+            driveParam, `Drive ${driveParam}`,
+            `${driveParam},%`, `Drive ${driveParam},%`,
+            `%, ${driveParam}`, `%, Drive ${driveParam}`,
+            `%, ${driveParam},%`, `%, Drive ${driveParam},%`
+          )
+        }
         if (letterParam) {
           // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The " ابتدای عنوان
           const sortableTitle = `CASE WHEN title LIKE 'The %' THEN substr(title,5) ELSE title END`
