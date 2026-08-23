@@ -59,7 +59,11 @@ export default function DashboardExportPanel({ films }) {
           (parseDriveNumbers(f.driveNumber).includes(drive) ||
             (Array.isArray(f.seasonDrives) && f.seasonDrives.some((sd) => parseDriveNumbers(sd.drive).includes(drive))))
       )
-    return list
+    // همیشه الفبایی، با نادیده گرفتن "The " ابتدای عنوان — مستقل از هر
+    // ترتیبی که تو خود اپ (مثلاً Random) فعال باشه
+    return [...list].sort((a, b) =>
+      sortableTitle(a.title).localeCompare(sortableTitle(b.title), undefined, { sensitivity: 'base' })
+    )
   }, [films, scope, letter, drive])
 
   // درایوهای موجود — از بخش دیجیتالِ همین اسکوپ (حتی اگه اسکوپ ترکیبی
