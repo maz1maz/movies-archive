@@ -513,25 +513,31 @@ async function handleFetch(request, env, ctx) {
         if (drive) {
           // driveNumber ممکنه «7» یا «Drive 7» ذخیره شده باشه، comma-separated
           // هم باشه؛ برای سریال‌ها ممکنه فقط تو seasonDrives (فصل‌های
-          // جداگونه) ثبت شده باشه، نه فیلد کلی driveNumber
+          // جداگونه) ثبت شده باشه، نه فیلد کلی driveNumber.
+          // برای seasonDrives از json_each استفاده می‌کنیم (نه LIKE رو کل
+          // رشته‌ی JSON) تا فقط فیلد drive چک بشه، نه seasons — وگرنه یه
+          // سریال با seasons «9, 10» اشتباهی جزو drive=10 حساب می‌شد.
           sql += ` AND (
             driveNumber = ? OR driveNumber = ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ?
+            (seasonDrives IS NOT NULL AND EXISTS (
+              SELECT 1 FROM json_each(seasonDrives) je WHERE
+                je.value ->> 'drive' = ? OR je.value ->> 'drive' = ? OR
+                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
+                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
+                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ?
+            ))
           )`
           params.push(
             drive, `Drive ${drive}`,
             `${drive},%`, `Drive ${drive},%`,
             `%, ${drive}`, `%, Drive ${drive}`,
             `%, ${drive},%`, `%, Drive ${drive},%`,
-            `%"drive":"${drive}"%`, `%"drive":"Drive ${drive}"%`,
-            `%"drive":"${drive},%`, `%"drive":"Drive ${drive},%`,
-            `%, ${drive}"%`, `%, Drive ${drive}"%`,
+            drive, `Drive ${drive}`,
+            `${drive},%`, `Drive ${drive},%`,
+            `%, ${drive}`, `%, Drive ${drive}`,
             `%, ${drive},%`, `%, Drive ${drive},%`
           )
         }
@@ -2178,25 +2184,29 @@ async function handleFetch(request, env, ctx) {
         if (driveParam) {
           // driveNumber ممکنه «7» یا «Drive 7» ذخیره شده باشه، comma-separated
           // هم باشه؛ برای سریال‌ها ممکنه فقط تو seasonDrives (فصل‌های
-          // جداگونه) ثبت شده باشه، نه فیلد کلی driveNumber
+          // جداگونه) ثبت شده باشه، نه فیلد کلی driveNumber. از json_each
+          // استفاده می‌کنیم تا فقط فیلد drive چک بشه، نه seasons.
           conditions.push(`(
             driveNumber = ? OR driveNumber = ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ?
+            (seasonDrives IS NOT NULL AND EXISTS (
+              SELECT 1 FROM json_each(seasonDrives) je WHERE
+                je.value ->> 'drive' = ? OR je.value ->> 'drive' = ? OR
+                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
+                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
+                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ?
+            ))
           )`)
           params.push(
             driveParam, `Drive ${driveParam}`,
             `${driveParam},%`, `Drive ${driveParam},%`,
             `%, ${driveParam}`, `%, Drive ${driveParam}`,
             `%, ${driveParam},%`, `%, Drive ${driveParam},%`,
-            `%"drive":"${driveParam}"%`, `%"drive":"Drive ${driveParam}"%`,
-            `%"drive":"${driveParam},%`, `%"drive":"Drive ${driveParam},%`,
-            `%, ${driveParam}"%`, `%, Drive ${driveParam}"%`,
+            driveParam, `Drive ${driveParam}`,
+            `${driveParam},%`, `Drive ${driveParam},%`,
+            `%, ${driveParam}`, `%, Drive ${driveParam}`,
             `%, ${driveParam},%`, `%, Drive ${driveParam},%`
           )
         }
@@ -2244,25 +2254,29 @@ async function handleFetch(request, env, ctx) {
         if (driveParam) {
           // driveNumber ممکنه «7» یا «Drive 7» ذخیره شده باشه، comma-separated
           // هم باشه؛ برای سریال‌ها ممکنه فقط تو seasonDrives (فصل‌های
-          // جداگونه) ثبت شده باشه، نه فیلد کلی driveNumber
+          // جداگونه) ثبت شده باشه، نه فیلد کلی driveNumber. از json_each
+          // استفاده می‌کنیم تا فقط فیلد drive چک بشه، نه seasons.
           conditions.push(`(
             driveNumber = ? OR driveNumber = ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
             driveNumber LIKE ? OR driveNumber LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ? OR
-            seasonDrives LIKE ? OR seasonDrives LIKE ?
+            (seasonDrives IS NOT NULL AND EXISTS (
+              SELECT 1 FROM json_each(seasonDrives) je WHERE
+                je.value ->> 'drive' = ? OR je.value ->> 'drive' = ? OR
+                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
+                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
+                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ?
+            ))
           )`)
           params.push(
             driveParam, `Drive ${driveParam}`,
             `${driveParam},%`, `Drive ${driveParam},%`,
             `%, ${driveParam}`, `%, Drive ${driveParam}`,
             `%, ${driveParam},%`, `%, Drive ${driveParam},%`,
-            `%"drive":"${driveParam}"%`, `%"drive":"Drive ${driveParam}"%`,
-            `%"drive":"${driveParam},%`, `%"drive":"Drive ${driveParam},%`,
-            `%, ${driveParam}"%`, `%, Drive ${driveParam}"%`,
+            driveParam, `Drive ${driveParam}`,
+            `${driveParam},%`, `Drive ${driveParam},%`,
+            `%, ${driveParam}`, `%, Drive ${driveParam}`,
             `%, ${driveParam},%`, `%, Drive ${driveParam},%`
           )
         }
