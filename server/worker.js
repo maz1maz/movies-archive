@@ -524,10 +524,7 @@ async function handleFetch(request, env, ctx) {
             driveNumber LIKE ? OR driveNumber LIKE ? OR
             (seasonDrives IS NOT NULL AND EXISTS (
               SELECT 1 FROM json_each(seasonDrives) je WHERE
-                je.value ->> 'drive' = ? OR je.value ->> 'drive' = ? OR
-                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
-                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
-                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ?
+                je.value ->> 'drive' LIKE ?
             ))
           )`
           params.push(
@@ -535,10 +532,7 @@ async function handleFetch(request, env, ctx) {
             `${drive},%`, `Drive ${drive},%`,
             `%, ${drive}`, `%, Drive ${drive}`,
             `%, ${drive},%`, `%, Drive ${drive},%`,
-            drive, `Drive ${drive}`,
-            `${drive},%`, `Drive ${drive},%`,
-            `%, ${drive}`, `%, Drive ${drive}`,
-            `%, ${drive},%`, `%, Drive ${drive},%`
+            `%${drive}%`
           )
         }
         if (genre) { sql += ' AND genre LIKE ?'; params.push(`%"${genre}"%`) }
@@ -2193,10 +2187,7 @@ async function handleFetch(request, env, ctx) {
             driveNumber LIKE ? OR driveNumber LIKE ? OR
             (seasonDrives IS NOT NULL AND EXISTS (
               SELECT 1 FROM json_each(seasonDrives) je WHERE
-                je.value ->> 'drive' = ? OR je.value ->> 'drive' = ? OR
-                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
-                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
-                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ?
+                je.value ->> 'drive' LIKE ?
             ))
           )`)
           params.push(
@@ -2204,10 +2195,7 @@ async function handleFetch(request, env, ctx) {
             `${driveParam},%`, `Drive ${driveParam},%`,
             `%, ${driveParam}`, `%, Drive ${driveParam}`,
             `%, ${driveParam},%`, `%, Drive ${driveParam},%`,
-            driveParam, `Drive ${driveParam}`,
-            `${driveParam},%`, `Drive ${driveParam},%`,
-            `%, ${driveParam}`, `%, Drive ${driveParam}`,
-            `%, ${driveParam},%`, `%, Drive ${driveParam},%`
+            `%${driveParam}%`
           )
         }
         if (letterParam) {
@@ -2263,10 +2251,7 @@ async function handleFetch(request, env, ctx) {
             driveNumber LIKE ? OR driveNumber LIKE ? OR
             (seasonDrives IS NOT NULL AND EXISTS (
               SELECT 1 FROM json_each(seasonDrives) je WHERE
-                je.value ->> 'drive' = ? OR je.value ->> 'drive' = ? OR
-                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
-                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ? OR
-                je.value ->> 'drive' LIKE ? OR je.value ->> 'drive' LIKE ?
+                je.value ->> 'drive' LIKE ?
             ))
           )`)
           params.push(
@@ -2274,10 +2259,7 @@ async function handleFetch(request, env, ctx) {
             `${driveParam},%`, `Drive ${driveParam},%`,
             `%, ${driveParam}`, `%, Drive ${driveParam}`,
             `%, ${driveParam},%`, `%, Drive ${driveParam},%`,
-            driveParam, `Drive ${driveParam}`,
-            `${driveParam},%`, `Drive ${driveParam},%`,
-            `%, ${driveParam}`, `%, Drive ${driveParam}`,
-            `%, ${driveParam},%`, `%, Drive ${driveParam},%`
+            `%${driveParam}%`
           )
         }
         if (letterParam) {
