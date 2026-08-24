@@ -2173,7 +2173,8 @@ async function handleFetch(request, env, ctx) {
         const conditions = []
         const params = []
         if (mediaType) { conditions.push('mediaType = ?'); params.push(mediaType) }
-        if (itemType) { conditions.push('itemType = ?'); params.push(itemType) }
+        if (itemType === 'series') { conditions.push("itemType = 'series'") }
+        else if (itemType === 'movie') { conditions.push("(itemType IS NULL OR itemType != 'series')") }
         if (driveParam) {
           // driveNumber ممکنه «7» یا «Drive 7» ذخیره شده باشه، comma-separated
           // هم باشه؛ برای سریال‌ها ممکنه فقط تو seasonDrives (فصل‌های
@@ -2235,7 +2236,8 @@ async function handleFetch(request, env, ctx) {
         const conditions = []
         const params = []
         if (mediaType) { conditions.push('mediaType = ?'); params.push(mediaType) }
-        if (itemType) { conditions.push('itemType = ?'); params.push(itemType) }
+        if (itemType === 'series') { conditions.push("itemType = 'series'") }
+        else if (itemType === 'movie') { conditions.push("(itemType IS NULL OR itemType != 'series')") }
         if (closetParam) { conditions.push('closet = ?'); params.push(closetParam) }
         if (rowParam) { conditions.push('row = ?'); params.push(rowParam) }
         if (shelfParam) { conditions.push('shelf = ?'); params.push(shelfParam) }

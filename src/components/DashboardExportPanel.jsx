@@ -45,7 +45,10 @@ function titleStartsWithLetter(title, letter) {
 function filterByScope(films, scope) {
   return films.filter((f) => {
     if (scope.mediaType && f.mediaType !== scope.mediaType) return false
-    if (scope.itemType && f.itemType !== scope.itemType) return false
+    // اگه itemType رکورد خالی باشه (قدیمی/ناقص)، مثل بقیه‌ی جاهای اپ (sectionFilms
+    // تو App.jsx) به‌عنوان «فیلم» حساب می‌شه، نه اینکه از هر دو اسکوپ کنار گذاشته بشه
+    if (scope.itemType === 'series' && f.itemType !== 'series') return false
+    if (scope.itemType === 'movie' && f.itemType === 'series') return false
     return true
   })
 }
