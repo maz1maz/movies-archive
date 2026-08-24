@@ -142,16 +142,18 @@ export default function Header({
     e.target.value = ''
   }
 
-  const anyPopoverOpen = menuOpen || filtersOpen || azOpen
+  // فقط منو و A-Z با کلیک بیرون بسته بشن — پنل فیلتر نه، چون کاربر معمولاً
+  // می‌خواد چندتا فیلتر پشت‌سرهم روی کارت‌های زیرش بزنه/ببینه، بدون این‌که
+  // هر بار پنل بسته بشه. فقط با کلیک دوباره روی دکمه‌ی Filters بسته می‌شه.
+  const anyBackdropPopoverOpen = menuOpen || azOpen
   const closeAllPopovers = () => {
     setMenuOpen(false)
-    setFiltersOpen(false)
     setAzOpen(false)
   }
 
   return (
     <header className={condensed ? 'header header-condensed' : 'header'}>
-      {anyPopoverOpen && <div className="menu-backdrop" onClick={closeAllPopovers} />}
+      {anyBackdropPopoverOpen && <div className="menu-backdrop" onClick={closeAllPopovers} />}
 
       <div className="container header-inner">
         <div className="header-brand-group">
