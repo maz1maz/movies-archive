@@ -17,6 +17,7 @@ import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
 import { useAuth } from './context/AuthContext.jsx'
+import { parseDriveNumbers, driveSortValue } from './utils/driveDisplay.js'
 
 // Lazy: pulls in the ogl WebGL library, only needed by the rarely-visited
 // 3D gallery view — code-splitting it keeps it out of everyone else's
@@ -33,9 +34,17 @@ export default function App() {
   const [allFilmsUnfiltered, setAllFilmsUnfiltered] = useState([])
   const [genres, setGenres] = useState([])
   const [decades, setDecades] = useState([])
-  const drives = [...new Set(allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.driveNumber).map((f) => String(f.driveNumber)))].sort(
-    (a, b) => a.localeCompare(b, undefined, { numeric: true })
-  )
+  // درایوهای موجود برای دراپ‌داون فیلتر بالای صفحه — driveNumber می‌تونه
+  // comma-separated باشه («6, 10») و/یا با پیشوند «Drive» ذخیره شده باشه؛
+  // با parseDriveNumbers تک‌تک جدا و نرمال می‌شن تا مقدار دراپ‌داون همیشه
+  // یه شماره‌ی خالص باشه (نه «Drive 10» که باعث «Drive Drive 10» تو فیلتر سرور می‌شد)
+  const drives = [
+    ...new Set(
+      allFilmsUnfiltered
+        .filter((f) => f.mediaType === 'digital')
+        .flatMap((f) => parseDriveNumbers(f.driveNumber))
+    ),
+  ].sort((a, b) => driveSortValue(a) - driveSortValue(b))
   const [query, setQuery] = useState('')
   const [genre, setGenre] = useState('')
   const [loanedOnly, setLoanedOnly] = useState(false)

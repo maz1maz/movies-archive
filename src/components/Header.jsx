@@ -244,11 +244,11 @@ export default function Header({
                     </option>
                   ))}
                 </select>
-                {(section === 'digital-movie' || section === 'digital-series') && (
+                {(section === 'digital-movie' || section === 'digital-series') && drives.length > 0 && (
                   <select className="select" value={drive} onChange={(e) => setDrive(e.target.value)}>
                     <option value="">All drives</option>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((d) => (
-                      <option key={d} value={`Drive ${d}`}>
+                    {drives.map((d) => (
+                      <option key={d} value={d}>
                         Drive {d}
                       </option>
                     ))}
