@@ -5023,7 +5023,7 @@ body.light .folder-nav-title {
   .marquee-band {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     gap: 40px;
     max-width: 980px;
     text-align: left;
@@ -5032,6 +5032,7 @@ body.light .folder-nav-title {
     flex: 0 0 260px;
     align-items: flex-start;
     text-align: left;
+    padding-top: 6px;
   }
   .marquee-brand .folder-nav-title,
   .marquee-brand .marquee-eyebrow {
@@ -5043,7 +5044,7 @@ body.light .folder-nav-title {
   }
   .marquee-band .folder-grid {
     flex: 1 1 auto;
-    justify-content: flex-start;
+    min-width: 0;
   }
   .marquee-band .marquee-footer {
     display: none;
@@ -5150,18 +5151,20 @@ body.light .folder-nav-title {
   color: var(--marquee-gold);
 }
 .folder-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  width: 100%;
 }
 .folder-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 10px;
-  width: 172px;
-  padding: 26px 16px;
+  justify-content: flex-start;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 20px;
+  text-align: left;
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -5170,6 +5173,12 @@ body.light .folder-nav-title {
   cursor: pointer;
   box-shadow: 0 8px 26px rgba(20, 10, 50, 0.3);
   transition: border-color 0.18s, transform 0.18s, background 0.18s, box-shadow 0.18s;
+}
+.folder-card h2 {
+  margin: 0;
+}
+.folder-card p {
+  margin: 2px 0 0;
 }
 .folder-card:hover {
   border-color: var(--marquee-gold, var(--accent));
@@ -5184,6 +5193,7 @@ body.light .folder-card:hover {
   background: rgba(255, 255, 255, 0.8);
 }
 .folder-icon {
+  flex: 0 0 auto;
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -5203,25 +5213,7 @@ body.light .folder-card:hover {
   color: var(--marquee-ruby-icon);
 }
 
-/* Physical (gold) / Digital (navy) — landscape cards */
-.folder-card-physical,
-.folder-card-digital {
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  width: 260px;
-  gap: 14px;
-  padding: 16px 20px;
-  text-align: left;
-}
-.folder-card-physical h2,
-.folder-card-digital h2 {
-  margin: 0;
-}
-.folder-card-physical p,
-.folder-card-digital p {
-  margin: 2px 0 0;
-}
+/* Physical (gold) / Digital (navy) */
 .folder-card-physical {
   border-color: rgba(212, 175, 55, 0.4);
   background: linear-gradient(120deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.03));
