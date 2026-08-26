@@ -32,6 +32,18 @@ export default function App() {
   // فعلی کاربر (دهه، حرف الفبا، ژانر و...) محدود می‌شه و فیلموگرافی ناقص
   // نشون می‌ده.
   const [allFilmsUnfiltered, setAllFilmsUnfiltered] = useState([])
+  // شمارش کارت‌های صفحه‌ی اصلی (Blu-ray Movies, Digital Series, ...) — از
+  // یه endpoint سبک (/api/films/counts) میاد، نه از فچ کامل allFilmsUnfiltered
+  // (که برای ۱۷٬۰۰۰+ ردیف چند ده مگابایته و ممکنه fail بشه).
+  const [serverCounts, setServerCounts] = useState(null)
+  useEffect(() => {
+    fetch('/api/films/counts')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && typeof data === 'object' && !data.error) setServerCounts(data)
+      })
+      .catch(() => {})
+  }, [])
   const [genres, setGenres] = useState([])
   const [decades, setDecades] = useState([])
   // درایوهای موجود برای دراپ‌داون فیلتر بالای صفحه — driveNumber می‌تونه
@@ -721,16 +733,19 @@ export default function App() {
   // حالا همیشه از همون مودال کامل و وسط‌چین استفاده می‌شه، مثل جاهای دیگه‌ی اپ.
   const useSplitView = false
 
-  const folderCounts = useMemo(
-    () => ({
+  const folderCounts = useMemo(() => {
+    // اولویت با serverCounts (سبک، همیشه دقیق برای کل آرشیو). فقط اگه هنوز
+    // نرسیده و allFilmsUnfiltered یه‌جای دیگه لود شده بود، به‌عنوان fallback
+    // موقت از همون محاسبه می‌کنیم.
+    if (serverCounts) return serverCounts
+    return {
       physical: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital' && f.itemType !== 'series').length,
       physicalSeries: allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital' && f.itemType === 'series').length,
       digital: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital').length,
       digitalMovies: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType !== 'series').length,
       digitalSeries: allFilmsUnfiltered.filter((f) => f.mediaType === 'digital' && f.itemType === 'series').length,
-    }),
-    [allFilmsUnfiltered]
-  )
+    }
+  }, [serverCounts, allFilmsUnfiltered])
   // برای کلاژ پس‌زمینه‌ی صفحات پوشه‌ای: صفحه‌ی اصلی از کل آرشیو، صفحه‌ی
   // دیجیتال فقط از پوسترهای آیتم‌های دیجیتال
   const { homePosters, digitalPosters, physicalPosters, physicalSeriesPosters, digitalMoviePosters, digitalSeriesPosters } =
