@@ -2064,6 +2064,105 @@ body.light .header {
   border-bottom: 1px solid var(--border);
 }
 
+/* Drive Browser — Firefox Reality inspired glassmorphism (scoped only here) */
+.drive-browser-glass-overlay {
+  background: radial-gradient(circle at 20% 15%, rgba(126, 87, 255, 0.25), transparent 55%),
+    radial-gradient(circle at 85% 80%, rgba(0, 200, 255, 0.18), transparent 50%),
+    rgba(5, 6, 10, 0.88);
+}
+.drive-browser-glass {
+  background: linear-gradient(155deg, #1c1836 0%, #241b45 35%, #142238 70%, #0d1730 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.drive-browser-glass .location-browser-head {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.drive-browser-glass .location-browser-title h2 {
+  background: linear-gradient(90deg, #b98bff, #7fd9ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.drive-browser-glass .location-browser-head .export-sub {
+  color: rgba(230, 230, 245, 0.6);
+}
+.drive-browser-glass .modal-close.cine-close {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+}
+.drive-browser-glass .shelf-back-btn {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e6e6f5;
+  border-radius: 10px;
+}
+.drive-browser-glass .shelf-back-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.drive-browser-glass .closet-card {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.drive-browser-glass .closet-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(185, 139, 255, 0.5);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(126, 87, 255, 0.25);
+}
+.drive-browser-glass .closet-card-idx {
+  background: linear-gradient(90deg, #b98bff, #7fd9ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.drive-browser-glass .closet-card-count {
+  color: rgba(230, 230, 245, 0.55);
+}
+.drive-browser-glass .film-selector-search,
+.drive-browser-glass .shelf-view select,
+.drive-browser-glass select.film-selector-search {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e6e6f5;
+  border-radius: 10px;
+}
+.drive-browser-glass .film-selector,
+.drive-browser-glass .shelf-view {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+}
+.drive-browser-glass .film-selector-row,
+.drive-browser-glass .shelf-film-item {
+  border-radius: 10px;
+}
+.drive-browser-glass .film-selector-row-selected {
+  background: rgba(126, 87, 255, 0.18);
+}
+.drive-browser-glass .btn-primary {
+  background: linear-gradient(90deg, #7e57ff, #3fc9ff);
+  border: none;
+  color: #0d1024;
+}
+.drive-browser-glass .btn-ghost {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e6e6f5;
+}
+
 /* Film selector (select films at the bottom to move them to a chosen location) */
 .film-selector {
   display: flex;
