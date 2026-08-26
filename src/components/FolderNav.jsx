@@ -104,42 +104,42 @@ export default function FolderNav({
 
           {!searching && (
             <div className="folder-grid">
-              <button className="folder-card reveal-item reveal-4" onClick={onSelectPhysical}>
+              <button className="folder-card folder-card-physical reveal-item reveal-4" onClick={onSelectPhysical}>
                 <span className="folder-icon">
                   <IconDisc width={32} height={32} />
                 </span>
                 <h2>Blu-ray Movies</h2>
                 <p>Physical · {counts.physical} items</p>
               </button>
-              <button className="folder-card reveal-item reveal-5" onClick={onSelectPhysicalSeries}>
+              <button className="folder-card folder-card-physical reveal-item reveal-5" onClick={onSelectPhysicalSeries}>
                 <span className="folder-icon">
                   <IconLayers width={32} height={32} />
                 </span>
                 <h2>Blu-ray Series</h2>
                 <p>Physical · {counts.physicalSeries || 0} items</p>
               </button>
-              <button className="folder-card reveal-item reveal-6" onClick={() => onSelectDigitalType('movie')}>
+              <button className="folder-card folder-card-digital reveal-item reveal-6" onClick={() => onSelectDigitalType('movie')}>
                 <span className="folder-icon">
                   <IconFilm width={32} height={32} />
                 </span>
                 <h2>Digital Movies</h2>
                 <p>Drive · {counts.digitalMovies} items</p>
               </button>
-              <button className="folder-card reveal-item reveal-7" onClick={() => onSelectDigitalType('series')}>
+              <button className="folder-card folder-card-digital reveal-item reveal-7" onClick={() => onSelectDigitalType('series')}>
                 <span className="folder-icon">
                   <IconTV width={32} height={32} />
                 </span>
                 <h2>Digital Series</h2>
                 <p>Drive · {counts.digitalSeries} items</p>
               </button>
-              <button className="folder-card reveal-item reveal-8" onClick={onOpenBookshelf}>
+              <button className="folder-card folder-card-physical reveal-item reveal-8" onClick={onOpenBookshelf}>
                 <span className="folder-icon">
                   <IconBookshelf width={32} height={32} />
                 </span>
                 <h2>3D Bookshelf</h2>
                 <p>Physical · {counts.physical} items</p>
               </button>
-              <button className="folder-card reveal-item reveal-8" onClick={onOpenDriveBrowser}>
+              <button className="folder-card folder-card-digital reveal-item reveal-8" onClick={onOpenDriveBrowser}>
                 <span className="folder-icon">
                   <IconHardDrive width={32} height={32} />
                 </span>

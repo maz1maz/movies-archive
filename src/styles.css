@@ -5167,6 +5167,59 @@ body.light .folder-card:hover {
   border-color: var(--marquee-ruby);
   color: var(--marquee-ruby-icon);
 }
+
+/* Physical (gold) / Digital (navy) — landscape cards */
+.folder-card-physical,
+.folder-card-digital {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  width: 260px;
+  gap: 14px;
+  padding: 16px 20px;
+  text-align: left;
+}
+.folder-card-physical h2,
+.folder-card-digital h2 {
+  margin: 0;
+}
+.folder-card-physical p,
+.folder-card-digital p {
+  margin: 2px 0 0;
+}
+.folder-card-physical {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: linear-gradient(120deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.03));
+}
+.folder-card-physical:hover {
+  border-color: #d4af37;
+  box-shadow: 0 14px 36px rgba(212, 175, 55, 0.22);
+}
+.folder-card-physical .folder-icon {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.35), rgba(212, 175, 55, 0.15));
+  border-color: #d4af37;
+  color: #d4af37;
+}
+.folder-card-digital {
+  border-color: rgba(28, 61, 90, 0.55);
+  background: linear-gradient(120deg, rgba(28, 61, 90, 0.28), rgba(28, 61, 90, 0.08));
+}
+.folder-card-digital:hover {
+  border-color: #3f7cac;
+  box-shadow: 0 14px 36px rgba(28, 97, 150, 0.28);
+}
+.folder-card-digital .folder-icon {
+  background: linear-gradient(135deg, rgba(63, 124, 172, 0.4), rgba(28, 61, 90, 0.2));
+  border-color: #3f7cac;
+  color: #7fb4de;
+}
+body.light .folder-card-physical {
+  background: linear-gradient(120deg, rgba(212, 175, 55, 0.14), rgba(212, 175, 55, 0.04));
+}
+body.light .folder-card-digital {
+  background: linear-gradient(120deg, rgba(28, 61, 90, 0.14), rgba(28, 61, 90, 0.05));
+  border-color: rgba(28, 61, 90, 0.35);
+}
 .folder-card h2 {
   margin: 6px 0 0;
   font-size: 15.5px;
