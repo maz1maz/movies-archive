@@ -5030,17 +5030,20 @@ body.light .folder-nav-title {
   }
   .marquee-brand {
     flex: 0 0 260px;
-    align-items: flex-start;
-    text-align: left;
+    align-items: center;
+    text-align: center;
     padding-top: 6px;
   }
   .marquee-brand .folder-nav-title,
   .marquee-brand .marquee-eyebrow {
-    text-align: left;
+    text-align: center;
+  }
+  .marquee-brand .folder-nav-title {
+    margin-bottom: 16px;
   }
   .marquee-brand .folder-nav-search {
-    margin: 0;
-    max-width: none;
+    margin: 0 auto;
+    max-width: 260px;
   }
   .marquee-band .folder-grid {
     flex: 1 1 auto;
