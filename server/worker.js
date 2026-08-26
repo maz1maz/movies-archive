@@ -489,12 +489,16 @@ async function handleFetch(request, env, ctx) {
 
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
-        const { q, genre, shelf, closet, sort, alpha, decade, drive, loaned, watched, minRating } = Object.fromEntries(url.searchParams)
+        const { q, genre, shelf, closet, sort, alpha, decade, drive, loaned, watched, minRating, mediaType, itemType } = Object.fromEntries(url.searchParams)
         // «بدون فیلتر» یعنی هیچ‌کدوم از فیلترها ست نشده — sort رو حساب
         // نمی‌کنیم چون فرانت‌اند پیش‌فرض sort=random می‌فرسته و اگه اونم شرط
         // بذاریم، دقیقاً همون درخواستِ پرتکرارِ لود اول صفحه هیچ‌وقت کش نمی‌شه.
-        const isUnfiltered = !q && !genre && !shelf && !closet && !decade && !drive && !loaned && !watched && !minRating && !alpha
-        const filmsCacheKey = `${FILMS_CACHE_KEY}:${sort || 'default'}`
+        // mediaType/itemType هم قبلاً اینجا چک نمی‌شدن — یعنی صفحه‌ی هر بخش
+        // (Digital Movies، Blu-ray Series، ...) کل جدول (۱۷هزار+ ردیف، ده‌ها
+        // مگابایت) رو می‌کشید، نه فقط همون بخش. باگ اصلی «صفر موند» /
+        // «گیر کرد تو Loading» همینجا بود.
+        const isUnfiltered = !q && !genre && !shelf && !closet && !decade && !drive && !loaned && !watched && !minRating && !alpha && !mediaType && !itemType
+        const filmsCacheKey = `${FILMS_CACHE_KEY}:${sort || 'default'}:${mediaType || 'all'}:${itemType || 'all'}`
         if (isUnfiltered && env.BACKUPS) {
           try {
             const cached = await env.BACKUPS.get(filmsCacheKey, 'json')
@@ -504,6 +508,8 @@ async function handleFetch(request, env, ctx) {
         let sql = 'SELECT * FROM films WHERE 1=1'
         const params = []
 
+        if (mediaType) { sql += ' AND mediaType = ?'; params.push(mediaType) }
+        if (itemType) { sql += ' AND itemType = ?'; params.push(itemType) }
         if (loaned === '1') { sql += ' AND borrowedTo IS NOT NULL AND borrowedTo != \'\'' }
         if (watched === '1') { sql += ' AND watched = 1' }
         if (watched === '0') { sql += ' AND (watched IS NULL OR watched = 0)' }
