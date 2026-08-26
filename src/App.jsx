@@ -226,6 +226,16 @@ export default function App() {
   // درخواست رو قبول می‌کنه.
   const requestIdRef = useRef(0)
 
+  const [totalCount, setTotalCount] = useState(null)
+
+  const sectionToMediaItemType = (sec) => {
+    if (sec === 'physical') return { mediaType: 'physical', itemType: 'movie' }
+    if (sec === 'physical-series') return { mediaType: 'physical', itemType: 'series' }
+    if (sec === 'digital-movie') return { mediaType: 'digital', itemType: 'movie' }
+    if (sec === 'digital-series') return { mediaType: 'digital', itemType: 'series' }
+    return {}
+  }
+
   const loadFilms = () => {
     setLoading(true)
     const requestId = ++requestIdRef.current
@@ -239,8 +249,21 @@ export default function App() {
     if (drive) params.set('drive', drive)
     if (sort) params.set('sort', sort)
     if (alpha) params.set('alpha', alpha)
+    // فیلتر مدیا/تایپ بر اساس بخش انتخاب‌شده (Digital Movies، Blu-ray
+    // Series، ...) — قبلاً این‌جا ست نمی‌شد و همیشه کل ۱۷هزار+ ردیف (چند ده
+    // مگابایت) دانلود می‌شد، صرف‌نظر از این‌که کدوم بخش باز بود.
+    const { mediaType, itemType } = sectionToMediaItemType(section)
+    if (mediaType) params.set('mediaType', mediaType)
+    if (itemType) params.set('itemType', itemType)
+    // pagination سمت سرور — به‌جای دانلود کل بخش و slice کردنش تو مرورگر
+    params.set('limit', String(PAGE_SIZE))
+    params.set('offset', String((page - 1) * PAGE_SIZE))
     fetch('/api/films?' + params.toString())
-      .then((r) => r.json())
+      .then((r) => {
+        const total = r.headers.get('X-Total-Count')
+        if (requestId === requestIdRef.current && total != null) setTotalCount(Number(total))
+        return r.json()
+      })
       .then((data) => {
         if (requestId !== requestIdRef.current) return // یه درخواست جدیدتر در راهه، این جواب دیررسیده رو نادیده بگیر
         if (!Array.isArray(data)) {
@@ -256,16 +279,9 @@ export default function App() {
         }
         setFilms(data)
         setLoading(false)
-        // اگه هیچ فیلتری فعال نبود، این جواب همون کل آرشیوه (فقط با sort
-        // فعلی) — دقیقاً همون چیزی که loadAllFilmsUnfiltered() جدا درخواست
-        // می‌کرد. همینو برای allFilmsUnfiltered هم استفاده می‌کنیم تا موقع
-        // بارگذاری اول صفحه، کل آرشیو (چند مگابایت) دوبار دانلود/پارس نشه.
-        // ترتیب ردیف‌ها (sort) برای مصرف‌کننده‌های allFilmsUnfiltered
-        // (شمارش‌ها، Set/map های بلوری-دیجیتال، کلاژ پوستر پس‌زمینه) اهمیتی
-        // نداره.
-        if (params.toString() === '' || Array.from(params.keys()).every((k) => k === 'sort')) {
-          setAllFilmsUnfiltered(data)
-        }
+        // نکته: چون این fetch الان همیشه paginated هست (limit/offset)، دیگه
+        // هیچ‌وقت «کل آرشیو» نیست، پس دیگه allFilmsUnfiltered رو از اینجا پر
+        // نمی‌کنیم — loadAllFilmsUnfiltered() خودش جدا و مستقل صدا زده می‌شه.
       })
       .catch(() => {
         if (requestId === requestIdRef.current) setLoading(false)
@@ -278,10 +294,17 @@ export default function App() {
   // فیلترهای دیگه (genre, drive, ...) فوری اعمال می‌شن.
   useEffect(() => {
     setPage(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, genre, loanedOnly, watched, minRating, decade, drive, sort, alpha, section])
+
+  // section/page قبلاً اینجا نبودن — یعنی عوض‌کردن بخش (Digital Movies و
+  // غیره) اصلاً دوباره fetch نمی‌کرد، و صفحه‌بندی هم کاملاً سمت مرورگر (روی
+  // یه آرایه‌ی از پیش دانلودشده) انجام می‌شد. الان هر دو از سرور میان.
+  useEffect(() => {
     const t = setTimeout(loadFilms, 250)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, genre, loanedOnly, watched, minRating, decade, drive, sort, alpha])
+  }, [query, genre, loanedOnly, watched, minRating, decade, drive, sort, alpha, section, page])
 
   useEffect(() => {
     fetch('/api/genres')
@@ -292,12 +315,11 @@ export default function App() {
       .then((r) => r.json())
       .then((data) => setDecades(Array.isArray(data) ? data : []))
       .catch(() => {})
-    // loadAllFilmsUnfiltered() اینجا دیگه صدا زده نمی‌شه — چون effect
-    // دیباونس‌شده‌ی فیلتر (loadFilms) هم همین موقع mount، با فیلترهای
-    // پیش‌فرض (یعنی بدون فیلتر) اجرا می‌شه و حالا خودش allFilmsUnfiltered
-    // رو هم از همون جواب پر می‌کنه؛ یه fetch کامل و تکراری از کل آرشیو
-    // حذف شد. (loadAllFilmsUnfiltered خودش برای رفرش‌های بعدی که ممکنه
-    // فیلتری هم فعال باشه، دست‌نخورده می‌مونه.)
+    // پیش‌تر اینجا صدا زده نمی‌شد چون loadFilms (بدون فیلتر) خودش
+    // allFilmsUnfiltered رو پر می‌کرد؛ الان که loadFilms همیشه paginated
+    // هست، این فچ جدا (کل آرشیو، برای شمارش/پوستر/تشخیص «نسخه‌ی دیگه رو هم
+    // داره») باید همینجا صدا زده بشه.
+    loadAllFilmsUnfiltered()
   }, [])
 
   const refreshMeta = () => {
@@ -669,19 +691,13 @@ export default function App() {
   // useMemo: این فیلتر و همه‌ی موارد allFilmsUnfiltered زیرش قبلاً هر
   // رندر (مثلاً هر keystroke تو سرچ) دوباره کامل روی کل آرشیو اجرا می‌شدن؛
   // الان فقط وقتی dependency واقعاً عوض بشه دوباره حساب می‌شن.
-  const sectionFilms = useMemo(
-    () =>
-      films.filter((f) => {
-        if (section === 'physical') return f.mediaType !== 'digital' && f.itemType !== 'series'
-        if (section === 'physical-series') return f.mediaType !== 'digital' && f.itemType === 'series'
-        if (section === 'digital-movie') return f.mediaType === 'digital' && f.itemType !== 'series'
-        if (section === 'digital-series') return f.mediaType === 'digital' && f.itemType === 'series'
-        return true
-      }),
-    [films, section]
-  )
-  const pageCount = Math.max(1, Math.ceil(sectionFilms.length / PAGE_SIZE))
-  const visibleFilms = sectionFilms.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // فیلم‌های همین صفحه: قبلاً اینجا از روی allFilms (کل بخش، از پیش
+  // دانلودشده) فیلتر و slice می‌شد. الان films خودش از سرور، از قبل فقط
+  // مال همین بخش و همین صفحه‌ست (mediaType/itemType/limit/offset تو
+  // loadFilms ست می‌شن)، پس فیلتر/slice دوباره لازم نیست.
+  const sectionFilms = films
+  const pageCount = Math.max(1, Math.ceil((totalCount ?? films.length) / PAGE_SIZE))
+  const visibleFilms = films
 
   // کلیدهای فیلم‌هایی که نسخه‌ی فیزیکی بلوری‌شون توی آرشیو موجوده؛ برای
   // نشون‌دادن نشان «بلوری هم داره» روی کارت‌های دیجیتال همون فیلم
@@ -1017,7 +1033,7 @@ export default function App() {
         drives={drives}
         sort={sort}
         setSort={setSort}
-        total={sectionFilms.length}
+        total={totalCount ?? sectionFilms.length}
         section={section}
         onImport={handleImport}
         onImportRatings={handleImportRatings}

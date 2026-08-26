@@ -489,7 +489,7 @@ async function handleFetch(request, env, ctx) {
 
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
-        const { q, genre, shelf, closet, sort, alpha, decade, drive, loaned, watched, minRating, mediaType, itemType } = Object.fromEntries(url.searchParams)
+        const { q, genre, shelf, closet, sort, alpha, decade, drive, loaned, watched, minRating, mediaType, itemType, limit, offset } = Object.fromEntries(url.searchParams)
         // «بدون فیلتر» یعنی هیچ‌کدوم از فیلترها ست نشده — sort رو حساب
         // نمی‌کنیم چون فرانت‌اند پیش‌فرض sort=random می‌فرسته و اگه اونم شرط
         // بذاریم، دقیقاً همون درخواستِ پرتکرارِ لود اول صفحه هیچ‌وقت کش نمی‌شه.
@@ -497,7 +497,7 @@ async function handleFetch(request, env, ctx) {
         // (Digital Movies، Blu-ray Series، ...) کل جدول (۱۷هزار+ ردیف، ده‌ها
         // مگابایت) رو می‌کشید، نه فقط همون بخش. باگ اصلی «صفر موند» /
         // «گیر کرد تو Loading» همینجا بود.
-        const isUnfiltered = !q && !genre && !shelf && !closet && !decade && !drive && !loaned && !watched && !minRating && !alpha && !mediaType && !itemType
+        const isUnfiltered = !q && !genre && !shelf && !closet && !decade && !drive && !loaned && !watched && !minRating && !alpha && !mediaType && !itemType && !limit && !offset
         const filmsCacheKey = `${FILMS_CACHE_KEY}:${sort || 'default'}:${mediaType || 'all'}:${itemType || 'all'}`
         if (isUnfiltered && env.BACKUPS) {
           try {
@@ -571,17 +571,34 @@ async function handleFetch(request, env, ctx) {
           if (!isNaN(d)) { sql += ' AND year >= ? AND year < ?'; params.push(d, d + 10) }
         }
 
-        // Sorting
-        if (sort === 'year_desc') sql += ' ORDER BY year DESC'
-        else if (sort === 'year_asc') sql += ' ORDER BY year ASC'
-        else if (sort === 'rating') sql += ' ORDER BY rating DESC'
-        else if (sort === 'shelf') sql += ' ORDER BY shelf ASC'
-        else if (sort === 'random') sql += ' ORDER BY RANDOM()'
-        else if (sort === 'title_az') {
+        // Sorting — با pagination، sort=random رو نگه نمی‌داریم چون هر صفحه
+        // ORDER BY RANDOM() جدا اجرا می‌شه و باعث تکرار/جاافتادن آیتم بین
+        // صفحه‌ها می‌شه؛ به‌جاش می‌فته رو همون ترتیب الفبایی پیش‌فرض.
+        const isPaginated = limit != null && limit !== ''
+        const effectiveSort = isPaginated && sort === 'random' ? 'title_az' : sort
+        if (effectiveSort === 'year_desc') sql += ' ORDER BY year DESC'
+        else if (effectiveSort === 'year_asc') sql += ' ORDER BY year ASC'
+        else if (effectiveSort === 'rating') sql += ' ORDER BY rating DESC'
+        else if (effectiveSort === 'shelf') sql += ' ORDER BY shelf ASC'
+        else if (effectiveSort === 'random') sql += ' ORDER BY RANDOM()'
+        else if (effectiveSort === 'title_az') {
           // مرتب‌سازی الفبایی، نادیده گرفتن «The» ابتدای عنوان (مثلاً
           // "The Godfather" باید زیر G بره نه T)
           sql += ` ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
         } else sql += ` ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
+
+        // برای pagination، شمارش کل (بدون LIMIT) رو با همون WHERE می‌گیریم تا
+        // فرانت‌اند بدونه چند صفحه هست — قبل از اضافه‌کردن LIMIT/OFFSET به sql.
+        let totalCount = null
+        if (isPaginated) {
+          const countSql = 'SELECT COUNT(*) as cnt FROM films WHERE 1=1' + sql.slice(sql.indexOf('WHERE 1=1') + 'WHERE 1=1'.length, sql.indexOf(' ORDER BY'))
+          const countRow = await db.prepare(countSql).bind(...params).first()
+          totalCount = countRow ? countRow.cnt : 0
+          const limitNum = Math.min(Math.max(parseInt(limit, 10) || 48, 1), 500)
+          const offsetNum = Math.max(parseInt(offset, 10) || 0, 0)
+          sql += ' LIMIT ? OFFSET ?'
+          params.push(limitNum, offsetNum)
+        }
 
         const result = await db.prepare(sql).bind(...params).all()
         // Parse JSON string fields
@@ -589,7 +606,8 @@ async function handleFetch(request, env, ctx) {
         if (isUnfiltered && env.BACKUPS) {
           ctx.waitUntil(env.BACKUPS.put(filmsCacheKey, JSON.stringify(films), { expirationTtl: FILMS_CACHE_TTL }).catch(() => {}))
         }
-        return json(films, 200, corsHeaders)
+        const headers = totalCount != null ? { ...corsHeaders, 'X-Total-Count': String(totalCount) } : corsHeaders
+        return json(films, 200, headers)
       }
 
       // ---- GET /api/films/counts ----
