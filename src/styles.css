@@ -5014,6 +5014,41 @@ body.light .marquee-band {
 body.light .folder-nav-title {
   color: var(--marquee-cream, #1c1a15);
 }
+.marquee-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+@media (min-width: 860px) {
+  .marquee-band {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 40px;
+    max-width: 980px;
+    text-align: left;
+  }
+  .marquee-brand {
+    flex: 0 0 260px;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .marquee-brand .folder-nav-title,
+  .marquee-brand .marquee-eyebrow {
+    text-align: left;
+  }
+  .marquee-brand .folder-nav-search {
+    margin: 0;
+    max-width: none;
+  }
+  .marquee-band .folder-grid {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+  }
+  .marquee-band .marquee-footer {
+    display: none;
+  }
+}
 .folder-nav-search {
   position: relative;
   max-width: 460px;
