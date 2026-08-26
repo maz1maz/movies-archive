@@ -5264,6 +5264,51 @@ body.light .folder-card h2 {
 body.light .folder-card p {
   color: var(--marquee-muted, rgba(28, 26, 21, 0.6));
 }
+
+@media (max-width: 480px) {
+  .marquee-band {
+    padding: 26px 18px 22px;
+    border-radius: 20px;
+    max-width: 100%;
+  }
+  .folder-nav {
+    padding: 20px 10px;
+  }
+  .folder-nav-logo {
+    width: 72px;
+    margin-bottom: 10px;
+  }
+  .folder-nav-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  .folder-nav-search {
+    margin-bottom: 20px;
+  }
+  .folder-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .folder-card {
+    padding: 12px 14px;
+    gap: 10px;
+    border-radius: 14px;
+  }
+  .folder-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .folder-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+  .folder-card h2 {
+    font-size: 13.5px;
+  }
+  .folder-card p {
+    font-size: 11px;
+  }
+}
 .folder-back {
   align-self: flex-start;
   margin-bottom: 24px;
