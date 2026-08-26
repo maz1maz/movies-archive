@@ -4958,7 +4958,7 @@ body.light .page-collage-overlay {
 .marquee-band {
   --marquee-bg: rgba(255, 255, 255, 0.05);
   --marquee-border: rgba(255, 255, 255, 0.12);
-  --marquee-gold: #0a84ff;
+  --marquee-gold: #d4af37;
   --marquee-cream: #f5f5f7;
   --marquee-muted: rgba(235, 235, 240, 0.55);
   --marquee-ruby: #ff453a;
@@ -4982,7 +4982,7 @@ body.light .page-collage-overlay {
 body.light .marquee-band {
   --marquee-bg: rgba(255, 255, 255, 0.6);
   --marquee-border: rgba(60, 60, 67, 0.14);
-  --marquee-gold: #007aff;
+  --marquee-gold: #9c7a1f;
   --marquee-cream: #1d1d1f;
   --marquee-muted: rgba(29, 29, 31, 0.6);
   --marquee-ruby: #ff3b30;
