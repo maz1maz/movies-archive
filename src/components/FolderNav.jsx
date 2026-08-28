@@ -67,7 +67,7 @@ export default function FolderNav({
                 </span>
                 <input
                   type="search"
-                  placeholder="Search the whole archive — title, director, actor…"
+                  placeholder="Search the archive…"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
