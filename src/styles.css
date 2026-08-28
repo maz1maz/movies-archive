@@ -2923,6 +2923,7 @@ body.light .header {
 /* Top Row: Synopsis Left & Location Badge Right */
 .cine-info-top-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
