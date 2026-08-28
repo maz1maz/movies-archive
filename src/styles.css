@@ -710,6 +710,7 @@ body.light .header {
   max-width: 100%;
   max-height: 90vh;
   overflow-x: hidden;
+  overflow-anchor: none;
   overscroll-behavior-x: none;
   touch-action: pan-y;
   overflow-y: auto;
@@ -1137,6 +1138,7 @@ body.light .header {
   max-height: 90vh;
   overflow-y: auto;
   overflow-x: hidden;
+  overflow-anchor: none;
   overscroll-behavior-x: none;
   touch-action: pan-y;
   word-break: break-word;
@@ -3443,6 +3445,7 @@ body.light .header {
   max-width: 100%;
   max-height: 88vh;
   overflow-x: hidden;
+  overflow-anchor: none;
   overscroll-behavior-x: none;
   touch-action: pan-y;
   overflow-y: auto;
@@ -5805,6 +5808,7 @@ body.light .folder-back {
   display: flex;
   gap: 12px;
   overflow-x: auto;
+  overflow-anchor: none;
   margin-top: 10px;
   padding-bottom: 4px;
 }
