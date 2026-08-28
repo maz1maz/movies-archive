@@ -114,6 +114,12 @@ export const IconClose = (props) => (
   </svg>
 )
 
+export const IconChevronRight = (props) => (
+  <svg {...base} {...props}>
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+)
+
 export const IconEdit = (props) => (
   <svg {...base} {...props}>
     <path d="M12 20h9" />

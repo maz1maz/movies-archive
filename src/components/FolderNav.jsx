@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconBookshelf, IconNewspaper, IconHardDrive } from './icons.jsx'
+import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconBookshelf, IconNewspaper, IconHardDrive, IconChevronRight } from './icons.jsx'
 import PosterCollage from './PosterCollage.jsx'
 
 function escapeRegex(s) {
@@ -110,6 +110,21 @@ export default function FolderNav({
             <p className="marquee-eyebrow reveal-item reveal-2">Now showing</p>
             <h1 className="folder-nav-title reveal-item reveal-3">Cinefilm Archive</h1>
 
+            <div className="folder-nav-stats reveal-item reveal-3">
+              <div className="folder-nav-stat">
+                <span className="folder-nav-stat-value">{counts.physical || 0}</span>
+                <span className="folder-nav-stat-label">Blu-ray</span>
+              </div>
+              <div className="folder-nav-stat">
+                <span className="folder-nav-stat-value">{(counts.digitalMovies || 0) + (counts.digitalSeries || 0)}</span>
+                <span className="folder-nav-stat-label">Digital</span>
+              </div>
+              <div className="folder-nav-stat">
+                <span className="folder-nav-stat-value">{(counts.digitalSeries || 0) + (counts.physicalSeries || 0)}</span>
+                <span className="folder-nav-stat-label">Series</span>
+              </div>
+            </div>
+
             <div className="folder-nav-search reveal-item reveal-4">
               <div className="search-box">
                 <span className="search-icon">
@@ -164,6 +179,7 @@ export default function FolderNav({
                   <h2>Blu-ray Movies</h2>
                   <p>Physical · {counts.physical} items</p>
                 </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
               <button className="folder-card folder-card-physical reveal-item reveal-5" onClick={onSelectPhysicalSeries}>
                 <span className="folder-icon">
@@ -173,6 +189,7 @@ export default function FolderNav({
                   <h2>Blu-ray Series</h2>
                   <p>Physical · {counts.physicalSeries || 0} items</p>
                 </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
               <button className="folder-card folder-card-digital reveal-item reveal-6" onClick={() => onSelectDigitalType('movie')}>
                 <span className="folder-icon">
@@ -182,6 +199,7 @@ export default function FolderNav({
                   <h2>Digital Movies</h2>
                   <p>Drive · {counts.digitalMovies} items</p>
                 </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
               <button className="folder-card folder-card-digital reveal-item reveal-7" onClick={() => onSelectDigitalType('series')}>
                 <span className="folder-icon">
@@ -191,6 +209,7 @@ export default function FolderNav({
                   <h2>Digital Series</h2>
                   <p>Drive · {counts.digitalSeries} items</p>
                 </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
               <button className="folder-card folder-card-physical reveal-item reveal-8" onClick={onOpenBookshelf}>
                 <span className="folder-icon">
@@ -200,6 +219,7 @@ export default function FolderNav({
                   <h2>3D Bookshelf</h2>
                   <p>Physical · {counts.physical} items</p>
                 </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
               <button className="folder-card folder-card-digital reveal-item reveal-8" onClick={onOpenDriveBrowser}>
                 <span className="folder-icon">
@@ -209,6 +229,7 @@ export default function FolderNav({
                   <h2>Browse by Drive</h2>
                   <p>Digital · {(counts.digitalMovies || 0) + (counts.digitalSeries || 0)} items</p>
                 </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
               <button className="folder-card reveal-item reveal-8" onClick={onSelectSpecialCollections}>
                 <span className="folder-icon">
@@ -218,6 +239,7 @@ export default function FolderNav({
                   <h2>Special Collections</h2>
                   <p>Coming soon</p>
                 </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
               <button className="folder-card folder-card-dashboard reveal-item reveal-9" onClick={onSelectDashboard}>
                 <span className="folder-icon">
@@ -227,6 +249,7 @@ export default function FolderNav({
                   <h2>Dashboard</h2>
                   <p>Info &amp; Statistics</p>
                 </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
               <button className="folder-card reveal-item reveal-9" onClick={onSelectGallery}>
                 <span className="folder-icon">
@@ -236,6 +259,7 @@ export default function FolderNav({
                   <h2>Gallery</h2>
                   <p>Visual poster wall</p>
                 </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
               <button className="folder-card reveal-item reveal-9" onClick={onSelectCinemaNews}>
                 <span className="folder-icon">
@@ -245,6 +269,7 @@ export default function FolderNav({
                   <h2>Cinema News</h2>
                   <p>Birthdays &amp; what's coming</p>
                 </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
             </div>
           )}
