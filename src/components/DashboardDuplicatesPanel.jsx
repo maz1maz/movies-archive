@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 
 const SCOPES = [
   { key: 'all', label: 'Everything' },
+  { key: 'both', label: 'Physical + Digital' },
   { key: 'physical', label: 'Blu-ray (Physical)' },
   { key: 'digital', label: 'Digital' },
   { key: 'series', label: 'Series only' },
@@ -50,8 +51,9 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
     <div className="oscars-panel">
       <div className="card oscars-controls">
         <p className="oscars-intro">
-          Same title, year, and media type appearing more than once — usually an accidental double entry, not
-          intentional multi-copy tracking (that uses the Copies counter on a single entry instead).
+          {scope === 'both'
+            ? 'Titles you own on both Blu-ray and digital — not duplicates to clean up, just a combined view.'
+            : 'Same title, year, and media type appearing more than once — usually an accidental double entry, not intentional multi-copy tracking (that uses the Copies counter on a single entry instead).'}
         </p>
         <div className="row row-wrap oscars-filters">
           <div className="oscars-field">

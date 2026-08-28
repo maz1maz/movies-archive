@@ -504,6 +504,27 @@ async function handleFetch(request, env, ctx) {
       // multi-copy tracking which uses the "copies" counter instead) ----
       if (method === 'GET' && pathname === '/api/duplicates') {
         const scope = url.searchParams.get('scope') || 'all'
+
+        // scope=both: نه دوبله‌ی اشتباهی، بلکه فیلم‌هایی که واقعاً هم نسخه‌ی
+        // فیزیکال هم دیجیتال داری — یه‌جا نشونش می‌دیم (گروه‌بندی بدون در
+        // نظر گرفتن mediaType، فقط گروه‌هایی که هر دو نوع توشونه نگه داشته می‌شن).
+        if (scope === 'both') {
+          const result = await db
+            .prepare('SELECT id, title, year, mediaType, itemType, closet, shelf, row, driveNumber, poster, format, copies FROM films')
+            .all()
+          const rows = result.results || []
+          const groups = new Map()
+          rows.forEach((f) => {
+            const key = `${normalizeTitle(f.title)}|${f.year || ''}|${f.itemType}`
+            if (!groups.has(key)) groups.set(key, [])
+            groups.get(key).push(f)
+          })
+          const both = Array.from(groups.values()).filter(
+            (g) => g.some((f) => f.mediaType === 'digital') && g.some((f) => f.mediaType !== 'digital')
+          )
+          return json(both, 200, corsHeaders)
+        }
+
         let sql = 'SELECT id, title, year, mediaType, itemType, closet, shelf, row, driveNumber, poster, format, copies FROM films WHERE 1=1'
         if (scope === 'physical') sql += " AND mediaType != 'digital'"
         else if (scope === 'digital') sql += " AND mediaType = 'digital'"

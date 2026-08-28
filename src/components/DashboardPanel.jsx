@@ -15,10 +15,12 @@ import DashboardAuditPanel from './DashboardAuditPanel.jsx'
 import DashboardApiUsagePanel from './DashboardApiUsagePanel.jsx'
 import DashboardFollowedPanel from './DashboardFollowedPanel.jsx'
 import DashboardCollectionsPanel from './DashboardCollectionsPanel.jsx'
+import DashboardWrappedPanel from './DashboardWrappedPanel.jsx'
 import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper, IconBookshelf, IconLayers, IconHandshake, IconSparkles, IconCheck, IconDocument, IconUser } from './icons.jsx'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: IconBarChart },
+  { key: 'wrapped', label: 'Wrapped', icon: IconSparkles },
   { key: 'oscars', label: 'Oscars', icon: IconTrophy },
   { key: 'genretops', label: 'Genre Tops', icon: IconMasks },
   { key: 'crafts', label: 'Crafts', icon: IconClapper },
@@ -84,6 +86,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
           })}
         </nav>
         {tab === 'overview' && <DashboardOverview films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} isAdmin={isAdmin} onFilmsChanged={onFilmsChanged} />}
+        {tab === 'wrapped' && <DashboardWrappedPanel films={films} onOpenPerson={onOpenPerson} />}
         {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
         {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
         {tab === 'crafts' && <CraftsPanel films={films} onOpenFilm={onOpenFilm} />}
