@@ -1147,13 +1147,14 @@ body.light .header {
 }
 
 .cine-corner-actions {
-  position: absolute;
+  position: sticky;
   top: 16px;
-  right: 16px;
+  align-self: flex-end;
   display: flex;
   align-items: center;
   gap: 8px;
-  z-index: 2;
+  z-index: 5;
+  margin-bottom: -48px;
 }
 .cine-close {
   width: 30px;
