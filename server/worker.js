@@ -2712,6 +2712,7 @@ async function fetchCinemaHeadlines(db) {
       { url: 'https://variety.com/feed/', source: 'Variety' },
       { url: 'https://www.hollywoodreporter.com/feed/', source: 'The Hollywood Reporter' },
       { url: 'https://www.indiewire.com/feed/', source: 'IndieWire' },
+      { url: 'https://deadline.com/feed/', source: 'Deadline' },
     ]
     const headers = { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' }
     const all = []
@@ -2725,7 +2726,11 @@ async function fetchCinemaHeadlines(db) {
     }
 
     all.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-    const headlines = all.slice(0, 6)
+    // قبلاً اینجا فقط ۶ تا نگه داشته می‌شد و بعد سمت کلاینت به فیلم/سریال
+    // فیلتر می‌شد — با فقط ۶ تیتر کلی (که بیشترشون فیلمه)، بخش «Series
+    // news» عملاً همیشه خالی بود. حالا مجموعه‌ی بزرگ‌تری نگه می‌داریم تا
+    // بعد از فیلتر شدن هم چیزی برای هر دو دسته بمونه.
+    const headlines = all.slice(0, 24)
 
     // ترجمه‌ی کوتاه فارسیِ هر تیتر انگلیسی، برای نمایش زیر عنوان اصلی
     await Promise.all(
