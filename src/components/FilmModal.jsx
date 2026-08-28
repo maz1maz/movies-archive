@@ -107,10 +107,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   }, [film?.id])
 
   useEffect(() => {
-    if (altPosters.length < 2) return
+    const total = altPosters.length + 1
+    if (total < 2) return
     const timer = setInterval(() => {
-      setAltPosterIndex((i) => (i + 1) % altPosters.length)
-    }, 2600)
+      setAltPosterIndex((i) => (i + 1) % total)
+    }, 3200)
     return () => clearInterval(timer)
   }, [altPosters])
 
@@ -449,46 +450,73 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
         {/* Main Body: Poster + Rearranged Gray Info Card */}
         <div className="cine-main-row">
           <div className="cine-poster-wrap">
-          <div
-            className={
-              hasBluray
-                ? 'cine-poster-box clickable-poster cine-poster-has-bluray'
-                : hasDigital
-                ? 'cine-poster-box clickable-poster cine-poster-has-digital'
-                : 'cine-poster-box clickable-poster'
-            }
-            onClick={() => film.poster && setLightboxSrc(film.poster)}
-            title="Click to view full poster"
-          >
-            <img
-              src={film.poster}
-              alt={film.title}
-              className="cine-poster-img"
-              decoding="async"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
-            />
-            <div className="cine-poster-fallback">{film.title}</div>
-          </div>
-          {altPosters.length > 0 && (
-            <div className="cine-alt-posters">
-              {altPosters.map((src, i) => (
-                <button
-                  key={src}
-                  type="button"
-                  className={i === altPosterIndex ? 'cine-alt-poster-thumb cine-alt-poster-thumb-active' : 'cine-alt-poster-thumb'}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setLightboxSrc(src)
-                  }}
-                  title="View this poster"
+          {(() => {
+            const posters = [film.poster, ...altPosters].filter(Boolean)
+            const uniquePosters = [...new Set(posters)]
+            if (uniquePosters.length <= 1) {
+              return (
+                <div
+                  className={
+                    hasBluray
+                      ? 'cine-poster-box clickable-poster cine-poster-has-bluray'
+                      : hasDigital
+                      ? 'cine-poster-box clickable-poster cine-poster-has-digital'
+                      : 'cine-poster-box clickable-poster'
+                  }
+                  onClick={() => film.poster && setLightboxSrc(film.poster)}
+                  title="Click to view full poster"
                 >
-                  <img src={proxyImg(src)} alt="" loading="lazy" decoding="async" />
-                </button>
-              ))}
-            </div>
-          )}
+                  <img
+                    src={film.poster}
+                    alt={film.title}
+                    className="cine-poster-img"
+                    decoding="async"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                  <div className="cine-poster-fallback">{film.title}</div>
+                </div>
+              )
+            }
+            return (
+              <div
+                className={
+                  hasBluray
+                    ? 'cine-poster-box cine-poster-coverflow cine-poster-has-bluray'
+                    : hasDigital
+                    ? 'cine-poster-box cine-poster-coverflow cine-poster-has-digital'
+                    : 'cine-poster-box cine-poster-coverflow'
+                }
+              >
+                {uniquePosters.map((src, i) => {
+                  let offset = i - altPosterIndex
+                  const half = uniquePosters.length / 2
+                  if (offset > half) offset -= uniquePosters.length
+                  if (offset < -half) offset += uniquePosters.length
+                  const isActive = offset === 0
+                  const abs = Math.abs(offset)
+                  return (
+                    <button
+                      key={src}
+                      type="button"
+                      className={isActive ? 'cine-poster-slide cine-poster-slide-active' : 'cine-poster-slide'}
+                      style={{
+                        transform: `translateX(${offset * 78}%) scale(${isActive ? 1 : 0.78})`,
+                        zIndex: isActive ? 3 : 2 - abs,
+                        opacity: abs > 1 ? 0 : 1,
+                        pointerEvents: abs > 1 ? 'none' : 'auto',
+                      }}
+                      onClick={() => (isActive ? setLightboxSrc(src) : setAltPosterIndex(i))}
+                      title={isActive ? 'Click to view full poster' : 'Show this poster'}
+                    >
+                      <img src={proxyImg(src)} alt={film.title} decoding="async" />
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })()}
           </div>
 
           <div className="cine-info-card">
