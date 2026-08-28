@@ -4535,10 +4535,12 @@ async function runPosterAudit(db) {
       await Promise.all(
         batch.map(async (f) => {
           try {
-            let res = await fetch(f.poster, { method: 'HEAD', signal: AbortSignal.timeout(8000) })
-            if (res.status === 405 || res.status === 501) {
-              // بعضی CDNها HEAD رو پشتیبانی نمی‌کنن، با GET دوباره امتحان می‌کنیم
-              res = await fetch(f.poster, { method: 'GET', signal: AbortSignal.timeout(8000) })
+            const headers = { 'User-Agent': 'CinefilmArchive/1.0 (personal film archive app; poster link check)' }
+            let res = await fetch(f.poster, { method: 'HEAD', headers, signal: AbortSignal.timeout(8000) })
+            if (res.status === 405 || res.status === 501 || res.status === 403) {
+              // بعضی CDNها HEAD رو پشتیبانی نمی‌کنن (یا با HEAD ۴۰۳ می‌دن، مثل
+              // ویکی‌مدیا بعضی‌وقتا)، با GET دوباره امتحان می‌کنیم
+              res = await fetch(f.poster, { method: 'GET', headers, signal: AbortSignal.timeout(8000) })
             }
             if (!res.ok) broken.push({ id: f.id, title: f.title, poster: f.poster, status: res.status })
           } catch (e) {
