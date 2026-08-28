@@ -3324,11 +3324,12 @@ async function fetchGeneralUpcoming(db, env) {
         infoUrl: `https://www.themoviedb.org/movie/${m.id}`,
       }))
 
-    const seriesRes = await tmdbGet('/discover/tv', {
-      sort_by: 'popularity.desc',
-      'first_air_date.gte': today,
-      page: '1',
-    })
+    // نکته: قبلاً اینجا /discover/tv با first_air_date.gte بود که فقط
+    // سریال‌های کاملاً تازه (قسمت اولشون هنوز پخش نشده) رو می‌گرفت — یعنی
+    // تقریباً همیشه خالی، چون اکثر سریال‌های محبوب همین الان در حال پخشن
+    // (فصل جدید دارن، نه اولین قسمت). به‌جاش /tv/on_the_air که سریال‌های
+    // با اپیزود در ۷ روز آینده رو می‌ده، خیلی بیشتر نتیجه‌ی مرتبط داره.
+    const seriesRes = await tmdbGet('/tv/on_the_air', { region: 'US', page: '1' })
     const series = (seriesRes?.results || [])
       .filter((s) => s.name && s.first_air_date)
       .slice(0, 12)
