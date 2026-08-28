@@ -5250,7 +5250,7 @@ body.light .folder-nav-title {
 }
 .folder-nav-search {
   position: relative;
-  max-width: 460px;
+  width: 100%;
   margin: 0 auto 30px;
   text-align: left;
 }
