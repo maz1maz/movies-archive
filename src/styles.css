@@ -1230,8 +1230,8 @@ body.light .header {
 
 /* Format Badges */
 .format-badge {
-  background: var(--accent-strong);
-  color: #ffffff;
+  background: #d4af37;
+  color: #1a1305;
   padding: 5px 10px;
   border-radius: 7px;
   font-size: 11px;
@@ -1242,12 +1242,15 @@ body.light .header {
 }
 .format-badge.fmt-4k, .format-badge.steelbook {
   background: #6b46c1;
+  color: #ffffff;
 }
 .format-badge.dvd {
   background: #c0392b;
+  color: #ffffff;
 }
 .format-badge.digital {
   background: #3b82f6;
+  color: #ffffff;
 }
 
 .cine-top-badges-column {
