@@ -269,7 +269,7 @@ body.light .header {
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: 16px;
 }
 .search-box input {
   min-height: 40px;
