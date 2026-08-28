@@ -5181,6 +5181,22 @@ body.light .folder-nav-title {
 .folder-card h2 {
   margin: 0;
 }
+.folder-card-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.folder-card-text h2 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.folder-card-text p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .folder-card p {
   margin: 2px 0 0;
 }

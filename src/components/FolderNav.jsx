@@ -110,71 +110,91 @@ export default function FolderNav({
                 <span className="folder-icon">
                   <IconDisc width={32} height={32} />
                 </span>
-                <h2>Blu-ray Movies</h2>
-                <p>Physical · {counts.physical} items</p>
+                <span className="folder-card-text">
+                  <h2>Blu-ray Movies</h2>
+                  <p>Physical · {counts.physical} items</p>
+                </span>
               </button>
               <button className="folder-card folder-card-physical reveal-item reveal-5" onClick={onSelectPhysicalSeries}>
                 <span className="folder-icon">
                   <IconLayers width={32} height={32} />
                 </span>
-                <h2>Blu-ray Series</h2>
-                <p>Physical · {counts.physicalSeries || 0} items</p>
+                <span className="folder-card-text">
+                  <h2>Blu-ray Series</h2>
+                  <p>Physical · {counts.physicalSeries || 0} items</p>
+                </span>
               </button>
               <button className="folder-card folder-card-digital reveal-item reveal-6" onClick={() => onSelectDigitalType('movie')}>
                 <span className="folder-icon">
                   <IconFilm width={32} height={32} />
                 </span>
-                <h2>Digital Movies</h2>
-                <p>Drive · {counts.digitalMovies} items</p>
+                <span className="folder-card-text">
+                  <h2>Digital Movies</h2>
+                  <p>Drive · {counts.digitalMovies} items</p>
+                </span>
               </button>
               <button className="folder-card folder-card-digital reveal-item reveal-7" onClick={() => onSelectDigitalType('series')}>
                 <span className="folder-icon">
                   <IconTV width={32} height={32} />
                 </span>
-                <h2>Digital Series</h2>
-                <p>Drive · {counts.digitalSeries} items</p>
+                <span className="folder-card-text">
+                  <h2>Digital Series</h2>
+                  <p>Drive · {counts.digitalSeries} items</p>
+                </span>
               </button>
               <button className="folder-card folder-card-physical reveal-item reveal-8" onClick={onOpenBookshelf}>
                 <span className="folder-icon">
                   <IconBookshelf width={32} height={32} />
                 </span>
-                <h2>3D Bookshelf</h2>
-                <p>Physical · {counts.physical} items</p>
+                <span className="folder-card-text">
+                  <h2>3D Bookshelf</h2>
+                  <p>Physical · {counts.physical} items</p>
+                </span>
               </button>
               <button className="folder-card folder-card-digital reveal-item reveal-8" onClick={onOpenDriveBrowser}>
                 <span className="folder-icon">
                   <IconHardDrive width={32} height={32} />
                 </span>
-                <h2>Browse by Drive</h2>
-                <p>Digital · {(counts.digitalMovies || 0) + (counts.digitalSeries || 0)} items</p>
+                <span className="folder-card-text">
+                  <h2>Browse by Drive</h2>
+                  <p>Digital · {(counts.digitalMovies || 0) + (counts.digitalSeries || 0)} items</p>
+                </span>
               </button>
               <button className="folder-card reveal-item reveal-8" onClick={onSelectSpecialCollections}>
                 <span className="folder-icon">
                   <IconStar width={32} height={32} />
                 </span>
-                <h2>Special Collections</h2>
-                <p>Coming soon</p>
+                <span className="folder-card-text">
+                  <h2>Special Collections</h2>
+                  <p>Coming soon</p>
+                </span>
               </button>
               <button className="folder-card folder-card-dashboard reveal-item reveal-9" onClick={onSelectDashboard}>
                 <span className="folder-icon">
                   <IconBarChart width={32} height={32} />
                 </span>
-                <h2>Dashboard</h2>
-                <p>Info &amp; Statistics</p>
+                <span className="folder-card-text">
+                  <h2>Dashboard</h2>
+                  <p>Info &amp; Statistics</p>
+                </span>
               </button>
               <button className="folder-card reveal-item reveal-9" onClick={onSelectGallery}>
                 <span className="folder-icon">
                   <IconSparkles width={32} height={32} />
                 </span>
-                <h2>Gallery</h2>
-                <p>Visual poster wall</p>
+                <span className="folder-card-text">
+                  <h2>Gallery</h2>
+                  <p>Visual poster wall</p>
+                </span>
               </button>
               <button className="folder-card reveal-item reveal-9" onClick={onSelectCinemaNews}>
                 <span className="folder-icon">
                   <IconNewspaper width={32} height={32} />
                 </span>
-                <h2>Cinema News</h2>
-                <p>Birthdays &amp; what's coming</p>
+                <span className="folder-card-text">
+                  <h2>Cinema News</h2>
+                  <p>Birthdays &amp; what's coming</p>
+                </span>
               </button>
             </div>
           )}
