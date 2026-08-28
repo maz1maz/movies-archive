@@ -162,42 +162,43 @@ export default function Header({
           <div className="brand-text">
             <div className="brand-title-row">
               <h1 className="brand-title">CINEFILM ARCHIVE</h1>
-              <div className={`section-badge section-badge-${section === 'digital-movie' || section === 'digital-series' ? 'digital' : 'physical'}`}>
-                {section === 'digital-movie' ? (
-                  <>
-                    <IconClapper width={13} height={13} /> Digital Movies
-                  </>
-                ) : section === 'digital-series' ? (
-                  <>
-                    <IconBookshelf width={13} height={13} /> Digital Series
-                  </>
-                ) : section === 'physical-series' ? (
-                  <>
-                    <IconDisc width={13} height={13} /> Blu-ray Series
-                  </>
-                ) : (
-                  <>
-                    <IconArchive width={13} height={13} /> Blu-ray Movies
-                  </>
-                )}
-              </div>
             </div>
             <p className="brand-meta">
               <span className="brand-owner">Alireza Mazlaghani</span>
-              <span className="brand-meta-sep">·</span>
-              <span className="brand-sub">
-                {total}{' '}
-                {section === 'digital-movie'
-                  ? 'digital movies'
-                  : section === 'digital-series'
-                  ? 'digital series'
-                  : section === 'physical-series'
-                  ? 'Blu-ray series'
-                  : 'physical films'}
-              </span>
             </p>
           </div>
         </button>
+        <div className="brand-section-info">
+          <div className={`section-badge section-badge-${section === 'digital-movie' || section === 'digital-series' ? 'digital' : 'physical'}`}>
+            {section === 'digital-movie' ? (
+              <>
+                <IconClapper width={13} height={13} /> Digital Movies
+              </>
+            ) : section === 'digital-series' ? (
+              <>
+                <IconBookshelf width={13} height={13} /> Digital Series
+              </>
+            ) : section === 'physical-series' ? (
+              <>
+                <IconDisc width={13} height={13} /> Blu-ray Series
+              </>
+            ) : (
+              <>
+                <IconArchive width={13} height={13} /> Blu-ray Movies
+              </>
+            )}
+          </div>
+          <p className="brand-sub-count">
+            {total}{' '}
+            {section === 'digital-movie'
+              ? 'digital movies'
+              : section === 'digital-series'
+              ? 'digital series'
+              : section === 'physical-series'
+              ? 'Blu-ray series'
+              : 'physical films'}
+          </p>
+        </div>
         </div>
 
         <div className="actions">

@@ -162,6 +162,27 @@ body.light .header {
   color: var(--muted);
   font-size: 12px;
 }
+.header-brand-group {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.brand-section-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.brand-sub-count {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -4285,10 +4306,21 @@ body.light .header {
     flex-direction: column;
     padding: 12px 0 8px;
     gap: 10px;
+    position: relative;
+  }
+  .header-brand-group {
+    width: 100%;
+    padding-right: 108px;
+  }
+  .brand-section-info {
+    position: absolute;
+    top: 0;
+    right: 0;
+    align-items: flex-end;
   }
   .actions {
     width: 100%;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 6px;
   }
   .actions .btn {
