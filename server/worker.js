@@ -79,9 +79,19 @@ async function handleFetch(request, env, ctx) {
     // CORS headers for the frontend. Cookie-based auth requires the exact
     // origin (not '*') plus Allow-Credentials so the browser sends/accepts
     // the HttpOnly session cookie on cross-origin fetches (e.g. local dev).
+    // نکته‌ی امنیتی: قبلاً هر Origin دلخواه عیناً echo می‌شد — با
+    // Allow-Credentials:true این یعنی هر سایت مخربی می‌تونست با کوکی
+    // نشست کاربر لاگین‌شده به API درخواست بزنه و جوابش رو بخونه. الان فقط
+    // دامنه‌ی خودِ اپ + پورت‌های dev محلی مجازن.
+    const ALLOWED_ORIGINS = [
+      'https://movies-archive.hamidreza-mazlaghani.workers.dev',
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+    ]
     const origin = request.headers.get('Origin')
+    const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
     const corsHeaders = {
-      'Access-Control-Allow-Origin': origin || '*',
+      'Access-Control-Allow-Origin': allowedOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Allow-Credentials': 'true',
