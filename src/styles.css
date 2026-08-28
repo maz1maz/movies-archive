@@ -899,7 +899,6 @@ body.light .header {
   align-self: flex-end;
   width: 30px;
   height: 30px;
-  margin-bottom: -30px;
   z-index: 5;
 }
 .edit-title {
@@ -1160,7 +1159,6 @@ body.light .header {
   align-items: center;
   gap: 8px;
   z-index: 5;
-  margin-bottom: -48px;
 }
 .cine-close {
   width: 30px;
@@ -3452,7 +3450,6 @@ body.light .header {
   top: 0;
   align-self: flex-end;
   z-index: 5;
-  margin-bottom: -32px;
 }
 .person-header {
   display: flex;
