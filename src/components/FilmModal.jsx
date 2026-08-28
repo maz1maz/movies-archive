@@ -5,6 +5,7 @@ import ImageLightbox from './ImageLightbox.jsx'
 import { shareFilmCard } from '../utils/shareCard.js'
 import { addToOrderList } from '../utils/orderList.js'
 import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
+import { proxyImg } from '../utils/proxyImg.js'
 
 function CollectionOrderButton({ title, year }) {
   const [state, setState] = useState('idle') // idle | adding | added
@@ -90,6 +91,28 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const [bookAdaptation, setBookAdaptation] = useState(null)
   const [shootingLocation, setShootingLocation] = useState(null)
   const [festivalAwards, setFestivalAwards] = useState(Array.isArray(film?.festivalAwards) ? film.festivalAwards : [])
+  const [altPosters, setAltPosters] = useState([])
+  const [altPosterIndex, setAltPosterIndex] = useState(0)
+
+  // پوسترهای جایگزین: کنار پوستر اصلی نشون داده می‌شن و خودکار می‌چرخن —
+  // مثل اینکه نوبتی خودشون رو نشون می‌دن.
+  useEffect(() => {
+    setAltPosters([])
+    setAltPosterIndex(0)
+    if (!film?.id) return
+    fetch(`/api/films/${film.id}/alt-posters`)
+      .then((r) => r.json())
+      .then((data) => setAltPosters(Array.isArray(data.posters) ? data.posters.slice(0, 5) : []))
+      .catch(() => {})
+  }, [film?.id])
+
+  useEffect(() => {
+    if (altPosters.length < 2) return
+    const timer = setInterval(() => {
+      setAltPosterIndex((i) => (i + 1) % altPosters.length)
+    }, 2600)
+    return () => clearInterval(timer)
+  }, [altPosters])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -425,6 +448,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
         {/* Main Body: Poster + Rearranged Gray Info Card */}
         <div className="cine-main-row">
+          <div className="cine-poster-wrap">
           <div
             className={
               hasBluray
@@ -446,6 +470,25 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               }}
             />
             <div className="cine-poster-fallback">{film.title}</div>
+          </div>
+          {altPosters.length > 0 && (
+            <div className="cine-alt-posters">
+              {altPosters.map((src, i) => (
+                <button
+                  key={src}
+                  type="button"
+                  className={i === altPosterIndex ? 'cine-alt-poster-thumb cine-alt-poster-thumb-active' : 'cine-alt-poster-thumb'}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setLightboxSrc(src)
+                  }}
+                  title="View this poster"
+                >
+                  <img src={proxyImg(src)} alt="" loading="lazy" decoding="async" />
+                </button>
+              ))}
+            </div>
+          )}
           </div>
 
           <div className="cine-info-card">
