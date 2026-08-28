@@ -6381,9 +6381,9 @@ body.light .dashboard-panel {
   flex-shrink: 0;
 }
 .section-badge-physical {
-  background: var(--accent);
-  border: 1px solid var(--accent);
-  color: var(--accent-ink);
+  background: #d4af37;
+  border: 1px solid #d4af37;
+  color: #1a1305;
 }
 .section-badge-digital {
   background: #3b82f6;
