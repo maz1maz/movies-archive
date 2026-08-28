@@ -634,31 +634,10 @@ async function handleFetch(request, env, ctx) {
             else counts.physical += r.cnt
           }
         }
-        return json(counts, 200, corsHeaders)
-      }
-
-      // ---- GET /api/films/counts ----
-      // شمارش سبک کل آرشیو برای صفحه‌ی اصلی (کارت‌های Blu-ray/Digital/...)،
-      // بدون دانلود کل جدول (که با ۱۷هزار+ رکورد چندین مگابایت می‌شه).
-      if (method === 'GET' && pathname === '/api/films/counts') {
-        const rows = await db
-          .prepare('SELECT mediaType, itemType, COUNT(*) as cnt FROM films GROUP BY mediaType, itemType')
-          .all()
-        const counts = {
-          physical: 0, physicalSeries: 0, digital: 0, digitalMovies: 0, digitalSeries: 0,
-        }
-        for (const r of rows.results || []) {
-          const isDigital = r.mediaType === 'digital'
-          const isSeries = r.itemType === 'series'
-          if (isDigital) {
-            counts.digital += r.cnt
-            if (isSeries) counts.digitalSeries += r.cnt
-            else counts.digitalMovies += r.cnt
-          } else {
-            if (isSeries) counts.physicalSeries += r.cnt
-            else counts.physical += r.cnt
-          }
-        }
+        const minYearRow = await db
+          .prepare("SELECT MIN(year) as minYear FROM films WHERE year IS NOT NULL AND year > 1880")
+          .first()
+        counts.minYear = minYearRow && minYearRow.minYear ? minYearRow.minYear : null
         return json(counts, 200, corsHeaders)
       }
 

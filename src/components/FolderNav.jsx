@@ -50,15 +50,10 @@ export default function FolderNav({
   const searching = query.trim().length >= 2
 
   const yearRange = useMemo(() => {
-    if (!Array.isArray(allFilms) || allFilms.length === 0) return null
-    let minYear = Infinity
-    for (const f of allFilms) {
-      const y = parseInt(f.year, 10)
-      if (!Number.isNaN(y) && y > 1880 && y < minYear) minYear = y
-    }
-    if (!Number.isFinite(minYear)) return null
+    const minYear = counts && counts.minYear
+    if (!minYear) return null
     return `${minYear}–${new Date().getFullYear()}`
-  }, [allFilms])
+  }, [counts])
 
   return (
     <div className="folder-nav">
