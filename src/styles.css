@@ -4857,7 +4857,8 @@ body.light .header {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
+  width: 100%;
 }
 
 /* کلاژ پس‌زمینه: پوسترهای واقعی آرشیو، هرکدوم با یه زاویه‌ی کمی متفاوت،
@@ -4973,7 +4974,9 @@ body.light .page-collage-overlay {
   border: 1px solid var(--marquee-border);
   border-radius: 26px;
   padding: 40px 36px 32px;
+  width: 100%;
   max-width: 640px;
+  margin: 0 auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
 .marquee-band::before,
