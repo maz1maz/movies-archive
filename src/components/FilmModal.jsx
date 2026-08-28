@@ -647,7 +647,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             {film.homepage && (
               <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
                 <div className="cine-section-label">OFFICIAL SITE</div>
-                <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>
+                <p style={{ margin: '4px 0 0', fontSize: 13.5, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
                   <a href={film.homepage} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
                     {film.homepage}
                   </a>

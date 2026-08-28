@@ -1132,6 +1132,8 @@ body.light .header {
   width: min(680px, 92vw);
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
+  word-break: break-word;
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: 18px;
