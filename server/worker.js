@@ -1441,6 +1441,26 @@ async function handleFetch(request, env, ctx) {
         }
       }
 
+      // ---- POST /api/admin/poster-audit — اسکن کل آرشیو برای لینک پوستر
+      // خراب. پس‌زمینه‌ای (ctx.waitUntil) اجرا می‌شه چون هزاران فیلمه؛ خودِ
+      // درخواست فوری جواب می‌ده، نتیجه تو جدول poster_audit ذخیره می‌شه —
+      // با GET /api/admin/poster-audit پیشرفت/نتیجه رو می‌شه دید.
+      if (method === 'POST' && pathname === '/api/admin/poster-audit') {
+        const authErr = requireAuth()
+        if (authErr) return authErr
+        ctx.waitUntil(runPosterAudit(db))
+        return json({ started: true }, 200, corsHeaders)
+      }
+      if (method === 'GET' && pathname === '/api/admin/poster-audit') {
+        try {
+          const row = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('poster_audit').first()
+          if (!row) return json({ status: 'not_started' }, 200, corsHeaders)
+          return json({ ...JSON.parse(row.data), updatedAt: row.fetchedAt }, 200, corsHeaders)
+        } catch (e) {
+          return json({ status: 'error', error: String(e) }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/films/:id/festival-awards — جوایز جشنواره‌ای، خودکار از Wikidata ----
       const awardsMatch = pathname.match(/^\/api\/films\/([^/]+)\/festival-awards$/)
       if (method === 'GET' && awardsMatch) {
@@ -4485,6 +4505,58 @@ async function resolveFestivalAwards(db, env, film) {
 // تو گرید. با imdbId فیلم TMDB رو پیدا می‌کنیم، عکس‌هاش رو می‌گیریم، تا ۵ تای
 // برتر (بر اساس رأی) رو نگه می‌داریم. ۳۰ روز کش می‌شه (نتیجه‌ی خالی فقط
 // ۳۰ دقیقه، تا اگه فیلم تازه امروز اضافه شده دوباره امتحان بشه).
+// اسکن کل آرشیو برای پیدا کردن لینک‌های پوستر خراب (404 یا هر خطای دیگه).
+// دسته‌دسته (concurrency محدود) چک می‌شه تا subrequest محدودیت Workers رد
+// نشه؛ هر چند صد تا یه‌بار پیشرفت رو تو DB ذخیره می‌کنه تا حتی وسط کار هم
+// بشه وضعیتش رو دید.
+async function runPosterAudit(db) {
+  const saveProgress = async (payload) => {
+    try {
+      await db
+        .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES ('poster_audit', ?, datetime('now'))")
+        .bind(JSON.stringify(payload))
+        .run()
+    } catch {}
+  }
+
+  try {
+    const rows = await db.prepare("SELECT id, title, poster FROM films WHERE poster IS NOT NULL AND poster != ''").all()
+    const films = rows.results || []
+    const total = films.length
+    const broken = []
+    const CONCURRENCY = 25
+    let checked = 0
+
+    await saveProgress({ status: 'running', total, checked: 0, broken: [] })
+
+    for (let i = 0; i < films.length; i += CONCURRENCY) {
+      const batch = films.slice(i, i + CONCURRENCY)
+      await Promise.all(
+        batch.map(async (f) => {
+          try {
+            let res = await fetch(f.poster, { method: 'HEAD', signal: AbortSignal.timeout(8000) })
+            if (res.status === 405 || res.status === 501) {
+              // بعضی CDNها HEAD رو پشتیبانی نمی‌کنن، با GET دوباره امتحان می‌کنیم
+              res = await fetch(f.poster, { method: 'GET', signal: AbortSignal.timeout(8000) })
+            }
+            if (!res.ok) broken.push({ id: f.id, title: f.title, poster: f.poster, status: res.status })
+          } catch (e) {
+            broken.push({ id: f.id, title: f.title, poster: f.poster, status: 'error', error: String(e).slice(0, 80) })
+          }
+        })
+      )
+      checked += batch.length
+      if (checked % 200 < CONCURRENCY) {
+        await saveProgress({ status: 'running', total, checked, broken })
+      }
+    }
+
+    await saveProgress({ status: 'done', total, checked, broken })
+  } catch (e) {
+    await saveProgress({ status: 'error', error: String(e) })
+  }
+}
+
 async function fetchAltPosters(db, env, film) {
   const cacheKey = `posters:${film.id}`
   try {
