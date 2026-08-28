@@ -2,7 +2,7 @@
 // Handles all /api/* routes using D1 for persistent storage.
 import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMetadata, countSeasonsFromText, decodeHtmlEntities } from './helpers.js'
 import { enrichFilm } from './omdb.js'
-import { fetchTotalSeasons, enrichSeriesFromTVMazeById } from './tvmaze.js'
+import { fetchTotalSeasons, enrichSeriesFromTVMazeById, fetchTvMazePersonUpcoming } from './tvmaze.js'
 import * as XLSX from 'xlsx'
 import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader } from './auth.js'
 
@@ -3166,37 +3166,50 @@ async function fetchPersonUpcoming(name, env) {
     return null
   }
 
+  let upcoming = []
   try {
     const search = await tmdbGet('/search/person', { query: name })
     const person = (search?.results || [])[0]
-    if (!person) return []
-
-    const credits = await tmdbGet(`/person/${person.id}/combined_credits`, {})
-    const today = new Date().toISOString().slice(0, 10)
-    const all = [...(credits?.cast || []), ...(credits?.crew || [])]
-    const seen = new Set()
-    const upcoming = []
-    for (const c of all) {
-      const releaseDate = c.release_date || c.first_air_date
-      if (!releaseDate || releaseDate <= today) continue
-      const title = c.title || c.name
-      if (!title) continue
-      const key = `${c.media_type}:${c.id}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      upcoming.push({
-        title,
-        releaseDate,
-        poster: c.poster_path ? `https://image.tmdb.org/t/p/w300${c.poster_path}` : null,
-        mediaType: c.media_type === 'tv' ? 'series' : 'movie',
-        role: c.job || (c.character ? 'Actor' : null),
-        infoUrl: `https://www.themoviedb.org/${c.media_type === 'tv' ? 'tv' : 'movie'}/${c.id}`,
-      })
+    if (person) {
+      const credits = await tmdbGet(`/person/${person.id}/combined_credits`, {})
+      const today = new Date().toISOString().slice(0, 10)
+      const all = [...(credits?.cast || []), ...(credits?.crew || [])]
+      const seen = new Set()
+      for (const c of all) {
+        const releaseDate = c.release_date || c.first_air_date
+        if (!releaseDate || releaseDate <= today) continue
+        const title = c.title || c.name
+        if (!title) continue
+        const key = `${c.media_type}:${c.id}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        upcoming.push({
+          title,
+          releaseDate,
+          poster: c.poster_path ? `https://image.tmdb.org/t/p/w300${c.poster_path}` : null,
+          mediaType: c.media_type === 'tv' ? 'series' : 'movie',
+          role: c.job || (c.character ? 'Actor' : null),
+          infoUrl: `https://www.themoviedb.org/${c.media_type === 'tv' ? 'tv' : 'movie'}/${c.id}`,
+        })
+      }
     }
-    return upcoming.sort((a, b) => a.releaseDate.localeCompare(b.releaseDate)).slice(0, 5)
-  } catch {
-    return []
-  }
+  } catch {}
+
+  // TMDB اکثر وقتا برای سریال‌ها تاریخ اپیزود بعدی نداره (فقط تاریخ اولین
+  // پخش رو می‌دونه)، برای همین اغلب این بخش برای بازیگرهای سریالی خالی
+  // می‌مونه. TVMaze دقیقاً برای همین جاست: سریال‌های در حال پخش + تاریخ
+  // اپیزود بعدی. نتایجش رو اضافه می‌کنیم (نه جایگزین)، با یکتاسازی بر اساس عنوان.
+  try {
+    const tvMazeItems = await fetchTvMazePersonUpcoming(name)
+    const existingTitles = new Set(upcoming.map((u) => u.title.toLowerCase()))
+    for (const item of tvMazeItems) {
+      if (existingTitles.has(item.title.toLowerCase())) continue
+      existingTitles.add(item.title.toLowerCase())
+      upcoming.push(item)
+    }
+  } catch {}
+
+  return upcoming.sort((a, b) => a.releaseDate.localeCompare(b.releaseDate)).slice(0, 5)
 }
 
 // تریلرهای فیلم‌های نزدیک‌به‌اکران هالیوود — عمومیه (نه شخصی‌سازی‌شده بر اساس

@@ -234,3 +234,50 @@ export async function fetchTotalSeasons(title) {
   if (!numbers.length) return null
   return Math.max(...numbers)
 }
+
+// سریال‌های در حال پخش (یا هنوز تعیین‌نشده) یه بازیگر/عوامل — برای بخش
+// «اخبار سینما»، چون TMDB برای خیلی از سریال‌ها تاریخ اپیزود بعدی نداره ولی
+// TVMaze داره. اسم رو به شخص TVMaze تبدیل می‌کنیم، credits سریالیش رو
+// می‌گیریم، و برای هرکدوم که Running/To Be Determined هست تاریخ اپیزود
+// بعدی (اگه موجود باشه) رو هم اضافه می‌کنیم.
+export async function fetchTvMazePersonUpcoming(name) {
+  try {
+    const people = await fetchJson(`${BASE}/search/people?q=${encodeURIComponent(name)}`)
+    const person = Array.isArray(people) && people.length ? people[0].person : null
+    if (!person || !person.id) return []
+
+    const credits = await fetchJson(`${BASE}/people/${person.id}/castcredits?embed=show`)
+    if (!Array.isArray(credits)) return []
+
+    const shows = credits
+      .map((c) => c._embedded?.show)
+      .filter((s) => s && (s.status === 'Running' || s.status === 'To Be Determined'))
+
+    const seen = new Set()
+    const out = []
+    for (const show of shows) {
+      if (seen.has(show.id)) continue
+      seen.add(show.id)
+      let releaseDate = show.premiered || null
+      const nextEpUrl = show._links?.nextepisode?.href
+      if (nextEpUrl) {
+        const ep = await fetchJson(nextEpUrl)
+        if (ep?.airdate) releaseDate = ep.airdate
+      }
+      if (!releaseDate) continue
+      out.push({
+        title: show.name,
+        releaseDate,
+        poster: show.image?.medium || show.image?.original || null,
+        mediaType: 'series',
+        role: 'Actor',
+        infoUrl: show.url,
+        source: 'tvmaze',
+      })
+    }
+    return out.slice(0, 5)
+  } catch {
+    return []
+  }
+}
+
