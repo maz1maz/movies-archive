@@ -261,13 +261,29 @@ async function handleFetch(request, env, ctx) {
         if (!/^https?:\/\//i.test(target)) {
           return new Response('Invalid url', { status: 400, headers: corsHeaders })
         }
+        let targetUrl
         try {
-          const upstream = await fetch(target, { headers: { 'User-Agent': 'CinefilioArchive/1.0 (personal film archive app)' } })
+          targetUrl = new URL(target)
+        } catch {
+          return new Response('Invalid url', { status: 400, headers: corsHeaders })
+        }
+        // این proxy عمومیه (بدون auth)، برای همین فقط اجازه‌ی چند دامنه‌ی
+        // شناخته‌شده‌ی عکس (TMDB/Wikimedia) رو می‌ده — قبلاً هیچ allowlist
+        // نداشت و هرکسی می‌تونست از سرور به‌عنوان proxy باز برای هر URL
+        // دلخواه استفاده کنه.
+        const allowedHosts = ['image.tmdb.org', 'upload.wikimedia.org', 'upload.wikimedia.beta.wmflabs.org']
+        if (!allowedHosts.includes(targetUrl.hostname)) {
+          return new Response('Host not allowed', { status: 403, headers: corsHeaders })
+        }
+        try {
+          const upstream = await fetch(targetUrl.toString(), {
+            headers: { 'User-Agent': 'CinefilmArchive/1.0 (personal film archive app)' },
+          })
           if (!upstream.ok) return new Response('Upstream error', { status: 502, headers: corsHeaders })
           const contentType = upstream.headers.get('content-type') || 'image/jpeg'
           return new Response(upstream.body, {
             status: 200,
-            headers: { ...corsHeaders, 'Content-Type': contentType, 'Cache-Control': 'public, max-age=86400' },
+            headers: { ...corsHeaders, 'Content-Type': contentType, 'Cache-Control': 'public, max-age=604800, immutable' },
           })
         } catch {
           return new Response('Fetch failed', { status: 502, headers: corsHeaders })
@@ -1561,31 +1577,6 @@ async function handleFetch(request, env, ctx) {
       // بلوکه (مثلاً image.tmdb.org که از بعضی شبکه‌ها/ایران بدون VPN باز نمی‌شه)
       // رو از سمت Worker می‌گیره و برمی‌گردونه، چون خودِ Workers بهشون دسترسی داره.
       // فقط دامنه‌های شناخته‌شده و امن (TMDB, Wikipedia/Wikimedia) مجازن.
-      if (method === 'GET' && pathname === '/api/image-proxy') {
-        const target = url.searchParams.get('url')
-        if (!target) return new Response('Missing url', { status: 400 })
-        let targetUrl
-        try {
-          targetUrl = new URL(target)
-        } catch {
-          return new Response('Bad url', { status: 400 })
-        }
-        const allowedHosts = ['image.tmdb.org', 'upload.wikimedia.org', 'upload.wikimedia.beta.wmflabs.org']
-        if (!allowedHosts.includes(targetUrl.hostname)) return new Response('Host not allowed', { status: 403 })
-        try {
-          const imgRes = await fetch(targetUrl.toString(), {
-            headers: { 'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive)' },
-          })
-          if (!imgRes.ok) return new Response('Upstream error', { status: 502 })
-          const headers = new Headers(corsHeaders)
-          headers.set('Content-Type', imgRes.headers.get('content-type') || 'image/jpeg')
-          headers.set('Cache-Control', 'public, max-age=604800, immutable')
-          return new Response(imgRes.body, { status: 200, headers })
-        } catch (e) {
-          return new Response('Fetch failed', { status: 502 })
-        }
-      }
-
       // ---- GET /api/usage-stats (admin) — تاریخچه‌ی ۳۰ روز اخیر مصرف API ----
       if (method === 'GET' && pathname === '/api/usage-stats') {
         const denied = requireAdmin()
