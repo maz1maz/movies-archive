@@ -440,6 +440,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               src={film.poster}
               alt={film.title}
               className="cine-poster-img"
+              decoding="async"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
               }}
@@ -725,7 +726,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                         title={p.title}
                       >
                         {p.poster ? (
-                          <img src={p.poster} alt={p.title} className="cine-collection-poster" />
+                          <img src={p.poster} alt={p.title} className="cine-collection-poster" loading="lazy" decoding="async" />
                         ) : (
                           <span className="cine-collection-poster-empty">{p.title}</span>
                         )}
