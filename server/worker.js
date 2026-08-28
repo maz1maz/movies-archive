@@ -187,10 +187,35 @@ async function handleFetch(request, env, ctx) {
         const username = (body.username || '').trim().toLowerCase()
         const password = body.password || ''
         if (!username || !password) return json({ error: 'Username and password are required' }, 400, corsHeaders)
+
+        // محدودیت تلاش لاگین (brute-force): بعد از ۵ تلاش ناموفق پشت‌سرهم
+        // رو یه یوزرنیم، ۱۵ دقیقه قفل می‌شه.
+        const loginKey = `login-fail:${username}`
+        if (env.RATE_LIMIT) {
+          try {
+            const fails = parseInt((await env.RATE_LIMIT.get(loginKey)) || '0', 10)
+            if (fails >= 5) {
+              return json({ error: 'Too many failed attempts. Try again in a few minutes.' }, 429, corsHeaders)
+            }
+          } catch {}
+        }
+
         const user = await db.prepare('SELECT * FROM users WHERE lower(username) = ?').bind(username).first()
-        if (!user) return json({ error: 'Incorrect username or password' }, 401, corsHeaders)
-        const ok = await verifyPassword(password, user.passwordSalt, user.passwordHash)
-        if (!ok) return json({ error: 'Incorrect username or password' }, 401, corsHeaders)
+        const ok = user ? await verifyPassword(password, user.passwordSalt, user.passwordHash) : false
+        if (!user || !ok) {
+          if (env.RATE_LIMIT) {
+            try {
+              const fails = parseInt((await env.RATE_LIMIT.get(loginKey)) || '0', 10)
+              await env.RATE_LIMIT.put(loginKey, String(fails + 1), { expirationTtl: 900 })
+            } catch {}
+          }
+          return json({ error: 'Incorrect username or password' }, 401, corsHeaders)
+        }
+        if (env.RATE_LIMIT) {
+          try {
+            await env.RATE_LIMIT.delete(loginKey)
+          } catch {}
+        }
         const token = await createSession(db, user.id)
         return json(
           { id: user.id, username: user.username, role: user.role },

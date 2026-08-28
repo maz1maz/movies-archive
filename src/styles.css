@@ -6028,6 +6028,8 @@ body.light .folder-back {
   overflow-anchor: none;
   margin-top: 10px;
   padding-bottom: 4px;
+  max-height: 560px;
+  overflow-y: auto;
 }
 @media (min-width: 720px) {
   .cine-collection-grid {

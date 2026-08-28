@@ -544,6 +544,9 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
                     alt=""
                     style={{ height: '100%', width: 'auto', objectFit: 'cover', flexShrink: 0 }}
                     loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
                   />
                 ))}
               </div>
