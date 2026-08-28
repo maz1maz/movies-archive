@@ -1441,17 +1441,18 @@ async function handleFetch(request, env, ctx) {
         }
       }
 
-      // ---- POST /api/admin/poster-audit — اسکن کل آرشیو برای لینک پوستر
-      // خراب. پس‌زمینه‌ای (ctx.waitUntil) اجرا می‌شه چون هزاران فیلمه؛ خودِ
-      // درخواست فوری جواب می‌ده، نتیجه تو جدول poster_audit ذخیره می‌شه —
-      // با GET /api/admin/poster-audit پیشرفت/نتیجه رو می‌شه دید.
-      if (method === 'POST' && pathname === '/api/admin/poster-audit') {
-        const authErr = requireAuth()
-        if (authErr) return authErr
-        ctx.waitUntil(runPosterAudit(db))
-        return json({ started: true }, 200, corsHeaders)
-      }
-      if (method === 'GET' && pathname === '/api/admin/poster-audit') {
+      // ---- POST/GET /api/admin/poster-audit?start=1 — اسکن کل آرشیو برای
+      // لینک پوستر خراب. پس‌زمینه‌ای (ctx.waitUntil) اجرا می‌شه چون هزاران
+      // فیلمه؛ خودِ درخواست فوری جواب می‌ده، نتیجه تو جدول ذخیره می‌شه —
+      // بدون query param start، همون GET فقط وضعیت/نتیجه‌ی فعلی رو می‌ده
+      // (تا از مرورگر موبایل هم بشه هم شروعش کرد هم پیگیریش کرد).
+      if (pathname === '/api/admin/poster-audit') {
+        if (url.searchParams.get('start') === '1') {
+          const authErr = requireAuth()
+          if (authErr) return authErr
+          ctx.waitUntil(runPosterAudit(db))
+          return json({ started: true }, 200, corsHeaders)
+        }
         try {
           const row = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('poster_audit').first()
           if (!row) return json({ status: 'not_started' }, 200, corsHeaders)
