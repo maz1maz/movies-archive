@@ -2,17 +2,34 @@ import { useMemo, useState } from 'react'
 import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconBookshelf, IconNewspaper, IconHardDrive } from './icons.jsx'
 import PosterCollage from './PosterCollage.jsx'
 
-function matchesQuery(film, q) {
-  const haystacks = [
-    film.title,
-    film.originalTitle,
-    film.director,
-    film.producer,
-    film.studio,
-    Array.isArray(film.cast) ? film.cast.join(' ') : film.cast,
-    Array.isArray(film.genre) ? film.genre.join(' ') : film.genre,
-  ]
-  return haystacks.some((h) => h && String(h).toLowerCase().includes(q))
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// جستجوی «at» قبلاً کلی فیلم بی‌ربط می‌آورد چون فقط substring ساده بود —
+// حتی تو اسم بازیگرها («Natalie»، «Matt») یا هرجای دیگه. حالا امتیازدهی
+// می‌کنیم: عنوان دقیق/شروع‌شونده بالاترین امتیاز، match با مرز کلمه بعدی،
+// substring ساده تو عنوان بعدش، و فقط برای عبارت‌های ۳+ حرفی توی
+// بازیگر/کارگردان/ژانر هم می‌گرده (تا کوئری‌های کوتاه شلوغ نشن).
+function matchScore(film, q) {
+  const title = (film.title || '').toLowerCase()
+  const origTitle = (film.originalTitle || '').toLowerCase()
+  if (title === q || origTitle === q) return 100
+  if (title.startsWith(q) || origTitle.startsWith(q)) return 80
+  const wordBoundaryRe = new RegExp(`\\b${escapeRegex(q)}`, 'i')
+  if (wordBoundaryRe.test(title) || wordBoundaryRe.test(origTitle)) return 60
+  if (title.includes(q) || origTitle.includes(q)) return 40
+  if (q.length >= 3) {
+    const otherFields = [
+      film.director,
+      film.producer,
+      film.studio,
+      Array.isArray(film.cast) ? film.cast.join(' ') : film.cast,
+      Array.isArray(film.genre) ? film.genre.join(' ') : film.genre,
+    ]
+    if (otherFields.some((h) => h && String(h).toLowerCase().includes(q))) return 20
+  }
+  return 0
 }
 
 function badgeFor(film, hasBoth) {
@@ -45,18 +62,27 @@ export default function FolderNav({
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (q.length < 2 || !Array.isArray(allFilms)) return []
-    const matched = allFilms.filter((f) => matchesQuery(f, q))
+    const scored = allFilms
+      .map((f) => ({ film: f, score: matchScore(f, q) }))
+      .filter((s) => s.score > 0)
+      .sort((a, b) => b.score - a.score)
+    const matched = scored.map((s) => s.film)
     // فیزیکال و دیجیتالِ همون عنوان (همون سال) دو ردیف جدا تو نتایج بودن —
     // یکی می‌کنیم، بج «Physical + Digital» نشون می‌ده و به رکورد فیزیکال
     // لینک می‌ده (FilmModal خودش نسخه‌ی دیگه رو هم از sibling lookup نشون می‌ده).
     const groups = new Map()
+    const order = []
     for (const f of matched) {
       const key = `${(f.title || '').trim().toLowerCase()}|${f.year || ''}`
-      if (!groups.has(key)) groups.set(key, [])
+      if (!groups.has(key)) {
+        groups.set(key, [])
+        order.push(key)
+      }
       groups.get(key).push(f)
     }
     const deduped = []
-    for (const group of groups.values()) {
+    for (const key of order) {
+      const group = groups.get(key)
       const physical = group.find((f) => f.mediaType !== 'digital')
       const digital = group.find((f) => f.mediaType === 'digital')
       const primary = physical || digital
