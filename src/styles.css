@@ -5161,8 +5161,8 @@ body.light .folder-nav-title {
   width: 100%;
 }
 .folder-card {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: auto 1fr;
   align-items: center;
   justify-content: flex-start;
   gap: 14px;
@@ -5182,20 +5182,21 @@ body.light .folder-nav-title {
   margin: 0;
 }
 .folder-card-text {
-  display: flex;
-  flex-direction: column;
+  display: block;
   min-width: 0;
-  flex: 1 1 auto;
+  width: 100%;
 }
 .folder-card-text h2 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
 }
 .folder-card-text p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
 }
 .folder-card p {
   margin: 2px 0 0;
