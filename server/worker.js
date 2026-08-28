@@ -4511,11 +4511,33 @@ async function fetchAltPosters(db, env, film) {
     const imgRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/images?api_key=${env.TMDB_API_KEY}`)
     if (!imgRes.ok) return []
     const imgData = await imgRes.json()
-    const posters = (imgData.posters || [])
+    const candidates = (imgData.posters || [])
       .filter((p) => p.file_path)
       .sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
-      .slice(0, 5)
+      .slice(0, 10)
       .map((p) => `https://image.tmdb.org/t/p/w500${p.file_path}`)
+
+    // چندتا از این «پوسترهای جایگزین» عکس کاملاً یکسانن (فقط file_path
+    // TMDB فرق داره — مثلاً یه‌بار با کیفیت متفاوت آپلود شده). بایت‌های هر
+    // عکس رو می‌گیریم و هش می‌کنیم؛ اگه هش یکی بود یعنی عیناً همون عکسه، رد
+    // می‌شه. این فقط یه‌بار در ماه (وقتی کش این فیلم منقضی شده) اجرا می‌شه.
+    const seenHashes = new Set()
+    const posters = []
+    for (const url of candidates) {
+      if (posters.length >= 5) break
+      try {
+        const imgFetch = await fetch(url)
+        if (!imgFetch.ok) continue
+        const buf = await imgFetch.arrayBuffer()
+        const hashBuf = await crypto.subtle.digest('SHA-256', buf)
+        const hashHex = [...new Uint8Array(hashBuf)].map((b) => b.toString(16).padStart(2, '0')).join('')
+        if (seenHashes.has(hashHex)) continue
+        seenHashes.add(hashHex)
+        posters.push(url)
+      } catch {
+        posters.push(url)
+      }
+    }
 
     await db
       .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
