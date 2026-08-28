@@ -49,6 +49,17 @@ export default function FolderNav({
 
   const searching = query.trim().length >= 2
 
+  const yearRange = useMemo(() => {
+    if (!Array.isArray(allFilms) || allFilms.length === 0) return null
+    let minYear = Infinity
+    for (const f of allFilms) {
+      const y = parseInt(f.year, 10)
+      if (!Number.isNaN(y) && y > 1880 && y < minYear) minYear = y
+    }
+    if (!Number.isFinite(minYear)) return null
+    return `${minYear}–${new Date().getFullYear()}`
+  }, [allFilms])
+
   return (
     <div className="folder-nav">
       <span className="stage-curtain" aria-hidden="true" />
@@ -198,7 +209,9 @@ export default function FolderNav({
               </button>
             </div>
           )}
-          <p className="marquee-footer reveal-item reveal-9">One ticket, infinite stories</p>
+          <p className="marquee-footer reveal-item reveal-9">
+            One ticket, infinite stories{yearRange ? ` · ${yearRange}` : ''}
+          </p>
         </div>
       </div>
     </div>
