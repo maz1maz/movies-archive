@@ -255,16 +255,19 @@ export async function fetchTvMazePersonUpcoming(name) {
 
     const seen = new Set()
     const out = []
+    const today = new Date().toISOString().slice(0, 10)
     for (const show of shows) {
       if (seen.has(show.id)) continue
       seen.add(show.id)
-      let releaseDate = show.premiered || null
+      // فقط تاریخ اپیزود بعدی رو قبول می‌کنیم، نه premiered (تاریخ اولین
+      // پخش) به‌عنوان fallback — چون برای سریال‌های/برنامه‌های قدیمی‌تر
+      // (مثل جوایز سالانه) این باعث می‌شد یه تاریخ خیلی قدیمی (مثلاً ۱۹۷۳)
+      // به‌اشتباه به‌عنوان «آینده» نشون داده بشه.
       const nextEpUrl = show._links?.nextepisode?.href
-      if (nextEpUrl) {
-        const ep = await fetchJson(nextEpUrl)
-        if (ep?.airdate) releaseDate = ep.airdate
-      }
-      if (!releaseDate) continue
+      if (!nextEpUrl) continue
+      const ep = await fetchJson(nextEpUrl)
+      const releaseDate = ep?.airdate
+      if (!releaseDate || releaseDate < today) continue
       out.push({
         title: show.name,
         releaseDate,
