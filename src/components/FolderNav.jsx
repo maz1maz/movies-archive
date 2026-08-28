@@ -15,7 +15,8 @@ function matchesQuery(film, q) {
   return haystacks.some((h) => h && String(h).toLowerCase().includes(q))
 }
 
-function badgeFor(film) {
+function badgeFor(film, hasBoth) {
+  if (hasBoth) return `Physical + Digital · ${film.itemType === 'series' ? 'Series' : 'Movie'}`
   const media = film.mediaType === 'digital' ? 'Digital' : 'Physical'
   const kind = film.itemType === 'series' ? 'Series' : 'Movie'
   return `${media} · ${kind}`
@@ -44,7 +45,24 @@ export default function FolderNav({
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (q.length < 2 || !Array.isArray(allFilms)) return []
-    return allFilms.filter((f) => matchesQuery(f, q)).slice(0, 30)
+    const matched = allFilms.filter((f) => matchesQuery(f, q))
+    // فیزیکال و دیجیتالِ همون عنوان (همون سال) دو ردیف جدا تو نتایج بودن —
+    // یکی می‌کنیم، بج «Physical + Digital» نشون می‌ده و به رکورد فیزیکال
+    // لینک می‌ده (FilmModal خودش نسخه‌ی دیگه رو هم از sibling lookup نشون می‌ده).
+    const groups = new Map()
+    for (const f of matched) {
+      const key = `${(f.title || '').trim().toLowerCase()}|${f.year || ''}`
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key).push(f)
+    }
+    const deduped = []
+    for (const group of groups.values()) {
+      const physical = group.find((f) => f.mediaType !== 'digital')
+      const digital = group.find((f) => f.mediaType === 'digital')
+      const primary = physical || digital
+      deduped.push({ ...primary, __hasBoth: Boolean(physical && digital) })
+    }
+    return deduped.slice(0, 30)
   }, [query, allFilms])
 
   const searching = query.trim().length >= 2
@@ -100,7 +118,7 @@ export default function FolderNav({
                           <span className="folder-nav-search-title">
                             {f.title} {f.year ? <span className="folder-nav-search-year">({f.year})</span> : null}
                           </span>
-                          <span className="folder-nav-search-badge">{badgeFor(f)}</span>
+                          <span className="folder-nav-search-badge">{badgeFor(f, f.__hasBoth)}</span>
                         </span>
                       </button>
                     ))
