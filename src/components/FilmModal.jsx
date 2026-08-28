@@ -529,7 +529,15 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                         onClick={() => (isActive ? setLightboxSrc(src) : goToPoster(i, uniquePosters.length))}
                         title={isActive ? 'Click to view full poster' : 'Show this poster'}
                       >
-                        <img src={proxyImg(src)} alt={film.title} decoding="async" />
+                        <img
+                        src={proxyImg(src)}
+                        alt={film.title}
+                        decoding="async"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                      <div className="cine-poster-fallback">{film.title}</div>
                       </button>
                     )
                   })}
