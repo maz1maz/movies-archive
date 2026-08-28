@@ -198,7 +198,7 @@ export default function FolderNav({
               </button>
             </div>
           )}
-          <p className="marquee-footer reveal-item reveal-9">Admit one · no refunds · enjoy the show</p>
+          <p className="marquee-footer reveal-item reveal-9">One ticket, infinite stories</p>
         </div>
       </div>
     </div>
