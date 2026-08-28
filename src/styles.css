@@ -4871,7 +4871,7 @@ body.light .header {
 }
 .poster-badge-stack {
   position: absolute;
-  top: 36px;
+  bottom: 7px;
   z-index: 2;
   display: flex;
   flex-direction: column;
