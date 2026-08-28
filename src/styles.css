@@ -707,7 +707,11 @@ body.light .header {
 .edit-modal {
   position: relative;
   width: min(720px, 94vw);
+  max-width: 100%;
   max-height: 90vh;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
   overflow-y: auto;
   border: 1px solid var(--border-strong);
   border-radius: 16px;
@@ -1129,9 +1133,12 @@ body.light .header {
 .modal-cine {
   position: relative;
   width: min(680px, 92vw);
+  max-width: 100%;
   max-height: 90vh;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
   word-break: break-word;
   background: var(--surface);
   border: 1px solid var(--border-strong);
@@ -3433,7 +3440,11 @@ body.light .header {
 .modal-person {
   position: relative;
   width: min(720px, 94vw);
+  max-width: 100%;
   max-height: 88vh;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
   overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--border-strong);
