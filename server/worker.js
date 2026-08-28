@@ -158,8 +158,13 @@ async function handleFetch(request, env, ctx) {
         }
         // نوشتن شمارنده منتظر نمی‌مونیم — این فقط برای درخواست بعدی لازمه، نه پاسخ فعلی.
         // await کردنش یه round-trip کامل به KV رو جلوی هر درخواست guest می‌ذاشت.
-        const putPromise = env.RATE_LIMIT.put(rlKey, String(current + 1), { expirationTtl: 70 }).catch(() => {})
-        if (ctx?.waitUntil) ctx.waitUntil(putPromise)
+        // فقط ۱ از هر ۴ درخواست واقعاً می‌نویسیم (و هر بار ۴ تا اضافه می‌کنیم) —
+        // شمارش تقریبیه ولی مصرف KV put رو ~۷۵٪ کم می‌کنه (سقف رایگان روزانه‌ی
+        // Cloudflare ۱۰۰۰ تاست و با ترافیک تست/توسعه زود پر می‌شد).
+        if (Math.random() < 0.25) {
+          const putPromise = env.RATE_LIMIT.put(rlKey, String(current + 4), { expirationTtl: 70 }).catch(() => {})
+          if (ctx?.waitUntil) ctx.waitUntil(putPromise)
+        }
       } catch {
         // اگه خود KV مشکل داشت، درخواست رو بلاک نکن — فقط rate limiting رد می‌شه
       }
