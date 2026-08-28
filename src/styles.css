@@ -3006,6 +3006,32 @@ body.light .header {
   border: none;
   box-shadow: none;
 }
+.cine-poster-coverflow-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cine-poster-nav {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s, transform 0.15s;
+}
+.cine-poster-nav:hover {
+  background: var(--surface-3);
+}
+.cine-poster-nav:active {
+  transform: scale(0.9);
+}
 .cine-poster-slide {
   position: absolute;
   inset: 0;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconShare } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
@@ -93,6 +93,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const [festivalAwards, setFestivalAwards] = useState(Array.isArray(film?.festivalAwards) ? film.festivalAwards : [])
   const [altPosters, setAltPosters] = useState([])
   const [altPosterIndex, setAltPosterIndex] = useState(0)
+  const posterManualAtRef = useRef(0)
 
   // پوسترهای جایگزین: کنار پوستر اصلی نشون داده می‌شن و خودکار می‌چرخن —
   // مثل اینکه نوبتی خودشون رو نشون می‌دن.
@@ -110,10 +111,19 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     const total = altPosters.length + 1
     if (total < 2) return
     const timer = setInterval(() => {
+      // اگه کاربر همین چند ثانیه‌ی اخیر خودش دستی پوستر رو عوض کرده، این
+      // چرخش خودکار رو یه دور رد می‌کنیم تا فوراً پوستری که انتخاب کرده رو
+      // عوض نکنه.
+      if (Date.now() - posterManualAtRef.current < 3200) return
       setAltPosterIndex((i) => (i + 1) % total)
     }, 3200)
     return () => clearInterval(timer)
   }, [altPosters])
+
+  const goToPoster = (index, total) => {
+    posterManualAtRef.current = Date.now()
+    setAltPosterIndex(((index % total) + total) % total)
+  }
 
   useEffect(() => {
     const onKey = (e) => {
@@ -480,40 +490,58 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               )
             }
             return (
-              <div
-                className={
-                  hasBluray
-                    ? 'cine-poster-box cine-poster-coverflow cine-poster-has-bluray'
-                    : hasDigital
-                    ? 'cine-poster-box cine-poster-coverflow cine-poster-has-digital'
-                    : 'cine-poster-box cine-poster-coverflow'
-                }
-              >
-                {uniquePosters.map((src, i) => {
-                  let offset = i - altPosterIndex
-                  const half = uniquePosters.length / 2
-                  if (offset > half) offset -= uniquePosters.length
-                  if (offset < -half) offset += uniquePosters.length
-                  const isActive = offset === 0
-                  const abs = Math.abs(offset)
-                  return (
-                    <button
-                      key={src}
-                      type="button"
-                      className={isActive ? 'cine-poster-slide cine-poster-slide-active' : 'cine-poster-slide'}
-                      style={{
-                        transform: `translateX(${offset * 78}%) scale(${isActive ? 1 : 0.78})`,
-                        zIndex: isActive ? 3 : 2 - abs,
-                        opacity: abs > 1 ? 0 : 1,
-                        pointerEvents: abs > 1 ? 'none' : 'auto',
-                      }}
-                      onClick={() => (isActive ? setLightboxSrc(src) : setAltPosterIndex(i))}
-                      title={isActive ? 'Click to view full poster' : 'Show this poster'}
-                    >
-                      <img src={proxyImg(src)} alt={film.title} decoding="async" />
-                    </button>
-                  )
-                })}
+              <div className="cine-poster-coverflow-wrap">
+                <button
+                  type="button"
+                  className="cine-poster-nav cine-poster-nav-prev"
+                  onClick={() => goToPoster(altPosterIndex - 1, uniquePosters.length)}
+                  aria-label="Previous poster"
+                >
+                  ‹
+                </button>
+                <div
+                  className={
+                    hasBluray
+                      ? 'cine-poster-box cine-poster-coverflow cine-poster-has-bluray'
+                      : hasDigital
+                      ? 'cine-poster-box cine-poster-coverflow cine-poster-has-digital'
+                      : 'cine-poster-box cine-poster-coverflow'
+                  }
+                >
+                  {uniquePosters.map((src, i) => {
+                    let offset = i - altPosterIndex
+                    const half = uniquePosters.length / 2
+                    if (offset > half) offset -= uniquePosters.length
+                    if (offset < -half) offset += uniquePosters.length
+                    const isActive = offset === 0
+                    const abs = Math.abs(offset)
+                    return (
+                      <button
+                        key={src}
+                        type="button"
+                        className={isActive ? 'cine-poster-slide cine-poster-slide-active' : 'cine-poster-slide'}
+                        style={{
+                          transform: `translateX(${offset * 78}%) scale(${isActive ? 1 : 0.78})`,
+                          zIndex: isActive ? 3 : 2 - abs,
+                          opacity: abs > 1 ? 0 : 1,
+                          pointerEvents: abs > 1 ? 'none' : 'auto',
+                        }}
+                        onClick={() => (isActive ? setLightboxSrc(src) : goToPoster(i, uniquePosters.length))}
+                        title={isActive ? 'Click to view full poster' : 'Show this poster'}
+                      >
+                        <img src={proxyImg(src)} alt={film.title} decoding="async" />
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  type="button"
+                  className="cine-poster-nav cine-poster-nav-next"
+                  onClick={() => goToPoster(altPosterIndex + 1, uniquePosters.length)}
+                  aria-label="Next poster"
+                >
+                  ›
+                </button>
               </div>
             )
           })()}
