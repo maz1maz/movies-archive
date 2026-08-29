@@ -5571,14 +5571,6 @@ body.light .folder-card:hover {
   align-items: center;
   justify-content: center;
 }
-.folder-card-dashboard {
-  border-color: var(--marquee-ruby);
-}
-.folder-card-dashboard .folder-icon {
-  background: linear-gradient(135deg, rgba(255, 69, 58, 0.22), rgba(255, 105, 97, 0.14));
-  border-color: var(--marquee-ruby);
-  color: var(--marquee-ruby-icon);
-}
 
 /* Physical (gold) / Digital (navy) */
 .folder-card-physical {

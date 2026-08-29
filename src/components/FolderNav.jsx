@@ -198,7 +198,17 @@ export default function FolderNav({
                 </span>
                 <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
-              <button className="folder-card folder-card-digital reveal-item reveal-6" onClick={() => onSelectDigitalType('movie')}>
+              <button className="folder-card folder-card-physical reveal-item reveal-6" onClick={onOpenBookshelf}>
+                <span className="folder-icon">
+                  <IconBookshelf width={32} height={32} />
+                </span>
+                <span className="folder-card-text">
+                  <h2>3D Bookshelf</h2>
+                  <p>Physical · {counts.physical} items</p>
+                </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
+              </button>
+              <button className="folder-card folder-card-digital reveal-item reveal-7" onClick={() => onSelectDigitalType('movie')}>
                 <span className="folder-icon">
                   <IconFilm width={32} height={32} />
                 </span>
@@ -208,23 +218,13 @@ export default function FolderNav({
                 </span>
                 <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
-              <button className="folder-card folder-card-digital reveal-item reveal-7" onClick={() => onSelectDigitalType('series')}>
+              <button className="folder-card folder-card-digital reveal-item reveal-8" onClick={() => onSelectDigitalType('series')}>
                 <span className="folder-icon">
                   <IconTV width={32} height={32} />
                 </span>
                 <span className="folder-card-text">
                   <h2>Digital Series</h2>
                   <p>Drive · {counts.digitalSeries} items</p>
-                </span>
-                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
-              </button>
-              <button className="folder-card folder-card-physical reveal-item reveal-8" onClick={onOpenBookshelf}>
-                <span className="folder-icon">
-                  <IconBookshelf width={32} height={32} />
-                </span>
-                <span className="folder-card-text">
-                  <h2>3D Bookshelf</h2>
-                  <p>Physical · {counts.physical} items</p>
                 </span>
                 <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
@@ -248,7 +248,7 @@ export default function FolderNav({
                 </span>
                 <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
-              <button className="folder-card folder-card-dashboard reveal-item reveal-9" onClick={onSelectDashboard}>
+              <button className="folder-card reveal-item reveal-9" onClick={onSelectDashboard}>
                 <span className="folder-icon">
                   <IconBarChart width={32} height={32} />
                 </span>
