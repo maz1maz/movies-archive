@@ -3459,9 +3459,6 @@ body.light .header {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 130px;
-  overflow-y: hidden;
-  transition: max-height 0.25s ease;
 }
 .cine-crew-table.expanded {
   max-height: 280px;
