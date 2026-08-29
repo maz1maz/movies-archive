@@ -262,14 +262,19 @@ export default function BookshelfView({ films, onSelectFilm, onClose }) {
                   <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
                     <div className="shelf-inner-shadow" />
                     <div className="bluray-shelf">
-                      {sec.films.map((f, idx) => {
+                      {sec.films.flatMap((f, idx) => {
                         const style = getSpineColor(f, idx)
                         const isCriterion = f.criterion || style.type === 'criterion'
                         const is4k = style.type === '4k'
                         const isSteelbook = style.type === 'steelbook'
-                        return (
+                        // نسخه‌های اضافه (copies > 1) واقعاً کنار هم به‌عنوان
+                        // جلدهای جدا رو قفسه می‌ذاریم — نه یه جلد با بج «×N»،
+                        // چون تو یه قفسه‌ی واقعی هم چند نسخه از یه فیلم واقعاً
+                        // چندتا جلد جدا هستن، نه یکی با یه برچسب.
+                        const copyCount = Math.max(1, Number(f.copies) || 1)
+                        return Array.from({ length: copyCount }, (_, copyIdx) => (
                           <div
-                            key={f.id}
+                            key={`${f.id}-${copyIdx}`}
                             className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
                             style={{
                               backgroundColor: style.bg,
@@ -279,7 +284,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose }) {
                             onMouseEnter={() => setHoveredFilm(f)}
                             onMouseLeave={() => setHoveredFilm(null)}
                             onClick={() => onSelectFilm(f)}
-                            title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}`}
+                            title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                           >
                             <div className="case-glare" />
 
@@ -290,7 +295,6 @@ export default function BookshelfView({ films, onSelectFilm, onClose }) {
                             <div className="case-spine">
                               <span className="spine-title" style={{ color: style.text || '#fff' }}>
                                 {f.title}
-                                {f.copies > 1 && <span className="spine-copy-badge">×{f.copies}</span>}
                               </span>
                             </div>
 
@@ -298,7 +302,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose }) {
                               <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
                             </div>
                           </div>
-                        )
+                        ))
                       })}
                     </div>
 
