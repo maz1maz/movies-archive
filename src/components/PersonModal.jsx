@@ -539,6 +539,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                     <IconDisc width={11} height={11} /> BLU-RAY
                   </span>
                 )}
+                {film.itemType === 'series' && <span className="person-series-badge">SERIES</span>}
               </div>
               <div className="person-film-meta">
                 <h4 className="person-film-title">{film.title}</h4>
