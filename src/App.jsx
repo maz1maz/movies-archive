@@ -120,6 +120,25 @@ export default function App() {
   // نگه می‌داریم تا با بستن FilmModal (ضربدر یا کلیک بیرون)، به‌جای اینکه کلاً
   // ببنده، برگردیم به همون صفحه‌ی هنرمند که ازش اومده بودیم.
   const [personBeforeFilm, setPersonBeforeFilm] = useState(null)
+  // برعکسِ حالت بالا: وقتی از تو یه FilmModal (مثلاً سریال) رو اسم
+  // کارگردان/تهیه‌کننده کلیک می‌کنیم، قبلاً selected کلاً پاک می‌شد و هیچ ردی
+  // نمی‌موند — با بستن PersonModal، به‌جای برگشتن به همون فیلم، کاربر می‌رفت
+  // صفحه‌ی اصلی. الان فیلم رو نگه می‌داریم تا با بستن PersonModal برگردیم بهش.
+  const [filmBeforePerson, setFilmBeforePerson] = useState(null)
+  const openPersonFromFilm = (name) => {
+    setFilmBeforePerson(selected)
+    setSelected(null)
+    setForceFilmOverlay(false)
+    setPersonBeforeFilm(null)
+    setSelectedPerson(name)
+  }
+  const closePersonModal = () => {
+    setSelectedPerson(null)
+    if (filmBeforePerson) {
+      setSelected(filmBeforePerson)
+      setFilmBeforePerson(null)
+    }
+  }
   const openFilmFromPerson = (film) => {
     setPersonBeforeFilm(selectedPerson)
     setSelectedPerson(null)
@@ -845,11 +864,7 @@ export default function App() {
               siblingFilm={findSiblingFilm(selected)}
               hasDigital={hasDigitalCopy(selected)}
               onNavigate={(film) => setSelected(film)}
-              onSelectPerson={(name) => {
-                setSelected(null)
-                setPersonBeforeFilm(null)
-                setSelectedPerson(name)
-              }}
+              onSelectPerson={openPersonFromFilm}
               onManageLoan={guardedLoan}
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
@@ -865,7 +880,7 @@ export default function App() {
               hasDigital={hasDigitalCopy}
               onSelectFilm={openFilmFromPerson}
               onSelectPerson={(name) => setSelectedPerson(name)}
-              onClose={() => setSelectedPerson(null)}
+              onClose={closePersonModal}
             />
           )}
           {editing && (
@@ -911,11 +926,7 @@ export default function App() {
               siblingFilm={findSiblingFilm(selected)}
               hasDigital={hasDigitalCopy(selected)}
               onNavigate={(film) => setSelected(film)}
-              onSelectPerson={(name) => {
-                setSelected(null)
-                setPersonBeforeFilm(null)
-                setSelectedPerson(name)
-              }}
+              onSelectPerson={openPersonFromFilm}
               onManageLoan={guardedLoan}
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
@@ -941,11 +952,7 @@ export default function App() {
               siblingFilm={findSiblingFilm(selected)}
               hasDigital={hasDigitalCopy(selected)}
               onNavigate={(film) => setSelected(film)}
-              onSelectPerson={(name) => {
-                setSelected(null)
-                setPersonBeforeFilm(null)
-                setSelectedPerson(name)
-              }}
+              onSelectPerson={openPersonFromFilm}
               onManageLoan={guardedLoan}
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
@@ -961,7 +968,7 @@ export default function App() {
               hasDigital={hasDigitalCopy}
               onSelectFilm={openFilmFromPerson}
               onSelectPerson={(name) => setSelectedPerson(name)}
-              onClose={() => setSelectedPerson(null)}
+              onClose={closePersonModal}
             />
           )}
         </>
@@ -988,11 +995,7 @@ export default function App() {
               siblingFilm={findSiblingFilm(selected)}
               hasDigital={hasDigitalCopy(selected)}
               onNavigate={(film) => setSelected(film)}
-              onSelectPerson={(name) => {
-                setSelected(null)
-                setPersonBeforeFilm(null)
-                setSelectedPerson(name)
-              }}
+              onSelectPerson={openPersonFromFilm}
               onManageLoan={guardedLoan}
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
@@ -1008,7 +1011,7 @@ export default function App() {
               hasDigital={hasDigitalCopy}
               onSelectFilm={openFilmFromPerson}
               onSelectPerson={(name) => setSelectedPerson(name)}
-              onClose={() => setSelectedPerson(null)}
+              onClose={closePersonModal}
             />
           )}
         </>
@@ -1117,11 +1120,7 @@ export default function App() {
               siblingFilm={findSiblingFilm(selected)}
                 hasDigital={hasDigitalCopy(selected)}
                 onNavigate={(film) => setSelected(film)}
-                onSelectPerson={(name) => {
-                  setSelected(null)
-                  setPersonBeforeFilm(null)
-                  setSelectedPerson(name)
-                }}
+                onSelectPerson={openPersonFromFilm}
                 onManageLoan={guardedLoan}
                 onRateFilm={guardedRate}
                 onSaveSeasonDrive={guardedSeasonDrive}
@@ -1161,12 +1160,7 @@ export default function App() {
               siblingFilm={findSiblingFilm(selected)}
           hasDigital={hasDigitalCopy(selected)}
           onNavigate={(film) => setSelected(film)}
-          onSelectPerson={(name) => {
-            setSelected(null)
-            setForceFilmOverlay(false)
-            setPersonBeforeFilm(null)
-            setSelectedPerson(name)
-          }}
+          onSelectPerson={openPersonFromFilm}
           onManageLoan={guardedLoan}
           onRateFilm={guardedRate}
           onSaveSeasonDrive={guardedSeasonDrive}
@@ -1183,7 +1177,7 @@ export default function App() {
           hasDigital={hasDigitalCopy}
           onSelectFilm={openFilmFromPerson}
           onSelectPerson={(name) => setSelectedPerson(name)}
-          onClose={() => setSelectedPerson(null)}
+          onClose={closePersonModal}
         />
       )}
 
