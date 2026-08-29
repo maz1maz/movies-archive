@@ -86,31 +86,21 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
 
   const posterList = altPosters && altPosters.length > 0 ? [film.poster, ...altPosters] : null
 
-  // قبلاً چرخش فقط با هاور موس فعال می‌شد (مثل Netflix روی دسکتاپ) — ولی رو
-  // موبایل اصلاً hover وجود نداره، پس عملاً هیچ‌وقت کار نمی‌کرد. الان به
-  // «دیده شدن کارت رو صفحه» وصلش می‌کنیم: تا کارت تو viewport باشه می‌چرخه،
-  // از دیده خارج شد می‌ایسته — هم موبایل هم دسکتاپ کار می‌کنه، بدون اینکه کل
-  // صفحه هم‌زمان شلوغ بشه (چون فقط کارت‌های واقعاً دیده‌شده می‌چرخن).
+  // چرخشِ بر اساس «دیده شدن» رو موبایل امتحان شد ولی مزاحم بود (کلی کارت
+  // هم‌زمان رو صفحه پوستر عوض می‌کردن، حواس‌پرت‌کننده بود). الان فقط رو
+  // دستگاه‌هایی که واقعاً هاور دارن (موس/دسکتاپ) فعاله؛ موبایل/تاچ کاملاً
+  // خاموشه و همون پوستر اصلی ثابت می‌مونه.
+  const supportsHover =
+    typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover)').matches
   const [isHovering, setIsHovering] = useState(false)
-  const [isVisible, setIsVisible] = useState(false)
   useEffect(() => {
-    const el = cardRef.current
-    if (!el || typeof IntersectionObserver === 'undefined') return
-    const observer = new IntersectionObserver(
-      (entries) => setIsVisible(Boolean(entries[0]?.isIntersecting)),
-      { threshold: 0.4 }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-  useEffect(() => {
-    if ((!isHovering && !isVisible) || !posterList || posterList.length < 2) return
+    if (!supportsHover || !isHovering || !posterList || posterList.length < 2) return
     const id = setInterval(() => {
       setPosterIndex((i) => (i + 1) % posterList.length)
-    }, 4000)
+    }, 2500)
     return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHovering, isVisible, posterList?.length])
+  }, [isHovering, posterList?.length])
 
   const displayedPoster = posterList ? posterList[posterIndex] : film.poster
 

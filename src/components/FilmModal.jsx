@@ -117,6 +117,12 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   }, [film?.id])
 
   useEffect(() => {
+    // چرخش خودکار رو موبایل مزاحم بود — فقط رو دستگاه‌هایی که هاور واقعی
+    // دارن (دسکتاپ) خودکار می‌چرخه؛ رو موبایل فقط با دکمه‌های ‹ › دستی عوض
+    // می‌شه.
+    const supportsHover =
+      typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover)').matches
+    if (!supportsHover) return
     const total = altPosters.length + 1
     if (total < 2) return
     const timer = setInterval(() => {
