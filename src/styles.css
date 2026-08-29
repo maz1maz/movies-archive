@@ -821,10 +821,11 @@ body.light .header {
   height: 32px;
   border: 1px solid var(--border-strong);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  color: var(--muted);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   cursor: pointer;
   transition: background 0.15s, transform 0.15s;
 }
@@ -3479,6 +3480,8 @@ body.light .header {
   border-bottom: 1px solid var(--surface-3);
 }
 .crew-key {
+  flex-shrink: 0;
+  white-space: nowrap;
   color: var(--muted);
 }
 .crew-val {
