@@ -5268,8 +5268,26 @@ body.light .folder-nav-title {
 .folder-nav-stats {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 26px;
-  margin-bottom: 24px;
+  margin: 0 auto 24px;
+  background: none;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.folder-nav-stats:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.folder-nav-stats-chevron {
+  color: var(--marquee-muted, rgba(244, 243, 240, 0.5));
+  transition: transform 0.25s ease;
+  transform: rotate(90deg);
+}
+.folder-nav-stats-chevron-open {
+  transform: rotate(-90deg);
 }
 .folder-nav-stat {
   display: flex;
@@ -5291,6 +5309,19 @@ body.light .folder-nav-stat-value {
   letter-spacing: 0.3px;
   color: var(--marquee-muted, rgba(244, 243, 240, 0.6));
   text-transform: uppercase;
+}
+.folder-grid-collapsed {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin: 0;
+  pointer-events: none;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+.folder-grid-open {
+  max-height: 2200px;
+  opacity: 1;
+  transition: max-height 0.5s ease, opacity 0.4s ease 0.05s;
 }
 .folder-card-chevron {
   flex: 0 0 auto;

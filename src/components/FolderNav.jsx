@@ -58,6 +58,7 @@ export default function FolderNav({
   onOpenFilm,
 }) {
   const [query, setQuery] = useState('')
+  const [browseOpen, setBrowseOpen] = useState(false)
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -110,7 +111,12 @@ export default function FolderNav({
             <p className="marquee-eyebrow reveal-item reveal-2">Now showing</p>
             <h1 className="folder-nav-title reveal-item reveal-3">Cinefilm Archive</h1>
 
-            <div className="folder-nav-stats reveal-item reveal-3">
+            <button
+              type="button"
+              className="folder-nav-stats reveal-item reveal-3"
+              onClick={() => setBrowseOpen((v) => !v)}
+              aria-expanded={browseOpen}
+            >
               <div className="folder-nav-stat">
                 <span className="folder-nav-stat-value">{counts.physical || 0}</span>
                 <span className="folder-nav-stat-label">Blu-ray</span>
@@ -123,7 +129,8 @@ export default function FolderNav({
                 <span className="folder-nav-stat-value">{(counts.digitalSeries || 0) + (counts.physicalSeries || 0)}</span>
                 <span className="folder-nav-stat-label">Series</span>
               </div>
-            </div>
+              <IconChevronRight width={16} height={16} className={browseOpen ? 'folder-nav-stats-chevron folder-nav-stats-chevron-open' : 'folder-nav-stats-chevron'} />
+            </button>
 
             <div className="folder-nav-search reveal-item reveal-4">
               <div className="search-box">
@@ -170,7 +177,7 @@ export default function FolderNav({
           </div>
 
           {!searching && (
-            <div className="folder-grid">
+            <div className={browseOpen ? 'folder-grid folder-grid-open' : 'folder-grid folder-grid-collapsed'}>
               <button className="folder-card folder-card-physical reveal-item reveal-4" onClick={onSelectPhysical}>
                 <span className="folder-icon">
                   <IconDisc width={32} height={32} />
