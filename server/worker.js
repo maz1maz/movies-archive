@@ -4642,11 +4642,28 @@ async function runPosterAuditChunk(db, origin, token, isFirst) {
       // یه invocation کاملاً جدید (سقف subrequest تازه) رو با یه fetch واقعی
       // به خودِ Worker صدا می‌زنیم — نه صرفاً یه صدازدن تابع تو همین اجرا،
       // که همچنان جزو همون invocation قبلی حساب می‌شد و مشکل حل نمی‌شد.
+      let continueDebug = null
       try {
-        await fetch(`${origin}/api/admin/poster-audit?continue=1`, {
+        const contRes = await fetch(`${origin}/api/admin/poster-audit?continue=1`, {
           headers: { 'X-Audit-Token': token },
         })
-      } catch {}
+        continueDebug = { ok: contRes.ok, status: contRes.status }
+      } catch (e) {
+        continueDebug = { threw: String(e).slice(0, 150) }
+      }
+      // دیباگ: اگه ادامه‌ش شکست خورد، تو همین پیشرفت ذخیره‌ش می‌کنیم تا از
+      // بیرون (بدون دسترسی به لاگ‌های Worker) بشه دید چرا متوقف شد.
+      if (!continueDebug.ok) {
+        await saveProgress({
+          status: 'running',
+          total,
+          checked: newOffset,
+          broken,
+          _offset: newOffset,
+          _token: token,
+          _continueDebug: continueDebug,
+        })
+      }
     }
   } catch (e) {
     await saveProgress({ status: 'error', error: String(e) })
