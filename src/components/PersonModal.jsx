@@ -371,7 +371,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
               </button>
             </h2>
             <p className="person-subtitle">
-              Found <strong>{matchingFilms.length}</strong> film(s) in your archive
+              Found <strong>{matchingFilms.length}</strong> title{matchingFilms.length === 1 ? '' : 's'} in your archive
             </p>
             {(facts.age || isDeceased || facts.height || facts.spouse || facts.children) && (
               <div className="person-facts-row">
