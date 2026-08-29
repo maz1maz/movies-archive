@@ -66,7 +66,14 @@ function toList(str) {
 }
 
 export function normalizeTitle(t) {
-  return (t || "").toString().trim().toLowerCase()
+  // «The 100» و «100» باید موقع تشخیص تکراری/match ایمپورت یکی حساب بشن —
+  // قبلاً فقط trim+lowercase بود، برای همین این‌جور جفت‌ها رد می‌شدن و دو
+  // ردیف جدا با اطلاعات متفاوت (مثلاً درایو فصل‌ها) تو دیتابیس می‌موندن.
+  return (t || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/^(the|a|an)\s+/, "")
 }
 
 // اسم ستون‌های اکسل رو قبل از مچ کردن با HEADER_MAP نرمال‌سازی می‌کنیم: پرانتز
