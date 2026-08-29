@@ -157,10 +157,13 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
   const dedupedFilms = Array.from(seenKeys.values())
 
   const isDirector = dedupedFilms.some((f) => (f.director || '').toLowerCase().includes(target))
+  const isWriter = dedupedFilms.some((f) => (f.screenwriter || '').toLowerCase().includes(target))
+  const isProducer = dedupedFilms.some((f) => (f.producer || '').toLowerCase().includes(target))
 
   // قبلاً isActor فقط وقتی چک می‌شد که isDirector نباشه — یعنی کسی مثل
   // استیو مک‌کویین که هم بازیگره هم کارگردان، فقط بج DIRECTOR رو می‌گرفت و
-  // بازیگری‌ش دیده نمی‌شد. الان مستقل از هم چک می‌شن، هردو بج ممکنه بیاد.
+  // بازیگری‌ش دیده نمی‌شد. الان مستقل از هم چک می‌شن، همه‌ی بج‌های مرتبط
+  // ممکنه هم‌زمان بیاد (کارگردان/نویسنده/تهیه‌کننده/بازیگر).
   const isActor = dedupedFilms.some((f) => {
     const castList = Array.isArray(f.cast) ? f.cast : []
     return castList.some((a) => (typeof a === 'object' ? a.name : a || '').toLowerCase() === target)
@@ -174,18 +177,31 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
   const matchingFilms = dedupedFilms
 
   const isFilmByDirector = (f) => (f.director || '').toLowerCase().includes(target)
+  const isFilmByWriter = (f) => (f.screenwriter || '').toLowerCase().includes(target)
+  const isFilmByProducer = (f) => (f.producer || '').toLowerCase().includes(target)
   const isFilmByActor = (f) => {
     const castList = Array.isArray(f.cast) ? f.cast : []
     return castList.some((a) => (typeof a === 'object' ? a.name : a || '').toLowerCase() === target)
   }
-  // وقتی شخص هم کارگردانه هم بازیگر (مثل استیو مک‌کویین)، فیلم‌هایی که
-  // کارگردانی‌شون کرده رو از فیلم‌هایی که فقط توشون بازی کرده جدا نشون
-  // می‌دیم — قبلاً همه با هم قاطی تو یه لیست بودن.
-  const directedFilms = isDirector && isActor ? matchingFilms.filter(isFilmByDirector) : []
-  const actedFilms = isDirector && isActor ? matchingFilms.filter((f) => isFilmByActor(f) && !isFilmByDirector(f)) : []
-  const otherRoleFilms =
-    isDirector && isActor ? matchingFilms.filter((f) => !isFilmByDirector(f) && !isFilmByActor(f)) : []
-  const showSplitFilmography = isDirector && isActor
+
+  // وقتی شخص چند نقش داره (مثلاً هم کارگردانه هم بازیگر هم نویسنده، مثل
+  // استیو مک‌کویین یا خیلی از فیلم‌سازها)، فیلمو گرافی‌ش رو بر اساس نقش جدا
+  // نشون می‌دیم — یه فیلم با بیشترین اولویتِ نقش (کارگردان > نویسنده >
+  // تهیه‌کننده > بازیگر) تو یه بخش قرار می‌گیره، نه هرجا که match شد تکراری.
+  const roleCount = [isDirector, isWriter, isProducer, isActor].filter(Boolean).length
+  const showSplitFilmography = roleCount > 1
+
+  const remaining = new Set(matchingFilms.map((f) => f.id))
+  const takeByRole = (checker) => {
+    const picked = matchingFilms.filter((f) => remaining.has(f.id) && checker(f))
+    picked.forEach((f) => remaining.delete(f.id))
+    return picked
+  }
+  const directedFilms = showSplitFilmography ? takeByRole(isFilmByDirector) : []
+  const writtenFilms = showSplitFilmography ? takeByRole(isFilmByWriter) : []
+  const producedFilms = showSplitFilmography ? takeByRole(isFilmByProducer) : []
+  const actedFilms = showSplitFilmography ? takeByRole(isFilmByActor) : []
+  const otherRoleFilms = showSplitFilmography ? matchingFilms.filter((f) => remaining.has(f.id)) : []
 
   // هم‌بازی‌های پرتکرار — کاملاً از دیتای cast موجود تو آرشیو، بدون API.
   // برای هر فیلمی که این شخص توش بازی کرده، بقیه‌ی cast رو می‌شماریم و
@@ -345,6 +361,8 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
             <h2 className="person-title">
               {personName}
               {isDirector && <span className="person-role-tag">DIRECTOR</span>}
+              {isWriter && <span className="person-role-tag">WRITER</span>}
+              {isProducer && <span className="person-role-tag">PRODUCER</span>}
               {isActor && <span className="person-role-tag">ACTOR</span>}
               <a
                 className="person-imdb-link"
@@ -543,14 +561,25 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
             return <div className="person-films-grid">{matchingFilms.map(renderFilmCard)}</div>
           }
 
-          // شخص هم کارگردانه هم بازیگر — دو تا لیست جدا نشون می‌دیم به‌جای
-          // یه گرید قاطی.
+          // شخص چند نقش داره — به‌جای یه گرید قاطی، بر اساس نقش جدا نشون می‌دیم.
           return (
             <>
               {directedFilms.length > 0 && (
                 <div className="person-films-section">
                   <h3 className="person-films-section-title">As Director</h3>
                   <div className="person-films-grid">{directedFilms.map(renderFilmCard)}</div>
+                </div>
+              )}
+              {writtenFilms.length > 0 && (
+                <div className="person-films-section">
+                  <h3 className="person-films-section-title">As Writer</h3>
+                  <div className="person-films-grid">{writtenFilms.map(renderFilmCard)}</div>
+                </div>
+              )}
+              {producedFilms.length > 0 && (
+                <div className="person-films-section">
+                  <h3 className="person-films-section-title">As Producer</h3>
+                  <div className="person-films-grid">{producedFilms.map(renderFilmCard)}</div>
                 </div>
               )}
               {actedFilms.length > 0 && (
