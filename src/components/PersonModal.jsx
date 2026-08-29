@@ -158,13 +158,13 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
 
   const isDirector = dedupedFilms.some((f) => (f.director || '').toLowerCase().includes(target))
 
-  // اگه کارگردان نبود، بازیگره یا نه رو چک می‌کنیم — برای تگ کنار اسم.
-  const isActor =
-    !isDirector &&
-    dedupedFilms.some((f) => {
-      const castList = Array.isArray(f.cast) ? f.cast : []
-      return castList.some((a) => (typeof a === 'object' ? a.name : a || '').toLowerCase() === target)
-    })
+  // قبلاً isActor فقط وقتی چک می‌شد که isDirector نباشه — یعنی کسی مثل
+  // استیو مک‌کویین که هم بازیگره هم کارگردان، فقط بج DIRECTOR رو می‌گرفت و
+  // بازیگری‌ش دیده نمی‌شد. الان مستقل از هم چک می‌شن، هردو بج ممکنه بیاد.
+  const isActor = dedupedFilms.some((f) => {
+    const castList = Array.isArray(f.cast) ? f.cast : []
+    return castList.some((a) => (typeof a === 'object' ? a.name : a || '').toLowerCase() === target)
+  })
 
   // قبلاً اگه این شخص کارگردان شناخته می‌شد، فیلم‌هایی که فقط نویسنده/
   // تهیه‌کننده‌ش بوده (نه کارگردان) از لیست حذف می‌شدن — با این توجیه که
@@ -172,6 +172,20 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
   // (که خودش نوشته، نه کارگردانی کرده) اصلاً نشون داده نشه. الان همه‌ی
   // نقش‌ها (کارگردان/نویسنده/تهیه‌کننده/بازیگر) نشون داده می‌شن.
   const matchingFilms = dedupedFilms
+
+  const isFilmByDirector = (f) => (f.director || '').toLowerCase().includes(target)
+  const isFilmByActor = (f) => {
+    const castList = Array.isArray(f.cast) ? f.cast : []
+    return castList.some((a) => (typeof a === 'object' ? a.name : a || '').toLowerCase() === target)
+  }
+  // وقتی شخص هم کارگردانه هم بازیگر (مثل استیو مک‌کویین)، فیلم‌هایی که
+  // کارگردانی‌شون کرده رو از فیلم‌هایی که فقط توشون بازی کرده جدا نشون
+  // می‌دیم — قبلاً همه با هم قاطی تو یه لیست بودن.
+  const directedFilms = isDirector && isActor ? matchingFilms.filter(isFilmByDirector) : []
+  const actedFilms = isDirector && isActor ? matchingFilms.filter((f) => isFilmByActor(f) && !isFilmByDirector(f)) : []
+  const otherRoleFilms =
+    isDirector && isActor ? matchingFilms.filter((f) => !isFilmByDirector(f) && !isFilmByActor(f)) : []
+  const showSplitFilmography = isDirector && isActor
 
   // هم‌بازی‌های پرتکرار — کاملاً از دیتای cast موجود تو آرشیو، بدون API.
   // برای هر فیلمی که این شخص توش بازی کرده، بقیه‌ی cast رو می‌شماریم و
@@ -479,48 +493,81 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
           </div>
         </div>
 
-        <div className="person-films-grid">
-          {matchingFilms.length === 0 ? (
-            <div className="person-empty">No other films found for {personName}</div>
-          ) : (
-            matchingFilms.map((film) => (
-              <button
-                key={film.id}
-                className="person-film-card"
-                onClick={() => {
-                  onSelectFilm(film)
-                }}
-              >
-                <div className="person-film-poster">
-                  <img
-                    src={film.poster}
-                    alt={film.title}
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                  <div className="person-poster-fallback">{film.title}</div>
-                  {(film.closet || film.shelf || film.row) && (
-                    <span className="person-location-badge">
-                      <IconPin width={11} height={11} /> C{film.closet || '—'} R{film.row || '—'} S{film.shelf || '—'}
-                    </span>
-                  )}
-                  {hasBluray && hasBluray(film) && (
-                    <span className="bluray-badge" title="Blu-ray copy also owned">
-                      <IconDisc width={11} height={11} /> BLU-RAY
-                    </span>
-                  )}
+        {(() => {
+          const renderFilmCard = (film) => (
+            <button
+              key={film.id}
+              className="person-film-card"
+              onClick={() => {
+                onSelectFilm(film)
+              }}
+            >
+              <div className="person-film-poster">
+                <img
+                  src={film.poster}
+                  alt={film.title}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+                <div className="person-poster-fallback">{film.title}</div>
+                {(film.closet || film.shelf || film.row) && (
+                  <span className="person-location-badge">
+                    <IconPin width={11} height={11} /> C{film.closet || '—'} R{film.row || '—'} S{film.shelf || '—'}
+                  </span>
+                )}
+                {hasBluray && hasBluray(film) && (
+                  <span className="bluray-badge" title="Blu-ray copy also owned">
+                    <IconDisc width={11} height={11} /> BLU-RAY
+                  </span>
+                )}
+              </div>
+              <div className="person-film-meta">
+                <h4 className="person-film-title">{film.title}</h4>
+                <p className="person-film-year">
+                  {film.year || '—'} · {(Array.isArray(film.genre) ? film.genre : (film.genre || '').split(',').map(g => g.trim()).filter(Boolean)).slice(0, 2).join(', ')}
+                </p>
+              </div>
+            </button>
+          )
+
+          if (matchingFilms.length === 0) {
+            return (
+              <div className="person-films-grid">
+                <div className="person-empty">No other films found for {personName}</div>
+              </div>
+            )
+          }
+
+          if (!showSplitFilmography) {
+            return <div className="person-films-grid">{matchingFilms.map(renderFilmCard)}</div>
+          }
+
+          // شخص هم کارگردانه هم بازیگر — دو تا لیست جدا نشون می‌دیم به‌جای
+          // یه گرید قاطی.
+          return (
+            <>
+              {directedFilms.length > 0 && (
+                <div className="person-films-section">
+                  <h3 className="person-films-section-title">As Director</h3>
+                  <div className="person-films-grid">{directedFilms.map(renderFilmCard)}</div>
                 </div>
-                <div className="person-film-meta">
-                  <h4 className="person-film-title">{film.title}</h4>
-                  <p className="person-film-year">
-                    {film.year || '—'} · {(Array.isArray(film.genre) ? film.genre : (film.genre || '').split(',').map(g => g.trim()).filter(Boolean)).slice(0, 2).join(', ')}
-                  </p>
+              )}
+              {actedFilms.length > 0 && (
+                <div className="person-films-section">
+                  <h3 className="person-films-section-title">As Actor</h3>
+                  <div className="person-films-grid">{actedFilms.map(renderFilmCard)}</div>
                 </div>
-              </button>
-            ))
-          )}
-        </div>
+              )}
+              {otherRoleFilms.length > 0 && (
+                <div className="person-films-section">
+                  <h3 className="person-films-section-title">Other Credits</h3>
+                  <div className="person-films-grid">{otherRoleFilms.map(renderFilmCard)}</div>
+                </div>
+              )}
+            </>
+          )
+        })()}
 
         {directorCollabs.length > 0 && (
           <div className="stats-box" style={{ marginTop: 18 }}>
