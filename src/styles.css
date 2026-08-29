@@ -3194,6 +3194,7 @@ body.light .header {
 
 .cine-info-badges {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
@@ -3204,6 +3205,7 @@ body.light .header {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   border: 1.5px solid #00e054;
   border-radius: 7px;
   background: var(--bg);
@@ -3213,6 +3215,7 @@ body.light .header {
   text-decoration: none;
   transition: filter 0.15s;
   padding: 4px 11px;
+  white-space: nowrap;
 }
 .letterboxd-rating-box:hover {
   filter: brightness(1.15);
@@ -3231,6 +3234,7 @@ body.light .header {
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 .letterboxd-tag-val {
   color: #00e054;
@@ -3254,12 +3258,14 @@ body.light .header {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   background: #f5c518;
   color: #000000 !important;
   border-radius: 7px;
   padding: 4px 11px;
   text-decoration: none;
   box-shadow: none;
+  white-space: nowrap;
 }
 .clickable-imdb {
   cursor: pointer;
@@ -3284,6 +3290,7 @@ body.light .header {
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 .imdb-score-black {
   color: #000000 !important;
