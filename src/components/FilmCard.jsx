@@ -107,7 +107,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
     if ((!isHovering && !isVisible) || !posterList || posterList.length < 2) return
     const id = setInterval(() => {
       setPosterIndex((i) => (i + 1) % posterList.length)
-    }, 2500)
+    }, 4000)
     return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHovering, isVisible, posterList?.length])
