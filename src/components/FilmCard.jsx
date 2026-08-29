@@ -86,17 +86,31 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
 
   const posterList = altPosters && altPosters.length > 0 ? [film.poster, ...altPosters] : null
 
-  // به‌جای چرخش خودکار مداوم (که رو صفحه‌ی شلوغ اذیت‌کننده بود)، فقط وقتی
-  // موس روی کارت می‌ره پوستر عوض می‌شه — مثل هاور روی کارت تو Netflix.
+  // قبلاً چرخش فقط با هاور موس فعال می‌شد (مثل Netflix روی دسکتاپ) — ولی رو
+  // موبایل اصلاً hover وجود نداره، پس عملاً هیچ‌وقت کار نمی‌کرد. الان به
+  // «دیده شدن کارت رو صفحه» وصلش می‌کنیم: تا کارت تو viewport باشه می‌چرخه،
+  // از دیده خارج شد می‌ایسته — هم موبایل هم دسکتاپ کار می‌کنه، بدون اینکه کل
+  // صفحه هم‌زمان شلوغ بشه (چون فقط کارت‌های واقعاً دیده‌شده می‌چرخن).
   const [isHovering, setIsHovering] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
   useEffect(() => {
-    if (!isHovering || !posterList || posterList.length < 2) return
+    const el = cardRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => setIsVisible(Boolean(entries[0]?.isIntersecting)),
+      { threshold: 0.4 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+  useEffect(() => {
+    if ((!isHovering && !isVisible) || !posterList || posterList.length < 2) return
     const id = setInterval(() => {
       setPosterIndex((i) => (i + 1) % posterList.length)
     }, 2500)
     return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHovering, posterList?.length])
+  }, [isHovering, isVisible, posterList?.length])
 
   const displayedPoster = posterList ? posterList[posterIndex] : film.poster
 
