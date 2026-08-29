@@ -58,24 +58,33 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   // خالی گذاشته بشه)، بعد seasonDrives رو دوباره از رو نقشه‌ی به‌روزشده
   // می‌سازه — به‌جای این‌که فقط رشته‌ی همون یه ردیف رو دستکاری کنه، چون یه
   // ردیف seasonDrives می‌تونه چندتا فصل رو باهم پوشش بده (مثلاً "2, 3").
-  const saveSeasonDrive = (seasonNum, newDrive) => {
+  const saveSeasonDrive = (seasonNum, newDriveInput) => {
     if (!onSaveSeasonDrive) return
     const ownedMap = {}
     ;(film.seasonDrives || []).forEach((sd) => {
       const nums = String(sd.seasons || '').match(/\d+/g) || []
       nums.forEach((n) => {
-        ownedMap[Number(n)] = sd.drive
+        const key = Number(n)
+        if (!ownedMap[key]) ownedMap[key] = []
+        if (!ownedMap[key].includes(sd.drive)) ownedMap[key].push(sd.drive)
       })
     })
-    if (newDrive && newDrive.trim()) {
-      ownedMap[seasonNum] = newDrive.trim()
+    // یه فصل می‌تونه رو چند درایو باشه — با کاما جدا می‌شه (مثلاً "Drive 9, Drive 11")
+    const newDrives = (newDriveInput || '')
+      .split(',')
+      .map((d) => d.trim())
+      .filter(Boolean)
+    if (newDrives.length) {
+      ownedMap[seasonNum] = newDrives
     } else {
       delete ownedMap[seasonNum]
     }
     const byDrive = {}
-    Object.entries(ownedMap).forEach(([n, drive]) => {
-      if (!byDrive[drive]) byDrive[drive] = []
-      byDrive[drive].push(Number(n))
+    Object.entries(ownedMap).forEach(([n, drives]) => {
+      drives.forEach((drive) => {
+        if (!byDrive[drive]) byDrive[drive] = []
+        byDrive[drive].push(Number(n))
+      })
     })
     const nextSeasonDrives = Object.entries(byDrive).map(([drive, nums]) => ({
       seasons: nums.sort((a, b) => a - b).join(', '),
@@ -1083,11 +1092,16 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 </div>
                 <div className="cine-seasons-table">
                   {(() => {
-                    // نگاشت هر شماره فصل به هارد نگهدارنده‌اش، از روی seasonDrives
+                    // نگاشت هر شماره فصل به همه‌ی هاردهایی که روش هست (نه فقط
+                    // آخرین match) — یه فصل می‌تونه هم‌زمان رو چند درایو باشه.
                     const ownedMap = {}
                     for (const sd of film.seasonDrives) {
                       const nums = String(sd.seasons || '').match(/\d+/g) || []
-                      for (const n of nums) ownedMap[Number(n)] = sd.drive
+                      for (const n of nums) {
+                        const key = Number(n)
+                        if (!ownedMap[key]) ownedMap[key] = []
+                        if (!ownedMap[key].includes(sd.drive)) ownedMap[key].push(sd.drive)
+                      }
                     }
                     const ownedNums = Object.keys(ownedMap).map(Number)
                     const maxKnown = ownedNums.length ? Math.max(...ownedNums) : 0
@@ -1140,22 +1154,24 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                           </span>
                         ) : (
                           <span
-                            className={ownedMap[n] ? 'season-drive' : 'season-drive season-missing'}
+                            className={ownedMap[n] && ownedMap[n].length ? 'season-drive' : 'season-drive season-missing'}
                             onClick={
                               onSaveSeasonDrive
                                 ? () => {
                                     setEditingSeason(n)
-                                    setSeasonDriveInput(ownedMap[n] || '')
+                                    setSeasonDriveInput((ownedMap[n] || []).join(', '))
                                   }
                                 : undefined
                             }
                             style={onSaveSeasonDrive ? { cursor: 'pointer' } : undefined}
-                            title={onSaveSeasonDrive ? 'Click to edit which drive this season is on' : undefined}
+                            title={onSaveSeasonDrive ? 'Click to edit which drive(s) this season is on' : undefined}
                           >
-                            {ownedMap[n] ? (
-                              <>
-                                <IconPin width={12} height={12} /> {ownedMap[n]}
-                              </>
+                            {ownedMap[n] && ownedMap[n].length ? (
+                              ownedMap[n].map((drv, i) => (
+                                <span key={i} className="season-drive-tag">
+                                  <IconPin width={12} height={12} /> {drv}
+                                </span>
+                              ))
                             ) : (
                               'Not in archive'
                             )}

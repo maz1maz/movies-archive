@@ -3520,9 +3520,16 @@ body.light .header {
 .season-drive {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   color: var(--text);
   font-weight: 500;
+}
+.season-drive-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .season-missing {
   color: var(--muted);
