@@ -5130,7 +5130,7 @@ body.light .header {
 }
 .folder-collage-tile {
   aspect-ratio: 2 / 3;
-  transform: rotate(var(--tilt)) scale(1.18);
+  transform: rotate(var(--tilt)) scale(1.32);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
   border-radius: 6px;
   overflow: hidden;

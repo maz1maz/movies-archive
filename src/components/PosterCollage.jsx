@@ -25,7 +25,7 @@ const TILT_ANGLES = [-7, 4, -3, 6, -5, 3, -8, 5, -4, 7, -6, 2, -2, 8]
 // بیشتر چون پشتش محتوای زیادی هست که باید کاملاً خوانا بمونه.
 // fixed={false} (پیش‌فرض): برای صفحات پوشه (انتخاب فیزیکی/دیجیتال)،
 // با محو کمتر چون پشتش فقط دوتا کارت بزرگه و خودِ پوسترها باید دیده بشن.
-export default function PosterCollage({ posters, count = 14, fixed = false }) {
+export default function PosterCollage({ posters, count = 42, fixed = false }) {
   const sample = usePosterSample(posters, count)
   if (sample.length === 0) return null
   return (
