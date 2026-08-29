@@ -1514,21 +1514,36 @@ async function handleFetch(request, env, ctx) {
       }
 
       // ---- POST/GET /api/admin/poster-audit?start=1 — اسکن کل آرشیو برای
-      // لینک پوستر خراب. پس‌زمینه‌ای (ctx.waitUntil) اجرا می‌شه چون هزاران
-      // فیلمه؛ خودِ درخواست فوری جواب می‌ده، نتیجه تو جدول ذخیره می‌شه —
-      // بدون query param start، همون GET فقط وضعیت/نتیجه‌ی فعلی رو می‌ده
-      // (تا از مرورگر موبایل هم بشه هم شروعش کرد هم پیگیریش کرد).
+      // لینک پوستر خراب. Cloudflare Workers سقف subrequest به‌ازای هر
+      // invocation داره — قبلاً کل ۱۷هزار+ فیلم تو یه invocation پیوسته چک
+      // می‌شد و به محض رد شدن از سقف، همه‌ی بقیه‌ش با خطای «Too many
+      // subrequests» به‌اشتباه «خراب» ثبت می‌شد. الان تکه‌تکه (هر بار یه
+      // invocation جدید، با سقف subrequest تازه) پیش می‌ره: با یه توکن
+      // داخلی، خودش رو دوباره صدا می‌زنه تا کل لیست تموم بشه.
+      // بدون query param start، همون GET فقط وضعیت/نتیجه‌ی فعلی رو می‌ده.
       if (pathname === '/api/admin/poster-audit') {
         if (url.searchParams.get('start') === '1') {
           const authErr = requireAuth()
           if (authErr) return authErr
-          ctx.waitUntil(runPosterAudit(db))
+          const token = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
+          ctx.waitUntil(runPosterAuditChunk(db, url.origin, token, true))
           return json({ started: true }, 200, corsHeaders)
+        }
+        if (url.searchParams.get('continue') === '1') {
+          const providedToken = request.headers.get('X-Audit-Token')
+          const row = await db.prepare('SELECT data FROM cinema_news_cache WHERE key = ?').bind('poster_audit').first()
+          const current = row ? JSON.parse(row.data) : null
+          if (!current || !providedToken || current._token !== providedToken) {
+            return json({ error: 'invalid continuation token' }, 403, corsHeaders)
+          }
+          ctx.waitUntil(runPosterAuditChunk(db, url.origin, providedToken, false))
+          return json({ continuing: true }, 200, corsHeaders)
         }
         try {
           const row = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('poster_audit').first()
           if (!row) return json({ status: 'not_started' }, 200, corsHeaders)
-          return json({ ...JSON.parse(row.data), updatedAt: row.fetchedAt }, 200, corsHeaders)
+          const { _token, _offset, ...publicData } = JSON.parse(row.data)
+          return json({ ...publicData, updatedAt: row.fetchedAt }, 200, corsHeaders)
         } catch (e) {
           return json({ status: 'error', error: String(e) }, 200, corsHeaders)
         }
@@ -4557,7 +4572,13 @@ async function resolveFestivalAwards(db, env, film) {
 // دسته‌دسته (concurrency محدود) چک می‌شه تا subrequest محدودیت Workers رد
 // نشه؛ هر چند صد تا یه‌بار پیشرفت رو تو DB ذخیره می‌کنه تا حتی وسط کار هم
 // بشه وضعیتش رو دید.
-async function runPosterAudit(db) {
+// اسکن کل آرشیو برای پیدا کردن لینک‌های پوستر خراب (404 یا هر خطای دیگه) —
+// تکه‌تکه (هر بار CHUNK_SIZE فیلم) تا از سقف subrequest هر invocation رد
+// نشیم؛ بعد از هر تکه، با یه fetch واقعی به خودِ Worker (invocation کاملاً
+// جدید، سقف subrequest تازه) ادامه رو صدا می‌زنه. isFirst=true یعنی از صفر
+// شروع کن (پیشرفت قبلی رو پاک کن)، وگرنه از همون‌جا که مونده ادامه بده.
+async function runPosterAuditChunk(db, origin, token, isFirst) {
+  const CHUNK_SIZE = 20
   const saveProgress = async (payload) => {
     try {
       await db
@@ -4571,45 +4592,62 @@ async function runPosterAudit(db) {
     const rows = await db.prepare("SELECT id, title, poster FROM films WHERE poster IS NOT NULL AND poster != ''").all()
     const films = rows.results || []
     const total = films.length
-    const broken = []
-    const CONCURRENCY = 25
-    let checked = 0
 
-    await saveProgress({ status: 'running', total, checked: 0, broken: [] })
-
-    for (let i = 0; i < films.length; i += CONCURRENCY) {
-      const batch = films.slice(i, i + CONCURRENCY)
-      await Promise.all(
-        batch.map(async (f) => {
-          try {
-            const headers = { 'User-Agent': 'CinefilmArchive/1.0 (personal film archive app; poster link check)' }
-            let res
-            try {
-              res = await fetch(f.poster, { method: 'HEAD', headers, signal: AbortSignal.timeout(8000) })
-            } catch {
-              res = null
-            }
-            if (!res || !res.ok) {
-              // خیلی از CDNها (مخصوصاً آمازون) به HEAD درست جواب نمی‌دن —
-              // بعضی‌وقتا حتی throw می‌کنن (نه فقط status بد)، نه لزوماً با
-              // ۴۰۳/۴۰۵/۵۰۱ که قبلاً فقط همونا retry می‌شدن و باعث false
-              // positive انبوه می‌شد. حالا برای هر شکستی (throw یا !ok) با
-              // GET دوباره امتحان می‌کنیم.
-              res = await fetch(f.poster, { method: 'GET', headers, signal: AbortSignal.timeout(8000) })
-            }
-            if (!res.ok) broken.push({ id: f.id, title: f.title, poster: f.poster, status: res.status })
-          } catch (e) {
-            broken.push({ id: f.id, title: f.title, poster: f.poster, status: 'error', error: String(e).slice(0, 80) })
-          }
-        })
-      )
-      checked += batch.length
-      if (checked % 200 < CONCURRENCY) {
-        await saveProgress({ status: 'running', total, checked, broken })
-      }
+    let offset = 0
+    let broken = []
+    if (!isFirst) {
+      try {
+        const row = await db.prepare('SELECT data FROM cinema_news_cache WHERE key = ?').bind('poster_audit').first()
+        const prev = row ? JSON.parse(row.data) : null
+        if (prev) {
+          offset = prev._offset || 0
+          broken = prev.broken || []
+        }
+      } catch {}
     }
 
-    await saveProgress({ status: 'done', total, checked, broken })
+    const batch = films.slice(offset, offset + CHUNK_SIZE)
+    await Promise.all(
+      batch.map(async (f) => {
+        try {
+          const headers = { 'User-Agent': 'CinefilmArchive/1.0 (personal film archive app; poster link check)' }
+          let res
+          try {
+            res = await fetch(f.poster, { method: 'HEAD', headers, signal: AbortSignal.timeout(8000) })
+          } catch {
+            res = null
+          }
+          if (!res || !res.ok) {
+            res = await fetch(f.poster, { method: 'GET', headers, signal: AbortSignal.timeout(8000) })
+          }
+          if (!res.ok) broken.push({ id: f.id, title: f.title, poster: f.poster, status: res.status })
+        } catch (e) {
+          broken.push({ id: f.id, title: f.title, poster: f.poster, status: 'error', error: String(e).slice(0, 80) })
+        }
+      })
+    )
+
+    const newOffset = offset + batch.length
+    const done = newOffset >= total
+    await saveProgress({
+      status: done ? 'done' : 'running',
+      total,
+      checked: newOffset,
+      broken,
+      _offset: newOffset,
+      _token: token,
+    })
+
+    if (!done) {
+      // یه invocation کاملاً جدید (سقف subrequest تازه) رو با یه fetch واقعی
+      // به خودِ Worker صدا می‌زنیم — نه صرفاً یه صدازدن تابع تو همین اجرا،
+      // که همچنان جزو همون invocation قبلی حساب می‌شد و مشکل حل نمی‌شد.
+      try {
+        await fetch(`${origin}/api/admin/poster-audit?continue=1`, {
+          headers: { 'X-Audit-Token': token },
+        })
+      } catch {}
+    }
   } catch (e) {
     await saveProgress({ status: 'error', error: String(e) })
   }
