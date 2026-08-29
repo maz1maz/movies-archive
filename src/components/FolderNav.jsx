@@ -19,6 +19,10 @@ function matchScore(film, q) {
   const wordBoundaryRe = new RegExp(`\\b${escapeRegex(q)}`, 'i')
   if (wordBoundaryRe.test(title) || wordBoundaryRe.test(origTitle)) return 60
   if (title.includes(q) || origTitle.includes(q)) return 40
+  // فاصله‌ها رو نادیده می‌گیریم تا «Davinci» هم با «Da Vinci» match بشه —
+  // کاربر دقیقاً یادش نمی‌مونه کجای عنوان فاصله داشت.
+  const noSpace = (s) => s.replace(/\s+/g, '')
+  if (q.length >= 4 && (noSpace(title).includes(noSpace(q)) || noSpace(origTitle).includes(noSpace(q)))) return 30
   if (q.length >= 3) {
     const otherFields = [
       film.director,
