@@ -4583,10 +4583,18 @@ async function runPosterAudit(db) {
         batch.map(async (f) => {
           try {
             const headers = { 'User-Agent': 'CinefilmArchive/1.0 (personal film archive app; poster link check)' }
-            let res = await fetch(f.poster, { method: 'HEAD', headers, signal: AbortSignal.timeout(8000) })
-            if (res.status === 405 || res.status === 501 || res.status === 403) {
-              // بعضی CDNها HEAD رو پشتیبانی نمی‌کنن (یا با HEAD ۴۰۳ می‌دن، مثل
-              // ویکی‌مدیا بعضی‌وقتا)، با GET دوباره امتحان می‌کنیم
+            let res
+            try {
+              res = await fetch(f.poster, { method: 'HEAD', headers, signal: AbortSignal.timeout(8000) })
+            } catch {
+              res = null
+            }
+            if (!res || !res.ok) {
+              // خیلی از CDNها (مخصوصاً آمازون) به HEAD درست جواب نمی‌دن —
+              // بعضی‌وقتا حتی throw می‌کنن (نه فقط status بد)، نه لزوماً با
+              // ۴۰۳/۴۰۵/۵۰۱ که قبلاً فقط همونا retry می‌شدن و باعث false
+              // positive انبوه می‌شد. حالا برای هر شکستی (throw یا !ok) با
+              // GET دوباره امتحان می‌کنیم.
               res = await fetch(f.poster, { method: 'GET', headers, signal: AbortSignal.timeout(8000) })
             }
             if (!res.ok) broken.push({ id: f.id, title: f.title, poster: f.poster, status: res.status })
