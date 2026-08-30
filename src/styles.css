@@ -5429,6 +5429,22 @@ body.light .folder-nav-stat-value {
   .marquee-band .marquee-footer {
     display: none;
   }
+  /* رو دسکتاپ فضای زیادی هست، دکمه‌ی جمع/باز کاربردی نداره — گرید همیشه
+     بازه، صرف‌نظر از state کلیک، و خودِ دکمه‌ی آمار غیرقابل‌کلیک می‌شه. */
+  .folder-grid-collapsed,
+  .folder-grid-open {
+    max-height: none;
+    opacity: 1;
+    overflow: visible;
+    pointer-events: auto;
+  }
+  .folder-nav-stats {
+    cursor: default;
+    pointer-events: none;
+  }
+  .folder-nav-stats-chevron {
+    display: none;
+  }
 }
 .folder-nav-search {
   position: relative;
