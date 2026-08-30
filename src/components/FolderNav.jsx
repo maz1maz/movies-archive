@@ -62,7 +62,12 @@ export default function FolderNav({
   onOpenFilm,
 }) {
   const [query, setQuery] = useState('')
-  const [browseOpen, setBrowseOpen] = useState(false)
+  // رو دسکتاپ (صفحه‌ی عریض)، چیدمان کنار-هم (brand + grid) طراحی شده بود؛
+  // اگه پیش‌فرض بسته باشه، فقط یه ستون کوچیک وسط یه صفحه‌ی خالی می‌مونه.
+  // پس فقط رو موبایل (صفحه‌ی باریک) پیش‌فرض بسته‌ست، دسکتاپ همیشه بازه.
+  const [browseOpen, setBrowseOpen] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(min-width: 860px)').matches
+  )
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
