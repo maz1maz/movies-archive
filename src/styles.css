@@ -5438,6 +5438,9 @@ body.light .folder-nav-stat-value {
     overflow: visible;
     pointer-events: auto;
   }
+  .folder-grid-collapsed .folder-card {
+    opacity: 1;
+  }
   .folder-nav-stats {
     cursor: default;
     pointer-events: none;
