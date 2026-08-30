@@ -53,6 +53,13 @@ export default {
       return
     }
 
+    if (event.cron === '*/1 * * * *') {
+      // فقط وقتی poster-audit «running»ه کاری می‌کنه (خودِ تابع اول چک
+      // می‌کنه)، وگرنه هر دقیقه بی‌خودی صدا زده می‌شه ولی سریع return می‌کنه.
+      await runPosterAuditChunk(env.DB).catch(() => {})
+      return
+    }
+
     try {
       const db = env.DB
       let totalProcessed = 0
@@ -1517,32 +1524,26 @@ async function handleFetch(request, env, ctx) {
       // لینک پوستر خراب. Cloudflare Workers سقف subrequest به‌ازای هر
       // invocation داره — قبلاً کل ۱۷هزار+ فیلم تو یه invocation پیوسته چک
       // می‌شد و به محض رد شدن از سقف، همه‌ی بقیه‌ش با خطای «Too many
-      // subrequests» به‌اشتباه «خراب» ثبت می‌شد. الان تکه‌تکه (هر بار یه
-      // invocation جدید، با سقف subrequest تازه) پیش می‌ره: با یه توکن
-      // داخلی، خودش رو دوباره صدا می‌زنه تا کل لیست تموم بشه.
+      // subrequests» به‌اشتباه «خراب» ثبت می‌شد. الان تکه‌تکه پیش می‌ره: این
+      // فقط اولین تکه رو پردازش می‌کنه و وضعیت رو «running» می‌ذاره؛ یه
+      // کرون هر-۱-دقیقه (wrangler.jsonc) بقیه‌ی تکه‌ها رو خودکار ادامه
+      // می‌ده تا تموم بشه (هر تیک کرون = یه invocation جدید و مستقل).
       // بدون query param start، همون GET فقط وضعیت/نتیجه‌ی فعلی رو می‌ده.
       if (pathname === '/api/admin/poster-audit') {
         if (url.searchParams.get('start') === '1') {
           const authErr = requireAuth()
           if (authErr) return authErr
-          const token = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
-          ctx.waitUntil(runPosterAuditChunk(db, url.origin, token, true))
+          await db
+            .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES ('poster_audit', ?, datetime('now'))")
+            .bind(JSON.stringify({ status: 'running', total: 0, checked: 0, broken: [], _offset: 0 }))
+            .run()
+          ctx.waitUntil(runPosterAuditChunk(db))
           return json({ started: true }, 200, corsHeaders)
-        }
-        if (url.searchParams.get('continue') === '1') {
-          const providedToken = request.headers.get('X-Audit-Token')
-          const row = await db.prepare('SELECT data FROM cinema_news_cache WHERE key = ?').bind('poster_audit').first()
-          const current = row ? JSON.parse(row.data) : null
-          if (!current || !providedToken || current._token !== providedToken) {
-            return json({ error: 'invalid continuation token' }, 403, corsHeaders)
-          }
-          ctx.waitUntil(runPosterAuditChunk(db, url.origin, providedToken, false))
-          return json({ continuing: true }, 200, corsHeaders)
         }
         try {
           const row = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind('poster_audit').first()
           if (!row) return json({ status: 'not_started' }, 200, corsHeaders)
-          const { _token, _offset, ...publicData } = JSON.parse(row.data)
+          const { _offset, ...publicData } = JSON.parse(row.data)
           return json({ ...publicData, updatedAt: row.fetchedAt }, 200, corsHeaders)
         } catch (e) {
           return json({ status: 'error', error: String(e) }, 200, corsHeaders)
@@ -4573,12 +4574,14 @@ async function resolveFestivalAwards(db, env, film) {
 // نشه؛ هر چند صد تا یه‌بار پیشرفت رو تو DB ذخیره می‌کنه تا حتی وسط کار هم
 // بشه وضعیتش رو دید.
 // اسکن کل آرشیو برای پیدا کردن لینک‌های پوستر خراب (404 یا هر خطای دیگه) —
-// تکه‌تکه (هر بار CHUNK_SIZE فیلم) تا از سقف subrequest هر invocation رد
-// نشیم؛ بعد از هر تکه، با یه fetch واقعی به خودِ Worker (invocation کاملاً
-// جدید، سقف subrequest تازه) ادامه رو صدا می‌زنه. isFirst=true یعنی از صفر
-// شروع کن (پیشرفت قبلی رو پاک کن)، وگرنه از همون‌جا که مونده ادامه بده.
-async function runPosterAuditChunk(db, origin, token, isFirst) {
-  const CHUNK_SIZE = 20
+// تکه‌تکه (هر بار CHUNK_SIZE فیلم). قبلاً بین تکه‌ها با یه fetch واقعی به
+// خودِ Worker ادامه می‌داد، ولی self-fetch به دامنه‌ی workers.dev ظاهراً با
+// یه محافظت لبه‌ی Cloudflare برخورد می‌کرد و ۴۰۴ می‌گرفت. الان به‌جاش یه
+// کرون هر-۱-دقیقه (به wrangler.jsonc نگاه کن) هر بار یه تکه رو پیش می‌بره —
+// چون هر تیک کرون یه invocation کاملاً جدا و مستقله، مشکل سقف subrequest هم
+// همچنان حل می‌مونه، بدون نیاز به self-fetch.
+async function runPosterAuditChunk(db) {
+  const CHUNK_SIZE = 25
   const saveProgress = async (payload) => {
     try {
       await db
@@ -4589,22 +4592,15 @@ async function runPosterAuditChunk(db, origin, token, isFirst) {
   }
 
   try {
+    const row = await db.prepare('SELECT data FROM cinema_news_cache WHERE key = ?').bind('poster_audit').first()
+    const prev = row ? JSON.parse(row.data) : null
+    if (!prev || prev.status !== 'running') return // چیزی برای ادامه نیست
+
     const rows = await db.prepare("SELECT id, title, poster FROM films WHERE poster IS NOT NULL AND poster != ''").all()
     const films = rows.results || []
     const total = films.length
-
-    let offset = 0
-    let broken = []
-    if (!isFirst) {
-      try {
-        const row = await db.prepare('SELECT data FROM cinema_news_cache WHERE key = ?').bind('poster_audit').first()
-        const prev = row ? JSON.parse(row.data) : null
-        if (prev) {
-          offset = prev._offset || 0
-          broken = prev.broken || []
-        }
-      } catch {}
-    }
+    const offset = prev._offset || 0
+    const broken = prev.broken || []
 
     const batch = films.slice(offset, offset + CHUNK_SIZE)
     await Promise.all(
@@ -4635,36 +4631,7 @@ async function runPosterAuditChunk(db, origin, token, isFirst) {
       checked: newOffset,
       broken,
       _offset: newOffset,
-      _token: token,
     })
-
-    if (!done) {
-      // یه invocation کاملاً جدید (سقف subrequest تازه) رو با یه fetch واقعی
-      // به خودِ Worker صدا می‌زنیم — نه صرفاً یه صدازدن تابع تو همین اجرا،
-      // که همچنان جزو همون invocation قبلی حساب می‌شد و مشکل حل نمی‌شد.
-      let continueDebug = null
-      try {
-        const contRes = await fetch(`${origin}/api/admin/poster-audit?continue=1`, {
-          headers: { 'X-Audit-Token': token },
-        })
-        continueDebug = { ok: contRes.ok, status: contRes.status }
-      } catch (e) {
-        continueDebug = { threw: String(e).slice(0, 150) }
-      }
-      // دیباگ: اگه ادامه‌ش شکست خورد، تو همین پیشرفت ذخیره‌ش می‌کنیم تا از
-      // بیرون (بدون دسترسی به لاگ‌های Worker) بشه دید چرا متوقف شد.
-      if (!continueDebug.ok) {
-        await saveProgress({
-          status: 'running',
-          total,
-          checked: newOffset,
-          broken,
-          _offset: newOffset,
-          _token: token,
-          _continueDebug: continueDebug,
-        })
-      }
-    }
   } catch (e) {
     await saveProgress({ status: 'error', error: String(e) })
   }
