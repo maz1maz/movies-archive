@@ -2978,8 +2978,9 @@ body.light .header {
 
 .cine-main-row {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 18px;
-  align-items: flex-start;
 }
 
 .cine-poster-box {
@@ -3103,6 +3104,8 @@ body.light .header {
 
 .cine-info-card {
   flex: 1 1 auto;
+  align-self: stretch;
+  width: 100%;
   background: var(--surface-3);
   border: 1px solid var(--border-strong);
   border-radius: 14px;
@@ -4489,10 +4492,6 @@ body.light .header {
 }
 
 @media (max-width: 600px) {
-  .cine-main-row {
-    flex-direction: column;
-    align-items: center;
-  }
   .cine-bottom-row,
   .edit-form {
     grid-template-columns: 1fr;
