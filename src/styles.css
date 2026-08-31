@@ -5438,8 +5438,22 @@ body.light .folder-nav-stat-value {
     overflow: visible;
     pointer-events: auto;
   }
-  .folder-grid-collapsed .folder-card {
-    opacity: 1;
+  /* !important چون این کارت‌ها هم‌زمان کلاس reveal-item دارن (انیمیشن ورودی
+     opacity:0->1) که قبلاً با override ساده تداخل داشت و بعضی وقتا کارت‌ها
+     رو نامرئی نگه می‌داشت. اینجا کاملاً بی‌قید و شرط مرئی‌شون می‌کنیم. */
+  .folder-grid .folder-card {
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+  }
+  .folder-grid .folder-card-text h2 {
+    color: var(--marquee-cream, #f4f3f0) !important;
+  }
+  .folder-grid .folder-card-text p {
+    color: var(--marquee-muted, rgba(244, 243, 240, 0.7)) !important;
+  }
+  .folder-grid .folder-icon {
+    color: var(--marquee-gold, #d4af37) !important;
   }
   .folder-nav-stats {
     cursor: default;
