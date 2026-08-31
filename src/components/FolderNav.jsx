@@ -114,6 +114,49 @@ export default function FolderNav({
       <span className="stage-curtain" aria-hidden="true" />
       <PosterCollage posters={posters} />
       <div className="folder-nav-content">
+        <div className="folder-nav-search-outer reveal-item reveal-4">
+          <div className="search-box">
+            <span className="search-icon">
+              <IconSearch width={16} height={16} />
+            </span>
+            <input
+              type="search"
+              placeholder="Search the archive…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button type="button" className="search-clear" onClick={() => setQuery('')} aria-label="Clear search">
+                <IconClose width={14} height={14} />
+              </button>
+            )}
+          </div>
+
+          {searching && (
+            <div className="folder-nav-search-results">
+              {results.length === 0 ? (
+                <p className="folder-nav-search-empty">No matches in the whole archive.</p>
+              ) : (
+                results.map((f) => (
+                  <button key={f.id} type="button" className="folder-nav-search-row" onClick={() => onOpenFilm(f)}>
+                    {f.poster ? (
+                      <img src={f.poster} alt="" className="folder-nav-search-poster" />
+                    ) : (
+                      <span className="folder-nav-search-poster folder-nav-search-poster-empty" />
+                    )}
+                    <span className="folder-nav-search-info">
+                      <span className="folder-nav-search-title">
+                        {f.title} {f.year ? <span className="folder-nav-search-year">({f.year})</span> : null}
+                      </span>
+                      <span className="folder-nav-search-badge">{badgeFor(f, f.__hasBoth)}</span>
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="marquee-band">
           <div className="marquee-brand">
             <img src="/logo.png" alt="Cinefilm Archive" className="folder-nav-logo reveal-item reveal-1" />
@@ -140,49 +183,6 @@ export default function FolderNav({
               </div>
               <IconChevronRight width={16} height={16} className={browseOpen ? 'folder-nav-stats-chevron folder-nav-stats-chevron-open' : 'folder-nav-stats-chevron'} />
             </button>
-
-            <div className="folder-nav-search reveal-item reveal-4">
-              <div className="search-box">
-                <span className="search-icon">
-                  <IconSearch width={16} height={16} />
-                </span>
-                <input
-                  type="search"
-                  placeholder="Search the archive…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-                {query && (
-                  <button type="button" className="search-clear" onClick={() => setQuery('')} aria-label="Clear search">
-                    <IconClose width={14} height={14} />
-                  </button>
-                )}
-              </div>
-
-              {searching && (
-                <div className="folder-nav-search-results">
-                  {results.length === 0 ? (
-                    <p className="folder-nav-search-empty">No matches in the whole archive.</p>
-                  ) : (
-                    results.map((f) => (
-                      <button key={f.id} type="button" className="folder-nav-search-row" onClick={() => onOpenFilm(f)}>
-                        {f.poster ? (
-                          <img src={f.poster} alt="" className="folder-nav-search-poster" />
-                        ) : (
-                          <span className="folder-nav-search-poster folder-nav-search-poster-empty" />
-                        )}
-                        <span className="folder-nav-search-info">
-                          <span className="folder-nav-search-title">
-                            {f.title} {f.year ? <span className="folder-nav-search-year">({f.year})</span> : null}
-                          </span>
-                          <span className="folder-nav-search-badge">{badgeFor(f, f.__hasBoth)}</span>
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
           </div>
 
           {!searching && (
