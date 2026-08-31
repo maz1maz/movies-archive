@@ -848,6 +848,14 @@ async function handleFetch(request, env, ctx) {
         if (Object.keys(changed).length > 0) {
           await logAudit({ filmId: updated.id, filmTitle: updated.title, action: 'update', changes: changed })
         }
+        // اگه imdbId یا پوستر عوض شد، کش پوسترهای جایگزین (که تا ۳۰ روز
+        // معتبره) دیگه معتبر نیست — وگرنه بعد از فیکس یه match اشتباه،
+        // همچنان پوستر فیلم قبلی/اشتباه چند هفته نشون داده می‌شه.
+        if ('imdbId' in changed || 'poster' in changed) {
+          try {
+            await db.prepare("DELETE FROM cinema_news_cache WHERE key = ?").bind(`posters:${updated.id}`).run()
+          } catch {}
+        }
         return json(parseFilmRow(updated), 200, corsHeaders)
       }
 
