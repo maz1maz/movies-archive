@@ -1171,7 +1171,7 @@ async function handleFetch(request, env, ctx) {
         // اگه از همون اول لینک Letterboxd باشه، اسلاگش رو نگه می‌داریم تا لازم
         // نباشه بعداً دوباره از روی عنوان حدس بزنیم.
         let letterboxdSlug = null
-        const directMatch = link.match(/imdb\.com\/title\/(tt\d+)/i)
+        const directMatch = link.match(/imdb\.com\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?title\/(tt\d+)/i)
         if (directMatch) {
           imdbId = directMatch[1]
           base = { imdbId }
