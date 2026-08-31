@@ -115,6 +115,33 @@ export default function FolderNav({
       <PosterCollage posters={posters} />
       <div className="folder-nav-content">
         <div className="marquee-band">
+          <div className="marquee-brand">
+            <img src="/logo.png" alt="Cinefilm Archive" className="folder-nav-logo reveal-item reveal-1" />
+            <p className="marquee-eyebrow reveal-item reveal-2">Now showing</p>
+            <h1 className="folder-nav-title reveal-item reveal-3">Cinefilm Archive</h1>
+
+            <button
+              type="button"
+              className="folder-nav-stats reveal-item reveal-3"
+              onClick={() => setBrowseOpen((v) => !v)}
+              aria-expanded={browseOpen}
+            >
+              <div className="folder-nav-stat">
+                <span className="folder-nav-stat-value">{counts.physical || 0}</span>
+                <span className="folder-nav-stat-label">Blu-ray</span>
+              </div>
+              <div className="folder-nav-stat">
+                <span className="folder-nav-stat-value">{(counts.digitalMovies || 0) + (counts.digitalSeries || 0)}</span>
+                <span className="folder-nav-stat-label">Digital</span>
+              </div>
+              <div className="folder-nav-stat">
+                <span className="folder-nav-stat-value">{(counts.digitalSeries || 0) + (counts.physicalSeries || 0)}</span>
+                <span className="folder-nav-stat-label">Series</span>
+              </div>
+              <IconChevronRight width={16} height={16} className={browseOpen ? 'folder-nav-stats-chevron folder-nav-stats-chevron-open' : 'folder-nav-stats-chevron'} />
+            </button>
+          </div>
+
           <div className="folder-nav-search-outer reveal-item reveal-4">
             <div className="search-box">
               <span className="search-icon">
@@ -158,36 +185,8 @@ export default function FolderNav({
             )}
           </div>
 
-          <div className="marquee-columns-row">
-            <div className="marquee-brand">
-              <img src="/logo.png" alt="Cinefilm Archive" className="folder-nav-logo reveal-item reveal-1" />
-              <p className="marquee-eyebrow reveal-item reveal-2">Now showing</p>
-              <h1 className="folder-nav-title reveal-item reveal-3">Cinefilm Archive</h1>
-
-              <button
-                type="button"
-                className="folder-nav-stats reveal-item reveal-3"
-                onClick={() => setBrowseOpen((v) => !v)}
-                aria-expanded={browseOpen}
-              >
-                <div className="folder-nav-stat">
-                  <span className="folder-nav-stat-value">{counts.physical || 0}</span>
-                  <span className="folder-nav-stat-label">Blu-ray</span>
-                </div>
-                <div className="folder-nav-stat">
-                  <span className="folder-nav-stat-value">{(counts.digitalMovies || 0) + (counts.digitalSeries || 0)}</span>
-                  <span className="folder-nav-stat-label">Digital</span>
-                </div>
-                <div className="folder-nav-stat">
-                  <span className="folder-nav-stat-value">{(counts.digitalSeries || 0) + (counts.physicalSeries || 0)}</span>
-                  <span className="folder-nav-stat-label">Series</span>
-                </div>
-                <IconChevronRight width={16} height={16} className={browseOpen ? 'folder-nav-stats-chevron folder-nav-stats-chevron-open' : 'folder-nav-stats-chevron'} />
-              </button>
-            </div>
-
-            {!searching && (
-              <div className={browseOpen ? 'folder-grid folder-grid-open' : 'folder-grid folder-grid-collapsed'}>
+          {!searching && (
+            <div className={browseOpen ? 'folder-grid folder-grid-open' : 'folder-grid folder-grid-collapsed'}>
                 <button className="folder-card folder-card-physical reveal-item reveal-4" onClick={onSelectPhysical}>
                 <span className="folder-icon">
                   <IconDisc width={32} height={32} />
@@ -290,7 +289,6 @@ export default function FolderNav({
               </button>
             </div>
           )}
-          </div>
           <p className="marquee-footer reveal-item reveal-9">
             One ticket, infinite stories{yearRange ? ` · ${yearRange}` : ''}
           </p>
