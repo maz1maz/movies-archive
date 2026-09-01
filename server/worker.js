@@ -12,11 +12,18 @@ import { hashPassword, verifyPassword, getSessionUser, createSession, destroySes
 const FILMS_CACHE_KEY = 'filmscache:all'
 const FILMS_CACHE_TTL = 180
 
+// کش KV برای GET /api/decades — دهه‌ی فیلم‌ها تقریباً هیچ‌وقت عوض نمی‌شه،
+// ولی قبلاً هر بار یه full table scan روی films می‌زد. حالا ۱ ساعت کش
+// می‌شه و با هر نوشتن روی films باطل می‌شه (مثل filmscache).
+const DECADES_CACHE_KEY = 'decadescache:all'
+const DECADES_CACHE_TTL = 3600
+
 async function invalidateFilmsCache(env) {
   if (!env.BACKUPS) return
   try {
     const list = await env.BACKUPS.list({ prefix: FILMS_CACHE_KEY })
     await Promise.all((list.keys || []).map((k) => env.BACKUPS.delete(k.name)))
+    await env.BACKUPS.delete(DECADES_CACHE_KEY)
   } catch {}
 }
 
@@ -1105,8 +1112,18 @@ async function handleFetch(request, env, ctx) {
 
       // ---- GET /api/decades ----
       if (method === 'GET' && pathname === '/api/decades') {
+        if (env.BACKUPS) {
+          try {
+            const cached = await env.BACKUPS.get(DECADES_CACHE_KEY, 'json')
+            if (cached) return json(cached, 200, corsHeaders)
+          } catch {}
+        }
         const result = await db.prepare('SELECT DISTINCT CAST(ROUND(year / 10) * 10 AS INTEGER) as decade FROM films WHERE year IS NOT NULL ORDER BY decade').all()
-        return json((result.results || []).map((r) => r.decade), 200, corsHeaders)
+        const decades = (result.results || []).map((r) => r.decade)
+        if (env.BACKUPS) {
+          try { await env.BACKUPS.put(DECADES_CACHE_KEY, JSON.stringify(decades), { expirationTtl: DECADES_CACHE_TTL }) } catch {}
+        }
+        return json(decades, 200, corsHeaders)
       }
 
       // ---- GET /api/omdb-lookup (single-title search for the "Add Film" autofill) ----
@@ -1171,7 +1188,7 @@ async function handleFetch(request, env, ctx) {
         // اگه از همون اول لینک Letterboxd باشه، اسلاگش رو نگه می‌داریم تا لازم
         // نباشه بعداً دوباره از روی عنوان حدس بزنیم.
         let letterboxdSlug = null
-        const directMatch = link.match(/imdb\.com\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?title\/(tt\d+)/i)
+        const directMatch = link.match(/imdb\.com\/title\/(tt\d+)/i)
         if (directMatch) {
           imdbId = directMatch[1]
           base = { imdbId }
