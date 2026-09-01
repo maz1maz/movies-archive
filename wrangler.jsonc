@@ -47,7 +47,7 @@
   // با محافظت لبه‌ی Cloudflare رو دامنه‌ی workers.dev مشکل داشت).
   // scheduled() در worker.js با event.cron تشخیص می‌ده کدوم اجرا شده.
   "triggers": {
-    "crons": ["0 3 * * *", "0 4 * * *", "*/1 * * * *"]
+    "crons": ["0 3 * * *", "0 4 * * *", "*/10 * * * *"]
   }
   // OMDB_API_KEY is set as a secret (wrangler secret put OMDB_API_KEY), not here —
   // a plain "vars" entry with the same name would overwrite the secret on every deploy.
