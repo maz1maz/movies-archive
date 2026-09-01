@@ -79,8 +79,11 @@ export default {
       }
       console.log(`Daily enrichment: processed ${totalProcessed}, updated ${totalUpdated}`)
     } catch (e) {
+      // قبلاً throw می‌کرد و Cloudflare هر بار دوباره retry می‌کرد؛ وقتی
+      // خطا از نوع quota (مثل D1 daily limit) بود، retry هم قطعاً همون خطا
+      // رو می‌داد و فقط اسپم نوتیف تلگرام هر چند دقیقه تولید می‌کرد. الان
+      // فقط لاگ/نوتیف می‌شه و retry نمی‌شه.
       await notifyServerError(env, `Daily enrichment (cron 0 3 * * *) failed: ${e.message}`).catch(() => {})
-      throw e
     }
   },
 }
