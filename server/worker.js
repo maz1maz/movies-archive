@@ -609,6 +609,15 @@ async function handleFetch(request, env, ctx) {
       if (method === 'GET' && pathname === '/api/films/by-person') {
         const name = (url.searchParams.get('name') || '').trim()
         if (!name) return json([], 200, corsHeaders)
+        // بدون کش بود — کلیک روی هر اسم کارگردان/بازیگر یه full table scan
+        // جداگونه بود، دقیقاً همون کلاس مشکلی که سهمیه‌ی D1 رو می‌ترکونه.
+        const byPersonCacheKey = `${FILMS_CACHE_KEY}:by-person:${name.toLowerCase()}`
+        if (env.BACKUPS) {
+          try {
+            const cached = await env.BACKUPS.get(byPersonCacheKey, 'json')
+            if (cached) return json(cached, 200, corsHeaders)
+          } catch {}
+        }
         const s = `%${name.toLowerCase()}%`
         const result = await db
           .prepare(
@@ -620,30 +629,33 @@ async function handleFetch(request, env, ctx) {
           .bind(s, s, s, s)
           .all()
         const films = (result.results || []).map(parseFilmRow)
+        if (env.BACKUPS) {
+          ctx.waitUntil(env.BACKUPS.put(byPersonCacheKey, JSON.stringify(films), { expirationTtl: FILMS_CACHE_TTL }).catch(() => {}))
+        }
         return json(films, 200, corsHeaders)
       }
 
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
         const { q, genre, shelf, closet, sort, alpha, decade, drive, loaned, watched, minRating, mediaType, itemType, limit, offset } = Object.fromEntries(url.searchParams)
-        // «بدون فیلتر» یعنی هیچ‌کدوم از فیلترها ست نشده — sort رو حساب
-        // نمی‌کنیم چون فرانت‌اند پیش‌فرض sort=random می‌فرسته و اگه اونم شرط
-        // بذاریم، دقیقاً همون درخواستِ پرتکرارِ لود اول صفحه هیچ‌وقت کش نمی‌شه.
-        // mediaType/itemType هم قبلاً اینجا چک نمی‌شدن — یعنی صفحه‌ی هر بخش
-        // (Digital Movies، Blu-ray Series، ...) کل جدول (۱۷هزار+ ردیف، ده‌ها
-        // مگابایت) رو می‌کشید، نه فقط همون بخش. باگ اصلی «صفر موند» /
-        // «گیر کرد تو Loading» همینجا بود.
-        // «قابل کش» یعنی فقط mediaType/itemType/sort ست شده (دقیقاً همون
-        // کلیک‌های پرتکرار روی Digital Movies، Blu-ray Series و...)، بدون
-        // هیچ فیلتر دیگه‌ای. قبلاً این حالت اصلاً کش نمی‌شد و هر کلیک روی
-        // این بخش‌ها یه full table scan (۱۷هزار+ ردیف) بود — اصلی‌ترین
-        // عامل تموم‌شدن سهمیه‌ی روزانه‌ی D1 با استفاده‌ی عادی، نه ادمین.
-        const isCacheable = !q && !genre && !shelf && !closet && !decade && !drive && !loaned && !watched && !minRating && !alpha && !limit && !offset
-        const filmsCacheKey = `${FILMS_CACHE_KEY}:${sort || 'default'}:${mediaType || 'all'}:${itemType || 'all'}`
-        if (isCacheable && env.BACKUPS) {
+        // قبلاً فقط حالت «بدون هیچ فیلتری» (یا فقط mediaType/itemType/sort)
+        // کش می‌شد — یعنی genre، decade، shelf/closet، alpha (A-Z)، minRating،
+        // loaned/watched، q (سرچ) و pagination (limit/offset) هر کدوم روی هر
+        // درخواست یه full table scan جداگونه (۱۷هزار+ ردیف) بودن. برای
+        // آرشیوی به این بزرگی، همین مرور عادی (چند کلیک روی genre/decade/
+        // pagination) به‌تنهایی سهمیه‌ی روزانه‌ی رایگان D1 (۵ میلیون ردیف) رو
+        // تموم می‌کنه. حالا کل querystring (هر ترکیبی از فیلترها) کش می‌شه —
+        // چون این یه آرشیو شخصیه (تک‌کاربره)، بازگرداندن نتیجه‌ی حداکثر
+        // ۳ دقیقه‌ای قدیمی مشکلی نداره، و هر نوشتن (افزودن/ویرایش/حذف فیلم)
+        // کل این پیشوند رو فوراً invalidate می‌کنه (پایین‌تر توی invalidateFilmsCache).
+        const filmsCacheKey = `${FILMS_CACHE_KEY}:${url.search || '?'}`
+        if (env.BACKUPS) {
           try {
             const cached = await env.BACKUPS.get(filmsCacheKey, 'json')
-            if (cached) return json(cached, 200, corsHeaders)
+            if (cached) {
+              const headers = cached.totalCount != null ? { ...corsHeaders, 'X-Total-Count': String(cached.totalCount) } : corsHeaders
+              return json(cached.films, 200, headers)
+            }
           } catch {}
         }
         let sql = 'SELECT * FROM films WHERE 1=1'
@@ -744,8 +756,8 @@ async function handleFetch(request, env, ctx) {
         const result = await db.prepare(sql).bind(...params).all()
         // Parse JSON string fields
         const films = (result.results || []).map(parseFilmRow)
-        if (isCacheable && env.BACKUPS) {
-          ctx.waitUntil(env.BACKUPS.put(filmsCacheKey, JSON.stringify(films), { expirationTtl: FILMS_CACHE_TTL }).catch(() => {}))
+        if (env.BACKUPS) {
+          ctx.waitUntil(env.BACKUPS.put(filmsCacheKey, JSON.stringify({ films, totalCount }), { expirationTtl: FILMS_CACHE_TTL }).catch(() => {}))
         }
         const headers = totalCount != null ? { ...corsHeaders, 'X-Total-Count': String(totalCount) } : corsHeaders
         return json(films, 200, headers)
