@@ -328,24 +328,52 @@ async function handleFetch(request, env, ctx) {
           return new Response('Host not allowed', { status: 403, headers: corsHeaders })
         }
         try {
-          // اول کش edge خودِ Cloudflare رو چک کن — اگه قبلاً یه‌بار این
-          // عکس گرفته شده باشه، بدون درخواست دوباره به TMDB سرو می‌شه.
-          const cache = caches.default
-          const cacheKey = new Request(request.url, { method: 'GET' })
-          const cached = await cache.match(cacheKey)
-          if (cached) return cached
+          // اول KV رو چک کن (ذخیره‌ی دائمی) — اگه قبلاً گرفته شده، مستقیم
+          // از همونجا سرو می‌شه، بدون درخواست دوباره به TMDB. این برخلاف
+          // Cache API واقعاً دائمیه (Cloudflare می‌تونه هر از گاهی edge
+          // cache رو خودش خالی کنه، ولی KV تا وقتی حذف نشه می‌مونه).
+          const kvKey = 'poster:' + targetUrl.toString()
+          if (env.BACKUPS) {
+            try {
+              const cachedRecord = await env.BACKUPS.get(kvKey, 'json')
+              if (cachedRecord) {
+                const bytes = Uint8Array.from(atob(cachedRecord.data), (c) => c.charCodeAt(0))
+                return new Response(bytes, {
+                  status: 200,
+                  headers: { ...corsHeaders, 'Content-Type': cachedRecord.contentType, 'Cache-Control': 'public, max-age=604800, immutable' },
+                })
+              }
+            } catch {}
+          }
 
           const upstream = await fetch(targetUrl.toString(), {
             headers: { 'User-Agent': 'CinefilmArchive/1.0 (personal film archive app)' },
           })
           if (!upstream.ok) return new Response('Upstream error', { status: 502, headers: corsHeaders })
           const contentType = upstream.headers.get('content-type') || 'image/jpeg'
-          const response = new Response(upstream.body, {
+          const bodyBuffer = await upstream.arrayBuffer()
+
+          if (env.BACKUPS) {
+            try {
+              const bytes = new Uint8Array(bodyBuffer)
+              let binary = ''
+              const CHUNK = 8192
+              for (let i = 0; i < bytes.length; i += CHUNK) {
+                binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+              }
+              const b64 = btoa(binary)
+              // فقط عکس‌های معقول (زیر ۱ مگابایت) رو KV سیو کن، تا سهمیه‌ی
+              // نوشتن روزانه‌ی KV هدر نره
+              if (b64.length < 1_400_000) {
+                ctx.waitUntil(env.BACKUPS.put(kvKey, JSON.stringify({ data: b64, contentType })))
+              }
+            } catch {}
+          }
+
+          return new Response(bodyBuffer, {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': contentType, 'Cache-Control': 'public, max-age=604800, immutable' },
           })
-          ctx.waitUntil(cache.put(cacheKey, response.clone()))
-          return response
         } catch {
           return new Response('Fetch failed', { status: 502, headers: corsHeaders })
         }
