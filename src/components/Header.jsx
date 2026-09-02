@@ -142,9 +142,9 @@ export default function Header({
     e.target.value = ''
   }
 
-  // فقط منو و A-Z با کلیک بیرون بسته بشن — پنل فیلتر نه، چون کاربر معمولاً
-  // می‌خواد چندتا فیلتر پشت‌سرهم روی کارت‌های زیرش بزنه/ببینه، بدون این‌که
-  // هر بار پنل بسته بشه. فقط با کلیک دوباره روی دکمه‌ی Filters بسته می‌شه.
+  // فقط منو و A-Z با کلیک بیرون بسته بشن. پنل فیلتر با انتخاب هر فیلتر
+  // (onChange هر select) خودش بسته می‌شه؛ جدا از این، با کلیک دوباره روی
+  // دکمه‌ی Filters هم toggle می‌شه.
   const anyBackdropPopoverOpen = menuOpen || azOpen
   const closeAllPopovers = () => {
     setMenuOpen(false)
@@ -220,7 +220,7 @@ export default function Header({
             <div className={filtersOpen ? 'controls-filters open' : 'controls-filters'}>
               <p className="filters-panel-label">Refine the archive</p>
               <div className="filters-grid">
-                <select className="select" value={genre} onChange={(e) => setGenre(e.target.value)}>
+                <select className="select" value={genre} onChange={(e) => { setGenre(e.target.value); setFiltersOpen(false) }}>
                   <option value="">All genres</option>
                   {genres.map((g) => (
                     <option key={g} value={g}>
@@ -228,18 +228,18 @@ export default function Header({
                     </option>
                   ))}
                 </select>
-                <select className="select" value={watched} onChange={(e) => setWatched(e.target.value)}>
+                <select className="select" value={watched} onChange={(e) => { setWatched(e.target.value); setFiltersOpen(false) }}>
                   <option value="">All watch statuses</option>
                   <option value="0">Unwatched</option>
                   <option value="1">Watched</option>
                 </select>
-                <select className="select" value={minRating} onChange={(e) => setMinRating(e.target.value)}>
+                <select className="select" value={minRating} onChange={(e) => { setMinRating(e.target.value); setFiltersOpen(false) }}>
                   <option value="">Any rating</option>
                   <option value="7">Rating 7+</option>
                   <option value="8">Rating 8+</option>
                   <option value="9">Rating 9+</option>
                 </select>
-                <select className="select" value={decade} onChange={(e) => setDecade(e.target.value)}>
+                <select className="select" value={decade} onChange={(e) => { setDecade(e.target.value); setFiltersOpen(false) }}>
                   <option value="">All decades</option>
                   {decades.map((d) => (
                     <option key={d} value={d}>
@@ -248,7 +248,7 @@ export default function Header({
                   ))}
                 </select>
                 {(section === 'digital-movie' || section === 'digital-series') && drives.length > 0 && (
-                  <select className="select" value={drive} onChange={(e) => setDrive(e.target.value)}>
+                  <select className="select" value={drive} onChange={(e) => { setDrive(e.target.value); setFiltersOpen(false) }}>
                     <option value="">All drives</option>
                     {drives.map((d) => (
                       <option key={d} value={d}>
@@ -257,7 +257,7 @@ export default function Header({
                     ))}
                   </select>
                 )}
-                <select className="select" value={sort} onChange={(e) => setSort(e.target.value)}>
+                <select className="select" value={sort} onChange={(e) => { setSort(e.target.value); setFiltersOpen(false) }}>
                   <option value="random">Random</option>
                   <option value="title_az">A–Z</option>
                   <option value="shelf">By shelf</option>
