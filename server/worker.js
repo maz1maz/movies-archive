@@ -12,11 +12,18 @@ import { hashPassword, verifyPassword, getSessionUser, createSession, destroySes
 const FILMS_CACHE_KEY = 'filmscache:all'
 const FILMS_CACHE_TTL = 180
 
+// کش KV برای GET /api/decades — دهه‌ی فیلم‌ها تقریباً هیچ‌وقت عوض نمی‌شه،
+// ولی قبلاً هر بار یه full table scan روی films می‌زد. حالا ۱ ساعت کش
+// می‌شه و با هر نوشتن روی films باطل می‌شه (مثل filmscache).
+const DECADES_CACHE_KEY = 'decadescache:all'
+const DECADES_CACHE_TTL = 3600
+
 async function invalidateFilmsCache(env) {
   if (!env.BACKUPS) return
   try {
     const list = await env.BACKUPS.list({ prefix: FILMS_CACHE_KEY })
     await Promise.all((list.keys || []).map((k) => env.BACKUPS.delete(k.name)))
+    await env.BACKUPS.delete(DECADES_CACHE_KEY)
   } catch {}
 }
 
@@ -72,8 +79,11 @@ export default {
       }
       console.log(`Daily enrichment: processed ${totalProcessed}, updated ${totalUpdated}`)
     } catch (e) {
+      // قبلاً throw می‌کرد و Cloudflare هر بار دوباره retry می‌کرد؛ وقتی
+      // خطا از نوع quota (مثل D1 daily limit) بود، retry هم قطعاً همون خطا
+      // رو می‌داد و فقط اسپم نوتیف تلگرام هر چند دقیقه تولید می‌کرد. الان
+      // فقط لاگ/نوتیف می‌شه و retry نمی‌شه.
       await notifyServerError(env, `Daily enrichment (cron 0 3 * * *) failed: ${e.message}`).catch(() => {})
-      throw e
     }
   },
 }
@@ -1105,8 +1115,18 @@ async function handleFetch(request, env, ctx) {
 
       // ---- GET /api/decades ----
       if (method === 'GET' && pathname === '/api/decades') {
+        if (env.BACKUPS) {
+          try {
+            const cached = await env.BACKUPS.get(DECADES_CACHE_KEY, 'json')
+            if (cached) return json(cached, 200, corsHeaders)
+          } catch {}
+        }
         const result = await db.prepare('SELECT DISTINCT CAST(ROUND(year / 10) * 10 AS INTEGER) as decade FROM films WHERE year IS NOT NULL ORDER BY decade').all()
-        return json((result.results || []).map((r) => r.decade), 200, corsHeaders)
+        const decades = (result.results || []).map((r) => r.decade)
+        if (env.BACKUPS) {
+          try { await env.BACKUPS.put(DECADES_CACHE_KEY, JSON.stringify(decades), { expirationTtl: DECADES_CACHE_TTL }) } catch {}
+        }
+        return json(decades, 200, corsHeaders)
       }
 
       // ---- GET /api/omdb-lookup (single-title search for the "Add Film" autofill) ----
