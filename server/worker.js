@@ -4677,13 +4677,22 @@ async function runPosterAuditChunk(db) {
     const prev = row ? JSON.parse(row.data) : null
     if (!prev || prev.status !== 'running') return // چیزی برای ادامه نیست
 
-    const rows = await db.prepare("SELECT id, title, poster FROM films WHERE poster IS NOT NULL AND poster != ''").all()
-    const films = rows.results || []
-    const total = films.length
+    // قبلاً کل جدول (همه‌ی فیلم‌های دارای پوستر) رو با SELECT بدون LIMIT
+    // می‌خوند و فقط سمت JS با slice() یه تکه‌ی ۲۵تایی برمی‌داشت — یعنی هر
+    // چانک، صرف‌نظر از اینکه فقط ۲۵ ردیف لازم داشت، هزاران row-read از D1
+    // مصرف می‌کرد. الان مستقیم با LIMIT/OFFSET همون ۲۵ تا رو می‌خونه.
     const offset = prev._offset || 0
+    const totalRow = await db
+      .prepare("SELECT COUNT(*) as cnt FROM films WHERE poster IS NOT NULL AND poster != ''")
+      .first()
+    const total = (totalRow && totalRow.cnt) || 0
+    const batchRows = await db
+      .prepare("SELECT id, title, poster FROM films WHERE poster IS NOT NULL AND poster != '' LIMIT ? OFFSET ?")
+      .bind(CHUNK_SIZE, offset)
+      .all()
+    const batch = batchRows.results || []
     const broken = prev.broken || []
 
-    const batch = films.slice(offset, offset + CHUNK_SIZE)
     await Promise.all(
       batch.map(async (f) => {
         try {
