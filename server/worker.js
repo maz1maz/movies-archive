@@ -628,9 +628,14 @@ async function handleFetch(request, env, ctx) {
         // (Digital Movies، Blu-ray Series، ...) کل جدول (۱۷هزار+ ردیف، ده‌ها
         // مگابایت) رو می‌کشید، نه فقط همون بخش. باگ اصلی «صفر موند» /
         // «گیر کرد تو Loading» همینجا بود.
-        const isUnfiltered = !q && !genre && !shelf && !closet && !decade && !drive && !loaned && !watched && !minRating && !alpha && !mediaType && !itemType && !limit && !offset
+        // «قابل کش» یعنی فقط mediaType/itemType/sort ست شده (دقیقاً همون
+        // کلیک‌های پرتکرار روی Digital Movies، Blu-ray Series و...)، بدون
+        // هیچ فیلتر دیگه‌ای. قبلاً این حالت اصلاً کش نمی‌شد و هر کلیک روی
+        // این بخش‌ها یه full table scan (۱۷هزار+ ردیف) بود — اصلی‌ترین
+        // عامل تموم‌شدن سهمیه‌ی روزانه‌ی D1 با استفاده‌ی عادی، نه ادمین.
+        const isCacheable = !q && !genre && !shelf && !closet && !decade && !drive && !loaned && !watched && !minRating && !alpha && !limit && !offset
         const filmsCacheKey = `${FILMS_CACHE_KEY}:${sort || 'default'}:${mediaType || 'all'}:${itemType || 'all'}`
-        if (isUnfiltered && env.BACKUPS) {
+        if (isCacheable && env.BACKUPS) {
           try {
             const cached = await env.BACKUPS.get(filmsCacheKey, 'json')
             if (cached) return json(cached, 200, corsHeaders)
@@ -734,7 +739,7 @@ async function handleFetch(request, env, ctx) {
         const result = await db.prepare(sql).bind(...params).all()
         // Parse JSON string fields
         const films = (result.results || []).map(parseFilmRow)
-        if (isUnfiltered && env.BACKUPS) {
+        if (isCacheable && env.BACKUPS) {
           ctx.waitUntil(env.BACKUPS.put(filmsCacheKey, JSON.stringify(films), { expirationTtl: FILMS_CACHE_TTL }).catch(() => {}))
         }
         const headers = totalCount != null ? { ...corsHeaders, 'X-Total-Count': String(totalCount) } : corsHeaders
