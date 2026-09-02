@@ -418,7 +418,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 {physicalRecord && (
                   <div className="cine-format-location-col">
                     <span className={`format-badge ${physicalFormat.toLowerCase().includes('4k') ? 'fmt-4k' : physicalFormat.toLowerCase().replace(/[^a-z0-9]/g, '')}`}>
-                      {physicalFormat}
+                      {physicalFormat}{physicalRecord.copies > 1 ? ` ×${physicalRecord.copies}` : ''}
                     </span>
                     {(physicalRecord.closet || physicalRecord.shelf || physicalRecord.row) && (
                       <div className="cine-shelf-badge">
@@ -602,18 +602,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     <IconHandshake width={13} height={13} /> Lend Film
                   </button>
                 )}
-                {film.copies > 1 && (
-                  <div
-                    className="copies-under-lend"
-                    title={
-                      film.borrowedTo
-                        ? `${film.copies - 1} of ${film.copies} copies available (1 loaned to ${film.borrowedTo})`
-                        : `You own ${film.copies} copies of this title`
-                    }
-                  >
-                    {film.borrowedTo ? `${film.copies - 1} / ${film.copies}` : film.copies} COPIES
-                  </div>
-                )}
+
                 <button
                   className="loan-badge manage-loan-btn"
                   onClick={handleShare}
