@@ -1040,7 +1040,7 @@ export default function App() {
         drives={drives}
         sort={sort}
         setSort={setSort}
-        total={totalCount ?? sectionFilms.length}
+        total={totalCount ?? '…'}
         section={section}
         onImport={handleImport}
         onImportRatings={handleImportRatings}
