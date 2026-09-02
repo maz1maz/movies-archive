@@ -25,6 +25,10 @@ async function invalidateFilmsCache(env) {
     await Promise.all((list.keys || []).map((k) => env.BACKUPS.delete(k.name)))
     await env.BACKUPS.delete(DECADES_CACHE_KEY)
     await env.BACKUPS.delete('filmscounts:v1')
+    await env.BACKUPS.delete('genrescache:v1')
+    await env.BACKUPS.delete('shelvescache:v1')
+    await env.BACKUPS.delete('closetscache:v1')
+    await env.BACKUPS.delete('acclaimedcache:v1')
   } catch {}
 }
 
@@ -1144,6 +1148,13 @@ async function handleFetch(request, env, ctx) {
 
       // ---- GET /api/genres ----
       if (method === 'GET' && pathname === '/api/genres') {
+        const GENRES_CACHE_KEY = 'genrescache:v1'
+        if (env.BACKUPS) {
+          try {
+            const cached = await env.BACKUPS.get(GENRES_CACHE_KEY, 'json')
+            if (cached) return json(cached, 200, corsHeaders)
+          } catch {}
+        }
         const result = await db.prepare('SELECT genre FROM films').all()
         const set = new Set()
         for (const row of result.results || []) {
@@ -1151,19 +1162,45 @@ async function handleFetch(request, env, ctx) {
             try { JSON.parse(row.genre).forEach((g) => set.add(g)) } catch {}
           }
         }
-        return json([...set].sort(), 200, corsHeaders)
+        const genres = [...set].sort()
+        if (env.BACKUPS) {
+          try { await env.BACKUPS.put(GENRES_CACHE_KEY, JSON.stringify(genres), { expirationTtl: 3600 }) } catch {}
+        }
+        return json(genres, 200, corsHeaders)
       }
 
       // ---- GET /api/shelves ----
       if (method === 'GET' && pathname === '/api/shelves') {
+        const SHELVES_CACHE_KEY = 'shelvescache:v1'
+        if (env.BACKUPS) {
+          try {
+            const cached = await env.BACKUPS.get(SHELVES_CACHE_KEY, 'json')
+            if (cached) return json(cached, 200, corsHeaders)
+          } catch {}
+        }
         const result = await db.prepare('SELECT DISTINCT shelf FROM films WHERE shelf IS NOT NULL AND shelf != \'\' ORDER BY shelf').all()
-        return json((result.results || []).map((r) => r.shelf), 200, corsHeaders)
+        const shelves = (result.results || []).map((r) => r.shelf)
+        if (env.BACKUPS) {
+          try { await env.BACKUPS.put(SHELVES_CACHE_KEY, JSON.stringify(shelves), { expirationTtl: 3600 }) } catch {}
+        }
+        return json(shelves, 200, corsHeaders)
       }
 
       // ---- GET /api/closets ----
       if (method === 'GET' && pathname === '/api/closets') {
+        const CLOSETS_CACHE_KEY = 'closetscache:v1'
+        if (env.BACKUPS) {
+          try {
+            const cached = await env.BACKUPS.get(CLOSETS_CACHE_KEY, 'json')
+            if (cached) return json(cached, 200, corsHeaders)
+          } catch {}
+        }
         const result = await db.prepare('SELECT DISTINCT closet FROM films WHERE closet IS NOT NULL AND closet != \'\' ORDER BY CAST(closet AS INTEGER)').all()
-        return json((result.results || []).map((r) => r.closet), 200, corsHeaders)
+        const closets = (result.results || []).map((r) => r.closet)
+        if (env.BACKUPS) {
+          try { await env.BACKUPS.put(CLOSETS_CACHE_KEY, JSON.stringify(closets), { expirationTtl: 3600 }) } catch {}
+        }
+        return json(closets, 200, corsHeaders)
       }
 
       // ---- GET /api/decades ----
@@ -1926,6 +1963,13 @@ async function handleFetch(request, env, ctx) {
       if (method === 'GET' && pathname === '/api/acclaimed-unseen') {
         try {
           if (!env.TMDB_API_KEY) return json([], 200, corsHeaders)
+          const ACCLAIMED_CACHE_KEY = 'acclaimedcache:v1'
+          if (env.BACKUPS) {
+            try {
+              const cached = await env.BACKUPS.get(ACCLAIMED_CACHE_KEY, 'json')
+              if (cached) return json(cached, 200, corsHeaders)
+            } catch {}
+          }
           const tmdbKey = env.TMDB_API_KEY
           const existingRows = await db.prepare('SELECT LOWER(TRIM(REPLACE(title, char(8217), char(39)))) AS t, year FROM films').all()
           const existingKeys = new Set((existingRows.results || []).map((r) => `${r.t}::${r.year || ''}`))
@@ -1948,6 +1992,9 @@ async function handleFetch(request, env, ctx) {
               })
               if (acclaimed.length >= 20) break
             }
+          }
+          if (env.BACKUPS) {
+            try { await env.BACKUPS.put(ACCLAIMED_CACHE_KEY, JSON.stringify(acclaimed), { expirationTtl: 21600 }) } catch {}
           }
           return json(acclaimed, 200, corsHeaders)
         } catch (e) {
