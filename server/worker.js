@@ -24,6 +24,7 @@ async function invalidateFilmsCache(env) {
     const list = await env.BACKUPS.list({ prefix: FILMS_CACHE_KEY })
     await Promise.all((list.keys || []).map((k) => env.BACKUPS.delete(k.name)))
     await env.BACKUPS.delete(DECADES_CACHE_KEY)
+    await env.BACKUPS.delete('filmscounts:v1')
   } catch {}
 }
 
@@ -754,6 +755,13 @@ async function handleFetch(request, env, ctx) {
       // ۲۵ مگابایته) و صفحه‌ی اصلی صفر نشون می‌داد. این endpoint فقط
       // COUNT(*) گروه‌بندی‌شده برمی‌گردونه — چند بایت به‌جای چند مگابایت.
       if (method === 'GET' && pathname === '/api/films/counts') {
+        const COUNTS_CACHE_KEY = 'filmscounts:v1'
+        if (env.BACKUPS) {
+          try {
+            const cached = await env.BACKUPS.get(COUNTS_CACHE_KEY, 'json')
+            if (cached) return json(cached, 200, corsHeaders)
+          } catch {}
+        }
         const rows = await db
           .prepare('SELECT mediaType, itemType, COUNT(*) as cnt FROM films GROUP BY mediaType, itemType')
           .all()
@@ -774,6 +782,9 @@ async function handleFetch(request, env, ctx) {
           .prepare("SELECT MIN(year) as minYear FROM films WHERE year IS NOT NULL AND year > 1880")
           .first()
         counts.minYear = minYearRow && minYearRow.minYear ? minYearRow.minYear : null
+        if (env.BACKUPS) {
+          try { await env.BACKUPS.put(COUNTS_CACHE_KEY, JSON.stringify(counts), { expirationTtl: 900 }) } catch {}
+        }
         return json(counts, 200, corsHeaders)
       }
 
