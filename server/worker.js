@@ -562,6 +562,16 @@ async function handleFetch(request, env, ctx) {
       // title+year within the same media type/item type, not intentional
       // multi-copy tracking which uses the "copies" counter instead) ----
       if (method === 'GET' && pathname === '/api/duplicates') {
+        // قبلاً هیچ auth ای نداشت (حتی مهمون هم می‌تونست صداش بزنه) و کل
+        // جدول رو بدون کش می‌خوند. الان هم ادمین‌محرمانه‌ست، هم برای
+        // جلوگیری از اجرای تصادفی (مثلاً فقط با باز کردن تب Duplicates)
+        // رمز عبور رو دوباره می‌خواد.
+        const denied = requireAdmin()
+        if (denied) return denied
+        const confirmPassword = request.headers.get('X-Confirm-Password') || ''
+        const passOk = confirmPassword && (await verifyPassword(confirmPassword, currentUser.passwordSalt, currentUser.passwordHash))
+        if (!passOk) return json({ error: 'Incorrect password' }, 403, corsHeaders)
+
         const scope = url.searchParams.get('scope') || 'all'
 
         // scope=both: نه دوبله‌ی اشتباهی، بلکه فیلم‌هایی که واقعاً هم نسخه‌ی
