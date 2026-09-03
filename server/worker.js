@@ -4959,7 +4959,16 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
         quotaExceeded = true
         break
       }
-      throw e
+      // یه خطای غیرمنتظره (مثلاً داده‌ی عجیب رو یه فیلم خاص) نباید کل
+      // batch رو کرش کنه — همین یکی رد می‌شه، بقیه ادامه پیدا می‌کنن.
+      console.error(`enrichBatch: skipping film ${film.id} (${film.title}): ${e.message}`)
+      try {
+        await db
+          .prepare('UPDATE films SET metadataEnrichmentAttemptedAt = ? WHERE id = ?')
+          .bind(new Date().toISOString(), film.id)
+          .run()
+      } catch {}
+      continue
     }
     try {
       const { extras } = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
@@ -4968,10 +4977,14 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
     const fields = ENRICHABLE_FIELDS.filter((f) => isEmptyMetadata(before[f]) && !isEmptyMetadata(enriched[f]))
     if (fields.length) updated++
     enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
-    await updateFilm(db, enriched)
     try {
-      await syncSharedMetadataToSibling(db, enriched)
-    } catch {}
+      await updateFilm(db, enriched)
+      await syncSharedMetadataToSibling(db, enriched).catch(() => {})
+    } catch (e) {
+      // اگه ذخیره‌کردن هم خطا داد (مثلاً یه فیلد عجیب)، بازم فقط همین
+      // فیلم رد می‌شه، کل batch کرش نمی‌کنه.
+      console.error(`enrichBatch: failed to save film ${film.id} (${film.title}): ${e.message}`)
+    }
   }
 
   const remaining = await db
