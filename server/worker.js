@@ -1128,8 +1128,14 @@ async function handleFetch(request, env, ctx) {
         if (denied) return denied
         const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
-        const result = await enrichBatch(db, env, limit, enrichScopeClause(url.searchParams))
-        return json(result, 200, corsHeaders)
+        try {
+          const result = await enrichBatch(db, env, limit, enrichScopeClause(url.searchParams))
+          return json(result, 200, corsHeaders)
+        } catch (e) {
+          // به‌جای کرش خام (1101 بدون توضیح)، پیام خطای واقعی رو برگردون تا
+          // بشه دقیقاً فهمید کجای enrichment گیر کرده.
+          return json({ error: 'enrich failed: ' + (e && e.message), stack: e && e.stack }, 500, corsHeaders)
+        }
       }
 
       // ---- POST /api/films/season-counts (fetch "total seasons produced so
@@ -4949,10 +4955,10 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
   let updated = 0
   let quotaExceeded = false
   for (const film of candidates) {
-    const parsed = parseFilmRow(film)
-    const before = { ...parsed }
-    let enriched
+    let parsed, before, enriched
     try {
+      parsed = parseFilmRow(film)
+      before = { ...parsed }
       enriched = await enrichFilm(parsed, env.OMDB_API_KEY, () => bumpApiUsage('omdb'))
     } catch (e) {
       if (e.code === 'OMDB_QUOTA_EXCEEDED') {
