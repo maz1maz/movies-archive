@@ -658,8 +658,14 @@ async function handleFetch(request, env, ctx) {
         // چون این یه آرشیو شخصیه (تک‌کاربره)، بازگرداندن نتیجه‌ی حداکثر
         // ۳ دقیقه‌ای قدیمی مشکلی نداره، و هر نوشتن (افزودن/ویرایش/حذف فیلم)
         // کل این پیشوند رو فوراً invalidate می‌کنه (پایین‌تر توی invalidateFilmsCache).
+        // سرچ آزاد (q) رو کش نمی‌کنیم — هر تایپ یه حرف جدید، یه querystring
+        // جدا و یه کلید KV جدا می‌سازه؛ چون KV پلن رایگان سقف ۱۰۰۰ نوشتن در
+        // روزه، سرچ زنده به‌تنهایی می‌تونست این سقف رو خیلی زود پر کنه و
+        // بعدش هیچ‌چیز دیگه‌ای (حتی genre/decade که واقعاً به کش نیاز دارن)
+        // کش نشه.
+        const cacheEligible = !q
         const filmsCacheKey = `${FILMS_CACHE_KEY}:${url.search || '?'}`
-        if (env.BACKUPS) {
+        if (cacheEligible && env.BACKUPS) {
           try {
             const cached = await env.BACKUPS.get(filmsCacheKey, 'json')
             if (cached) {
@@ -763,10 +769,18 @@ async function handleFetch(request, env, ctx) {
           params.push(limitNum, offsetNum)
         }
 
+        // سقف سخت رو حتی حالت‌های بدون pagination صریح — یه محافظ نهایی،
+        // نه محدودیت عملکردی (خیلی بالاتر از کل آرشیوته)، که اگه یه‌جا
+        // کش/فیلتر درست کار نکرد، حداقل جلوی یه full-scan واقعاً بی‌سقف
+        // رو می‌گیره.
+        if (!isPaginated) {
+          sql += ' LIMIT 20000'
+        }
+
         const result = await db.prepare(sql).bind(...params).all()
         // Parse JSON string fields
         const films = (result.results || []).map(parseFilmRow)
-        if (env.BACKUPS) {
+        if (cacheEligible && env.BACKUPS) {
           ctx.waitUntil(env.BACKUPS.put(filmsCacheKey, JSON.stringify({ films, totalCount }), { expirationTtl: FILMS_CACHE_TTL }).catch(() => {}))
         }
         const headers = totalCount != null ? { ...corsHeaders, 'X-Total-Count': String(totalCount) } : corsHeaders
