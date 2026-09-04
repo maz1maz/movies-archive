@@ -18,6 +18,27 @@ const FILMS_CACHE_TTL = 180
 const DECADES_CACHE_KEY = 'decadescache:all'
 const DECADES_CACHE_TTL = 3600
 
+// سقف کلی روزانه (نه به‌ازای IP) برای «cache miss»های مهمان (لاگین‌نشده) روی
+// جدول films. کش فعلی جلوی تکرارِ همون درخواست رو می‌گیره، ولی اگه یکی بیاد
+// صدها ترکیب فیلتر *متفاوت* بزنه (هر کدوم یه full table scan جدا)، کش کمکی
+// نمی‌کنه. این شمارنده، جدا از rate-limit دقیقه‌ای بالا، یه سقف کلی روزانه
+// روی همین نوع درخواست‌هاست — تا در بدترین حالت هم سهمیه‌ی رایگان روزانه‌ی
+// D1 (۵ میلیون ردیف) از دست نره. کاربر لاگین‌شده (owner) هیچ‌وقت محدود نمی‌شه.
+const GUEST_SCAN_DAILY_BUDGET = 250 // ۲۵۰ × ~۱۷هزار ردیف ≈ ۴.۲۵ میلیون؛ زیر سقف ۵ میلیونی با فضای کافی برای owner و کرون‌های روزانه
+async function checkGuestScanBudget(env, ctx) {
+  if (!env.RATE_LIMIT) return true
+  const dayKey = `guestscans:${new Date().toISOString().slice(0, 10)}`
+  try {
+    const current = parseInt((await env.RATE_LIMIT.get(dayKey)) || '0', 10)
+    if (current >= GUEST_SCAN_DAILY_BUDGET) return false
+    const putPromise = env.RATE_LIMIT.put(dayKey, String(current + 1), { expirationTtl: 172800 }).catch(() => {})
+    if (ctx?.waitUntil) ctx.waitUntil(putPromise)
+    return true
+  } catch {
+    return true
+  }
+}
+
 async function invalidateFilmsCache(env) {
   if (!env.BACKUPS) return
   try {
@@ -618,6 +639,13 @@ async function handleFetch(request, env, ctx) {
             if (cached) return json(cached, 200, corsHeaders)
           } catch {}
         }
+        if (!currentUser && !(await checkGuestScanBudget(env, ctx))) {
+          return json(
+            { error: 'This archive is under heavy anonymous traffic right now — please try again later, or log in.' },
+            503,
+            corsHeaders
+          )
+        }
         const s = `%${name.toLowerCase()}%`
         const result = await db
           .prepare(
@@ -657,6 +685,13 @@ async function handleFetch(request, env, ctx) {
               return json(cached.films, 200, headers)
             }
           } catch {}
+        }
+        if (!currentUser && !(await checkGuestScanBudget(env, ctx))) {
+          return json(
+            { error: 'This archive is under heavy anonymous traffic right now — please try again later, or log in.' },
+            503,
+            corsHeaders
+          )
         }
         let sql = 'SELECT * FROM films WHERE 1=1'
         const params = []
