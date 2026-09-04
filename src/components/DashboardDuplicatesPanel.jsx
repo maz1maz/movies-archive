@@ -21,18 +21,26 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
   const [compareGroup, setCompareGroup] = useState(null)
   const [editingFilm, setEditingFilm] = useState(null)
 
+  // این اسکن کل جدول رو می‌خونه، برای همین دیگه خودکار (با باز شدن تب) اجرا
+  // نمی‌شه — فقط با کلیک صریح و وارد کردن دوباره‌ی رمز.
   const load = (s) => {
+    const password = window.prompt('برای اجرای اسکن دوباره‌ی موارد تکراری، رمز عبورت رو وارد کن:')
+    if (!password) return
     setGroups(null)
-    fetch(`/api/duplicates?scope=${s}`)
-      .then((r) => r.json())
+    fetch(`/api/duplicates?scope=${s}`, { headers: { 'X-Confirm-Password': password } })
+      .then((r) => {
+        if (!r.ok) return r.json().then((e) => Promise.reject(new Error(e.error || 'Failed')))
+        return r.json()
+      })
       .then((data) => setGroups(Array.isArray(data) ? data : []))
-      .catch(() => setGroups([]))
+      .catch((e) => {
+        alert(e.message === 'Incorrect password' ? 'رمز اشتباهه.' : 'خطا در اسکن.')
+        setGroups([])
+      })
   }
 
-  useEffect(() => {
-    load(scope)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope])
+  // این اسکن کل جدول رو می‌خونه، پس دیگه با باز شدن تب یا عوض شدن scope
+  // خودکار اجرا نمی‌شه — فقط با کلیک صریح روی دکمه‌ی «اسکن» و وارد کردن رمز.
 
   const handleDelete = async (id) => {
     if (isGuest) return openLogin()
@@ -66,12 +74,15 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
               ))}
             </select>
           </div>
+          <button className="btn btn-primary" onClick={() => load(scope)} style={{ alignSelf: 'flex-end' }}>
+            Scan for duplicates
+          </button>
         </div>
       </div>
 
       <section>
         {groups === null ? (
-          <div className="empty">Scanning your archive…</div>
+          <div className="empty">Click "Scan for duplicates" to check — this reads the whole archive, so it asks for your password each time.</div>
         ) : groups.length === 0 ? (
           <div className="empty">No duplicates found here — looks clean. 🎬</div>
         ) : (

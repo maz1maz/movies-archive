@@ -583,6 +583,16 @@ async function handleFetch(request, env, ctx) {
       // title+year within the same media type/item type, not intentional
       // multi-copy tracking which uses the "copies" counter instead) ----
       if (method === 'GET' && pathname === '/api/duplicates') {
+        // قبلاً هیچ auth ای نداشت (حتی مهمون هم می‌تونست صداش بزنه) و کل
+        // جدول رو بدون کش می‌خوند. الان هم ادمین‌محرمانه‌ست، هم برای
+        // جلوگیری از اجرای تصادفی (مثلاً فقط با باز کردن تب Duplicates)
+        // رمز عبور رو دوباره می‌خواد.
+        const denied = requireAdmin()
+        if (denied) return denied
+        const confirmPassword = request.headers.get('X-Confirm-Password') || ''
+        const passOk = confirmPassword && (await verifyPassword(confirmPassword, currentUser.passwordSalt, currentUser.passwordHash))
+        if (!passOk) return json({ error: 'Incorrect password' }, 403, corsHeaders)
+
         const scope = url.searchParams.get('scope') || 'all'
 
         // scope=both: نه دوبله‌ی اشتباهی، بلکه فیلم‌هایی که واقعاً هم نسخه‌ی
@@ -676,8 +686,14 @@ async function handleFetch(request, env, ctx) {
         // چون این یه آرشیو شخصیه (تک‌کاربره)، بازگرداندن نتیجه‌ی حداکثر
         // ۳ دقیقه‌ای قدیمی مشکلی نداره، و هر نوشتن (افزودن/ویرایش/حذف فیلم)
         // کل این پیشوند رو فوراً invalidate می‌کنه (پایین‌تر توی invalidateFilmsCache).
+        // سرچ آزاد (q) رو کش نمی‌کنیم — هر تایپ یه حرف جدید، یه querystring
+        // جدا و یه کلید KV جدا می‌سازه؛ چون KV پلن رایگان سقف ۱۰۰۰ نوشتن در
+        // روزه، سرچ زنده به‌تنهایی می‌تونست این سقف رو خیلی زود پر کنه و
+        // بعدش هیچ‌چیز دیگه‌ای (حتی genre/decade که واقعاً به کش نیاز دارن)
+        // کش نشه.
+        const cacheEligible = !q
         const filmsCacheKey = `${FILMS_CACHE_KEY}:${url.search || '?'}`
-        if (env.BACKUPS) {
+        if (cacheEligible && env.BACKUPS) {
           try {
             const cached = await env.BACKUPS.get(filmsCacheKey, 'json')
             if (cached) {
@@ -788,10 +804,18 @@ async function handleFetch(request, env, ctx) {
           params.push(limitNum, offsetNum)
         }
 
+        // سقف سخت رو حتی حالت‌های بدون pagination صریح — یه محافظ نهایی،
+        // نه محدودیت عملکردی (خیلی بالاتر از کل آرشیوته)، که اگه یه‌جا
+        // کش/فیلتر درست کار نکرد، حداقل جلوی یه full-scan واقعاً بی‌سقف
+        // رو می‌گیره.
+        if (!isPaginated) {
+          sql += ' LIMIT 20000'
+        }
+
         const result = await db.prepare(sql).bind(...params).all()
         // Parse JSON string fields
         const films = (result.results || []).map(parseFilmRow)
-        if (env.BACKUPS) {
+        if (cacheEligible && env.BACKUPS) {
           ctx.waitUntil(env.BACKUPS.put(filmsCacheKey, JSON.stringify({ films, totalCount }), { expirationTtl: FILMS_CACHE_TTL }).catch(() => {}))
         }
         const headers = totalCount != null ? { ...corsHeaders, 'X-Total-Count': String(totalCount) } : corsHeaders
@@ -1139,8 +1163,14 @@ async function handleFetch(request, env, ctx) {
         if (denied) return denied
         const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
-        const result = await enrichBatch(db, env, limit, enrichScopeClause(url.searchParams))
-        return json(result, 200, corsHeaders)
+        try {
+          const result = await enrichBatch(db, env, limit, enrichScopeClause(url.searchParams))
+          return json(result, 200, corsHeaders)
+        } catch (e) {
+          // به‌جای کرش خام (1101 بدون توضیح)، پیام خطای واقعی رو برگردون تا
+          // بشه دقیقاً فهمید کجای enrichment گیر کرده.
+          return json({ error: 'enrich failed: ' + (e && e.message), stack: e && e.stack }, 500, corsHeaders)
+        }
       }
 
       // ---- POST /api/films/season-counts (fetch "total seasons produced so
@@ -4960,17 +4990,26 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
   let updated = 0
   let quotaExceeded = false
   for (const film of candidates) {
-    const parsed = parseFilmRow(film)
-    const before = { ...parsed }
-    let enriched
+    let parsed, before, enriched
     try {
+      parsed = parseFilmRow(film)
+      before = { ...parsed }
       enriched = await enrichFilm(parsed, env.OMDB_API_KEY, () => bumpApiUsage('omdb'))
     } catch (e) {
       if (e.code === 'OMDB_QUOTA_EXCEEDED') {
         quotaExceeded = true
         break
       }
-      throw e
+      // یه خطای غیرمنتظره (مثلاً داده‌ی عجیب رو یه فیلم خاص) نباید کل
+      // batch رو کرش کنه — همین یکی رد می‌شه، بقیه ادامه پیدا می‌کنن.
+      console.error(`enrichBatch: skipping film ${film.id} (${film.title}): ${e.message}`)
+      try {
+        await db
+          .prepare('UPDATE films SET metadataEnrichmentAttemptedAt = ? WHERE id = ?')
+          .bind(new Date().toISOString(), film.id)
+          .run()
+      } catch {}
+      continue
     }
     try {
       const { extras } = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
@@ -4979,10 +5018,14 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
     const fields = ENRICHABLE_FIELDS.filter((f) => isEmptyMetadata(before[f]) && !isEmptyMetadata(enriched[f]))
     if (fields.length) updated++
     enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
-    await updateFilm(db, enriched)
     try {
-      await syncSharedMetadataToSibling(db, enriched)
-    } catch {}
+      await updateFilm(db, enriched)
+      await syncSharedMetadataToSibling(db, enriched).catch(() => {})
+    } catch (e) {
+      // اگه ذخیره‌کردن هم خطا داد (مثلاً یه فیلد عجیب)، بازم فقط همین
+      // فیلم رد می‌شه، کل batch کرش نمی‌کنه.
+      console.error(`enrichBatch: failed to save film ${film.id} (${film.title}): ${e.message}`)
+    }
   }
 
   const remaining = await db

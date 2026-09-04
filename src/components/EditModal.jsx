@@ -233,7 +233,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   const save = () => {
     const patch = {
       title: form.title,
-      originalTitle: form.originalTitle || undefined,
+      originalTitle: form.originalTitle,
       closet: form.closet,
       shelf: form.shelf,
       row: form.row,
