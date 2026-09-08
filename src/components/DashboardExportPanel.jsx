@@ -126,7 +126,8 @@ export default function DashboardExportPanel({ films }) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `${scopeFileTag}-letterboxd-export.csv`
+    const dateTag = new Date().toISOString().slice(0, 10)
+    link.download = `cinefilm-export-${scopeFileTag}-${scopedFilms.length}films-${dateTag}.csv`
     link.click()
     URL.revokeObjectURL(url)
   }
