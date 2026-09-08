@@ -97,6 +97,10 @@ const NORMALIZED_HEADER_MAP = Object.fromEntries(
 NORMALIZED_HEADER_MAP.contenttype = "itemType"
 NORMALIZED_HEADER_MAP.imdbid = "imdbId"
 NORMALIZED_HEADER_MAP.mparating = "rated"
+NORMALIZED_HEADER_MAP.posterurl = "poster"
+NORMALIZED_HEADER_MAP.postelink = "poster"
+NORMALIZED_HEADER_MAP.imageurl = "poster"
+NORMALIZED_HEADER_MAP.imdbrating = "rating"
 // ستون «فصل‌های موجود» فیلد مستقیمی توی سایت نداره؛ موقتاً می‌گیریمش تا بعد از
 // حلقه‌ی اصلی، seasonDrives (چیزی که واقعاً توی صفحه‌ی فیلم نمایش داده می‌شه) رو
 // از روش بسازیم — وگرنه بخش SEASONS بعد از ایمپورت خالی می‌موند.
