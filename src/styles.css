@@ -7633,7 +7633,7 @@ body.light .spine-theme-wood .spine-shelf-board {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   background: #0b0c10;
   display: block;
   animation: splash-image-in 4200ms ease both;
