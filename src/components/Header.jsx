@@ -53,6 +53,8 @@ function IconFilter(props) {
 export default function Header({
   query,
   setQuery,
+  searchIn,
+  setSearchIn,
   genre,
   setGenre,
   genres,
@@ -491,11 +493,23 @@ export default function Header({
           </span>
           <input
             type="search"
-            placeholder="Search title, director or actor…"
+            placeholder={searchIn === 'people' ? 'Search director, producer or actor…' : 'Search title, director or actor…'}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
+
+        {setSearchIn && (
+          <select
+            className="select"
+            value={searchIn || 'title'}
+            onChange={(e) => setSearchIn(e.target.value === 'title' ? '' : e.target.value)}
+            title="سرچ رو کجا انجام بده"
+          >
+            <option value="title">Title</option>
+            <option value="people">Cast &amp; Crew</option>
+          </select>
+        )}
 
         {/* وقتی داخل یه بخش سریال هستی، این دکمه همون لحظه (بدون پاک شدن
             چیزی که تایپ کردی) می‌بره رو نسخه‌ی فیلمِ همون نوع رسانه. */}
