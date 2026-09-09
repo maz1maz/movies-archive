@@ -58,6 +58,7 @@ export default function App() {
     ),
   ].sort((a, b) => driveSortValue(a) - driveSortValue(b))
   const [query, setQuery] = useState('')
+  const [searchIn, setSearchIn] = useState('') // '' = عنوان (پیش‌فرض)، 'people' = بازیگر/کارگردان/تهیه‌کننده
   const [genre, setGenre] = useState('')
   const [loanedOnly, setLoanedOnly] = useState(false)
   const [watched, setWatched] = useState('')
@@ -264,6 +265,7 @@ export default function App() {
     const requestId = ++requestIdRef.current
     const params = new URLSearchParams()
     if (query.trim()) params.set('q', query.trim())
+    if (searchIn) params.set('searchIn', searchIn)
     if (genre) params.set('genre', genre)
     if (loanedOnly) params.set('loaned', '1')
     if (watched) params.set('watched', watched)
@@ -318,7 +320,7 @@ export default function App() {
   useEffect(() => {
     setPage(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, genre, loanedOnly, watched, minRating, decade, drive, sort, alpha, section])
+  }, [query, searchIn, genre, loanedOnly, watched, minRating, decade, drive, sort, alpha, section])
 
   // section/page قبلاً اینجا نبودن — یعنی عوض‌کردن بخش (Digital Movies و
   // غیره) اصلاً دوباره fetch نمی‌کرد، و صفحه‌بندی هم کاملاً سمت مرورگر (روی
@@ -327,7 +329,7 @@ export default function App() {
     const t = setTimeout(loadFilms, 250)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, genre, loanedOnly, watched, minRating, decade, drive, sort, alpha, section, page])
+  }, [query, searchIn, genre, loanedOnly, watched, minRating, decade, drive, sort, alpha, section, page])
 
   useEffect(() => {
     fetch('/api/genres')
@@ -1022,6 +1024,8 @@ export default function App() {
       <Header
         query={query}
         setQuery={setQuery}
+        searchIn={searchIn}
+        setSearchIn={setSearchIn}
         genre={genre}
         setGenre={setGenre}
         loanedOnly={loanedOnly}
