@@ -72,6 +72,7 @@ export default function Header({
   setSort,
   total,
   section,
+  setSection,
   onImport,
   onImportRatings,
   onAddFilm,
@@ -494,6 +495,31 @@ export default function Header({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
+          {/* وقتی داخل یه بخش خاصی (فیزیکال/دیجیتال، فیلم/سریال) هستی، این
+              دکمه‌ها همون لحظه (بدون نیاز به صبر کردن برای نتیجه) اجازه می‌دن
+              دامنه‌ی سرچ رو عوض کنی — بدون اینکه چیزی که تایپ کردی پاک بشه. */}
+          {section && setSection && (
+            <div style={{ display: 'flex', gap: 6, marginInlineStart: 8 }}>
+              {(section === 'physical-series' || section === 'digital-series') && (
+                <button
+                  type="button"
+                  onClick={() => setSection(section === 'physical-series' ? 'physical' : 'digital-movie')}
+                  title="فقط تو فیلم‌ها بگرد"
+                  style={{ fontSize: 12, padding: '4px 10px', borderRadius: 999, border: '1px solid var(--border, #444)', background: 'transparent', color: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  Movies
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setSection(null)}
+                title="تو کل آرشیو بگرد"
+                style={{ fontSize: 12, padding: '4px 10px', borderRadius: 999, border: '1px solid var(--border, #444)', background: 'transparent', color: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                All
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="az-popover-wrap">
