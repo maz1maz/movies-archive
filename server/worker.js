@@ -705,19 +705,24 @@ async function handleFetch(request, env, ctx) {
           )
         }
         if (genre) { sql += ' AND genre LIKE ?'; params.push(`%"${genre}"%`) }
+        const searchIn = url.searchParams.get('searchIn') // 'people' یعنی صریحاً بازیگر/کارگردان/تهیه‌کننده هم جست‌وجو بشه
         if (q) {
           const ql = q.toLowerCase()
           const s = `%${ql}%`
-          // اگه سرچ یه کلمه‌ی تنهاست (بدون فاصله، مثل "joe")، فقط تو عنوان
-          // بگرد — وگرنه هر فیلمی که یه بازیگر به همون اسم کوچیک توش باشه
-          // (مثلاً هر فیلم Joe Pesci برای سرچ "joe") هم میومد، که ربطی به
-          // چیزی که کاربر دنبالشه نداره. فقط وقتی اسم کامل بزنه (با فاصله،
-          // مثل "joe pesci") کست/کارگردان هم بررسی می‌شه.
-          const isFullName = ql.trim().includes(' ')
-          if (!isFullName) {
+          if (searchIn === 'people') {
+            // کاربر صریحاً خواسته بازیگر/کارگردان/تهیه‌کننده هم چک بشه —
+            // اینجا برخلاف حالت پیش‌فرض، substring ساده کافیه، چون همینو خواسته.
+            sql += ` AND (LOWER(director) LIKE ? OR LOWER(producer) LIKE ? OR LOWER("cast") LIKE ?)`
+            params.push(s, s, s)
+          } else if (!ql.trim().includes(' ')) {
+            // یه کلمه‌ی تنها (بدون فاصله، مثل "joe")، فقط تو عنوان بگرد —
+            // وگرنه هر فیلمی که یه بازیگر به همون اسم کوچیک توش باشه
+            // (مثلاً هر فیلم Joe Pesci برای سرچ "joe") هم میومد، که ربطی به
+            // چیزی که کاربر دنبالشه نداره.
             sql += ` AND (LOWER(title) LIKE ? OR LOWER(originalTitle) LIKE ?)`
             params.push(s, s)
           } else {
+            // اسم کامل (با فاصله، مثل "joe pesci") — کست/کارگردان هم بررسی می‌شه.
             const startsWord = `${ql}%`
             const afterSpace = `% ${ql}%`
             const afterQuote = `%"${ql}%`
