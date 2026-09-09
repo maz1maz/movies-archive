@@ -658,14 +658,8 @@ async function handleFetch(request, env, ctx) {
         // چون این یه آرشیو شخصیه (تک‌کاربره)، بازگرداندن نتیجه‌ی حداکثر
         // ۳ دقیقه‌ای قدیمی مشکلی نداره، و هر نوشتن (افزودن/ویرایش/حذف فیلم)
         // کل این پیشوند رو فوراً invalidate می‌کنه (پایین‌تر توی invalidateFilmsCache).
-        // سرچ آزاد (q) رو کش نمی‌کنیم — هر تایپ یه حرف جدید، یه querystring
-        // جدا و یه کلید KV جدا می‌سازه؛ چون KV پلن رایگان سقف ۱۰۰۰ نوشتن در
-        // روزه، سرچ زنده به‌تنهایی می‌تونست این سقف رو خیلی زود پر کنه و
-        // بعدش هیچ‌چیز دیگه‌ای (حتی genre/decade که واقعاً به کش نیاز دارن)
-        // کش نشه.
-        const cacheEligible = !q
         const filmsCacheKey = `${FILMS_CACHE_KEY}:${url.search || '?'}`
-        if (cacheEligible && env.BACKUPS) {
+        if (env.BACKUPS) {
           try {
             const cached = await env.BACKUPS.get(filmsCacheKey, 'json')
             if (cached) {
@@ -714,19 +708,26 @@ async function handleFetch(request, env, ctx) {
         if (q) {
           const ql = q.toLowerCase()
           const s = `%${ql}%`
-          // برای director/cast فقط اگه q ابتدای یه اسم باشه match کنیم (نه هر
-          // جای وسط اسم) — وگرنه یه سرچ کوتاه مثل "a fu" چون تصادفاً وسط اسم
-          // بازیگرهای بی‌ربطی مثل "Amanda Fuller" یا "Tatsuya Fujiwara" پیدا
-          // می‌شه، فیلم‌های کاملاً نامرتبط رو هم نشون می‌ده.
-          const startsWord = `${ql}%`
-          const afterSpace = `% ${ql}%`
-          const afterQuote = `%"${ql}%`
-          sql += ` AND (
-            LOWER(title) LIKE ? OR LOWER(originalTitle) LIKE ? OR
-            LOWER(director) LIKE ? OR LOWER(director) LIKE ? OR
-            LOWER("cast") LIKE ? OR LOWER("cast") LIKE ? OR LOWER("cast") LIKE ?
-          )`
-          params.push(s, s, startsWord, afterSpace, startsWord, afterSpace, afterQuote)
+          // اگه سرچ یه کلمه‌ی تنهاست (بدون فاصله، مثل "joe")، فقط تو عنوان
+          // بگرد — وگرنه هر فیلمی که یه بازیگر به همون اسم کوچیک توش باشه
+          // (مثلاً هر فیلم Joe Pesci برای سرچ "joe") هم میومد، که ربطی به
+          // چیزی که کاربر دنبالشه نداره. فقط وقتی اسم کامل بزنه (با فاصله،
+          // مثل "joe pesci") کست/کارگردان هم بررسی می‌شه.
+          const isFullName = ql.trim().includes(' ')
+          if (!isFullName) {
+            sql += ` AND (LOWER(title) LIKE ? OR LOWER(originalTitle) LIKE ?)`
+            params.push(s, s)
+          } else {
+            const startsWord = `${ql}%`
+            const afterSpace = `% ${ql}%`
+            const afterQuote = `%"${ql}%`
+            sql += ` AND (
+              LOWER(title) LIKE ? OR LOWER(originalTitle) LIKE ? OR
+              LOWER(director) LIKE ? OR LOWER(director) LIKE ? OR
+              LOWER("cast") LIKE ? OR LOWER("cast") LIKE ? OR LOWER("cast") LIKE ?
+            )`
+            params.push(s, s, startsWord, afterSpace, startsWord, afterSpace, afterQuote)
+          }
         }
         if (alpha) {
           // نادیده گرفتن «The» ابتدای عنوان موقع تعیین حرف الفبا، مثل مرتب‌سازی
@@ -769,18 +770,10 @@ async function handleFetch(request, env, ctx) {
           params.push(limitNum, offsetNum)
         }
 
-        // سقف سخت رو حتی حالت‌های بدون pagination صریح — یه محافظ نهایی،
-        // نه محدودیت عملکردی (خیلی بالاتر از کل آرشیوته)، که اگه یه‌جا
-        // کش/فیلتر درست کار نکرد، حداقل جلوی یه full-scan واقعاً بی‌سقف
-        // رو می‌گیره.
-        if (!isPaginated) {
-          sql += ' LIMIT 20000'
-        }
-
         const result = await db.prepare(sql).bind(...params).all()
         // Parse JSON string fields
         const films = (result.results || []).map(parseFilmRow)
-        if (cacheEligible && env.BACKUPS) {
+        if (env.BACKUPS) {
           ctx.waitUntil(env.BACKUPS.put(filmsCacheKey, JSON.stringify({ films, totalCount }), { expirationTtl: FILMS_CACHE_TTL }).catch(() => {}))
         }
         const headers = totalCount != null ? { ...corsHeaders, 'X-Total-Count': String(totalCount) } : corsHeaders
@@ -1128,14 +1121,8 @@ async function handleFetch(request, env, ctx) {
         if (denied) return denied
         const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
-        try {
-          const result = await enrichBatch(db, env, limit, enrichScopeClause(url.searchParams))
-          return json(result, 200, corsHeaders)
-        } catch (e) {
-          // به‌جای کرش خام (1101 بدون توضیح)، پیام خطای واقعی رو برگردون تا
-          // بشه دقیقاً فهمید کجای enrichment گیر کرده.
-          return json({ error: 'enrich failed: ' + (e && e.message), stack: e && e.stack }, 500, corsHeaders)
-        }
+        const result = await enrichBatch(db, env, limit, enrichScopeClause(url.searchParams))
+        return json(result, 200, corsHeaders)
       }
 
       // ---- POST /api/films/season-counts (fetch "total seasons produced so
@@ -2527,10 +2514,9 @@ async function handleFetch(request, env, ctx) {
         const result = await db.prepare(sql).bind(...params).all()
         const films = (result.results || []).map(parseFilmRow)
         const filenameScope = itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : ''
-        const dateTag = new Date().toISOString().slice(0, 10)
         return json(films, 200, {
           ...corsHeaders,
-          'Content-Disposition': `attachment; filename="cinefilm-${filenameScope}backup-${films.length}films-${dateTag}.json"`,
+          'Content-Disposition': `attachment; filename="${filenameScope}films-backup.json"`,
         })
       }
 
@@ -2668,13 +2654,12 @@ async function handleFetch(request, env, ctx) {
         const locationScope = [closetParam ? `C${closetParam}` : '', rowParam ? `R${rowParam}` : '', shelfParam ? `S${shelfParam}` : ''].join('')
         const letterScope = letterParam ? `${letterParam}-` : ''
         const excelFilenameScope = locationScope || letterScope || (itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : '')
-        const excelDateTag = new Date().toISOString().slice(0, 10)
         return new Response(buf, {
           status: 200,
           headers: {
             ...corsHeaders,
             'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': `attachment; filename="cinefilm-${excelFilenameScope}export-${films.length}films-${excelDateTag}.xlsx"`,
+            'Content-Disposition': `attachment; filename="${excelFilenameScope}movies-archive-export.xlsx"`,
           },
         })
       }
@@ -4957,26 +4942,17 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
   let updated = 0
   let quotaExceeded = false
   for (const film of candidates) {
-    let parsed, before, enriched
+    const parsed = parseFilmRow(film)
+    const before = { ...parsed }
+    let enriched
     try {
-      parsed = parseFilmRow(film)
-      before = { ...parsed }
       enriched = await enrichFilm(parsed, env.OMDB_API_KEY, () => bumpApiUsage('omdb'))
     } catch (e) {
       if (e.code === 'OMDB_QUOTA_EXCEEDED') {
         quotaExceeded = true
         break
       }
-      // یه خطای غیرمنتظره (مثلاً داده‌ی عجیب رو یه فیلم خاص) نباید کل
-      // batch رو کرش کنه — همین یکی رد می‌شه، بقیه ادامه پیدا می‌کنن.
-      console.error(`enrichBatch: skipping film ${film.id} (${film.title}): ${e.message}`)
-      try {
-        await db
-          .prepare('UPDATE films SET metadataEnrichmentAttemptedAt = ? WHERE id = ?')
-          .bind(new Date().toISOString(), film.id)
-          .run()
-      } catch {}
-      continue
+      throw e
     }
     try {
       const { extras } = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
@@ -4985,14 +4961,10 @@ async function enrichBatch(db, env, limit, scopeClause = '') {
     const fields = ENRICHABLE_FIELDS.filter((f) => isEmptyMetadata(before[f]) && !isEmptyMetadata(enriched[f]))
     if (fields.length) updated++
     enriched.metadataEnrichmentAttemptedAt = new Date().toISOString()
+    await updateFilm(db, enriched)
     try {
-      await updateFilm(db, enriched)
-      await syncSharedMetadataToSibling(db, enriched).catch(() => {})
-    } catch (e) {
-      // اگه ذخیره‌کردن هم خطا داد (مثلاً یه فیلد عجیب)، بازم فقط همین
-      // فیلم رد می‌شه، کل batch کرش نمی‌کنه.
-      console.error(`enrichBatch: failed to save film ${film.id} (${film.title}): ${e.message}`)
-    }
+      await syncSharedMetadataToSibling(db, enriched)
+    } catch {}
   }
 
   const remaining = await db
