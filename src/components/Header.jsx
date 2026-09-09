@@ -505,6 +505,7 @@ export default function Header({
             value={searchIn || 'title'}
             onChange={(e) => setSearchIn(e.target.value === 'title' ? '' : e.target.value)}
             title="سرچ رو کجا انجام بده"
+            style={{ fontSize: '12.5px', minHeight: 36, padding: '8px 10px' }}
           >
             <option value="title">Title</option>
             <option value="people">Cast &amp; Crew</option>
