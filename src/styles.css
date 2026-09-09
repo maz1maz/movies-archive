@@ -5162,11 +5162,11 @@ body.light .header {
   inset: -60px;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0px;
+  gap: 8px;
 }
 .folder-collage-tile {
   aspect-ratio: 2 / 3;
-  transform: rotate(var(--tilt)) scale(1.32);
+  transform: rotate(var(--tilt)) scale(1.1);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
   border-radius: 6px;
   overflow: hidden;
