@@ -1019,6 +1019,21 @@ export default function App() {
         <>
       <PosterCollage posters={sectionPosters} count={16} fixed />
 
+      {/* وقتی داخل یه بخش خاص (نه صفحه‌ی اصلی) سرچ می‌کنی و نتیجه‌ی زیادی
+          پیدا می‌شه، یه لینک برای دیدن همه‌ی نتایج تو کل آرشیو (بدون
+          محدودیت بخش فعلی) نشون بده — چون بعضی وقتا چیزی که دنبالشی تو
+          بخش دیگه‌ایه، نه همینی که الان توش هستی. */}
+      {query && section && (totalCount ?? sectionFilms.length) > 5 && (
+        <div style={{ padding: '10px 16px', fontSize: 13.5, opacity: 0.85 }}>
+          «{query}» توی این بخش {totalCount ?? sectionFilms.length} نتیجه داره —{' '}
+          <button
+            onClick={() => setSection(null)}
+            style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit' }}
+          >
+            دیدن همه‌ی نتایج تو کل آرشیو (All)
+          </button>
+        </div>
+      )}
 
       <Header
         query={query}
@@ -1040,7 +1055,7 @@ export default function App() {
         drives={drives}
         sort={sort}
         setSort={setSort}
-        total={totalCount ?? '…'}
+        total={totalCount ?? sectionFilms.length}
         section={section}
         onImport={handleImport}
         onImportRatings={handleImportRatings}
