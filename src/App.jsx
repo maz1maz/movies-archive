@@ -10,7 +10,7 @@ import DashboardPanel from './components/DashboardPanel.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
-import { IconArchive } from './components/icons.jsx'
+import { IconArchive, IconClose } from './components/icons.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 import { useTheme } from './context/ThemeContext.jsx'
 import { parseDriveNumbers, driveSortValue } from './utils/driveDisplay.js'
@@ -76,6 +76,23 @@ export default function App() {
   const [sort, setSort] = useState('random')
   const [alpha, setAlpha] = useState('')
   const [page, setPage] = useState(1)
+
+  const filtersActive = Boolean(
+    query.trim() || searchIn || genre || decade || drive || alpha || watched || minRating || loanedOnly || criterionOnly
+  )
+  const resetFilters = () => {
+    setQuery('')
+    setSearchIn('')
+    setGenre('')
+    setDecade('')
+    setDrive('')
+    setAlpha('')
+    setWatched('')
+    setMinRating('')
+    setLoanedOnly(false)
+    setCriterionOnly(false)
+    setPage(1)
+  }
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1123,7 +1140,9 @@ export default function App() {
               <IconArchive width={22} height={22} />
             </span>
             <p>
-              {section === 'physical'
+              {filtersActive
+                ? 'No films match this combination of search and filters.'
+                : section === 'physical'
                 ? 'No physical films match here yet.'
                 : section === 'physical-series'
                 ? 'No physical (Blu-ray) series added yet.'
@@ -1131,11 +1150,17 @@ export default function App() {
                 ? 'No digital movies added yet.'
                 : 'No digital series added yet.'}
             </p>
-            <p className="empty-hint">
-              {section === 'physical' || section === 'physical-series'
-                ? 'Use "Import Excel" or "+ Add Film" above to add titles.'
-                : 'Use "+ Add Film" above — it will be pre-filled for this section.'}
-            </p>
+            {filtersActive ? (
+              <button type="button" className="btn btn-ghost empty-reset" onClick={resetFilters}>
+                <IconClose width={14} height={14} /> Reset filters
+              </button>
+            ) : (
+              <p className="empty-hint">
+                {section === 'physical' || section === 'physical-series'
+                  ? 'Use "Import Excel" or "+ Add Film" above to add titles.'
+                  : 'Use "+ Add Film" above — it will be pre-filled for this section.'}
+              </p>
+            )}
           </div>
         ) : view === 'list' ? (
           <FilmList films={visibleFilms} onSelect={setSelected} onEdit={guardedEdit} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
