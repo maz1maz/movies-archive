@@ -115,6 +115,7 @@ function PosterWallBackground() {
 export default function Landing() {
   const { openLogin } = useAuth()
   const [counts, setCounts] = useState(null)
+  const [decades, setDecades] = useState(null)
   const [wordIdx, setWordIdx] = useState(0)
 
   useEffect(() => {
@@ -122,6 +123,12 @@ export default function Landing() {
       .then((r) => r.json())
       .then((data) => {
         if (data && typeof data === 'object' && !data.error) setCounts(data)
+      })
+      .catch(() => {})
+    fetch('/api/decades')
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setDecades(data)
       })
       .catch(() => {})
   }, [])
@@ -153,7 +160,7 @@ export default function Landing() {
       <header className="landing-nav">
         <div className="landing-nav-inner">
           <span className="landing-logo">
-            <LogoMark />
+            <img src="/logo.png" alt="" width="30" height="30" className="landing-logo-img" />
             <span className="landing-logo-word">
               Cinefilm<span className="landing-gold-word">Archive</span>
             </span>
@@ -188,17 +195,8 @@ export default function Landing() {
             <div className="landing-rotating" aria-live="polite">
               <IconSparkles width={15} height={15} className="landing-rotating-icon" />
               <span>Built for</span>
-              <span className="landing-rotating-window">
-                <span
-                  className="landing-rotating-track"
-                  style={{ transform: `translateY(-${wordIdx * 1.5}rem)` }}
-                >
-                  {ROTATING_WORDS.map((w) => (
-                    <span className="landing-rotating-word" key={w}>
-                      {w}
-                    </span>
-                  ))}
-                </span>
+              <span className="landing-rotating-word" key={wordIdx}>
+                {ROTATING_WORDS[wordIdx]}
               </span>
             </div>
 
@@ -211,10 +209,24 @@ export default function Landing() {
               </a>
             </div>
 
-            <p className="landing-hero-stat">
-              <span className="landing-hero-stat-num">{fmt(total)}</span> titles catalogued and
-              counting
-            </p>
+            <div className="landing-mini-stats">
+              <div className="landing-mini-stat">
+                <span className="landing-hero-stat-num">{fmt(total)}</span>
+                <span>titles catalogued</span>
+              </div>
+              {counts?.minYear && (
+                <div className="landing-mini-stat">
+                  <span className="landing-hero-stat-num">{counts.minYear}</span>
+                  <span>earliest title</span>
+                </div>
+              )}
+              {decades?.length > 0 && (
+                <div className="landing-mini-stat">
+                  <span className="landing-hero-stat-num">{decades.length}</span>
+                  <span>decades represented</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="landing-panel-wrap">
@@ -290,28 +302,6 @@ export default function Landing() {
         <p>Cinefilm Archive — personal physical-media collection of Alireza Mazlaghani</p>
       </footer>
     </div>
-  )
-}
-
-function LogoMark() {
-  return (
-    <svg viewBox="0 0 40 40" width="30" height="30" aria-hidden="true">
-      <defs>
-        <linearGradient id="landing-lg-gold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#f6dfa0" />
-          <stop offset="55%" stopColor="#e3b53f" />
-          <stop offset="100%" stopColor="#b37b18" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M30.5 10.5A12 12 0 1 0 32 20"
-        fill="none"
-        stroke="url(#landing-lg-gold)"
-        strokeWidth="4.2"
-        strokeLinecap="round"
-      />
-      <circle cx="30.2" cy="21.6" r="3.4" fill="url(#landing-lg-gold)" />
-    </svg>
   )
 }
 
