@@ -495,7 +495,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   >
                     ← All Closets
                   </button>
-                  <span className="cabinet-map-title">Cabinet {closet} — pick a row or section</span>
+                  <span className="cabinet-map-title">Closet {closet} — pick a row or section</span>
                 </div>
                 <span className="cabinet-map-meta">{cabinetRows.length} rows · {countFor(closet, null, null)} copies</span>
               </div>

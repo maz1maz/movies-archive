@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconBookshelf, IconNewspaper, IconHardDrive, IconChevronRight } from './icons.jsx'
+import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconNewspaper, IconChevronRight } from './icons.jsx'
 import PosterCollage from './PosterCollage.jsx'
 
 function escapeRegex(s) {
@@ -207,16 +207,6 @@ export default function FolderNav({
                 </span>
                 <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
-              <button className="folder-card folder-card-physical reveal-item reveal-6" onClick={onOpenBookshelf}>
-                <span className="folder-icon">
-                  <IconBookshelf width={32} height={32} />
-                </span>
-                <span className="folder-card-text">
-                  <h2>3D Bookshelf</h2>
-                  <p>Physical · {counts.physical} items</p>
-                </span>
-                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
-              </button>
               <button className="folder-card folder-card-digital reveal-item reveal-7" onClick={() => onSelectDigitalType('movie')}>
                 <span className="folder-icon">
                   <IconFilm width={32} height={32} />
@@ -234,16 +224,6 @@ export default function FolderNav({
                 <span className="folder-card-text">
                   <h2>Digital Series</h2>
                   <p>Drive · {counts.digitalSeries} items</p>
-                </span>
-                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
-              </button>
-              <button className="folder-card folder-card-digital reveal-item reveal-8" onClick={onOpenDriveBrowser}>
-                <span className="folder-icon">
-                  <IconHardDrive width={32} height={32} />
-                </span>
-                <span className="folder-card-text">
-                  <h2>Browse by Drive</h2>
-                  <p>Digital · {(counts.digitalMovies || 0) + (counts.digitalSeries || 0)} items</p>
                 </span>
                 <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>

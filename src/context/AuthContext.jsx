@@ -65,6 +65,7 @@ export function AuthProvider({ children }) {
     user,
     loading,
     isGuest: !user,
+    isViewer: user?.role === 'viewer',
     isAdmin: user?.role === 'admin',
     login,
     logout,

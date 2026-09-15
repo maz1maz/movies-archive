@@ -61,7 +61,7 @@ export default function LoginModal() {
           </button>
         </form>
         <p style={{ color: 'var(--muted)', fontSize: 12, marginTop: 14 }}>
-          You can browse and search the whole archive without logging in — only editing and adding require login.
+          Log in to browse the archive, search the catalogue and manage titles.
         </p>
       </div>
     </div>

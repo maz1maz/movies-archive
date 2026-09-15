@@ -144,11 +144,13 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
     let base = digitalSorted
     if (hideAssigned) base = base.filter((f) => !f.driveNumber)
     if (drive) base = base.filter((f) => !parseDriveNumbers(f.driveNumber).includes(drive))
+    if (driveTypeFilter === 'movie') base = base.filter((f) => f.itemType !== 'series')
+    if (driveTypeFilter === 'series') base = base.filter((f) => f.itemType === 'series')
     if (!q) return base
     return base.filter(
       (f) => String(f.title || '').toLowerCase().includes(q) || String(f.year || '').includes(q)
     )
-  }, [digitalSorted, filmQuery, hideAssigned, drive])
+  }, [digitalSorted, filmQuery, hideAssigned, drive, driveTypeFilter])
 
   const selectedCount = selectedIds.size
   const toggleSelect = (id) => {
@@ -424,6 +426,11 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                   </span>
                 </div>
                 <div className="film-selector-controls">
+                  <div className="shelf-type-filter">
+                    <button type="button" className={'btn btn-ghost btn-sm' + (driveTypeFilter === 'all' ? ' active' : '')} onClick={() => setDriveTypeFilter('all')}>All</button>
+                    <button type="button" className={'btn btn-ghost btn-sm' + (driveTypeFilter === 'movie' ? ' active' : '')} onClick={() => setDriveTypeFilter('movie')}>Movies</button>
+                    <button type="button" className={'btn btn-ghost btn-sm' + (driveTypeFilter === 'series' ? ' active' : '')} onClick={() => setDriveTypeFilter('series')}>Series</button>
+                  </div>
                   <label className="film-selector-toggle">
                     <input type="checkbox" checked={hideAssigned} onChange={(e) => { setHideAssigned(e.target.checked); setSelectedIds(new Set()) }} />
                     <span>Only show unassigned ({unassignedCount})</span>
