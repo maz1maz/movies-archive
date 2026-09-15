@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { proxyImg } from '../utils/proxyImg.js'
 import {
-  IconArchive,
   IconStar,
   IconLayers,
   IconBookshelf,
@@ -11,22 +10,39 @@ import {
   IconTrophy,
   IconPin,
   IconSparkles,
+  IconSearch,
+  IconDisc,
+  IconClapper,
+  IconTV,
 } from './icons.jsx'
 
-// Real titles from the archive, picked for a recognisable hero wall.
-const SHOWCASE_POSTERS = [
-  { title: 'The Godfather', year: 1972, poster: 'https://m.media-amazon.com/images/M/MV5BNGEwYjgwOGQtYjg5ZS00Njc1LTk2ZGEtM2QwZWQ2NjdhZTE5XkEyXkFqcGc@._V1_QL75_UY562_CR8,0,380,562_.jpg' },
-  { title: 'The Dark Knight', year: 2008, poster: 'https://m.media-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_QL75_UX380_CR0,0,380,562_.jpg' },
-  { title: 'Inception', year: 2010, poster: 'https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_QL75_UX380_CR0,0,380,562_.jpg' },
-  { title: 'Interstellar', year: 2014, poster: 'https://m.media-amazon.com/images/M/MV5BYzdjMDAxZGItMjI2My00ODA1LTlkNzItOWFjMDU5ZDJlYWY3XkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg' },
-  { title: 'Goodfellas', year: 1990, poster: 'https://m.media-amazon.com/images/M/MV5BN2E5NzI2ZGMtY2VjNi00YTRjLWI1MDUtZGY5OWU1MWJjZjRjXkEyXkFqcGc@._V1_QL75_UX380_CR0,3,380,562_.jpg' },
-  { title: 'The Matrix', year: 1999, poster: 'https://m.media-amazon.com/images/M/MV5BN2NmN2VhMTQtMDNiOS00NDlhLTliMjgtODE2ZTY0ODQyNDRhXkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg' },
-  { title: 'Forrest Gump', year: 1994, poster: 'https://m.media-amazon.com/images/M/MV5BNDYwNzVjMTItZmU5YS00YjQ5LTljYjgtMjY2NDVmYWMyNWFmXkEyXkFqcGc@._V1_QL75_UY562_CR4,0,380,562_.jpg' },
-  { title: 'The Good, the Bad and the Ugly', year: 1967, poster: 'https://m.media-amazon.com/images/M/MV5BMWM5ZjQxM2YtNDlmYi00ZDNhLWI4MWUtN2VkYjBlMTY1ZTkwXkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg' },
-  { title: 'Fargo', year: 2014, poster: 'https://m.media-amazon.com/images/M/MV5BMjMzMTIzMTUwN15BMl5BanBnXkFtZTgwNjE0NTg0MTE@._V1_SX300.jpg' },
-  { title: 'The Godfather Part II', year: 1974, poster: 'https://m.media-amazon.com/images/M/MV5BMDIxMzBlZDktZjMxNy00ZGI4LTgxNDEtYWRlNzRjMjJmOGQ1XkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg' },
-  { title: 'Stop Making Sense', year: 1984, poster: 'https://m.media-amazon.com/images/M/MV5BOTY2Y2EzMTctYTZiMC00YzEzLWIwMDItODQyYWUyY2U2MTk4XkEyXkFqcGc@._V1_SX300.jpg' },
-  { title: 'Death Note', year: 2006, poster: 'https://m.media-amazon.com/images/M/MV5BYTgyZDhmMTEtZDFhNi00MTc4LTg3NjUtYWJlNGE5Mzk2NzMxXkEyXkFqcGc@._V1_SX300.jpg' },
+// Real posters from the archive, used for the ambient drifting wall behind
+// the hero and picked for a recognisable, high-rating mix.
+const WALL_POSTERS = [
+  'https://m.media-amazon.com/images/M/MV5BOTA5MWFhMzAtOWU1OS00Yjk4LTlkNGItNGI3N2VkNzcyNGU2XkEyXkFqcGc@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BNGEwYjgwOGQtYjg5ZS00Njc1LTk2ZGEtM2QwZWQ2NjdhZTE5XkEyXkFqcGc@._V1_QL75_UY562_CR8,0,380,562_.jpg',
+  'https://m.media-amazon.com/images/M/MV5BYzE3ZmY0NjctMmZhZS00OTI1LWI3YWEtMjNmZGU4ZDdlMTMzXkEyXkFqcGc@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_QL75_UX380_CR0,0,380,562_.jpg',
+  'https://m.media-amazon.com/images/M/MV5BZjJiODRiNDUtMGMzZi00NzM1LTlhOGMtNDhiOTY4NmViM2Q2XkEyXkFqcGc@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BZjUwOTJkMmUtYjdmOS00OWIxLThmYzEtYzJkMGI3MmVhYjIzXkEyXkFqcGdeQXVyMDM1MzIyMQ@@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BMDIxMzBlZDktZjMxNy00ZGI4LTgxNDEtYWRlNzRjMjJmOGQ1XkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg',
+  'https://m.media-amazon.com/images/M/MV5BOGU4YzhhMTAtNjg1MC00NzY2LTg0NGQtOWJmNGQwNzgyOGE0XkEyXkFqcGc@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BYTgyZDhmMTEtZDFhNi00MTc4LTg3NjUtYWJlNGE5Mzk2NzMxXkEyXkFqcGc@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BZmUzZjk0NjEtOTFjMC00NDI2LTkwZmEtZWIxYjVjNDEwNWZiXkEyXkFqcGc@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BMjMzMTIzMTUwN15BMl5BanBnXkFtZTgwNjE0NTg0MTE@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BNDYwNzVjMTItZmU5YS00YjQ5LTljYjgtMjY2NDVmYWMyNWFmXkEyXkFqcGc@._V1_QL75_UY562_CR4,0,380,562_.jpg',
+  'https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_QL75_UX380_CR0,0,380,562_.jpg',
+  'https://m.media-amazon.com/images/M/MV5BZDc2YzhkODAtZmRmZS00YzcxLWJkYWEtM2ZhZjY3MmMyZmJiXkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg',
+  'https://m.media-amazon.com/images/M/MV5BNjQ1MDUxYzYtMzEyZC00MGFjLWE1MDAtYTk5OGQzNGI2Zjg4XkEyXkFqcGdeQXVyMzkwMDE3Mg@@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BMWM5ZjQxM2YtNDlmYi00ZDNhLWI4MWUtN2VkYjBlMTY1ZTkwXkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg',
+  'https://m.media-amazon.com/images/M/MV5BMWQ2YWZlN2QtYzgyOC00ZTI1LTgwMzUtODUwOWMzZmRjNWE1XkEyXkFqcGdeQXVyNDc0MDM5MTg@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BMmFiMTQzZmItNjdjMi00Yjc0LWI0YWItNmIxOWVlOGIyYWIxXkEyXkFqcGc@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BN2E5NzI2ZGMtY2VjNi00YTRjLWI1MDUtZGY5OWU1MWJjZjRjXkEyXkFqcGc@._V1_QL75_UX380_CR0,3,380,562_.jpg',
+  'https://m.media-amazon.com/images/M/MV5BYzdjMDAxZGItMjI2My00ODA1LTlkNzItOWFjMDU5ZDJlYWY3XkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg',
+  'https://m.media-amazon.com/images/M/MV5BN2NmN2VhMTQtMDNiOS00NDlhLTliMjgtODE2ZTY0ODQyNDRhXkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg',
+  'https://m.media-amazon.com/images/M/MV5BMmI3MmFiODctNzhkZi00ZWVmLWJjYTctYzMyMmIxNGE1ZGZhXkEyXkFqcGc@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BMTYyMTI3NzYxMl5BMl5BanBnXkFtZTcwMzM5ODQxNA@@._V1_SX300.jpg',
+  'https://m.media-amazon.com/images/M/MV5BOTY2Y2EzMTctYTZiMC00YzEzLWIwMDItODQyYWUyY2U2MTk4XkEyXkFqcGc@._V1_SX300.jpg',
 ]
 
 const FEATURES = [
@@ -62,11 +78,36 @@ const FEATURES = [
   },
 ]
 
-function StatBlock({ value, label }) {
+const ROTATING_WORDS = ['Criterion spines', '4K UHD discs', 'NAS rips', 'box sets']
+
+function PosterWallBackground() {
+  const columns = 6
+  const perCol = 5
   return (
-    <div className="landing-stat">
-      <span className="landing-stat-value">{value}</span>
-      <span className="landing-stat-label">{label}</span>
+    <div className="landing-wall" aria-hidden="true">
+      <div className="landing-wall-grid">
+        {Array.from({ length: columns }).map((_, col) => {
+          const items = Array.from({ length: perCol }).map(
+            (_, i) => WALL_POSTERS[(col * perCol + i) % WALL_POSTERS.length]
+          )
+          const loop = [...items, ...items]
+          return (
+            <div
+              key={col}
+              className={`landing-wall-col ${col % 2 === 0 ? 'landing-wall-up' : 'landing-wall-down'} ${col >= 4 ? 'landing-wall-lg' : ''} ${col === 3 ? 'landing-wall-sm' : ''}`}
+              style={{ '--dur': `${86 + col * 9}s` }}
+            >
+              {loop.map((src, i) => (
+                <div className="landing-wall-poster" key={`${col}-${i}`}>
+                  <img src={proxyImg(src)} alt="" loading={col < 2 && i < 2 ? 'eager' : 'lazy'} />
+                </div>
+              ))}
+            </div>
+          )
+        })}
+      </div>
+      <div className="landing-wall-tone" />
+      <div className="landing-wall-vignette" />
     </div>
   )
 }
@@ -74,6 +115,7 @@ function StatBlock({ value, label }) {
 export default function Landing() {
   const { openLogin } = useAuth()
   const [counts, setCounts] = useState(null)
+  const [wordIdx, setWordIdx] = useState(0)
 
   useEffect(() => {
     fetch('/api/films/counts')
@@ -84,94 +126,195 @@ export default function Landing() {
       .catch(() => {})
   }, [])
 
-  const totalTitles = counts ? (Number(counts.physical || 0) + Number(counts.digital || 0)).toLocaleString('en-US') : '15,781'
-  const physicalCount = counts ? Number(counts.physical || 0).toLocaleString('en-US') : '5,147'
-  const digitalCount = counts ? Number(counts.digital || 0).toLocaleString('en-US') : '10,634'
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const t = setInterval(() => setWordIdx((i) => (i + 1) % ROTATING_WORDS.length), 2600)
+    return () => clearInterval(t)
+  }, [])
+
+  const physical = counts ? Number(counts.physical || 0) : 5147
+  const physicalSeries = counts ? Number(counts.physicalSeries || 0) : 214
+  const digitalMovies = counts ? Number(counts.digitalMovies || 0) : 9974
+  const digitalSeries = counts ? Number(counts.digitalSeries || 0) : 660
+  const total = physical + physicalSeries + digitalMovies + digitalSeries
+  const fmt = (n) => n.toLocaleString('en-US')
+
+  const tiles = [
+    { icon: IconArchiveLike, label: 'Blu-ray Movies', meta: `Physical · ${fmt(physical)} items` },
+    { icon: IconLayers, label: 'Blu-ray Series', meta: `Physical · ${fmt(physicalSeries)} sets` },
+    { icon: IconClapper, label: 'Digital Movies', meta: `Drive · ${fmt(digitalMovies)} items` },
+    { icon: IconTV, label: 'Digital Series', meta: `Drive · ${fmt(digitalSeries)} items` },
+    { icon: IconTrophy, label: 'Criterion Collection', meta: 'Special editions' },
+    { icon: IconBarChart, label: 'Dashboard', meta: 'Info & statistics' },
+  ]
 
   return (
     <div className="landing">
       <header className="landing-nav">
         <div className="landing-nav-inner">
           <span className="landing-logo">
-            <IconArchive width={22} height={22} />
-            <span>
-              Cinefilm Archive
-              <small>Alireza Mazlaghani</small>
+            <LogoMark />
+            <span className="landing-logo-word">
+              Cinefilm<span className="landing-gold-word">Archive</span>
             </span>
           </span>
-          <button type="button" className="btn btn-primary landing-nav-cta" onClick={openLogin}>
+          <button type="button" className="landing-btn landing-btn-outline landing-nav-cta" onClick={openLogin}>
             Log in
           </button>
         </div>
       </header>
 
-      <main>
-        <section className="landing-hero">
+      <section className="landing-hero grain">
+        <PosterWallBackground />
+
+        <div className="landing-hero-inner">
           <div className="landing-hero-text">
             <span className="landing-eyebrow">
-              <IconSparkles width={14} height={14} /> A personal film archive
+              <span className="landing-pulse-dot" />
+              Now showing · personal film archive
             </span>
-            <h1>
-              Every disc, every drive,
+
+            <h1 className="landing-h1">
+              Every film you own,
               <br />
-              one archive.
+              <span className="landing-gold-text landing-serif-italic">finally in one archive.</span>
             </h1>
-            <p>
-              A physical and digital media catalogue built to actually find things — by shelf,
-              by drive, by director, by the night you decide to rewatch something.
+
+            <p className="landing-hero-copy">
+              A physical and digital media catalogue built to actually find things — turning a
+              wall of shelves and years of hard drives into one searchable, beautiful record.
             </p>
+
+            <div className="landing-rotating" aria-live="polite">
+              <IconSparkles width={15} height={15} className="landing-rotating-icon" />
+              <span>Built for</span>
+              <span className="landing-rotating-window">
+                <span
+                  className="landing-rotating-track"
+                  style={{ transform: `translateY(-${wordIdx * 1.5}rem)` }}
+                >
+                  {ROTATING_WORDS.map((w) => (
+                    <span className="landing-rotating-word" key={w}>
+                      {w}
+                    </span>
+                  ))}
+                </span>
+              </span>
+            </div>
+
             <div className="landing-hero-actions">
-              <button type="button" className="btn btn-primary landing-cta-lg" onClick={openLogin}>
+              <button type="button" className="landing-btn landing-btn-gold landing-btn-lg" onClick={openLogin}>
                 Log in to the archive
               </button>
+              <a href="#features" className="landing-btn landing-btn-outline landing-btn-lg">
+                See what's inside
+              </a>
             </div>
-            <div className="landing-stats">
-              <StatBlock value={totalTitles} label="titles catalogued" />
-              <StatBlock value={physicalCount} label="physical discs" />
-              <StatBlock value={digitalCount} label="digital titles" />
+
+            <p className="landing-hero-stat">
+              <span className="landing-hero-stat-num">{fmt(total)}</span> titles catalogued and
+              counting
+            </p>
+          </div>
+
+          <div className="landing-panel-wrap">
+            <div className="landing-panel-glow" aria-hidden="true" />
+            <div className="landing-panel glass">
+              <div className="landing-search">
+                <IconSearch width={17} height={17} />
+                <span>Search the archive…</span>
+                <kbd>⌘K</kbd>
+              </div>
+
+              <div className="landing-tiles">
+                {tiles.map((t) => (
+                  <div className="landing-tile" key={t.label}>
+                    <span className="landing-tile-icon">
+                      <t.icon width={17} height={17} />
+                    </span>
+                    <span className="landing-tile-text">
+                      <span className="landing-tile-label">{t.label}</span>
+                      <span className="landing-tile-meta">{t.meta}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="landing-chip landing-chip-a glass">
+              <span className="landing-chip-dot" />
+              Archive online
+            </div>
+            <div className="landing-chip landing-chip-b glass">
+              <IconTrophy width={17} height={17} className="landing-gold-icon" />
+              <span>
+                <b>{fmt(physical + physicalSeries)}</b> physical titles on the shelf
+              </span>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="landing-hero-wall" aria-hidden="true">
-            {SHOWCASE_POSTERS.map((f, i) => (
-              <div className="landing-poster" key={f.title} style={{ '--i': i }}>
-                <img src={proxyImg(f.poster)} alt="" loading={i < 4 ? 'eager' : 'lazy'} />
-              </div>
-            ))}
-          </div>
-        </section>
+      <section className="landing-features" id="features">
+        <div className="landing-section-head">
+          <span className="landing-eyebrow landing-eyebrow-static">Inside the archive</span>
+          <h2>
+            Built for a collection that
+            <br />
+            <span className="landing-gold-text landing-serif-italic">outgrew a spreadsheet.</span>
+          </h2>
+        </div>
+        <div className="landing-features-grid">
+          {FEATURES.map((f) => (
+            <div className="landing-feature-card" key={f.title}>
+              <span className="landing-feature-icon">
+                <f.icon width={18} height={18} />
+              </span>
+              <h3>{f.title}</h3>
+              <p>{f.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-        <section className="landing-features">
-          <h2>Built for a collection that outgrew a spreadsheet</h2>
-          <div className="landing-features-grid">
-            {FEATURES.map((f) => (
-              <div className="landing-feature-card" key={f.title}>
-                <span className="landing-feature-icon">
-                  <f.icon width={18} height={18} />
-                </span>
-                <h3>{f.title}</h3>
-                <p>{f.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="landing-cta">
-          <IconBookshelf width={26} height={26} />
-          <h2>Step inside the archive</h2>
-          <p>Log in to browse the full catalogue, shelves and all.</p>
-          <button type="button" className="btn btn-primary landing-cta-lg" onClick={openLogin}>
-            Log in
-          </button>
-        </section>
-      </main>
+      <section className="landing-cta">
+        <IconBookshelf width={26} height={26} className="landing-gold-icon" />
+        <h2>Step inside the archive</h2>
+        <p>Log in to browse the full catalogue, shelves and all.</p>
+        <button type="button" className="landing-btn landing-btn-gold landing-btn-lg" onClick={openLogin}>
+          Log in
+        </button>
+      </section>
 
       <footer className="landing-footer">
-        <p>
-          <IconArchive width={14} height={14} /> Cinefilm Archive — personal physical-media
-          collection of Alireza Mazlaghani
-        </p>
+        <p>Cinefilm Archive — personal physical-media collection of Alireza Mazlaghani</p>
       </footer>
     </div>
   )
+}
+
+function LogoMark() {
+  return (
+    <svg viewBox="0 0 40 40" width="30" height="30" aria-hidden="true">
+      <defs>
+        <linearGradient id="landing-lg-gold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#f6dfa0" />
+          <stop offset="55%" stopColor="#e3b53f" />
+          <stop offset="100%" stopColor="#b37b18" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M30.5 10.5A12 12 0 1 0 32 20"
+        fill="none"
+        stroke="url(#landing-lg-gold)"
+        strokeWidth="4.2"
+        strokeLinecap="round"
+      />
+      <circle cx="30.2" cy="21.6" r="3.4" fill="url(#landing-lg-gold)" />
+    </svg>
+  )
+}
+
+function IconArchiveLike(props) {
+  return <IconDisc {...props} />
 }
