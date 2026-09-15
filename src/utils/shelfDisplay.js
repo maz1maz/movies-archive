@@ -18,12 +18,39 @@ const SPINE_PALETTES = [
   { bg: '#047857', text: '#ecfdf5', badge: 'cin', badgeText: 'CIN' },
 ]
 
+// رنگ‌بندی معنادار بر اساس ژانر اصلی فیلم — به‌جای رنگ تصادفیِ بی‌معنی
+// قبلی (هش روی عنوان)، حالا اسکن کردن قفسه واقعاً یه‌چیزی نشون می‌ده: چشمت
+// می‌تونه دنبال یه ژانر خاص بگرده. کرایتریون/استیل‌بوک/4K هنوز بالای همه‌ی
+// این‌ها اولویت دارن (چک اول تابع)، رنگ ژانر فقط برای بلوری‌های معمولیه.
+const GENRE_PALETTE = {
+  drama: { bg: '#0f5c5c', text: '#e6fffa', badge: 'do', badgeText: 'DRA' },
+  comedy: { bg: '#c2760f', text: '#fff7e6', badge: 'st', badgeText: 'COM' },
+  action: { bg: '#9a1c1c', text: '#ffecec', badge: 'v', badgeText: 'ACT' },
+  adventure: { bg: '#b5490f', text: '#fff2e8', badge: 'v', badgeText: 'ADV' },
+  horror: { bg: '#1f1023', text: '#f3e8ff', badge: 'me', badgeText: 'HOR' },
+  thriller: { bg: '#3f0d3f', text: '#fbe8ff', badge: 'me', badgeText: 'THR' },
+  'sci-fi': { bg: '#0a5ea8', text: '#e6f4ff', badge: 'v', badgeText: 'SCI' },
+  scifi: { bg: '#0a5ea8', text: '#e6f4ff', badge: 'v', badgeText: 'SCI' },
+  fantasy: { bg: '#4327a1', text: '#f0ebff', badge: 'do', badgeText: 'FAN' },
+  romance: { bg: '#a3195b', text: '#ffe6f0', badge: 'me', badgeText: 'ROM' },
+  documentary: { bg: '#3d5a1f', text: '#f2fce6', badge: 'cin', badgeText: 'DOC' },
+  animation: { bg: '#7e22ce', text: '#f5e6ff', badge: 'st', badgeText: 'ANI' },
+  crime: { bg: '#1e293b', text: '#e6ecf5', badge: 'fa', badgeText: 'CRI' },
+  mystery: { bg: '#2b2440', text: '#ece6ff', badge: 'fa', badgeText: 'MYS' },
+  war: { bg: '#4a4321', text: '#faf6e6', badge: 'dts', badgeText: 'WAR' },
+  history: { bg: '#5c4423', text: '#fbf2e6', badge: 'dts', badgeText: 'HIS' },
+  music: { bg: '#8a5a0f', text: '#fff5e0', badge: 'st', badgeText: 'MUS' },
+  musical: { bg: '#8a5a0f', text: '#fff5e0', badge: 'st', badgeText: 'MUS' },
+  family: { bg: '#0e7490', text: '#e6fbff', badge: 'do', badgeText: 'FAM' },
+  biography: { bg: '#374151', text: '#eef0f2', badge: 'do', badgeText: 'BIO' },
+  western: { bg: '#78350f', text: '#fff1e0', badge: 'v', badgeText: 'WES' },
+}
+
 export function getSpineColor(film, idx = 0) {
   if (film.criterion) {
-    const isWhite = idx % 2 === 0
     return {
-      bg: isWhite ? '#f3f4f6' : '#27272a',
-      text: isWhite ? '#111827' : '#fafafa',
+      bg: '#d9a441',
+      text: '#1a1305',
       type: 'criterion',
       badge: 'crit',
       badgeText: 'C',
@@ -48,6 +75,43 @@ export function getSpineColor(film, idx = 0) {
       badgeText: 'HDR',
     }
   }
+
+  // اگه رنگ غالب پوستر این فیلم قبلاً استخراج شده (فیلد posterColor)،
+  // همونو به‌عنوان پایه‌ی رنگ جلد استفاده کن — این‌جوری هر جلد رنگ واقعی و
+  // منحصربه‌فرد خودش رو داره، نه یه رنگ تکراری از یه دسته‌ی محدود.
+  if (film.posterColor && /^#[0-9a-f]{6}$/i.test(film.posterColor)) {
+    const hex = film.posterColor
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    const shade = (v, f) => Math.max(0, Math.min(255, Math.round(v * f)))
+    const top = `rgb(${shade(r, 1.15)},${shade(g, 1.15)},${shade(b, 1.15)})`
+    const bottom = `rgb(${shade(r, 0.65)},${shade(g, 0.65)},${shade(b, 0.65)})`
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    return {
+      bg: `linear-gradient(180deg, ${top} 0%, ${bottom} 100%)`,
+      text: luminance > 0.55 ? '#1a1a1a' : '#f5f5f5',
+      type: 'poster-color',
+      badge: '',
+      badgeText: '',
+    }
+  }
+
+  // ژانر اصلی رو از فیلد genre (آرایه یا JSON-string) دربیار و رنگش رو
+  // از GENRE_PALETTE بگیر — این‌جوری رنگ هر جلد یه معنی داره، نه فقط تزئین.
+  let genres = film.genre
+  if (typeof genres === 'string') {
+    try {
+      genres = JSON.parse(genres)
+    } catch {
+      genres = [genres]
+    }
+  }
+  const firstGenre = Array.isArray(genres) && genres.length ? String(genres[0]).toLowerCase().trim() : null
+  if (firstGenre && GENRE_PALETTE[firstGenre]) {
+    return { ...GENRE_PALETTE[firstGenre], type: 'bluray' }
+  }
+
   let hash = 0
   for (let i = 0; i < str.length; i++) {
     hash = (hash << 5) - hash + str.charCodeAt(i)

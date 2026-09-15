@@ -17,6 +17,7 @@ import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
 import { useAuth } from './context/AuthContext.jsx'
+import { useTheme } from './context/ThemeContext.jsx'
 import { parseDriveNumbers, driveSortValue } from './utils/driveDisplay.js'
 
 // Lazy: pulls in the ogl WebGL library, only needed by the rarely-visited
@@ -25,7 +26,7 @@ import { parseDriveNumbers, driveSortValue } from './utils/driveDisplay.js'
 const GallerySphere = lazy(() => import('./components/GallerySphere.jsx'))
 
 export default function App() {
-  const { isGuest, isAdmin, openLogin } = useAuth()
+  const { isGuest, isViewer, isAdmin, openLogin } = useAuth()
   const [films, setFilms] = useState([])
   // نسخه‌ی فیلترنشده و کامل آرشیو - فقط برای جستجوی «این بازیگر/کارگردان
   // چندتا فیلم داره» توی PersonModal، چون films (بالا) بسته به فیلترهای
@@ -61,6 +62,7 @@ export default function App() {
   const [searchIn, setSearchIn] = useState('') // '' = عنوان (پیش‌فرض)، 'people' = بازیگر/کارگردان/تهیه‌کننده
   const [genre, setGenre] = useState('')
   const [loanedOnly, setLoanedOnly] = useState(false)
+  const [criterionOnly, setCriterionOnly] = useState(false)
   const [watched, setWatched] = useState('')
   const [minRating, setMinRating] = useState('')
   const [decade, setDecade] = useState('')
@@ -77,9 +79,7 @@ export default function App() {
   // Thumbnails نشون داده می‌شه؛ مقدار قبلی توی localStorage هم نادیده
   // گرفته می‌شه تا اگه قبلاً روی List بوده، حالا گرید بیاد.
   const [view, setView] = useState('grid')
-  const [theme, setTheme] = useState(
-    () => localStorage.getItem('fa_theme') || (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
-  )
+  const { theme, setTheme } = useTheme()
   const [selected, setSelected] = useState(null)
   const [section, setSection] = useState(() => localStorage.getItem('fa_section') || null)
 
@@ -148,6 +148,7 @@ export default function App() {
   const closeFilmModal = () => {
     setSelected(null)
     setForceFilmOverlay(false)
+    setShelfNavFilms(null)
     if (personBeforeFilm) {
       setSelectedPerson(personBeforeFilm)
       setPersonBeforeFilm(null)
@@ -157,6 +158,7 @@ export default function App() {
   const [showDriveBrowser, setShowDriveBrowser] = useState(false)
   const [showBookshelf, setShowBookshelf] = useState(false)
   const [forceFilmOverlay, setForceFilmOverlay] = useState(false)
+  const [shelfNavFilms, setShelfNavFilms] = useState(null)
   const [loanFilm, setLoanFilm] = useState(null)
   const [editing, setEditing] = useState(null)
   const [adding, setAdding] = useState(false)
@@ -238,11 +240,6 @@ export default function App() {
     localStorage.setItem('fa_view', view)
   }, [view])
 
-  useEffect(() => {
-    document.body.classList.toggle('light', theme === 'light')
-    localStorage.setItem('fa_theme', theme)
-  }, [theme])
-
   // هر تایپ توی سرچ یه fetch جدید می‌فرسته؛ بدون این محافظت، رو موبایل که
   // تأخیر شبکه نامنظم‌تره، ممکنه جواب یه حرفِ قبلی (query عمومی‌تر، با نتایج
   // بیشتر و نامرتبط) دیرتر از جواب query نهایی برسه و نتیجه‌ی درست رو با یه
@@ -268,6 +265,7 @@ export default function App() {
     if (searchIn) params.set('searchIn', searchIn)
     if (genre) params.set('genre', genre)
     if (loanedOnly) params.set('loaned', '1')
+    if (criterionOnly) params.set('criterion', '1')
     if (watched) params.set('watched', watched)
     if (minRating) params.set('minRating', minRating)
     if (decade) params.set('decade', decade)
@@ -320,7 +318,7 @@ export default function App() {
   useEffect(() => {
     setPage(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, searchIn, genre, loanedOnly, watched, minRating, decade, drive, sort, alpha, section])
+  }, [query, searchIn, genre, loanedOnly, criterionOnly, watched, minRating, decade, drive, sort, alpha, section])
 
   // section/page قبلاً اینجا نبودن — یعنی عوض‌کردن بخش (Digital Movies و
   // غیره) اصلاً دوباره fetch نمی‌کرد، و صفحه‌بندی هم کاملاً سمت مرورگر (روی
@@ -329,7 +327,7 @@ export default function App() {
     const t = setTimeout(loadFilms, 250)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, searchIn, genre, loanedOnly, watched, minRating, decade, drive, sort, alpha, section, page])
+  }, [query, searchIn, genre, loanedOnly, criterionOnly, watched, minRating, decade, drive, sort, alpha, section, page])
 
   useEffect(() => {
     fetch('/api/genres')
@@ -413,6 +411,12 @@ export default function App() {
             : 'physical')
         setSection(restoredSection)
         setSelected(film)
+        // اگه از یه بخش فیزیکی بازیابی شده، مثل کلیک از قفسه، فلش کیبورد رو
+        // به فیلم‌های فیزیکی محدود کن — وگرنه (باگ قبلی) با رفرش کردن صفحه
+        // وسط باز بودن یه فیلم، همین محدودیت از دست می‌رفت.
+        if (film.mediaType !== 'digital') {
+          setShelfNavFilms(allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital'))
+        }
       }
     }
     setDeepLinkReady(true)
@@ -552,10 +556,10 @@ export default function App() {
 
   // مهمان‌ها نمی‌تونن ویرایش/امانت/امتیازدهی کنن — به‌جای تلاش ناموفق برای
   // ذخیره (که بک‌اند با 401 رد می‌کنه)، مستقیم مدال ورود باز می‌شه.
-  const guardedEdit = (film) => (isGuest ? openLogin() : setEditing(film))
-  const guardedLoan = (film) => (isGuest ? openLogin() : setLoanFilm(film))
+  const guardedEdit = (film) => (isGuest || isViewer ? openLogin() : setEditing(film))
+  const guardedLoan = (film) => (isGuest || isViewer ? openLogin() : setLoanFilm(film))
   const guardedRate = (film, rating) => (isGuest ? openLogin() : handleSaveFilm(film.id, { myRating: rating }))
-  const guardedSeasonDrive = (film, seasonDrives) => (isGuest ? openLogin() : handleSaveFilm(film.id, { seasonDrives }))
+  const guardedSeasonDrive = (film, seasonDrives) => (isGuest || isViewer ? openLogin() : handleSaveFilm(film.id, { seasonDrives }))
 
   const handleDeleteFilm = async (film) => {
     try {
@@ -730,7 +734,7 @@ export default function App() {
     () =>
       new Set(
         allFilmsUnfiltered
-          .filter((f) => f.mediaType !== 'digital' && (f.format || '').toLowerCase().includes('blu-ray'))
+          .filter((f) => f.mediaType !== 'digital')
           .map((f) => `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
       ),
     [allFilmsUnfiltered]
@@ -758,15 +762,57 @@ export default function App() {
     const digitalByKey = {}
     for (const f of allFilmsUnfiltered) {
       const key = `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`
-      if (f.mediaType === 'digital') digitalByKey[key] = f
-      else physicalByKey[key] = f
+      if (f.mediaType === 'digital') {
+        ;(digitalByKey[key] = digitalByKey[key] || []).push(f)
+      } else {
+        ;(physicalByKey[key] = physicalByKey[key] || []).push(f)
+      }
     }
     return { physicalByKey, digitalByKey }
   }, [allFilmsUnfiltered])
+
+  // نام‌های کارگردان/بازیگر رو نرمال می‌کنه (کوچیک، بدون فاصله‌ی اضافه) تا
+  // مقایسه‌ی «همون شخص» بین دو رکورد قابل اعتماد باشه.
+  const normNames = (s) =>
+    String(s || '')
+      .split(',')
+      .map((x) => x.trim().toLowerCase())
+      .filter(Boolean)
+
   const findSiblingFilm = (f) => {
     if (!f) return null
     const key = `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`
-    return f.mediaType === 'digital' ? physicalByKey[key] || null : digitalByKey[key] || null
+    const candidates = f.mediaType === 'digital' ? physicalByKey[key] : digitalByKey[key]
+    if (!candidates || !candidates.length) return null
+    if (candidates.length === 1) return candidates[0]
+
+    // چند کاندید با اسم+سال یکی — اول کارگردان رو چک کن (اشتراک حداقل یه نفر)
+    const myDirectors = normNames(f.director)
+    const byDirector = candidates.filter((c) => normNames(c.director).some((d) => myDirectors.includes(d)))
+    if (byDirector.length === 1) return byDirector[0]
+    const pool = byDirector.length ? byDirector : candidates
+
+    // هنوز مبهمه (یا کارگردان کمکی نکرد) — دنبال اشتراک بازیگر بگرد
+    let myCast = []
+    try {
+      myCast = normNames(Array.isArray(f.cast) ? f.cast.join(',') : JSON.parse(f.cast || '[]').join(','))
+    } catch {
+      myCast = normNames(f.cast)
+    }
+    const byCast = pool.filter((c) => {
+      let cCast = []
+      try {
+        cCast = normNames(Array.isArray(c.cast) ? c.cast.join(',') : JSON.parse(c.cast || '[]').join(','))
+      } catch {
+        cCast = normNames(c.cast)
+      }
+      return cCast.some((name) => myCast.includes(name))
+    })
+    if (byCast.length) return byCast[0]
+
+    // هنوز هم شبهه‌ست — به‌جای حدس اشتباه، همون اولین کاندید رو برگردون
+    // (رفتار قبلی)، ولی این حالت باید نادر باشه.
+    return pool[0]
   }
   // نمای تقسیم‌شده (پنل جزئیات + گرید) فقط توی حالت Thumbnails و روی صفحه‌ی
   // عریض (دسکتاپ/تبلت)؛ توی موبایل و حالت List همون مودال قبلی می‌مونه.
@@ -1030,6 +1076,8 @@ export default function App() {
         setGenre={setGenre}
         loanedOnly={loanedOnly}
         setLoanedOnly={setLoanedOnly}
+        criterionOnly={criterionOnly}
+        setCriterionOnly={setCriterionOnly}
         watched={watched}
         setWatched={setWatched}
         minRating={minRating}
@@ -1067,6 +1115,7 @@ export default function App() {
         }}
         onOpenLocationBrowser={() => setShowLocationBrowser(true)}
         onOpenBookshelf={() => setShowBookshelf(true)}
+        onOpenDriveBrowser={() => setShowDriveBrowser(true)}
         view={view}
         setView={setView}
         alpha={alpha}
@@ -1159,7 +1208,7 @@ export default function App() {
       {selected && (!useSplitView || forceFilmOverlay) && (
         <FilmModal
           film={selected}
-          films={sectionFilms}
+          films={shelfNavFilms || sectionFilms}
           hasBluray={hasBlurayCopy(selected)}
               siblingFilm={findSiblingFilm(selected)}
           hasDigital={hasDigitalCopy(selected)}
@@ -1235,9 +1284,10 @@ export default function App() {
       {showLocationBrowser && (
         <LocationBrowserModal
           films={allFilmsUnfiltered}
-          canEdit={!isGuest}
+          canEdit={!isGuest && !isViewer}
           onSelectFilm={(film) => {
             setForceFilmOverlay(true)
+            setShelfNavFilms(allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital'))
             setSelected(film)
           }}
           onFilmsChanged={loadAllFilmsUnfiltered}
@@ -1248,7 +1298,7 @@ export default function App() {
       {showDriveBrowser && (
         <DriveBrowserModal
           films={allFilmsUnfiltered}
-          canEdit={!isGuest}
+          canEdit={!isGuest && !isViewer}
           onSelectFilm={(film) => {
             setForceFilmOverlay(true)
             setSelected(film)
@@ -1263,9 +1313,11 @@ export default function App() {
           films={allFilmsUnfiltered}
           onSelectFilm={(film) => {
             setForceFilmOverlay(true)
+            setShelfNavFilms(allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital'))
             setSelected(film)
           }}
           onClose={() => setShowBookshelf(false)}
+          onFilmsChanged={loadAllFilmsUnfiltered}
         />
       )}
     </div>

@@ -1261,6 +1261,7 @@ body.light .header {
   align-items: center;
   gap: 8px;
   z-index: 5;
+  margin-bottom: -38px;
 }
 .cine-close {
   width: 30px;
@@ -1310,15 +1311,55 @@ body.light .header {
 .cine-title-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
   flex-wrap: wrap;
 }
+.cine-original-title-line {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.format-badge-size {
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.cine-info-badges-top {
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+.cine-synopsis-box.cine-synopsis-plain {
+  background: transparent;
+  border: none;
+  padding: 0;
+  flex: 0 0 auto;
+}
+.cine-synopsis-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cine-synopsis-toggle {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
 .cine-title {
   margin: 0;
-  font-size: 27px;
+  font-size: 36px;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--text);
   letter-spacing: -0.3px;
 }
 .cine-original-title {
@@ -3150,6 +3191,7 @@ body.light .header {
   font-size: 12.5px;
   line-height: 1.55;
   color: var(--text);
+  font-weight: 700;
 }
 
 .cine-shelf-badge {
@@ -3220,6 +3262,8 @@ body.light .header {
   transition: filter 0.15s;
   padding: 4px 11px;
   white-space: nowrap;
+  min-height: 46px;
+  min-width: 92px;
 }
 .letterboxd-rating-box:hover {
   filter: brightness(1.15);
@@ -3268,8 +3312,10 @@ body.light .header {
   border-radius: 7px;
   padding: 4px 11px;
   text-decoration: none;
-  box-shadow: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   white-space: nowrap;
+  min-height: 46px;
+  min-width: 92px;
 }
 .clickable-imdb {
   cursor: pointer;
@@ -3384,13 +3430,6 @@ body.light .header {
   display: flex;
   flex-wrap: wrap;
   gap: 10px 12px;
-  max-height: 130px;
-  overflow-y: hidden;
-  transition: max-height 0.25s ease;
-}
-.cine-cast-grid.expanded {
-  max-height: 280px;
-  overflow-y: auto;
 }
 .cine-cast-item {
   display: flex;
@@ -4659,6 +4698,8 @@ body.light .header {
     min-width: 0;
     max-height: calc(100vh - var(--header-h, 240px) - 24px);
     overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
   .az-popover.open {
     position: fixed;
@@ -4886,12 +4927,15 @@ body.light .header {
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: center;
   gap: 3px;
   border: 1.5px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
   padding: 5px 9px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  min-height: 46px;
+  min-width: 92px;
 }
 .my-rating-label {
   font-size: 9.5px;
@@ -6176,6 +6220,139 @@ body.light .folder-back {
   border: 1px solid var(--border-strong);
   border-radius: 10px;
 }
+
+.cine-more-details {
+  margin: 14px 0 0;
+}
+.cine-more-details-summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  list-style: none;
+  user-select: none;
+}
+.cine-more-details-summary::-webkit-details-marker {
+  display: none;
+}
+.cine-more-details-summary::before {
+  content: '▸ ';
+}
+.cine-more-details[open] > .cine-more-details-summary::before {
+  content: '▾ ';
+}
+.cine-more-details > .cine-collection-box:first-of-type {
+  margin-top: 10px;
+}
+.cine-more-details .cine-collection-box {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0 0 14px;
+}
+
+/* Landscape/wide modal (desktop): the modal itself gets roughly double
+   width and poster + info sit side by side in a real row, instead of the
+   original narrow portrait stack. Scoped to the regular modal (not the
+   split-panel view) and gated behind a viewport wide enough to actually
+   fit it — below this the original narrow portrait modal is untouched. */
+@media (min-width: 900px) {
+  .modal-cine:not(.cine-panel) {
+    width: min(1200px, 85vw);
+  }
+  .modal-cine:not(.cine-panel) .cine-main-row {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .modal-cine:not(.cine-panel) .cine-poster-wrap {
+    width: 40%;
+    flex: 0 0 40%;
+    overflow: hidden;
+  }
+  .modal-cine:not(.cine-panel) .cine-poster-box {
+    width: 100%;
+    max-width: 340px;
+  }
+  .modal-cine:not(.cine-panel) .cine-poster-coverflow-wrap {
+    width: 100%;
+  }
+  .modal-cine:not(.cine-panel) .cine-info-column {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-cine:not(.cine-panel) .cine-info-card {
+    display: block;
+  }
+  .modal-cine:not(.cine-panel) .cine-info-card > * {
+    flex: none !important;
+  }
+  .modal-cine:not(.cine-panel) .cine-info-badges-top {
+    margin-bottom: 8px;
+  }
+  .modal-cine:not(.cine-panel) .cine-info-badges-top .letterboxd-rating-box,
+  .modal-cine:not(.cine-panel) .cine-info-badges-top .imdb-badge-cine {
+    min-height: 34px;
+    padding: 3px 8px;
+    font-size: 10.5px;
+  }
+  .modal-cine:not(.cine-panel) .cine-info-badges-top .letterboxd-tag-val,
+  .modal-cine:not(.cine-panel) .cine-info-badges-top .imdb-score-black {
+    font-size: 12px;
+  }
+  .modal-cine:not(.cine-panel) .cine-info-badges-top .my-rating-box {
+    padding: 3px 8px;
+  }
+  .modal-cine:not(.cine-panel) .cine-format-location-row-stacked {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    margin: 0 0 10px;
+  }
+  .modal-cine:not(.cine-panel) .cine-format-location-row-stacked .cine-format-location-col,
+  .modal-cine:not(.cine-panel) .cine-format-location-row-stacked .cine-format-location-col-right {
+    margin-inline-start: 0;
+    flex-wrap: nowrap;
+  }
+  .modal-cine:not(.cine-panel) .cine-poster-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 10px auto 0;
+    max-width: 340px;
+    width: 100%;
+  }
+  .modal-cine:not(.cine-panel) .cine-more-details .cine-collection-box {
+    margin: 0 0 8px;
+  }
+  .modal-cine:not(.cine-panel) .cine-cast-grid {
+    justify-content: center;
+  }
+  .modal-cine:not(.cine-panel) .cine-cast-item {
+    width: 86px;
+  }
+  .modal-cine:not(.cine-panel) .cine-actor-avatar-wrap {
+    width: 72px;
+    height: 72px;
+  }
+  .modal-cine:not(.cine-panel) .cine-actor-name {
+    font-size: 13.5px;
+  }
+  .modal-cine:not(.cine-panel) .cine-actor-character {
+    font-size: 12px;
+  }
+  .modal-cine:not(.cine-panel) .cine-crew-row {
+    justify-content: center;
+    gap: 10px;
+    font-size: 13.5px;
+  }
+}
 .cine-collection-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -6312,6 +6489,8 @@ body.light .dashboard-panel {
   border-bottom: 1px solid var(--border);
   margin-bottom: 20px;
   overflow-x: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-x;
 }
 .dashboard-subnav button {
   display: flex;
@@ -7637,6 +7816,24 @@ body.light .spine-theme-wood .spine-shelf-board {
   background: #0b0c10;
   display: block;
   animation: splash-image-in 4200ms ease both;
+}
+
+.splash-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #0b0c10;
+  display: block;
+}
+
+/* ویدیو لنداسکیپه (16:9) — رو موبایل عمودی، object-fit:cover کناره‌های
+   قفسه رو به‌شدت می‌بره، فقط یه نوار باریک وسط دیده می‌شه. رو صفحه‌های
+   باریک/عمودی بذاریم contain تا کل تصویر دیده بشه (با نوار مشکی بالا/پایین)
+   به‌جای بریدگی شدید. */
+@media (max-width: 700px), (orientation: portrait) {
+  .splash-video {
+    object-fit: contain;
+  }
 }
 
 @keyframes splash-image-in {

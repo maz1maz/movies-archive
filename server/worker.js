@@ -55,6 +55,26 @@ export default {
   async scheduled(event, env, ctx) {
     // این تابع با دو زمان‌بندی متفاوت صدا زده می‌شه (به wrangler.jsonc نگاه کن)؛
     // event.cron مشخص می‌کنه کدوم کرون بوده تا کار درست انجام بشه.
+    if (event.cron === '0 5 * * 7') {
+      // هفتگی: sync نقد/رتبه‌ی سعید و علیرضا از لترباکسدشون — روی آرایه‌ی
+      // چندنویسنده‌ی reviews[]، نه فیلد مشترک personalReview/myRating.
+      const users = [
+        { username: 'amosaeed', authorLabel: 'saeed' },
+        { username: 'benadriann', authorLabel: 'alireza' },
+      ]
+      const results = []
+      for (const u of users) {
+        try {
+          const r = await syncLetterboxdUserToReviews(env.DB, u.username, u.authorLabel)
+          results.push(r)
+        } catch (e) {
+          await notifyServerError(env, `Weekly Letterboxd sync failed for ${u.username}: ${e.message}`).catch(() => {})
+        }
+      }
+      console.log('Weekly Letterboxd sync:', JSON.stringify(results))
+      return
+    }
+
     if (event.cron === '0 4 * * *') {
       try {
         await runDailyBackup(env)
@@ -171,6 +191,26 @@ async function handleFetch(request, env, ctx) {
         ? json({ error: 'This action is admin-only' }, 403, corsHeaders)
         : null
 
+    // مثل requireAuth، ولی نقش «viewer» (کاربرهای Google که فقط اجازه‌ی
+    // تماشا+امتیاز/ریویوی شخصی دارن) رو هم بلاک می‌کنه. برای هر endpoint
+    // تغییردهنده (اضافه/ویرایش/حذف/امانت/جابه‌جایی قفسه و...) از این
+    // استفاده کن، نه requireAuth ساده — به‌جز ذخیره‌ی امتیاز/ریویوی شخصی
+    // که viewer هم باید بتونه انجامش بده.
+    const requireEditAccess = () =>
+      !currentUser
+        ? json({ error: 'You need to log in for this action' }, 401, corsHeaders)
+        : currentUser.role === 'viewer'
+        ? json({ error: 'Viewer accounts can browse and rate/review only' }, 403, corsHeaders)
+        : null
+
+    // ---- گیت کلی: بدون لاگین هیچ‌چیزی از سایت در دسترس نیست — نه مرور،
+    // نه سرچ، هیچی. فقط خود مسیرهای auth (لاگین/گوگل/خروج/وضعیت فعلی)
+    // بدون لاگین قابل‌دسترسن، وگرنه هیچ‌کس نمی‌تونه اصلاً وارد بشه. ----
+    const PUBLIC_AUTH_PATHS = ['/api/auth/login', '/api/auth/logout', '/api/auth/me', '/api/films/counts']
+    if (!currentUser && pathname.startsWith('/api/') && !PUBLIC_AUTH_PATHS.includes(pathname)) {
+      return json({ error: 'You need to log in to use the archive' }, 401, corsHeaders)
+    }
+
     // ---- Rate Limiting برای درخواست‌های مهمان (لاگین‌نشده) ----
     // فقط guestها محدود می‌شن؛ کاربر لاگین‌شده (owner) هیچ محدودیتی نداره.
     // شمارنده‌ی sliding-window یک‌دقیقه‌ای رو IP، تو یه KV جدا (RATE_LIMIT) نگه‌داری می‌شه.
@@ -271,7 +311,7 @@ async function handleFetch(request, env, ctx) {
         const body = await request.json().catch(() => ({}))
         const username = (body.username || '').trim()
         const password = body.password || ''
-        const role = body.role === 'admin' ? 'admin' : 'user'
+        const role = body.role === 'admin' ? 'admin' : body.role === 'viewer' ? 'viewer' : 'user'
         if (!username || !password) return json({ error: 'Username and password are required' }, 400, corsHeaders)
         if (password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400, corsHeaders)
         const exists = await db.prepare('SELECT id FROM users WHERE lower(username) = ?').bind(username.toLowerCase()).first()
@@ -303,7 +343,7 @@ async function handleFetch(request, env, ctx) {
             const { hash, salt } = await hashPassword(body.password)
             await db.prepare('UPDATE users SET passwordHash = ?, passwordSalt = ? WHERE id = ?').bind(hash, salt, id).run()
           }
-          if (body.role === 'admin' || body.role === 'user') {
+          if (body.role === 'admin' || body.role === 'user' || body.role === 'viewer') {
             await db.prepare('UPDATE users SET role = ? WHERE id = ?').bind(body.role, id).run()
           }
           return json({ ok: true }, 200, corsHeaders)
@@ -392,7 +432,7 @@ async function handleFetch(request, env, ctx) {
       }
 
       if (method === 'POST' && pathname === '/api/watchlists') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const body = await request.json()
         const name = (body.name || '').trim()
@@ -411,7 +451,7 @@ async function handleFetch(request, env, ctx) {
         const id = watchlistMatch[1]
 
         if (method === 'PATCH') {
-          const denied = requireAuth()
+          const denied = requireEditAccess()
           if (denied) return denied
           const body = await request.json()
           const existing = await db.prepare('SELECT * FROM watchlists WHERE id = ?').bind(id).first()
@@ -426,7 +466,7 @@ async function handleFetch(request, env, ctx) {
         }
 
         if (method === 'DELETE') {
-          const denied = requireAuth()
+          const denied = requireEditAccess()
           if (denied) return denied
           await db.prepare('DELETE FROM watchlists WHERE id = ?').bind(id).run()
           return json({ ok: true }, 200, corsHeaders)
@@ -438,7 +478,7 @@ async function handleFetch(request, env, ctx) {
       // RSS/API for these, only a CSV export, so this reads the public HTML
       // pages directly) ----
       if (method === 'POST' && pathname === '/api/letterboxd-watchlist') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const body = await request.json()
         let input = (body.username || '').trim().replace(/^@/, '')
@@ -647,7 +687,7 @@ async function handleFetch(request, env, ctx) {
 
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
-        const { q, genre, shelf, closet, sort, alpha, decade, drive, loaned, watched, minRating, mediaType, itemType, limit, offset } = Object.fromEntries(url.searchParams)
+        const { q, genre, shelf, closet, sort, alpha, decade, drive, loaned, watched, minRating, mediaType, itemType, limit, offset, criterion } = Object.fromEntries(url.searchParams)
         // قبلاً فقط حالت «بدون هیچ فیلتری» (یا فقط mediaType/itemType/sort)
         // کش می‌شد — یعنی genre، decade، shelf/closet، alpha (A-Z)، minRating،
         // loaned/watched، q (سرچ) و pagination (limit/offset) هر کدوم روی هر
@@ -674,6 +714,7 @@ async function handleFetch(request, env, ctx) {
         if (mediaType) { sql += ' AND mediaType = ?'; params.push(mediaType) }
         if (itemType) { sql += ' AND itemType = ?'; params.push(itemType) }
         if (loaned === '1') { sql += ' AND borrowedTo IS NOT NULL AND borrowedTo != \'\'' }
+        if (criterion === '1') { sql += ' AND criterion = 1' }
         if (watched === '1') { sql += ' AND watched = 1' }
         if (watched === '0') { sql += ' AND (watched IS NULL OR watched = 0)' }
         if (minRating) { sql += ' AND rating >= ?'; params.push(Number(minRating)) }
@@ -826,6 +867,36 @@ async function handleFetch(request, env, ctx) {
         return json(counts, 200, corsHeaders)
       }
 
+      // ---- GET /api/films/poster-color-batch (films with a poster but no
+      // extracted dominant color yet — must come BEFORE the generic
+      // /api/films/:id route below, which would otherwise treat
+      // "poster-color-batch" as a film id and 404 first) ----
+      if (method === 'GET' && pathname === '/api/films/poster-color-batch') {
+        const limit = Math.min(parseInt(url.searchParams.get('limit') || '40', 10) || 40, 100)
+        const { results } = await db
+          .prepare(
+            `SELECT id, poster FROM films
+             WHERE poster IS NOT NULL AND poster != '' AND posterColor IS NULL
+             LIMIT ?`
+          )
+          .bind(limit)
+          .all()
+        return json(results, 200, corsHeaders)
+      }
+
+      // ---- GET /api/films/enrich-status (just the remaining count, no
+      // processing) — must come BEFORE the generic /api/films/:id route
+      // below, which would otherwise treat "enrich-status" as a film id
+      // and 404 first. ----
+      if (method === 'GET' && pathname === '/api/films/enrich-status') {
+        const remaining = await db
+          .prepare(
+            `SELECT COUNT(*) as count FROM films WHERE (metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = '')${enrichScopeClause(url.searchParams)}`
+          )
+          .first()
+        return json({ remaining: remaining?.count || 0 }, 200, corsHeaders)
+      }
+
       // ---- GET /api/films/:id ----
       const detailMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
       if (method === 'GET' && detailMatch) {
@@ -836,7 +907,7 @@ async function handleFetch(request, env, ctx) {
 
       // ---- POST /api/films (create) ----
       if (method === 'POST' && pathname === '/api/films') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const body = await request.json()
         if (!String(body.title || '').trim()) {
@@ -896,9 +967,15 @@ async function handleFetch(request, env, ctx) {
       if (method === 'PATCH' && patchMatch) {
         const denied = requireAuth()
         if (denied) return denied
+        const body = await request.json()
+        // نقش viewer فقط اجازه‌ی تغییر امتیاز/ریویوی شخصی خودش رو داره — نه
+        // بقیه‌ی فیلدها. اگه body شامل چیزی خارج از این لیست بود، بلاکش کن.
+        const VIEWER_ALLOWED_FIELDS = ['myRating', 'personalReview', 'personalReviewUrl', 'personalReviewDate', 'myReview', 'reviews']
+        if (currentUser?.role === 'viewer' && Object.keys(body).some((k) => !VIEWER_ALLOWED_FIELDS.includes(k))) {
+          return json({ error: 'Viewer accounts can only update their own rating/review' }, 403, corsHeaders)
+        }
         const existing = await db.prepare('SELECT * FROM films WHERE id = ?').bind(patchMatch[1]).first()
         if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
-        const body = await request.json()
         const updated = { ...parseFilmRow(existing) }
         for (const k of EDITABLE) {
           if (k in body) {
@@ -990,7 +1067,7 @@ async function handleFetch(request, env, ctx) {
 
       // ---- POST /api/films/bulk-move (assign the same location to many films) ----
       if (method === 'POST' && pathname === '/api/films/bulk-move') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const body = await request.json().catch(() => ({}))
         const ids = Array.isArray(body.ids) ? body.ids.map((x) => String(x)).filter(Boolean) : []
@@ -1033,7 +1110,7 @@ async function handleFetch(request, env, ctx) {
       // many digital items at once) — برخلاف bulk-move (کمد فیزیکی)، محدودیت
       // ظرفیتی نداره چون حجم هاردها تو دیتابیس ثبت نمی‌شه ----
       if (method === 'POST' && pathname === '/api/films/bulk-set-drive') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const body = await request.json().catch(() => ({}))
         const ids = Array.isArray(body.ids) ? body.ids.map((x) => String(x)).filter(Boolean) : []
@@ -1050,7 +1127,7 @@ async function handleFetch(request, env, ctx) {
       // ---- DELETE /api/films/:id (permanently remove a film) ----
       const deleteMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
       if (method === 'DELETE' && deleteMatch) {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const existing = await db.prepare('SELECT id, title FROM films WHERE id = ?').bind(deleteMatch[1]).first()
         if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
@@ -1064,8 +1141,9 @@ async function handleFetch(request, env, ctx) {
       // تا تو فرم ویرایش نشون داده بشه و کاربر با زدن دکمه‌ی Save صریحاً تأییدش
       // کنه. ذخیره‌ی واقعی از همون مسیر همیشگی PATCH /api/films/:id انجام می‌شه.
       const enrichOneMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
-      if (method === 'POST' && enrichOneMatch && enrichOneMatch[1] !== 'enrich' && enrichOneMatch[1] !== 'scan-photo') {
-        const denied = requireAuth()
+      const RESERVED_FILM_SUBPATHS = ['enrich', 'scan-photo', 'season-counts', 'poster-color-batch', 'reset-locations', 'bulk-move', 'bulk-set-drive', 'by-person', 'counts', 'enrich-status']
+      if (method === 'POST' && enrichOneMatch && !RESERVED_FILM_SUBPATHS.includes(enrichOneMatch[1])) {
+        const denied = requireEditAccess()
         if (denied) return denied
         const existing = await db.prepare('SELECT * FROM films WHERE id = ?').bind(enrichOneMatch[1]).first()
         if (!existing) return json({ error: 'not found' }, 404, corsHeaders)
@@ -1107,22 +1185,12 @@ async function handleFetch(request, env, ctx) {
         return json({ ...enriched, _enrichment: { enabled: true, fields, preview: true, tmdbDebug, verifiedDebug } }, 200, corsHeaders)
       }
 
-      // ---- GET /api/films/enrich-status (just the remaining count, no processing) ----
-      if (method === 'GET' && pathname === '/api/films/enrich-status') {
-        const remaining = await db
-          .prepare(
-            `SELECT COUNT(*) as count FROM films WHERE (metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = '')${enrichScopeClause(url.searchParams)}`
-          )
-          .first()
-        return json({ remaining: remaining?.count || 0 }, 200, corsHeaders)
-      }
-
       // ---- POST /api/films/enrich ----
       // Optional ?mediaType=physical|digital and ?itemType=movie|series scope
       // the batch to whichever section the user currently has open, so the
       // "Fill missing details" button only touches that section's films.
       if (method === 'POST' && pathname === '/api/films/enrich') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
@@ -1133,7 +1201,7 @@ async function handleFetch(request, env, ctx) {
       // ---- POST /api/films/season-counts (fetch "total seasons produced so
       // far" from TVMaze for series that don't have it yet) ----
       if (method === 'POST' && pathname === '/api/films/season-counts') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
@@ -1683,7 +1751,7 @@ async function handleFetch(request, env, ctx) {
       // بدون query param start، همون GET فقط وضعیت/نتیجه‌ی فعلی رو می‌ده.
       if (pathname === '/api/admin/poster-audit') {
         if (url.searchParams.get('start') === '1') {
-          const authErr = requireAuth()
+          const authErr = requireEditAccess()
           if (authErr) return authErr
           await db
             .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES ('poster_audit', ?, datetime('now'))")
@@ -1814,7 +1882,7 @@ async function handleFetch(request, env, ctx) {
       }
 
       if (method === 'GET' && pathname === '/api/debug/checks') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
 
         const out = { omdb: null, tmdb: null, letterboxd: null, usage: null }
@@ -1875,7 +1943,7 @@ async function handleFetch(request, env, ctx) {
 
       // ---- GET /api/audit-log — تاریخچه‌ی تغییرات (کی چی رو کی تغییر داد) ----
       if (method === 'GET' && pathname === '/api/audit-log') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const limit = Math.min(parseInt(url.searchParams.get('limit') || '100', 10) || 100, 500)
         const filmId = url.searchParams.get('filmId')
@@ -1901,7 +1969,7 @@ async function handleFetch(request, env, ctx) {
       }
 
       if (method === 'POST' && pathname === '/api/order-list') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         try {
           const body = await request.json()
@@ -1922,7 +1990,7 @@ async function handleFetch(request, env, ctx) {
       }
 
       if (method === 'DELETE' && pathname.startsWith('/api/order-list/')) {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const id = pathname.split('/').pop()
         try {
@@ -1944,7 +2012,7 @@ async function handleFetch(request, env, ctx) {
       }
 
       if (method === 'POST' && pathname === '/api/followed') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         try {
           const body = await request.json()
@@ -1961,7 +2029,7 @@ async function handleFetch(request, env, ctx) {
       }
 
       if (method === 'DELETE' && pathname.startsWith('/api/followed/')) {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const name = decodeURIComponent(pathname.split('/').pop())
         try {
@@ -1974,7 +2042,7 @@ async function handleFetch(request, env, ctx) {
 
       // ---- لینک‌های مصاحبه‌ی دستی برای هر هنرمند (ذخیره روی people_photos) ----
       if (method === 'POST' && pathname === '/api/interview-links') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         try {
           const body = await request.json()
@@ -2166,12 +2234,147 @@ async function handleFetch(request, env, ctx) {
         }
       }
 
+      // ---- POST /api/shelf/reset (clear closet/row/shelf for every film
+      // matching the given scope — used by the "Reset Shelf/Row/Closet"
+      // buttons on the bookshelf page) ----
+      if (method === 'POST' && pathname === '/api/shelf/reset') {
+        const denied = requireEditAccess()
+        if (denied) return denied
+        let body = {}
+        try {
+          body = await request.json()
+        } catch {
+          return json({ error: 'Invalid request body' }, 400, corsHeaders)
+        }
+        const scope = body.scope
+        const closet = (body.closet ?? '').toString().trim()
+        const row = (body.row ?? '').toString().trim()
+        const shelf = (body.shelf ?? '').toString().trim()
+        if (!['shelf', 'row', 'closet'].includes(scope)) {
+          return json({ error: 'scope must be shelf, row, or closet' }, 400, corsHeaders)
+        }
+        if (!closet) return json({ error: 'closet is required' }, 400, corsHeaders)
+        if (scope !== 'closet' && !row) return json({ error: 'row is required for this scope' }, 400, corsHeaders)
+        if (scope === 'shelf' && !shelf) return json({ error: 'shelf is required for this scope' }, 400, corsHeaders)
+
+        let sql = "UPDATE films SET closet = NULL, row = NULL, shelf = NULL WHERE closet = ?"
+        const binds = [closet]
+        if (scope === 'row' || scope === 'shelf') {
+          sql += ' AND row = ?'
+          binds.push(row)
+        }
+        if (scope === 'shelf') {
+          sql += ' AND shelf = ?'
+          binds.push(shelf)
+        }
+        const result = await db.prepare(sql).bind(...binds).run()
+        return json({ success: true, cleared: result.meta?.changes ?? 0 }, 200, corsHeaders)
+      }
+
+      // ---- POST /api/films/poster-color-batch — { colors: [{id, color}] } ----
+      if (method === 'POST' && pathname === '/api/films/poster-color-batch') {
+        const denied = requireEditAccess()
+        if (denied) return denied
+        let body = {}
+        try {
+          body = await request.json()
+        } catch {
+          return json({ error: 'Invalid request body' }, 400, corsHeaders)
+        }
+        const colors = Array.isArray(body.colors) ? body.colors : []
+        let updated = 0
+        for (const c of colors) {
+          if (!c || !c.id) continue
+          // color=='' یعنی این پوستر قابل خوندن نبود (CORS یا خطای لود) —
+          // بازم ثبتش می‌کنیم (رشته‌ی خالی، نه NULL) که دیگه هر دفعه دوباره
+          // امتحانش نکنیم؛ getSpineColor خودش رشته‌ی خالی رو نادیده می‌گیره.
+          await db.prepare('UPDATE films SET posterColor = ? WHERE id = ?').bind(c.color || '', c.id).run()
+          updated++
+        }
+        return json({ success: true, updated }, 200, corsHeaders)
+      }
+
+      // ---- POST /api/shelf/fill (assign the next N alphabetically-sorted,
+      // not-yet-shelved physical films — starting at/after startTitle — to a
+      // given closet/row/shelf). Sorting ignores a leading "The", matching
+      // the same convention used by the bookshelf display itself. ----
+      if (method === 'POST' && pathname === '/api/shelf/fill') {
+        const denied = requireEditAccess()
+        if (denied) return denied
+        let body = {}
+        try {
+          body = await request.json()
+        } catch {
+          return json({ error: 'Invalid request body' }, 400, corsHeaders)
+        }
+        const closet = (body.closet ?? '').toString().trim()
+        const row = (body.row ?? '').toString().trim()
+        const shelf = (body.shelf ?? '').toString().trim()
+        const startTitle = (body.startTitle ?? '').toString().trim()
+        const count = parseInt(body.count, 10)
+        if (!closet || !row || !shelf) return json({ error: 'closet, row and shelf are required' }, 400, corsHeaders)
+        if (!startTitle) return json({ error: 'startTitle is required' }, 400, corsHeaders)
+        if (!Number.isFinite(count) || count < 1) return json({ error: 'count must be a positive number' }, 400, corsHeaders)
+
+        const sortKey = (t) => (t || '').replace(/^the\s+/i, '').toLowerCase()
+
+        const { results: unassigned } = await db
+          .prepare(
+            `SELECT id, title, copies FROM films
+             WHERE mediaType != 'digital'
+               AND (closet IS NULL OR closet = '')
+               AND (row IS NULL OR row = '')
+               AND (shelf IS NULL OR shelf = '')`
+          )
+          .all()
+
+        unassigned.sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
+        const startKey = sortKey(startTitle)
+        const startIdx = unassigned.findIndex((f) => sortKey(f.title).localeCompare(startKey) >= 0)
+        if (startIdx === -1) {
+          return json({ error: `No unassigned film found alphabetically at or after "${startTitle}"` }, 404, corsHeaders)
+        }
+
+        // count یعنی تعداد جای خالیِ فیزیکی روی قفسه (اسپاین‌ها)، نه تعداد
+        // عنوان — یه فیلم با copies=3 سه تا اسپاین اشغال می‌کنه، پس سه واحد
+        // از count رو مصرف می‌کنه، نه یکی.
+        const batch = []
+        let slotsUsed = 0
+        for (let i = startIdx; i < unassigned.length && slotsUsed < count; i++) {
+          const f = unassigned[i]
+          const copies = Number(f.copies) > 0 ? Number(f.copies) : 1
+          if (slotsUsed + copies > count && batch.length > 0) break
+          batch.push({ ...f, copies })
+          slotsUsed += copies
+        }
+        if (!batch.length) {
+          return json({ error: 'No matching unassigned films found' }, 404, corsHeaders)
+        }
+
+        for (const f of batch) {
+          await db.prepare('UPDATE films SET closet = ?, row = ?, shelf = ? WHERE id = ?').bind(closet, row, shelf, f.id).run()
+        }
+
+        return json(
+          {
+            success: true,
+            assigned: batch.length,
+            slotsUsed,
+            firstTitle: batch[0].title,
+            lastTitle: batch[batch.length - 1].title,
+            remainingAfter: unassigned.length - (startIdx + batch.length),
+          },
+          200,
+          corsHeaders
+        )
+      }
+
       // ---- POST /api/letterboxd-sync (pull the user's own diary entries/reviews
       // from their public Letterboxd RSS feed and attach them to matching films) ----
       // محدودیت مهم: فید RSS لترباکس فقط ~۵۰ ورودی آخر دیاری رو می‌ده، نه کل
       // تاریخچه؛ هر بار sync فقط همین اواخر رو چک می‌کنه.
       if (method === 'POST' && pathname === '/api/letterboxd-sync') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         let body = {}
         try {
@@ -2262,7 +2465,7 @@ async function handleFetch(request, env, ctx) {
       // ندارد. فقط لیست {title, year} برمی‌گردونه؛ افزودن واقعی فیلم‌ها با
       // POST /api/films معمولی (که خودش enrich می‌کنه) انجام می‌شه ----
       if (method === 'POST' && pathname === '/api/films/scan-photo') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         if (!env.AI) {
           return json({ error: 'AI binding not configured on the Worker' }, 400, corsHeaders)
@@ -2367,7 +2570,7 @@ async function handleFetch(request, env, ctx) {
 
       // ---- POST /api/import (Excel import) ----
       if (method === 'POST' && pathname === '/api/import') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const form = await request.formData()
         const file = form.get('file')
@@ -2469,7 +2672,7 @@ async function handleFetch(request, env, ctx) {
 
       // ---- GET /api/export/json (optional ?mediaType=&itemType= to scope the backup) ----
       if (method === 'GET' && pathname === '/api/export/json') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const mediaType = url.searchParams.get('mediaType')
         const itemType = url.searchParams.get('itemType')
@@ -2527,7 +2730,7 @@ async function handleFetch(request, env, ctx) {
 
       // ---- GET /api/export/excel (optional ?mediaType=&itemType=&closet=&row=&shelf=&drive=&letter= to scope the backup) ----
       if (method === 'GET' && pathname === '/api/export/excel') {
-        const denied = requireAuth()
+        const denied = requireEditAccess()
         if (denied) return denied
         const mediaType = url.searchParams.get('mediaType')
         const itemType = url.searchParams.get('itemType')
@@ -3145,6 +3348,59 @@ function emptyPersonInfo() {
 // فید RSS شخصیِ لترباکس (letterboxd.com/USERNAME/rss/) رو پارس می‌کنه و از هر
 // آیتم دیاری، عنوان/سال فیلم، امتیاز شخصی (۰ تا ۵)، متن نظر (اگه نوشته باشه)
 // و لینک و تاریخ تماشا رو در میاره. فید فقط ~۵۰ ورودی آخر رو می‌ده.
+// Sync برای چند نفر (سعید/علیرضا/...) — بر خلاف /api/letterboxd-sync که
+// روی فیلدهای مشترک و تکی personalReview/myRating می‌نویسه (فقط برای صاحب
+// آرشیو مناسبه)، این تابع رتبه/نقد هرکس رو با نام خودش توی آرایه‌ی چندنویسنده‌ی
+// reviews[] ذخیره می‌کنه — دقیقاً همون مکانیزم «Apply to archive» توی داشبورد.
+// فید RSS لترباکس فقط ~۵۰ ورودی دیاری آخر رو می‌ده، برای همین هر بار فقط
+// همین اواخر رو چک می‌کنه، نه کل تاریخچه.
+async function syncLetterboxdUserToReviews(db, username, authorLabel) {
+  const res = await fetch(`https://letterboxd.com/${encodeURIComponent(username)}/rss/`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0)' },
+  })
+  if (!res.ok) throw new Error(`Letterboxd username '${username}' not found or feed unavailable (${res.status})`)
+  const xml = await res.text()
+  const entries = parseLetterboxdRss(xml)
+
+  let matched = 0
+  let updated = 0
+  for (const entry of entries) {
+    if (!entry.filmTitle || (!entry.reviewText && entry.memberRating == null)) continue
+    const row = await db
+      .prepare(
+        `SELECT id, reviews FROM films
+         WHERE mediaType != 'digital' AND itemType != 'series' AND LOWER(title) = ?
+         AND (year IS ? OR year = ?)`
+      )
+      .bind(entry.filmTitle.trim().toLowerCase(), entry.filmYear ?? null, entry.filmYear ?? null)
+      .first()
+    if (!row) continue
+    matched++
+
+    let existingReviews = []
+    try {
+      existingReviews = row.reviews ? JSON.parse(row.reviews) : []
+      if (!Array.isArray(existingReviews)) existingReviews = []
+    } catch {
+      existingReviews = []
+    }
+
+    const newEntry = {
+      author: authorLabel,
+      text: entry.reviewText || null,
+      rating: entry.memberRating != null ? Math.round(entry.memberRating) : null,
+    }
+    // اگه قبلاً از همین نویسنده نقدی برای این فیلم ثبت شده، جایگزینش کن
+    // (نه اضافه‌کردنِ تکراری) — تا هربار sync، ورودی‌های تکراری تلنبار نشه.
+    const withoutThisAuthor = existingReviews.filter((r) => r.author !== authorLabel)
+    const mergedReviews = [...withoutThisAuthor, newEntry]
+
+    await db.prepare('UPDATE films SET reviews = ? WHERE id = ?').bind(JSON.stringify(mergedReviews), row.id).run()
+    updated++
+  }
+  return { username, authorLabel, processed: entries.length, matched, updated }
+}
+
 function parseLetterboxdRss(xml) {
   const items = xml.match(/<item>[\s\S]*?<\/item>/g) || []
   return items.map((raw) => {

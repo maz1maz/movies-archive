@@ -14,6 +14,7 @@ import {
   IconBookshelf,
   IconPin,
   IconCamera,
+  IconHardDrive,
 } from './icons.jsx'
 
 function IconHamburger(props) {
@@ -60,6 +61,8 @@ export default function Header({
   genres,
   loanedOnly,
   setLoanedOnly,
+  criterionOnly,
+  setCriterionOnly,
   watched,
   setWatched,
   minRating,
@@ -86,6 +89,7 @@ export default function Header({
   onOpenExport,
   onOpenLocationBrowser,
   onOpenBookshelf,
+  onOpenDriveBrowser,
   onSyncLetterboxd,
   onFetchSeasonCounts,
   fetchingSeasonCounts,
@@ -103,6 +107,7 @@ export default function Header({
 }) {
   const fileRef = useRef(null)
   const ratingsFileRef = useRef(null)
+  const filtersWrapRef = useRef(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [azOpen, setAzOpen] = useState(false)
@@ -132,6 +137,18 @@ export default function Header({
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // کلیک بیرون از پنل فیلتر — پنل رو ببند (قبلاً فقط با اسکرول بسته می‌شد،
+  // با کلیک بیرون باز می‌موند و رو صفحه معلق می‌شد).
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (filtersOpen && filtersWrapRef.current && !filtersWrapRef.current.contains(e.target)) {
+        setFiltersOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [filtersOpen])
 
   const onFile = (e) => {
     const file = e.target.files?.[0]
@@ -205,7 +222,7 @@ export default function Header({
         </div>
 
         <div className="actions">
-          <div className="filters-wrap">
+          <div className="filters-wrap" ref={filtersWrapRef}>
             <button
               type="button"
               className="btn btn-ghost filters-toggle"
@@ -272,6 +289,10 @@ export default function Header({
                   <input type="checkbox" checked={loanedOnly} onChange={(e) => setLoanedOnly(e.target.checked)} />
                   Loaned only
                 </label>
+                <label className="loan-filter">
+                  <input type="checkbox" checked={criterionOnly} onChange={(e) => setCriterionOnly(e.target.checked)} />
+                  Criterion only
+                </label>
               </div>
             </div>
           </div>
@@ -292,7 +313,7 @@ export default function Header({
             </button>
           )}
 
-          {onOpenBookshelf && (
+          {(section === 'physical' || section === 'physical-series') && onOpenBookshelf && (
             <button
               type="button"
               className="btn btn-ghost"
@@ -305,6 +326,22 @@ export default function Header({
               title="3D Physical Bookshelf view (pure exhibition without edit buttons)"
             >
               <IconBookshelf width={14} height={14} /> <span className="btn-label">Bookshelf</span>
+            </button>
+          )}
+
+          {(section === 'digital-movie' || section === 'digital-series') && onOpenDriveBrowser && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                onOpenDriveBrowser()
+                setFiltersOpen(false)
+                setMenuOpen(false)
+                setAzOpen(false)
+              }}
+              title="Browse by drive"
+            >
+              <IconHardDrive width={14} height={14} /> <span className="btn-label">Browse by Drive</span>
             </button>
           )}
 

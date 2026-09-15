@@ -4,6 +4,7 @@ import App from './App.jsx'
 import Landing from './components/Landing.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
+import { ThemeProvider } from './context/ThemeContext.jsx'
 import LoginModal from './components/LoginModal.jsx'
 import AdminUsersModal from './components/AdminUsersModal.jsx'
 import SplashScreen from './components/SplashScreen.jsx'
@@ -47,12 +48,14 @@ function RootView() {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <AuthProvider>
-        <RootView />
-        <LoginModal />
-        <AdminModalMount />
-      </AuthProvider>
-      <SplashScreen />
+      <ThemeProvider>
+        <AuthProvider>
+          <RootView />
+          <LoginModal />
+          <AdminModalMount />
+          <SplashScreen />
+        </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   </React.StrictMode>,
 )

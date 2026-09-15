@@ -148,9 +148,15 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       if (lightboxSrc) return
       if (e.key === 'Escape') onClose()
       if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && films.length && onNavigate) {
-        const i = films.findIndex((f) => f.id === film.id)
-        const next = e.key === 'ArrowRight' ? (i + 1) % films.length : (i - 1 + films.length) % films.length
-        onNavigate(films[next])
+        // مهم: هر لیستی که parent بده (گاهی کل آرشیو، گاهی فقط یه بخش)،
+        // اینجا همیشه به همون mediaType فیلم فعلی محدودش می‌کنیم — یعنی
+        // فلش هیچ‌وقت از فیزیکی به دیجیتال (یا برعکس) نمی‌پره، صرف‌نظر از
+        // اینکه parent درست فیلتر کرده باشه یا نه.
+        const sameType = films.filter((f) => f.mediaType === film.mediaType)
+        const pool = sameType.length ? sameType : films
+        const i = pool.findIndex((f) => f.id === film.id)
+        const next = e.key === 'ArrowRight' ? (i + 1) % pool.length : (i - 1 + pool.length) % pool.length
+        onNavigate(pool[next])
       }
     }
     window.addEventListener('keydown', onKey)
@@ -324,9 +330,10 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   }
 
   const castList = Array.isArray(film.cast) ? film.cast : []
-  const displayedCast = showAllCast ? castList : castList.slice(0, 5)
+  const displayedCast = castList
 
-  const genreText = Array.isArray(film.genre) ? film.genre.slice(0, 3).join(', ') : film.genre || ''
+  const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
+  const genreText = Array.isArray(film.genre) ? film.genre.slice(0, 3).map(capitalize).join(', ') : capitalize(film.genre) || ''
   const runtimeText = formatRuntime(film.runtime)
   const metaSubParts = [film.year, genreText, runtimeText].filter(Boolean)
 
@@ -368,7 +375,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     { label: 'Runtime', value: film.runtime ? `${film.runtime} mins (${runtimeText})` : null },
   ].filter((item) => item.value)
 
-  const displayedCrew = showAllCrew ? fullCrew : fullCrew.slice(0, 4)
+  const displayedCrew = fullCrew
 
   const inner = (
     <div className={panel ? 'modal modal-cine cine-panel' : 'modal modal-cine'} onClick={(e) => e.stopPropagation()}>
@@ -386,35 +393,37 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
         {/* Title & Subtitle Header */}
         <div className="cine-title-block">
           <div className="cine-title-row">
-            <h2 className="cine-title">
+            <h2
+              className="cine-title"
+              style={film.title.length > 28 ? { fontSize: film.title.length > 45 ? '24px' : '28px' } : undefined}
+            >
               {film.title}
-              {film.originalTitle && film.originalTitle.trim() && film.originalTitle.trim() !== film.title.trim() && (
-                <span className="cine-original-title"> ({film.originalTitle})</span>
-              )}
             </h2>
             {film.criterion && (
-              <span className="criterion-badge criterion-badge-modal">
+              <span className="criterion-badge criterion-badge-modal format-badge-size">
                 CRITERION{film.criterionCopies > 1 ? ` ×${film.criterionCopies}` : ''}
               </span>
             )}
           </div>
+          {film.originalTitle && film.originalTitle.trim() && film.originalTitle.trim() !== film.title.trim() && (
+            <p className="cine-original-title-line">{film.originalTitle}</p>
+          )}
           {metaSubParts.length > 0 && (
             <p className="cine-subtitle">{metaSubParts.join(' | ')}</p>
           )}
         </div>
 
-        {/* Physical (left) / Digital (right) row: physical badge + shelf location
-            always on the left, digital badge + drive always on the right —
-            whichever record you're viewing, plus the sibling copy if you also
-            own it. Kept outside the synopsis box on purpose. */}
-        {(() => {
+        {/* Main Body: Poster + Rearranged Gray Info Card */}
+        <div className="cine-main-row">
+          <div className="cine-poster-wrap">
+          {(() => {
           const isPhysical = film.mediaType !== 'digital'
           const physicalRecord = isPhysical ? film : hasBluray ? siblingFilm : null
           const digitalRecord = !isPhysical ? film : hasDigital ? siblingFilm : null
           const physicalFormat = isPhysical ? mediaFormat : physicalRecord?.format || 'Blu-ray'
           return (
             (physicalRecord || digitalRecord) && (
-              <div className="cine-format-location-row">
+              <div className="cine-format-location-row cine-format-location-row-stacked">
                 {physicalRecord && (
                   <div className="cine-format-location-col">
                     <span className={`format-badge ${physicalFormat.toLowerCase().includes('4k') ? 'fmt-4k' : physicalFormat.toLowerCase().replace(/[^a-z0-9]/g, '')}`}>
@@ -446,10 +455,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       </span>
                       <span>
                         {(() => {
-                          // برای سریال‌ها، فیلد کلی driveNumber می‌تونه با
-                          // seasonDrives هماهنگ نباشه (چون هر فصل جدا جابه‌جا
-                          // می‌شه) — پس بج بالا رو از مجموع درایوهای همه‌ی
-                          // فصل‌ها می‌سازیم، نه از فیلد کلی
                           const seasonDriveSet = new Set()
                           if (digitalRecord.itemType === 'series' && Array.isArray(digitalRecord.seasonDrives)) {
                             digitalRecord.seasonDrives.forEach((sd) => {
@@ -470,11 +475,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
             )
           )
-        })()}
-
-        {/* Main Body: Poster + Rearranged Gray Info Card */}
-        <div className="cine-main-row">
-          <div className="cine-poster-wrap">
+          })()}
           {(() => {
             const posters = [film.poster, ...altPosters].filter(Boolean)
             const uniquePosters = [...new Set(posters)]
@@ -568,60 +569,187 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
             )
           })()}
+
+          <div className="cine-poster-actions">
+            {film.borrowedTo ? (
+              <button
+                className="loan-badge active-loan-btn"
+                onClick={() => onManageLoan && onManageLoan(film)}
+                title="Click to manage loan status"
+              >
+                <IconHandshake width={13} height={13} /> Loaned to: <strong>{film.borrowedTo}</strong>
+              </button>
+            ) : (
+              <button
+                className="loan-badge manage-loan-btn"
+                onClick={() => onManageLoan && onManageLoan(film)}
+                title="Mark film as borrowed by someone"
+              >
+                <IconHandshake width={13} height={13} /> Lend Film
+              </button>
+            )}
+
+            <button
+              className="loan-badge manage-loan-btn"
+              onClick={handleShare}
+              disabled={shareStatus === 'working'}
+              title="Create a shareable image and hand it to your phone's share sheet (Instagram, etc.)"
+            >
+              <IconShare width={13} height={13} />
+              {shareStatus === 'working'
+                ? 'Preparing…'
+                : shareStatus === 'shared'
+                  ? 'Shared ✓'
+                  : shareStatus === 'downloaded'
+                    ? 'Image saved ✓'
+                    : shareStatus === 'error'
+                      ? "Couldn't create image"
+                      : 'Share'}
+            </button>
+          </div>
           </div>
 
-          <div className="cine-info-card">
-            {/* Top Row: Synopsis (Left) & Loan/Share Column (Right) */}
-            <div className="cine-info-top-row">
-              <div className="cine-synopsis-box">
-                <div className="cine-section-label">SYNOPSIS</div>
-                <p className="cine-synopsis-text">
-                  {film.synopsis ||
-                    `${film.title} is a ${film.year || ''} ${genreText} film directed by ${
-                      film.director || 'renowned filmmakers'
-                    }.`}
-                </p>
-              </div>
-
-              <div className="cine-top-badges-column">
-                {/* Loan Status Indicator */}
-                {film.borrowedTo ? (
-                  <button
-                    className="loan-badge active-loan-btn"
-                    onClick={() => onManageLoan && onManageLoan(film)}
-                    title="Click to manage loan status"
-                  >
-                    <IconHandshake width={13} height={13} /> Loaned to: <strong>{film.borrowedTo}</strong>
-                  </button>
-                ) : (
-                  <button
-                    className="loan-badge manage-loan-btn"
-                    onClick={() => onManageLoan && onManageLoan(film)}
-                    title="Mark film as borrowed by someone"
-                  >
-                    <IconHandshake width={13} height={13} /> Lend Film
-                  </button>
-                )}
-
-                <button
-                  className="loan-badge manage-loan-btn"
-                  onClick={handleShare}
-                  disabled={shareStatus === 'working'}
-                  title="Create a shareable image and hand it to your phone's share sheet (Instagram, etc.)"
+          <div className="cine-info-column">
+            <div className="cine-info-badges cine-info-badges-top">
+              {/* Letterboxd Rating Badge (فیلم‌ها) */}
+              {film.itemType !== 'series' && typeof letterboxdRating === 'number' && (
+                <a
+                  href={letterboxdUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="letterboxd-rating-box"
+                  title="Letterboxd Rating"
                 >
-                  <IconShare width={13} height={13} />
-                  {shareStatus === 'working'
-                    ? 'Preparing…'
-                    : shareStatus === 'shared'
-                      ? 'Shared ✓'
-                      : shareStatus === 'downloaded'
-                        ? 'Image saved ✓'
-                        : shareStatus === 'error'
-                          ? "Couldn't create image"
-                          : 'Share'}
-                </button>
-              </div>
+                  <div className="letterboxd-badge-top">
+                    <span className="letterboxd-tag-label">Letterboxd</span>
+                    <span className="letterboxd-tag-val">{letterboxdRating.toFixed(1)}</span>
+                  </div>
+                  {formatVotesK(letterboxdVotes) && (
+                    <div className="letterboxd-badge-votes">{formatVotesK(letterboxdVotes)} ratings</div>
+                  )}
+                </a>
+              )}
+
+              {/* TVMaze Rating Badge (سریال‌ها) — Letterboxd سریال نداره، این معادلشه */}
+              {film.itemType === 'series' && typeof film.rating === 'number' && (
+                <a
+                  href={`https://www.tvmaze.com/search?q=${encodeURIComponent(film.title)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="letterboxd-rating-box"
+                  title="TVMaze Rating"
+                >
+                  <div className="letterboxd-badge-top">
+                    <span className="letterboxd-tag-label">TVMaze</span>
+                    <span className="letterboxd-tag-val">{film.rating.toFixed(1)}</span>
+                  </div>
+                </a>
+              )}
+
+              {/* IMDb Yellow Badge: All Black Numbers/Text, /10, and K format votes */}
+              {typeof film.rating === 'number' && (
+                <a
+                  href={imdbUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="imdb-badge-cine clickable-imdb"
+                  title="Click to view on IMDb"
+                >
+                  <div className="imdb-badge-top">
+                    <span className="imdb-pill">IMDb</span>
+                    <span className="imdb-score-black">{film.rating.toFixed(1)}</span>
+                    <span className="imdb-denom">/ 10</span>
+                  </div>
+                  {formatVotesK(film.imdbVotes) && (
+                    <div className="imdb-badge-votes">
+                      {formatVotesK(film.imdbVotes)} votes
+                    </div>
+                  )}
+                </a>
+              )}
+
+              {(film.myRating > 0 || onRateFilm) && (
+                <div className="my-rating-box" title="My rating">
+                  <span className="my-rating-label">MY RATING</span>
+                  <StarRating
+                    value={film.myRating || 0}
+                    size={15}
+                    onChange={onRateFilm ? (n) => onRateFilm(film, n) : undefined}
+                  />
+                </div>
+              )}
             </div>
+
+            <div className="cine-info-card">
+            <div className="cine-synopsis-box cine-synopsis-plain">
+              <div className="cine-section-label">SYNOPSIS</div>
+              <p className="cine-synopsis-text">
+                {film.synopsis ||
+                  `${film.title} is a ${film.year || ''} ${genreText} film directed by ${
+                    film.director || 'renowned filmmakers'
+                  }.`}
+              </p>
+            </div>
+
+            {festivalAwards.length > 0 && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">AWARDS ({festivalAwards.length})</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4, maxHeight: 260, overflowY: 'auto' }}>
+                  {festivalAwards.map((a, i) => (
+                    <p key={`${a.award}-${a.year}-${i}`} style={{ margin: 0, fontSize: 13.5 }}>
+                      {a.icon} <strong>{a.award}</strong>
+                      {a.year ? ` — ${a.year}` : ''}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {collection && collection.parts?.length > 1 && (
+              <div className="cine-collection-box">
+                <div className="cine-section-label">
+                  PART OF: {collection.name?.toUpperCase()} ({collection.parts.filter((p) => p.inArchive).length}/{collection.parts.length} in archive)
+                </div>
+                <div className="cine-collection-grid">
+                  {collection.parts.map((p) => (
+                    <div key={p.tmdbId} className={`cine-collection-item${p.title === film.title ? ' cine-collection-item-current' : ''}`}>
+                      <button
+                        type="button"
+                        className="cine-collection-poster-btn"
+                        disabled={!p.inArchive}
+                        onClick={async () => {
+                          if (!p.inArchive || !p.archiveFilmId || !onNavigate) return
+                          const local = films.find((f) => f.id === p.archiveFilmId)
+                          if (local) {
+                            onNavigate(local)
+                            return
+                          }
+                          try {
+                            const res = await fetch(`/api/films/${p.archiveFilmId}`)
+                            if (res.ok) {
+                              const data = await res.json()
+                              onNavigate(data)
+                            }
+                          } catch {}
+                        }}
+                        title={p.title}
+                      >
+                        {p.poster ? (
+                          <img src={p.poster} alt={p.title} className="cine-collection-poster" loading="lazy" decoding="async" />
+                        ) : (
+                          <span className="cine-collection-poster-empty">{p.title}</span>
+                        )}
+                        {!p.inArchive && <span className="cine-collection-missing-badge">Missing</span>}
+                      </button>
+                      <span className="cine-collection-item-title">
+                        {p.title} {p.year ? `(${p.year})` : ''}
+                      </span>
+                      {!p.inArchive && <CollectionOrderButton title={p.title} year={p.year} />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {film.personalReview && (
               <div className="cine-my-review-box">
@@ -646,6 +774,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 </div>
               ))}
 
+            <div className="cine-more-details">
             {bookAdaptation?.basedOnBook && (
               <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
                 <div className="cine-section-label">BASED ON</div>
@@ -789,73 +918,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 ) : null}
               </div>
             )}
+            </div>
 
-            {festivalAwards.length > 0 && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
-                <div className="cine-section-label">AWARDS ({festivalAwards.length})</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4, maxHeight: 260, overflowY: 'auto' }}>
-                  {festivalAwards.map((a, i) => (
-                    <p key={`${a.award}-${a.year}-${i}`} style={{ margin: 0, fontSize: 13.5 }}>
-                      {a.icon} <strong>{a.award}</strong>
-                      {a.year ? ` — ${a.year}` : ''}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {collection && collection.parts?.length > 1 && (
-              <div className="cine-collection-box">
-                <div className="cine-section-label">
-                  PART OF: {collection.name?.toUpperCase()} ({collection.parts.filter((p) => p.inArchive).length}/{collection.parts.length} in archive)
-                </div>
-                <div className="cine-collection-grid">
-                  {collection.parts.map((p) => (
-                    <div key={p.tmdbId} className={`cine-collection-item${p.title === film.title ? ' cine-collection-item-current' : ''}`}>
-                      <button
-                        type="button"
-                        className="cine-collection-poster-btn"
-                        disabled={!p.inArchive}
-                        onClick={async () => {
-                          if (!p.inArchive || !p.archiveFilmId || !onNavigate) return
-                          // ممکنه فیلم مقصد تو لیست films (که بسته به بخش/فیلترِ
-                          // فعلی می‌تونه محدود باشه) نباشه — مستقیم از سرور می‌گیریم
-                          // تا کلیک همیشه کار کنه، مستقل از اینکه کجای اپیم.
-                          const local = films.find((f) => f.id === p.archiveFilmId)
-                          if (local) {
-                            onNavigate(local)
-                            return
-                          }
-                          try {
-                            const res = await fetch(`/api/films/${p.archiveFilmId}`)
-                            if (res.ok) {
-                              const data = await res.json()
-                              onNavigate(data)
-                            }
-                          } catch {}
-                        }}
-                        title={p.title}
-                      >
-                        {p.poster ? (
-                          <img src={p.poster} alt={p.title} className="cine-collection-poster" loading="lazy" decoding="async" />
-                        ) : (
-                          <span className="cine-collection-poster-empty">{p.title}</span>
-                        )}
-                        {!p.inArchive && <span className="cine-collection-missing-badge">Missing</span>}
-                      </button>
-                      <span className="cine-collection-item-title">
-                        {p.title} {p.year ? `(${p.year})` : ''}
-                      </span>
-                      {!p.inArchive && <CollectionOrderButton title={p.title} year={p.year} />}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Bottom Row: Studio Name (Left) + MPA Box + All-Black IMDb Badge with K votes */}
-            <div className="cine-info-bottom-row">
-              {studioName ? (
+            {/* Bottom Row: Studio Name */}
+            {studioName && (
+              <div className="cine-info-bottom-row">
                 <div className="cine-studio-header">
                   <span className="studio-icon">
                     <IconBuilding width={14} height={14} />
@@ -864,80 +931,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     <strong>{studioName}</strong> {film.year ? `(${film.year})` : ''}
                   </span>
                 </div>
-              ) : (
-                <div />
-              )}
-
-              <div className="cine-info-badges">
-                {/* Letterboxd Rating Badge (فیلم‌ها) */}
-                {film.itemType !== 'series' && typeof letterboxdRating === 'number' && (
-                  <a
-                    href={letterboxdUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="letterboxd-rating-box"
-                    title="Letterboxd Rating"
-                  >
-                    <div className="letterboxd-badge-top">
-                      <span className="letterboxd-tag-label">Letterboxd</span>
-                      <span className="letterboxd-tag-val">{letterboxdRating.toFixed(1)}</span>
-                    </div>
-                    {formatVotesK(letterboxdVotes) && (
-                      <div className="letterboxd-badge-votes">{formatVotesK(letterboxdVotes)} ratings</div>
-                    )}
-                  </a>
-                )}
-
-                {/* TVMaze Rating Badge (سریال‌ها) — Letterboxd سریال نداره، این معادلشه */}
-                {film.itemType === 'series' && typeof film.rating === 'number' && (
-                  <a
-                    href={`https://www.tvmaze.com/search?q=${encodeURIComponent(film.title)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="letterboxd-rating-box"
-                    title="TVMaze Rating"
-                  >
-                    <div className="letterboxd-badge-top">
-                      <span className="letterboxd-tag-label">TVMaze</span>
-                      <span className="letterboxd-tag-val">{film.rating.toFixed(1)}</span>
-                    </div>
-                  </a>
-                )}
-
-                {/* IMDb Yellow Badge: All Black Numbers/Text, /10, and K format votes */}
-                {typeof film.rating === 'number' && (
-                  <a
-                    href={imdbUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="imdb-badge-cine clickable-imdb"
-                    title="Click to view on IMDb"
-                  >
-                    <div className="imdb-badge-top">
-                      <span className="imdb-pill">IMDb</span>
-                      <span className="imdb-score-black">{film.rating.toFixed(1)}</span>
-                      <span className="imdb-denom">/ 10</span>
-                    </div>
-                    {formatVotesK(film.imdbVotes) && (
-                      <div className="imdb-badge-votes">
-                        {formatVotesK(film.imdbVotes)} votes
-                      </div>
-                    )}
-                  </a>
-                )}
-
-                {(film.myRating > 0 || onRateFilm) && (
-                  <div className="my-rating-box" title="My rating">
-                    <span className="my-rating-label">MY RATING</span>
-                    <StarRating
-                      value={film.myRating || 0}
-                      size={15}
-                      onChange={onRateFilm ? (n) => onRateFilm(film, n) : undefined}
-                    />
-                  </div>
-                )}
               </div>
-            </div>
+            )}
+          </div>
           </div>
         </div>
 
@@ -947,23 +943,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
           <div className="cine-col cine-col-cast">
             <div className="cine-col-header">
               <span className="cine-col-title">CAST</span>
-              {castList.length > 5 && (
-                <button
-                  type="button"
-                  className="cine-accordion-btn"
-                  onClick={(e) => {
-                    // Keep the accordion action isolated from the modal/card click
-                    // handlers. This is especially important after expanding the
-                    // list, when clicking an actor should open their filmography.
-                    e.stopPropagation()
-                    setShowAllCast((open) => !open)
-                  }}
-                >
-                  {showAllCast ? 'Show less ▴' : `View all (${castList.length}) ▾`}
-                </button>
-              )}
             </div>
-            <div className={`cine-cast-grid ${showAllCast ? 'expanded' : ''}`}>
+            <div className="cine-cast-grid expanded">
               {castList.length === 0 ? (
                 <div className="cine-empty">No cast listed</div>
               ) : (
@@ -1021,22 +1002,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
           <div className="cine-col cine-col-crew">
             <div className="cine-col-header">
               <span className="cine-col-title">CREW</span>
-              {fullCrew.length > 4 && (
-                <button
-                  type="button"
-                  className="cine-accordion-btn"
-                  onClick={(e) => {
-                    // Do not let expanding/collapsing the crew list trigger
-                    // any parent click handler.
-                    e.stopPropagation()
-                    setShowAllCrew((open) => !open)
-                  }}
-                >
-                  {showAllCrew ? 'Show less ▴' : `View all (${fullCrew.length}) ▾`}
-                </button>
-              )}
             </div>
-            <div className={`cine-crew-table ${showAllCrew ? 'expanded' : ''}`}>
+            <div className="cine-crew-table expanded">
               {displayedCrew.map((item, idx) => {
                 const isPerson = ['Director', 'Writer', 'Producer', 'Musician', 'Cinematography'].includes(item.label)
                 const names = isPerson
@@ -1205,7 +1172,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       <>
         {inner}
         {lightboxSrc && (
-          <ImageLightbox src={lightboxSrc} alt={film.title} onClose={() => setLightboxSrc(null)} defaultScale={film.itemType === 'series' ? 1.3 : 2} />
+          <ImageLightbox src={lightboxSrc} alt={film.title} onClose={() => setLightboxSrc(null)} defaultScale={film.itemType === 'series' ? 1.2 : 1.5} />
         )}
       </>
     )
@@ -1216,7 +1183,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
         {inner}
       </div>
       {lightboxSrc && (
-        <ImageLightbox src={lightboxSrc} alt={film.title} onClose={() => setLightboxSrc(null)} defaultScale={film.itemType === 'series' ? 1.3 : 2} />
+        <ImageLightbox src={lightboxSrc} alt={film.title} onClose={() => setLightboxSrc(null)} defaultScale={film.itemType === 'series' ? 1.2 : 1.5} />
       )}
     </>
   )
