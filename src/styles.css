@@ -7714,3 +7714,282 @@ body.light .spine-theme-wood .spine-shelf-board {
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------------- */
+/* Landing page (logged-out visitors)                                     */
+/* ---------------------------------------------------------------------- */
+
+.landing {
+  --landing-gold: #d9a441;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.landing-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.landing-nav-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.landing-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text);
+}
+
+.landing-logo svg {
+  color: var(--landing-gold);
+  flex: none;
+}
+
+.landing-logo small {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.landing-hero {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 64px 24px 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
+}
+
+.landing-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--landing-gold);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.landing-hero-text h1 {
+  margin: 18px 0 14px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(32px, 4.5vw, 48px);
+  line-height: 1.12;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.landing-hero-text p {
+  margin: 0 0 26px;
+  max-width: 46ch;
+  color: var(--muted);
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+
+.landing-hero-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.landing-cta-lg {
+  min-height: 46px;
+  padding: 10px 24px;
+  font-size: 14px;
+}
+
+.landing-stats {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.landing-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.landing-stat-value {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.landing-stat-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.landing-hero-wall {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.landing-poster {
+  aspect-ratio: 2 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  transform: translateY(calc((var(--i) % 3) * 10px));
+}
+
+.landing-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.landing-features {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+
+.landing-features h2 {
+  margin: 0 0 28px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(22px, 3vw, 30px);
+  text-align: center;
+  color: var(--text);
+}
+
+.landing-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.landing-feature-card {
+  padding: 22px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.landing-feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--landing-gold) 18%, var(--surface-2));
+  color: var(--landing-gold);
+  margin-bottom: 14px;
+}
+
+.landing-feature-card h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.landing-feature-card p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.landing-cta {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 24px 80px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--landing-gold);
+}
+
+.landing-cta h2 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 26px;
+  color: var(--text);
+}
+
+.landing-cta p {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.landing-footer {
+  border-top: 1px solid var(--border);
+  padding: 22px 24px;
+  text-align: center;
+}
+
+.landing-footer p {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+@media (max-width: 860px) {
+  .landing-hero {
+    grid-template-columns: 1fr;
+    padding-top: 40px;
+  }
+  .landing-hero-wall {
+    grid-template-columns: repeat(4, 1fr);
+    order: -1;
+  }
+  .landing-poster {
+    transform: none;
+  }
+  .landing-features-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 540px) {
+  .landing-nav-inner .landing-logo small {
+    display: none;
+  }
+  .landing-hero-wall {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .landing-features-grid {
+    grid-template-columns: 1fr;
+  }
+  .landing-stats {
+    gap: 22px;
+  }
+}

@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import Landing from './components/Landing.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import LoginModal from './components/LoginModal.jsx'
@@ -34,11 +35,20 @@ function AdminModalMount() {
   return <AdminUsersModal open={adminOpen} onClose={() => setAdminOpen(false)} />
 }
 
+// Logged-out visitors land on the marketing page; only signed-in users see
+// the actual archive. Auth status resolves before the splash screen fades,
+// so there is no flash of the wrong view.
+function RootView() {
+  const { isGuest, loading } = useAuth()
+  if (loading) return null
+  return isGuest ? <Landing /> : <App />
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <App />
+        <RootView />
         <LoginModal />
         <AdminModalMount />
       </AuthProvider>
