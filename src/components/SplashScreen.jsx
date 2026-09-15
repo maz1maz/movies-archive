@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 
 const HOLD_MS = 4200
 const FADE_MS = 650
+const VIDEO_TIMEOUT_MS = 8000
 
 export default function SplashScreen() {
   // ویدیو فقط وقتی نشون داده می‌شه که قراره صفحه‌ی لاگین بیاد (یعنی مهمونی).
@@ -28,6 +29,15 @@ export default function SplashScreen() {
     return () => clearTimeout(fadeTimer)
   }, [phase])
 
+  // اگه ویدیو به هر دلیلی (بلاک شدن autoplay، خطای شبکه، فایل خراب) پخش
+  // نشه یا onEnded صدا زده نشه، این تایم‌اوت بعد از چند ثانیه صفحه رو باز
+  // می‌کنه تا کاربر برای همیشه پشت یه صفحه‌ی سیاه گیر نکنه.
+  useEffect(() => {
+    if (phase !== 'video') return
+    const timeout = setTimeout(() => setPhase('gone'), VIDEO_TIMEOUT_MS)
+    return () => clearTimeout(timeout)
+  }, [phase])
+
   if (phase === 'gone') return null
 
   // تا وضعیت لاگین معلوم بشه، یه صفحه‌ی ساده‌ی تیره (بدون فلیکر) نشون بده.
@@ -44,6 +54,7 @@ export default function SplashScreen() {
           muted
           playsInline
           onEnded={() => setPhase('gone')}
+          onError={() => setPhase('gone')}
           style={{ width: '100%', height: '100%' }}
           className="splash-video"
         >
