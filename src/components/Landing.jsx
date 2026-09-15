@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { proxyImg } from '../utils/proxyImg.js'
+import LandingShowcase from './LandingShowcase.jsx'
 import {
   IconStar,
   IconLayers,
@@ -288,6 +289,8 @@ export default function Landing() {
           ))}
         </div>
       </section>
+
+      <LandingShowcase />
 
       <section className="landing-cta">
         <IconBookshelf width={26} height={26} className="landing-gold-icon" />
