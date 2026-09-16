@@ -103,12 +103,6 @@ export default function FolderNav({
 
   const searching = query.trim().length >= 2
 
-  const yearRange = useMemo(() => {
-    const minYear = counts && counts.minYear
-    if (!minYear) return null
-    return `${minYear}–${new Date().getFullYear()}`
-  }, [counts])
-
   return (
     <div className="folder-nav">
       <span className="stage-curtain" aria-hidden="true" />
@@ -269,9 +263,6 @@ export default function FolderNav({
               </button>
             </div>
           )}
-          <p className="marquee-footer reveal-item reveal-9">
-            One ticket, infinite stories{yearRange ? ` · ${yearRange}` : ''}
-          </p>
         </div>
       </div>
     </div>
