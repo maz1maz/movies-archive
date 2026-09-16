@@ -206,7 +206,7 @@ async function handleFetch(request, env, ctx) {
     // ---- گیت کلی: بدون لاگین هیچ‌چیزی از سایت در دسترس نیست — نه مرور،
     // نه سرچ، هیچی. فقط خود مسیرهای auth (لاگین/گوگل/خروج/وضعیت فعلی)
     // بدون لاگین قابل‌دسترسن، وگرنه هیچ‌کس نمی‌تونه اصلاً وارد بشه. ----
-    const PUBLIC_AUTH_PATHS = ['/api/auth/login', '/api/auth/logout', '/api/auth/me', '/api/films/counts', '/api/decades', '/api/cinema-news']
+    const PUBLIC_AUTH_PATHS = ['/api/auth/login', '/api/auth/logout', '/api/auth/me', '/api/films/counts', '/api/decades', '/api/cinema-news', '/api/image-proxy']
     if (!currentUser && pathname.startsWith('/api/') && !PUBLIC_AUTH_PATHS.includes(pathname)) {
       return json({ error: 'You need to log in to use the archive' }, 401, corsHeaders)
     }
@@ -3399,7 +3399,12 @@ async function syncLetterboxdUserToReviews(db, username, authorLabel) {
     }
     // اگه قبلاً از همین نویسنده نقدی برای این فیلم ثبت شده، جایگزینش کن
     // (نه اضافه‌کردنِ تکراری) — تا هربار sync، ورودی‌های تکراری تلنبار نشه.
-    const withoutThisAuthor = existingReviews.filter((r) => r.author !== authorLabel)
+    // مقایسه باید case-insensitive باشه، وگرنه «alireza» (این sync خودکار)
+    // و «Alireza» (تایپ‌شده‌ی دستی تو ایمپورت CSV داشبورد) دو نفر جدا حساب
+    // می‌شن و هر دو نقد کنار هم می‌مونن به‌جای جایگزینی.
+    const withoutThisAuthor = existingReviews.filter(
+      (r) => (r.author || '').trim().toLowerCase() !== authorLabel.trim().toLowerCase()
+    )
     const mergedReviews = [...withoutThisAuthor, newEntry]
 
     await db.prepare('UPDATE films SET reviews = ? WHERE id = ?').bind(JSON.stringify(mergedReviews), row.id).run()
@@ -3829,7 +3834,11 @@ async function fetchGeneralUpcoming(db, env) {
 
     const moviesRes = await tmdbGet('/movie/upcoming', { region: 'US', page: '1' })
     const movies = (moviesRes?.results || [])
-      .filter((m) => m.title && m.release_date)
+      // TMDB's "upcoming" endpoint mixes in already-released titles (limited
+      // re-releases, region quirks) — e.g. Avengers: Endgame (2019) showing
+      // up here. Drop anything not actually still ahead of today.
+      .filter((m) => m.title && m.release_date && m.release_date >= today)
+      .sort((a, b) => a.release_date.localeCompare(b.release_date))
       .slice(0, 12)
       .map((m) => ({
         title: m.title,

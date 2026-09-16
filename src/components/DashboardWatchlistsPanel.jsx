@@ -51,10 +51,15 @@ export default function DashboardWatchlistsPanel({ films, onOpenFilm, onFilmsCha
       if (e.reviewText) {
         const author = attribution || 'Me'
         const existingReviews = Array.isArray(film.reviews) ? film.reviews : []
-        const withoutThisAuthor = existingReviews.filter((r) => r.author !== author)
+        // case-insensitive، چون sync خودکار (worker.js) همین شخص رو با یه
+        // label دیگه (مثلاً «alireza» یا حروف کوچیک) ذخیره کرده — وگرنه اینجا
+        // یه ردیف تکراری با همون نقد ولی امتیاز گردنشده کنارش اضافه می‌شه.
+        const withoutThisAuthor = existingReviews.filter(
+          (r) => (r.author || '').trim().toLowerCase() !== author.trim().toLowerCase()
+        )
         patch.reviews = [
           ...withoutThisAuthor,
-          { author, text: e.reviewText, rating: e.myRating || null },
+          { author, text: e.reviewText, rating: e.myRating != null ? Math.round(e.myRating) : null },
         ]
       }
       try {

@@ -332,6 +332,20 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const castList = Array.isArray(film.cast) ? film.cast : []
   const displayedCast = castList
 
+  // بعضی فیلم‌ها از دو مکانیزم جدای ایمپورت نقد (sync خودکار + CSV دستی)
+  // نقد یه نفر رو دوبار دارن، چون قبلاً مقایسه‌ی نویسنده حساس به بزرگی/کوچکی
+  // حروف بود («alireza» در برابر «Alireza»). آخرین ورودیِ هر نویسنده (case-
+  // insensitive) رو نگه می‌داریم تا این دیتای قدیمی هم درست نمایش داده بشه.
+  const dedupedReviews = Array.isArray(film.reviews)
+    ? Object.values(
+        film.reviews.reduce((byAuthor, r, idx) => {
+          const key = (r.author || '').trim().toLowerCase() || `__idx_${idx}`
+          byAuthor[key] = r
+          return byAuthor
+        }, {})
+      )
+    : []
+
   const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
   const genreText = Array.isArray(film.genre) ? film.genre.slice(0, 3).map(capitalize).join(', ') : capitalize(film.genre) || ''
   const runtimeText = formatRuntime(film.runtime)
@@ -763,8 +777,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
             )}
 
-            {Array.isArray(film.reviews) &&
-              film.reviews.map((r, idx) => (
+            {dedupedReviews.map((r, idx) => (
                 <div className="cine-my-review-box" key={idx}>
                   <div className="cine-section-label">
                     {r.author ? `${r.author.toUpperCase()}'S REVIEW` : 'LETTERBOXD REVIEW'}
