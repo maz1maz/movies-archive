@@ -18,6 +18,21 @@ const DETAIL_FILM = {
   physicalLoc: 'Closet 1 · Shelf 2 · Row 1',
   digitalLoc: 'Drive 11',
   poster: 'https://m.media-amazon.com/images/M/MV5BMTUwNTA4MDMxNl5BMl5BanBnXkFtZTgwMjE4NjQ0MzI@._V1_SX300.jpg',
+  director: 'Jon Lucas, Scott Moore',
+  cast: ['Mila Kunis', 'Kristen Bell', 'Kathryn Hahn', 'Jay Hernandez', 'Christine Baranski'],
+  tagline: 'Celebrate the holidays like a mother.',
+  language: 'English',
+  budget: '$28,000,000',
+  boxOffice: '$130,560,428',
+  collection: {
+    name: 'Bad Moms Collection',
+    owned: 2,
+    total: 2,
+    parts: [
+      { title: 'Bad Moms', year: 2016, poster: 'https://m.media-amazon.com/images/M/MV5BMjIwNzE5MTgwNl5BMl5BanBnXkFtZTgwNjM4OTA0OTE@._V1_SX300.jpg' },
+      { title: 'A Bad Moms Christmas', year: 2017, poster: 'https://m.media-amazon.com/images/M/MV5BMTUwNTA4MDMxNl5BMl5BanBnXkFtZTgwMjE4NjQ0MzI@._V1_SX300.jpg', current: true },
+    ],
+  },
 }
 
 // Real physical titles with their actual shelf location and rating. Also
@@ -204,40 +219,90 @@ function FilmDetailPreview() {
   const f = DETAIL_FILM
   return (
     <div className="showcase-detail">
-      <img src={proxyImg(f.poster)} alt="" loading="lazy" className="showcase-detail-poster" />
-      <div className="showcase-detail-body">
-        <h3 className="showcase-detail-title">
-          {f.title} <span className="showcase-detail-year">({f.year})</span>
-        </h3>
-        <p className="showcase-detail-meta">
-          {f.year} · {f.genre} · {f.runtime}
-        </p>
-        <div className="showcase-detail-formats">
-          <span className="showcase-detail-format showcase-detail-format-physical">
-            <IconDisc width={12} height={12} /> Blu-ray
-          </span>
-          <span className="showcase-detail-loc">
-            <IconPin width={11} height={11} /> {f.physicalLoc}
-          </span>
-          <span className="showcase-detail-format showcase-detail-format-digital">
-            <IconFilm width={12} height={12} /> Digital
-          </span>
-          <span className="showcase-detail-loc">
-            <IconPin width={11} height={11} /> {f.digitalLoc}
-          </span>
-        </div>
+      <h3 className="showcase-detail-title">
+        {f.title} <span className="showcase-detail-year">({f.year})</span>
+      </h3>
+      <p className="showcase-detail-meta">
+        {f.year} · {f.genre} · {f.runtime}
+      </p>
+      <div className="showcase-detail-formats">
+        <span className="showcase-detail-format showcase-detail-format-physical">
+          <IconDisc width={12} height={12} /> Blu-ray
+        </span>
+        <span className="showcase-detail-loc">
+          <IconPin width={11} height={11} /> {f.physicalLoc}
+        </span>
+        <span className="showcase-detail-format showcase-detail-format-digital">
+          <IconFilm width={12} height={12} /> Digital
+        </span>
+        <span className="showcase-detail-loc">
+          <IconPin width={11} height={11} /> {f.digitalLoc}
+        </span>
         <span className="showcase-detail-rating">
           <IconStar width={13} height={13} /> IMDb {f.rating}/10
         </span>
-        <p className="showcase-shelf-synopsis">{f.synopsis}</p>
-        <p className="showcase-shelf-studio">{f.studio}</p>
-        <div className="showcase-detail-actions">
-          <span className="showcase-detail-action">
-            <IconHandshake width={13} height={13} /> Lend film
-          </span>
-          <span className="showcase-detail-action">
-            <IconShare width={13} height={13} /> Share
-          </span>
+      </div>
+
+      <div className="showcase-detail-grid">
+        <div className="showcase-detail-col-left">
+          <img src={proxyImg(f.poster)} alt="" loading="lazy" className="showcase-detail-poster" />
+          <div className="showcase-detail-actions">
+            <span className="showcase-detail-action">
+              <IconHandshake width={13} height={13} /> Lend film
+            </span>
+            <span className="showcase-detail-action">
+              <IconShare width={13} height={13} /> Share
+            </span>
+          </div>
+        </div>
+
+        <div className="showcase-detail-col-right">
+          <p className="showcase-shelf-synopsis">{f.synopsis}</p>
+
+          <div className="showcase-detail-collection">
+            <div className="showcase-detail-label">
+              PART OF: {f.collection.name.toUpperCase()} ({f.collection.owned}/{f.collection.total} IN ARCHIVE)
+            </div>
+            <div className="showcase-detail-collection-parts">
+              {f.collection.parts.map((p) => (
+                <div className={`showcase-detail-part${p.current ? ' showcase-detail-part-current' : ''}`} key={p.title}>
+                  <img src={proxyImg(p.poster)} alt="" loading="lazy" />
+                  <span>
+                    {p.title} ({p.year})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="showcase-detail-fields">
+            <div>
+              <div className="showcase-detail-label">TAGLINE</div>
+              <p>&ldquo;{f.tagline}&rdquo;</p>
+            </div>
+            <div>
+              <div className="showcase-detail-label">LANGUAGE</div>
+              <p>{f.language}</p>
+            </div>
+            <div>
+              <div className="showcase-detail-label">BUDGET</div>
+              <p>{f.budget}</p>
+            </div>
+            <div>
+              <div className="showcase-detail-label">BOX OFFICE</div>
+              <p>{f.boxOffice}</p>
+            </div>
+            <div>
+              <div className="showcase-detail-label">DIRECTOR</div>
+              <p>{f.director}</p>
+            </div>
+            <div>
+              <div className="showcase-detail-label">CAST</div>
+              <p>{f.cast.slice(0, 3).join(', ')}</p>
+            </div>
+          </div>
+
+          <p className="showcase-shelf-studio">{f.studio}</p>
         </div>
       </div>
     </div>
