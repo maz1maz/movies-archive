@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme } from '../context/ThemeContext.jsx'
 import { proxyImg } from '../utils/proxyImg.js'
 import { SHOWCASE_POSTERS, HERO_WALL_EXTRA_POSTERS } from '../data/showcasePosters.js'
 import LandingShowcase from './LandingShowcase.jsx'
 import LandingNews from './LandingNews.jsx'
+import CinemaNewsPage from './CinemaNewsPage.jsx'
 import {
   IconStar,
   IconLayers,
@@ -92,9 +94,11 @@ function PosterWallBackground() {
 
 export default function Landing() {
   const { openLogin } = useAuth()
+  const { theme, setTheme } = useTheme()
   const [counts, setCounts] = useState(null)
   const [decades, setDecades] = useState(null)
   const [wordIdx, setWordIdx] = useState(0)
+  const [newsOpen, setNewsOpen] = useState(false)
 
   useEffect(() => {
     fetch('/api/films/counts')
@@ -132,6 +136,22 @@ export default function Landing() {
     { icon: IconTrophy, label: 'Criterion Collection', meta: 'Special editions' },
     { icon: IconBarChart, label: 'Dashboard', meta: 'Info & statistics' },
   ]
+
+  // مهمون‌ها هم می‌تونن نسخه‌ی عمومیِ صفحه‌ی «اخبار سینما» رو ببینن — بخش‌های
+  // شخصی (تولدهای کالکشن، در راهِ کالکشن) چون سرور برای مهمون خالی برمی‌گردونه
+  // خودشون مخفی می‌مونن؛ films=null یعنی دکمه‌ی «Order» (که به لاگین نیاز داره)
+  // هم نشون داده نمی‌شه.
+  if (newsOpen) {
+    return (
+      <CinemaNewsPage
+        onBack={() => setNewsOpen(false)}
+        onSelectPerson={openLogin}
+        theme={theme}
+        setTheme={setTheme}
+        films={null}
+      />
+    )
+  }
 
   return (
     <div className="landing">
@@ -269,7 +289,7 @@ export default function Landing() {
 
       <LandingShowcase />
 
-      <LandingNews />
+      <LandingNews onSeeMore={() => setNewsOpen(true)} />
 
       <section className="landing-cta">
         <IconBookshelf width={26} height={26} className="landing-gold-icon" />

@@ -3,14 +3,77 @@ import { proxyImg } from '../utils/proxyImg.js'
 import { SHOWCASE_POSTERS } from '../data/showcasePosters.js'
 import { IconGrid, IconDisc, IconBarChart, IconSearch, IconPin, IconStar, IconLayers } from './icons.jsx'
 
-// Real physical titles with their actual shelf location and rating.
+// Real physical titles with their actual shelf location and rating. Also
+// carries the same kind of detail (genres/synopsis/studio/box office)
+// shown on a film's own detail page, so the showcase gives a fuller idea
+// of what opening a title actually looks like.
 const SHELF_TITLES = [
-  { title: 'Alien', year: 1979, rating: 8.5, loc: 'C1 · R5 · S1', poster: 'https://m.media-amazon.com/images/M/MV5BN2NhMDk2MmEtZDQzOC00MmY5LThhYzAtMDdjZGFjOGZjMjdjXkEyXkFqcGc@._V1_QL75_UX380_CR0,6,380,562_.jpg' },
-  { title: 'Apocalypse Now', year: 1979, rating: 8.4, loc: 'C1 · R6 · S2', poster: 'https://m.media-amazon.com/images/M/MV5BZDhiMTljYjYtODc1Yy00MmEwLTg2OTYtYmE1YTRmNDE4MmEwXkEyXkFqcGc@._V1_QL75_UX380_CR0,11,380,562_.jpg' },
-  { title: 'Avengers: Endgame', year: 2019, rating: 8.4, loc: 'C1 · R7 · S2', poster: 'https://m.media-amazon.com/images/M/MV5BMTc5MDE2ODcwNV5BMl5BanBnXkFtZTgwMzI2NzQ2NzM@._V1_QL75_UX380_CR0,0,380,562_.jpg' },
-  { title: 'The Apartment', year: 1996, rating: 8.3, loc: 'C1 · R6 · S2', poster: 'https://m.media-amazon.com/images/M/MV5BNDdhMzVhOWQtNDU2Mi00ZmZmLWJiZDMtY2QxMjhjY2Y1ZTI5XkEyXkFqcGc@._V1_SX300.jpg' },
-  { title: 'A Clockwork Orange', year: 1971, rating: 8.2, loc: 'C1 · R2 · S1', poster: 'https://m.media-amazon.com/images/M/MV5BMTY3MjM1Mzc4N15BMl5BanBnXkFtZTgwODM0NzAxMDE@._V1_SX300.jpg' },
-  { title: 'A Brighter Summer Day', year: 1991, rating: 8.2, loc: 'C1 · R2 · S1', criterion: true, poster: 'https://m.media-amazon.com/images/M/MV5BMGRkNGQwOTktNWQxOS00ZDRjLThmODktNWY4NThjNDU2MjM5XkEyXkFqcGc@._V1_SX300.jpg' },
+  {
+    title: 'Alien',
+    year: 1979,
+    rating: 8.5,
+    loc: 'C1 · R5 · S1',
+    genres: ['Sci-Fi', 'Horror'],
+    synopsis: 'The crew of the commercial spacecraft Nostromo encounter a deadly lifeform after investigating a distress signal.',
+    studio: '20th Century Fox',
+    boxOffice: '$203M',
+    poster: 'https://m.media-amazon.com/images/M/MV5BN2NhMDk2MmEtZDQzOC00MmY5LThhYzAtMDdjZGFjOGZjMjdjXkEyXkFqcGc@._V1_QL75_UX380_CR0,6,380,562_.jpg',
+  },
+  {
+    title: 'Apocalypse Now',
+    year: 1979,
+    rating: 8.4,
+    loc: 'C1 · R6 · S2',
+    genres: ['War', 'Drama'],
+    synopsis: 'A U.S. Army officer is sent on a dangerous mission into Cambodia to assassinate a renegade colonel.',
+    studio: 'United Artists',
+    boxOffice: '$150M',
+    poster: 'https://m.media-amazon.com/images/M/MV5BZDhiMTljYjYtODc1Yy00MmEwLTg2OTYtYmE1YTRmNDE4MmEwXkEyXkFqcGc@._V1_QL75_UX380_CR0,11,380,562_.jpg',
+  },
+  {
+    title: 'Avengers: Endgame',
+    year: 2019,
+    rating: 8.4,
+    loc: 'C1 · R7 · S2',
+    genres: ['Action', 'Sci-Fi', 'Adventure'],
+    synopsis: "The Avengers assemble once more to reverse Thanos' actions and restore balance to the universe.",
+    studio: 'Marvel Studios',
+    boxOffice: '$2.80B',
+    poster: 'https://m.media-amazon.com/images/M/MV5BMTc5MDE2ODcwNV5BMl5BanBnXkFtZTgwMzI2NzQ2NzM@._V1_QL75_UX380_CR0,0,380,562_.jpg',
+  },
+  {
+    title: 'The Apartment',
+    year: 1960,
+    rating: 8.3,
+    loc: 'C1 · R6 · S2',
+    genres: ['Comedy', 'Drama', 'Romance'],
+    synopsis: 'A lonely office worker lends out his apartment to philandering executives, then falls for one of their mistresses.',
+    studio: 'United Artists',
+    boxOffice: '$18.6M',
+    poster: 'https://m.media-amazon.com/images/M/MV5BNDdhMzVhOWQtNDU2Mi00ZmZmLWJiZDMtY2QxMjhjY2Y1ZTI5XkEyXkFqcGc@._V1_SX300.jpg',
+  },
+  {
+    title: 'A Clockwork Orange',
+    year: 1971,
+    rating: 8.2,
+    loc: 'C1 · R2 · S1',
+    genres: ['Crime', 'Sci-Fi', 'Drama'],
+    synopsis: 'In a near-future Britain, young Alex leads his gang on a spree of violence before a controversial state rehabilitation.',
+    studio: 'Warner Bros.',
+    boxOffice: '$26.6M',
+    poster: 'https://m.media-amazon.com/images/M/MV5BMTY3MjM1Mzc4N15BMl5BanBnXkFtZTgwODM0NzAxMDE@._V1_SX300.jpg',
+  },
+  {
+    title: 'A Brighter Summer Day',
+    year: 1991,
+    rating: 8.2,
+    loc: 'C1 · R2 · S1',
+    criterion: true,
+    genres: ['Drama', 'Crime'],
+    synopsis: 'A teenager in 1960s Taipei is drawn into gang rivalries and first love against a backdrop of political unrest.',
+    studio: 'Central Motion Pictures',
+    poster: 'https://m.media-amazon.com/images/M/MV5BMGRkNGQwOTktNWQxOS00ZDRjLThmODktNWY4NThjNDU2MjM5XkEyXkFqcGc@._V1_SX300.jpg',
+  },
 ]
 
 // Real decade breakdown computed from the archive (snapshot).
@@ -79,29 +142,40 @@ function PosterGrid() {
 function ShelfList() {
   return (
     <div className="showcase-shelf">
-      <div className="showcase-shelf-head">
-        <span>Title</span>
-        <span className="showcase-shelf-col">Location</span>
-        <span className="showcase-shelf-col-right">Rating</span>
-      </div>
       {SHELF_TITLES.map((t) => (
         <div className="showcase-shelf-row" key={t.title}>
-          <div className="showcase-shelf-title">
-            <img src={proxyImg(t.poster)} alt="" loading="lazy" />
-            <div>
-              <p>{t.title}</p>
-              <span>
-                {t.year}
-                {t.criterion ? ' · Criterion' : ''}
-              </span>
+          <img src={proxyImg(t.poster)} alt="" loading="lazy" className="showcase-shelf-poster" />
+          <div className="showcase-shelf-body">
+            <div className="showcase-shelf-top">
+              <div className="showcase-shelf-title">
+                <p>{t.title}</p>
+                <span>
+                  {t.year}
+                  {t.criterion ? ' · Criterion' : ''}
+                </span>
+              </div>
+              <div className="showcase-shelf-meta-right">
+                <span className="showcase-shelf-loc">
+                  <IconPin width={11} height={11} /> {t.loc}
+                </span>
+                <span className="showcase-shelf-rating">
+                  <IconStar width={12} height={12} /> {t.rating}
+                </span>
+              </div>
             </div>
+            <div className="showcase-shelf-tags">
+              {t.genres.map((g) => (
+                <span className="showcase-tag" key={g}>
+                  {g}
+                </span>
+              ))}
+            </div>
+            <p className="showcase-shelf-synopsis">{t.synopsis}</p>
+            <p className="showcase-shelf-studio">
+              {t.studio}
+              {t.boxOffice ? ` · ${t.boxOffice} box office` : ''}
+            </p>
           </div>
-          <span className="showcase-shelf-col showcase-shelf-loc">
-            <IconPin width={11} height={11} /> {t.loc}
-          </span>
-          <span className="showcase-shelf-col-right showcase-shelf-rating">
-            <IconStar width={12} height={12} /> {t.rating}
-          </span>
         </div>
       ))}
     </div>

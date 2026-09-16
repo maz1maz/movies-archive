@@ -15,7 +15,7 @@ function formatDate(iso) {
 // فیلم‌های در راه (TMDB، عمومی)، هیچ داده‌ی مربوط به کالکشن شخصی کاربر
 // (تولدها/در راهِ کالکشن) اینجا نیست؛ سرور هم برای مهمون‌ها اونا رو خالی
 // برمی‌گردونه.
-export default function LandingNews() {
+export default function LandingNews({ onSeeMore }) {
   const [movies, setMovies] = useState([])
 
   useEffect(() => {
@@ -68,6 +68,11 @@ export default function LandingNews() {
           </a>
         ))}
       </div>
+      {onSeeMore && (
+        <button type="button" className="landing-news-more" onClick={onSeeMore}>
+          See festivals, trending &amp; box office →
+        </button>
+      )}
     </section>
   )
 }
