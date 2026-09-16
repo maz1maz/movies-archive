@@ -279,7 +279,12 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
 
         el.style.transform = `translate3d(${x2.toFixed(2)}px,${yy2.toFixed(2)}px,0) scale(${(sc * pulse).toFixed(3)})`
         el.style.opacity = op.toFixed(3)
-        el.style.zIndex = String(1000 + Math.round(persp * 400))
+        // زوم و چرخش مدام، persp رو پیوسته عوض می‌کنن؛ ضریب قبلی (400) خیلی
+        // کم‌دقت بود، پس دو پوستر نزدیک به هم راحت روی یه z-index رند
+        // می‌شدن و لبه‌شون موقع رد شدن از هم می‌پرید (ترتیب استک ناگهانی
+        // عوض می‌شد به‌جای این‌که واقعاً همدیگه رو رد کرده باشن). ضریب خیلی
+        // بزرگ‌تر یعنی z-index فقط دقیقاً سرِ تقاطع واقعی عوض می‌شه.
+        el.style.zIndex = String(Math.round(persp * 100000))
         const clickable = op > 0.3 ? 'auto' : 'none'
         if (el.style.pointerEvents !== clickable) el.style.pointerEvents = clickable
 
