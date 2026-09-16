@@ -8095,8 +8095,8 @@ body.light .spine-theme-wood .spine-shelf-board {
   transition: transform 0.25s ease, filter 0.25s ease, background 0.25s ease, border-color 0.25s ease;
 }
 .landing-btn-lg {
-  padding: 13px 26px;
-  font-size: 14.5px;
+  padding: 16px 32px;
+  font-size: 16.5px;
 }
 .landing-btn-gold {
   color: var(--ink-950);
@@ -8124,20 +8124,29 @@ body.light .spine-theme-wood .spine-shelf-board {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  padding: 76px 24px 64px;
+  padding: 24px 24px 64px;
+  display: flex;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100svh;
 }
 .landing-hero-inner {
   position: relative;
   z-index: 10;
-  max-width: 1200px;
+  width: 100%;
+  max-width: 1320px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1.02fr 0.98fr;
-  gap: 56px;
+  gap: 64px;
   align-items: center;
 }
 .landing-hero-text {
-  max-width: 560px;
+  min-width: 0;
+  max-width: 660px;
+}
+.landing-panel-wrap {
+  min-width: 0;
 }
 
 .landing-eyebrow {
@@ -8147,8 +8156,8 @@ body.light .spine-theme-wood .spine-shelf-board {
   border-radius: 999px;
   border: 1px solid rgba(227, 181, 63, 0.25);
   background: rgba(227, 181, 63, 0.08);
-  padding: 6px 14px;
-  font-size: 11px;
+  padding: 8px 17px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -8180,9 +8189,9 @@ body.light .spine-theme-wood .spine-shelf-board {
 }
 
 .landing-h1 {
-  margin: 22px 0 18px;
-  font-size: clamp(24px, 2.6vw, 36px);
-  line-height: 1.15;
+  margin: 26px 0 22px;
+  font-size: clamp(30px, 3.05vw, 43px);
+  line-height: 1.14;
   font-weight: 600;
   letter-spacing: -0.03em;
   color: #fff;
@@ -8190,20 +8199,20 @@ body.light .spine-theme-wood .spine-shelf-board {
 }
 
 .landing-hero-copy {
-  margin: 0 0 20px;
-  max-width: 46ch;
+  margin: 0 0 24px;
+  max-width: 50ch;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.65;
 }
 
 .landing-rotating {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 24px;
-  margin-bottom: 30px;
-  font-size: 14px;
+  gap: 9px;
+  min-height: 28px;
+  margin-bottom: 36px;
+  font-size: 16px;
   color: rgba(255, 255, 255, 0.5);
 }
 .landing-rotating-icon {
@@ -8225,8 +8234,8 @@ body.light .spine-theme-wood .spine-shelf-board {
 .landing-hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 22px;
+  gap: 14px;
+  margin-bottom: 28px;
 }
 
 .landing-hero-stat {
@@ -8241,17 +8250,17 @@ body.light .spine-theme-wood .spine-shelf-board {
 .landing-mini-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 26px;
+  gap: 32px;
 }
 .landing-mini-stat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  font-size: 12px;
+  gap: 3px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.45);
 }
 .landing-mini-stat .landing-hero-stat-num {
-  font-size: 20px;
+  font-size: 25px;
   font-family: var(--font-display);
 }
 
@@ -8337,50 +8346,50 @@ body.light .spine-theme-wood .spine-shelf-board {
 }
 .landing-panel {
   position: relative;
-  border-radius: 26px;
-  padding: 20px 20px 38px;
+  border-radius: 30px;
+  padding: 26px 26px 46px;
   box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.9);
 }
 .landing-search {
   display: flex;
   align-items: center;
-  gap: 10px;
-  border-radius: 16px;
+  gap: 12px;
+  border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
-  padding: 12px 16px;
+  padding: 15px 20px;
   color: rgba(255, 255, 255, 0.4);
-  font-size: 14.5px;
+  font-size: 17px;
 }
 .landing-search kbd {
   margin-inline-start: auto;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 6px;
-  padding: 2px 6px;
-  font-size: 11px;
+  border-radius: 7px;
+  padding: 3px 8px;
+  font-size: 12.5px;
   color: rgba(255, 255, 255, 0.45);
 }
 .landing-panel-shelf {
   position: relative;
-  margin: 28px 6px 20px;
-  padding-bottom: 14px;
+  margin: 34px 6px 24px;
+  padding-bottom: 16px;
   display: flex;
   justify-content: center;
   gap: 4px;
 }
 .landing-panel-shelf-poster {
-  width: 68px;
+  width: 84px;
   aspect-ratio: 2 / 3;
   flex: none;
-  border-radius: 6px;
+  border-radius: 7px;
   overflow: hidden;
   box-shadow: 0 10px 20px -6px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
   transform: rotate(var(--tilt));
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), z-index 0.3s;
 }
 .landing-panel-shelf-poster:not(:first-child) {
-  margin-inline-start: -16px;
+  margin-inline-start: -20px;
 }
 .landing-panel-shelf-poster:hover {
   transform: rotate(0deg) translateY(-6px) scale(1.08);
@@ -8405,17 +8414,17 @@ body.light .spine-theme-wood .spine-shelf-board {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px 8px;
+  gap: 8px 10px;
 }
 .landing-panel-stat {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   border-radius: 99px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
-  padding: 5px 10px;
-  font-size: 11px;
+  padding: 7px 13px;
+  font-size: 13px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.55);
 }
@@ -8458,11 +8467,19 @@ body.light .spine-theme-wood .spine-shelf-board {
   color: #fff;
 }
 
-/* ---- features ---- */
+/* ---- features ----
+   min-height keeps this section filling the viewport below the sticky
+   nav, so section 3 never peeks in at the bottom when you scroll to the
+   top of section 2 — each section gets a clean, full boundary. */
 .landing-features {
   max-width: 1180px;
   margin: 0 auto;
   padding: 72px 24px 64px;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .landing-section-head {
   display: flex;
@@ -9189,11 +9206,29 @@ body.light .spine-theme-wood .spine-shelf-board {
 }
 
 @media (max-width: 900px) {
+  .landing-hero {
+    /* روی موبایل/تبلت، محتوا (متن+پنل روی هم) معمولاً طبیعتاً بلندتر از
+       صفحه‌ست، پس min-height اجباری فقط فضای خالی اضافه می‌کنه. */
+    min-height: 0;
+    padding-top: 100px;
+  }
   .landing-hero-inner {
     grid-template-columns: 1fr;
   }
   .landing-hero-text {
     max-width: none;
+  }
+  .landing-features {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-panel-shelf-poster {
+    width: 58px;
+  }
+  .landing-panel-shelf-poster:not(:first-child) {
+    margin-inline-start: -14px;
   }
 }
 
