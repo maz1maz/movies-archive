@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { proxyImg } from '../utils/proxyImg.js'
 import { SHOWCASE_POSTERS } from '../data/showcasePosters.js'
-import { IconGrid, IconDisc, IconBarChart, IconSearch, IconPin, IconStar } from './icons.jsx'
+import { IconGrid, IconDisc, IconBarChart, IconSearch, IconPin, IconStar, IconLayers } from './icons.jsx'
 
 // Real physical titles with their actual shelf location and rating.
 const SHELF_TITLES = [
@@ -33,9 +33,34 @@ const STAT_CARDS = [
   { k: 'Titles with a rating', v: '14,768', s: 'synced from IMDb' },
 ]
 
+// Genre breakdown (snapshot), shown as a share of the largest genre so the
+// bars read the same way the decade chart does.
+const GENRES = [
+  { label: 'Drama', pct: 100 },
+  { label: 'Comedy', pct: 62 },
+  { label: 'Action', pct: 58 },
+  { label: 'Thriller', pct: 51 },
+  { label: 'Crime', pct: 47 },
+  { label: 'Documentary', pct: 33 },
+  { label: 'Sci-Fi', pct: 29 },
+  { label: 'Horror', pct: 24 },
+]
+
+// Franchise/series completion — the same "PART OF: X COLLECTION (n/n IN
+// ARCHIVE)" idea already shown inside a film's own detail page.
+const COLLECTIONS = [
+  { name: 'James Bond Collection', have: 26, total: 26 },
+  { name: 'Star Wars Saga', have: 9, total: 9 },
+  { name: 'The Godfather Trilogy', have: 3, total: 3 },
+  { name: 'Indiana Jones', have: 5, total: 5 },
+  { name: 'The Lord of the Rings (Extended)', have: 6, total: 6 },
+  { name: 'Marvel Cinematic Universe', have: 33, total: 34 },
+]
+
 const TABS = [
   { id: 'wall', label: 'Poster wall', icon: IconGrid },
   { id: 'shelf', label: 'Shelf detail', icon: IconDisc },
+  { id: 'collections', label: 'Collections', icon: IconLayers },
   { id: 'stats', label: 'Dashboard', icon: IconBarChart },
 ]
 
@@ -83,23 +108,65 @@ function ShelfList() {
   )
 }
 
+function CollectionsList() {
+  return (
+    <div className="showcase-collections">
+      {COLLECTIONS.map((c) => {
+        const pct = Math.round((c.have / c.total) * 100)
+        const complete = c.have >= c.total
+        return (
+          <div className="showcase-collection-card" key={c.name}>
+            <div className="showcase-collection-head">
+              <span className="showcase-collection-name">{c.name}</span>
+              <span className={complete ? 'showcase-collection-count showcase-collection-complete' : 'showcase-collection-count'}>
+                {c.have}/{c.total} in archive
+              </span>
+            </div>
+            <div className="showcase-collection-track">
+              <div className="showcase-collection-fill" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function Dashboard() {
   return (
     <div className="showcase-dashboard">
-      <div className="showcase-decade-card">
-        <div className="showcase-decade-head">
-          <h4>Collection by decade</h4>
-          <span>15,995 titles</span>
-        </div>
-        <div className="showcase-decade-bars">
-          {DECADES.map((d) => (
-            <div className="showcase-decade-bar-col" key={d.label}>
-              <div className="showcase-decade-bar-track">
-                <div className="showcase-decade-bar" style={{ height: `${d.pct}%` }} />
+      <div className="showcase-dashboard-charts">
+        <div className="showcase-decade-card">
+          <div className="showcase-decade-head">
+            <h4>Collection by decade</h4>
+            <span>15,995 titles</span>
+          </div>
+          <div className="showcase-decade-bars">
+            {DECADES.map((d) => (
+              <div className="showcase-decade-bar-col" key={d.label}>
+                <div className="showcase-decade-bar-track">
+                  <div className="showcase-decade-bar" style={{ height: `${d.pct}%` }} />
+                </div>
+                <span>{d.label}</span>
               </div>
-              <span>{d.label}</span>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+        <div className="showcase-decade-card">
+          <div className="showcase-decade-head">
+            <h4>Collection by genre</h4>
+            <span>top 8</span>
+          </div>
+          <div className="showcase-genre-list">
+            {GENRES.map((g) => (
+              <div className="showcase-genre-row" key={g.label}>
+                <span className="showcase-genre-label">{g.label}</span>
+                <div className="showcase-genre-track">
+                  <div className="showcase-genre-fill" style={{ width: `${g.pct}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       <div className="showcase-stat-cards">
@@ -159,6 +226,7 @@ export default function LandingShowcase() {
         <div className="showcase-panel">
           {tab === 'wall' && <PosterGrid />}
           {tab === 'shelf' && <ShelfList />}
+          {tab === 'collections' && <CollectionsList />}
           {tab === 'stats' && <Dashboard />}
         </div>
       </div>

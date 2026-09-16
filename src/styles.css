@@ -8694,11 +8694,86 @@ body.light .spine-theme-wood .spine-shelf-board {
 }
 
 .showcase-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.showcase-dashboard-charts {
   display: grid;
   gap: 16px;
 }
-@media (min-width: 1024px) {
-  .showcase-dashboard { grid-template-columns: 1.3fr 1fr; }
+@media (min-width: 780px) {
+  .showcase-dashboard-charts { grid-template-columns: 1fr 1fr; }
+}
+.showcase-genre-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.showcase-genre-row {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.showcase-genre-label {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.showcase-genre-track {
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.showcase-genre-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(to right, rgba(179, 123, 24, 0.5), var(--gold-300));
+}
+.showcase-collections {
+  display: grid;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .showcase-collections { grid-template-columns: 1fr 1fr; }
+}
+.showcase-collection-card {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 16px 18px;
+}
+.showcase-collection-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.showcase-collection-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.showcase-collection-count {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+}
+.showcase-collection-complete {
+  color: var(--gold-300);
+}
+.showcase-collection-track {
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.showcase-collection-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(to right, rgba(179, 123, 24, 0.5), var(--gold-300));
 }
 .showcase-decade-card {
   border-radius: 16px;

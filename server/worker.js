@@ -673,7 +673,7 @@ async function handleFetch(request, env, ctx) {
           .prepare(
             `SELECT * FROM films WHERE
              LOWER(director) LIKE ? OR LOWER(producer) LIKE ? OR LOWER("cast") LIKE ? OR LOWER(screenwriter) LIKE ?
-             ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC
+             ORDER BY (CASE WHEN SUBSTR((CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END), 1, 1) BETWEEN '0' AND '9' THEN 1 ELSE 0 END), (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC
              LIMIT 500`
           )
           .bind(s, s, s, s)
@@ -800,8 +800,8 @@ async function handleFetch(request, env, ctx) {
         else if (effectiveSort === 'title_az') {
           // مرتب‌سازی الفبایی، نادیده گرفتن «The» ابتدای عنوان (مثلاً
           // "The Godfather" باید زیر G بره نه T)
-          sql += ` ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
-        } else sql += ` ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
+          sql += ` ORDER BY (CASE WHEN SUBSTR((CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END), 1, 1) BETWEEN '0' AND '9' THEN 1 ELSE 0 END), (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
+        } else sql += ` ORDER BY (CASE WHEN SUBSTR((CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END), 1, 1) BETWEEN '0' AND '9' THEN 1 ELSE 0 END), (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
 
         // برای pagination، شمارش کل (بدون LIMIT) رو با همون WHERE می‌گیریم تا
         // فرانت‌اند بدونه چند صفحه هست — قبل از اضافه‌کردن LIMIT/OFFSET به sql.
@@ -2725,7 +2725,7 @@ async function handleFetch(request, env, ctx) {
           }
         }
         if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ')
-        sql += ` ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
+        sql += ` ORDER BY (CASE WHEN SUBSTR((CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END), 1, 1) BETWEEN '0' AND '9' THEN 1 ELSE 0 END), (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
         const result = await db.prepare(sql).bind(...params).all()
         const films = (result.results || []).map(parseFilmRow)
         const filenameScope = itemType === 'series' ? 'series-' : mediaType ? `${mediaType}-` : ''
@@ -2789,7 +2789,7 @@ async function handleFetch(request, env, ctx) {
           }
         }
         if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ')
-        sql += ` ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
+        sql += ` ORDER BY (CASE WHEN SUBSTR((CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END), 1, 1) BETWEEN '0' AND '9' THEN 1 ELSE 0 END), (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`
         const result = await db.prepare(sql).bind(...params).all()
         const films = (result.results || []).map(parseFilmRow)
         const isSeriesExport = itemType === 'series'
@@ -2975,7 +2975,7 @@ async function notifyServerError(env, message) {
 async function runDailyBackup(env) {
   const db = env.DB
   const result = await db
-    .prepare(`SELECT * FROM films ORDER BY (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`)
+    .prepare(`SELECT * FROM films ORDER BY (CASE WHEN SUBSTR((CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END), 1, 1) BETWEEN '0' AND '9' THEN 1 ELSE 0 END), (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE ASC`)
     .all()
   const films = (result.results || []).map(parseFilmRow)
   const payload = JSON.stringify({ backedUpAt: new Date().toISOString(), count: films.length, films })
