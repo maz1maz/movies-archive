@@ -188,7 +188,7 @@ export default function Landing() {
             <h1 className="landing-h1">
               Your entire cinematic world,
               <br />
-              <span className="landing-gold-text landing-serif-italic">framed in the splendor of a dream.</span>
+              <span className="landing-gold-text landing-serif-italic">in a dream's splendor.</span>
             </h1>
 
             <p className="landing-hero-copy">
