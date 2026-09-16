@@ -4,7 +4,7 @@ import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { shareFilmCard } from '../utils/shareCard.js'
 import { addToOrderList } from '../utils/orderList.js'
-import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
+import { parseDriveNumbers, driveLabel, driveSortValue, normalizeDriveValue } from '../utils/driveDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
 
 function CollectionOrderButton({ title, year }) {
@@ -69,10 +69,10 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
         if (!ownedMap[key].includes(sd.drive)) ownedMap[key].push(sd.drive)
       })
     })
-    // یه فصل می‌تونه رو چند درایو باشه — با کاما جدا می‌شه (مثلاً "Drive 9, Drive 11")
+    // یه فصل می‌تونه رو چند درایو باشه — با کاما جدا می‌شه (مثلاً "9, 11")
     const newDrives = (newDriveInput || '')
       .split(',')
-      .map((d) => d.trim())
+      .map((d) => normalizeDriveValue(d))
       .filter(Boolean)
     if (newDrives.length) {
       ownedMap[seasonNum] = newDrives
@@ -1086,9 +1086,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       // بدون عدد کل فصل‌های تولیدشده، همون بازه‌های ثبت‌شده رو نشون بده
                       return film.seasonDrives.map((sd, idx) => (
                         <div key={idx} className="cine-season-row">
-                          <span className="season-key">{sd.seasons}</span>
+                          <span className="season-key">
+                            {/\d/.test(sd.seasons || '') ? `Season ${sd.seasons}` : sd.seasons}
+                          </span>
                           <span className="season-drive">
-                            <IconPin width={12} height={12} /> {sd.drive}
+                            <IconPin width={12} height={12} /> {driveLabel(sd.drive)}
                           </span>
                         </div>
                       ))
@@ -1103,7 +1105,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                               autoFocus
                               className="season-drive-input"
                               value={seasonDriveInput}
-                              placeholder="e.g. Drive 3"
+                              placeholder="e.g. 3"
                               onChange={(e) => setSeasonDriveInput(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') saveSeasonDrive(n, seasonDriveInput)
@@ -1144,7 +1146,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                             {ownedMap[n] && ownedMap[n].length ? (
                               ownedMap[n].map((drv, i) => (
                                 <span key={i} className="season-drive-tag">
-                                  <IconPin width={12} height={12} /> {drv}
+                                  <IconPin width={12} height={12} /> {driveLabel(drv)}
                                 </span>
                               ))
                             ) : (

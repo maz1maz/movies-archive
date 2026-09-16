@@ -1,6 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconClose, IconSave, IconSearch, IconLink } from './icons.jsx'
 import StarRating from './StarRating.jsx'
+import { normalizeDriveValue } from '../utils/driveDisplay.js'
+
+// همون منطق normalizeDriveValue، برای فیلد «فصل‌ها» — «Season 3»،
+// «Seasons 1-3» و «3» رو یکدست می‌کنه («3»، «1-3») تا هم با هم هماهنگ
+// باشن هم نصفشون کلمه‌ی Season نداشته باشه نصفشون داشته باشه.
+function normalizeSeasonsValue(raw) {
+  return String(raw || '')
+    .replace(/seasons?/gi, '')
+    .replace(/[.\s]+/g, ' ')
+    .trim()
+}
 
 function toForm(film) {
   return {
@@ -263,12 +274,14 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       criterionCopies: form.criterion ? (form.criterionCopies ? parseInt(form.criterionCopies, 10) : 1) : undefined,
       copies: form.copies ? parseInt(form.copies, 10) : 1,
       mediaType: form.mediaType,
-      driveNumber: form.mediaType === 'digital' ? form.driveNumber || undefined : undefined,
+      driveNumber: form.mediaType === 'digital' ? normalizeDriveValue(form.driveNumber) || undefined : undefined,
       itemType: form.itemType,
       seasonsEpisodes: form.itemType === 'series' ? form.seasonsEpisodes || undefined : undefined,
       seasonDrives:
         form.mediaType === 'digital' && form.itemType === 'series'
-          ? form.seasonDrives.filter((sd) => sd.seasons.trim() || sd.drive.trim())
+          ? form.seasonDrives
+              .map((sd) => ({ seasons: normalizeSeasonsValue(sd.seasons), drive: normalizeDriveValue(sd.drive) }))
+              .filter((sd) => sd.seasons || sd.drive)
           : undefined,
       imdbId: form.imdbId || undefined,
       imdbVotes: form.imdbVotes || undefined,
@@ -481,7 +494,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
               <input
                 value={form.driveNumber}
                 onChange={set('driveNumber')}
-                placeholder="e.g. Drive 1, Drive 2"
+                placeholder="e.g. 1, 2"
               />
             </label>
           ) : form.mediaType === 'physical' ? (
@@ -534,7 +547,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                 <div key={idx} className="seasondrive-row">
                   <input
                     value={sd.seasons}
-                    placeholder="e.g. Seasons 1-3"
+                    placeholder="e.g. 1-3"
                     onChange={(e) =>
                       setForm((prev) => {
                         const next = [...prev.seasonDrives]
@@ -545,7 +558,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                   />
                   <input
                     value={sd.drive}
-                    placeholder="e.g. Drive 1"
+                    placeholder="e.g. 1"
                     onChange={(e) =>
                       setForm((prev) => {
                         const next = [...prev.seasonDrives]
