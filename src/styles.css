@@ -436,7 +436,7 @@ body.light .header {
 .pagination-num-active {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
-  color: #fff;
+  color: var(--accent-ink);
   font-weight: 800;
 }
 .pagination-dots {
@@ -1327,12 +1327,12 @@ body.light .header {
   transition: all 0.15s;
 }
 .cine-edit-btn:hover {
-  color: #ffffff;
+  color: var(--accent-ink);
   border-color: var(--accent);
   background: var(--accent-strong);
 }
 .cine-close:hover {
-  color: #ffffff;
+  color: var(--accent-ink);
   border-color: var(--accent);
   background: var(--accent-strong);
 }
@@ -1727,7 +1727,7 @@ body.light .header {
 }
 .shelf-stat-badge {
   background: var(--accent-strong);
-  color: #fff;
+  color: var(--accent-ink);
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 10.5px;
@@ -1826,7 +1826,7 @@ body.light .header {
 .export-letter-chip-active {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
-  color: #fff;
+  color: var(--accent-ink);
 }
 .export-letter-count {
   margin-inline-start: auto;
@@ -3237,7 +3237,7 @@ body.light .header {
   align-items: center;
   gap: 6px;
   background: var(--accent-strong);
-  color: #ffffff;
+  color: var(--accent-ink);
   padding: 5px 10px;
   border-radius: 7px;
   font-size: 11px;
@@ -3978,7 +3978,7 @@ body.light .header {
 }
 .cinema-news-lang-toggle button.active {
   background: var(--accent-strong);
-  color: #fff;
+  color: var(--accent-ink);
 }
 .cinema-news-lang-toggle button:disabled {
   opacity: 0.35;
@@ -4307,7 +4307,7 @@ body.light .header {
   height: 54px;
   border-radius: 50%;
   background: var(--accent-strong);
-  color: #ffffff;
+  color: var(--accent-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6665,7 +6665,7 @@ body.light .dashboard-panel {
 .export-letter-bar button.active {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
-  color: #fff;
+  color: var(--accent-ink);
 }
 .oscars-ceremony {
   font-size: 12px;
