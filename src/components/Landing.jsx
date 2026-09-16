@@ -315,6 +315,9 @@ export default function Landing() {
       </section>
 
       <footer className="landing-footer">
+        <p className="landing-footer-tagline">
+          One ticket, infinite stories{counts?.minYear ? ` · ${counts.minYear}–${new Date().getFullYear()}` : ''}
+        </p>
         <p>Cinefilm Archive — personal physical-media collection of Alireza Mazlaghani</p>
       </footer>
     </div>

@@ -9220,6 +9220,15 @@ body.light .spine-theme-wood .spine-shelf-board {
   font-weight: 600;
   color: rgba(255, 255, 255, 0.4);
 }
+.landing-footer-tagline {
+  margin-bottom: 10px !important;
+  font-family: var(--font-en-display);
+  font-size: 17px !important;
+  font-weight: 400 !important;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: var(--gold-200) !important;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .landing-wall-up, .landing-wall-down, .landing-panel-glow, .landing-chip, .landing-pulse-dot::before {
