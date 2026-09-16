@@ -5294,6 +5294,39 @@ body.light .header {
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.5);
   }
 }
+
+/* صفحه‌ی پوشه‌ها (بعد از لاگین): پوسترهای پس‌زمینه مثل دیوارِ لندینگ
+   به‌آرومی می‌لغزن — هر ستون یه انیمیشنِ translateY لوپ‌شونده‌ی مستقل. */
+.folder-collage-grid-drift {
+  inset: -60px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  overflow: hidden;
+}
+.folder-collage-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.folder-collage-col-up { animation: landing-drift-up var(--dur) linear infinite; }
+.folder-collage-col-down { animation: landing-drift-down var(--dur) linear infinite; }
+.folder-collage-grid-drift .folder-collage-tile {
+  flex-shrink: 0;
+  width: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .folder-collage-col-up, .folder-collage-col-down {
+    animation: none;
+  }
+}
+@media (max-width: 640px) {
+  .folder-collage-grid-drift {
+    inset: -30px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+}
 /* روی صفحات پوشه: فید سبک، چون پشتش فقط دوتا کارت بزرگه و خودِ پوسترها
    باید واضح دیده بشن */
 .folder-collage-overlay {
@@ -5346,7 +5379,7 @@ body.light .page-collage-overlay {
 /* ---------- Marquee band: the warm cinema-ticket panel that frames the
    folder cards, sitting between the poster collage above and below ---------- */
 .marquee-band {
-  --marquee-bg: rgba(255, 255, 255, 0.05);
+  --marquee-bg: rgba(6, 6, 9, 0.4);
   --marquee-border: rgba(255, 255, 255, 0.12);
   --marquee-gold: #d4af37;
   --marquee-cream: #f5f5f7;
