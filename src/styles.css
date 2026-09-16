@@ -8117,8 +8117,8 @@ body.light .spine-theme-wood .spine-shelf-board {
   transition: transform 0.25s ease, filter 0.25s ease, background 0.25s ease, border-color 0.25s ease;
 }
 .landing-btn-lg {
-  padding: 16px 32px;
-  font-size: 16.5px;
+  padding: 18px 36px;
+  font-size: 18.5px;
 }
 .landing-btn-gold {
   color: var(--ink-950);
@@ -8156,16 +8156,16 @@ body.light .spine-theme-wood .spine-shelf-board {
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 1320px;
+  max-width: 1480px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1.02fr 0.98fr;
-  gap: 64px;
+  gap: 72px;
   align-items: center;
 }
 .landing-hero-text {
   min-width: 0;
-  max-width: 660px;
+  max-width: 720px;
 }
 .landing-panel-wrap {
   min-width: 0;
@@ -8178,8 +8178,8 @@ body.light .spine-theme-wood .spine-shelf-board {
   border-radius: 999px;
   border: 1px solid rgba(227, 181, 63, 0.25);
   background: rgba(227, 181, 63, 0.08);
-  padding: 8px 17px;
-  font-size: 13px;
+  padding: 9px 19px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -8211,8 +8211,8 @@ body.light .spine-theme-wood .spine-shelf-board {
 }
 
 .landing-h1 {
-  margin: 26px 0 22px;
-  font-size: clamp(30px, 3.05vw, 43px);
+  margin: 30px 0 26px;
+  font-size: clamp(36px, 3.66vw, 52px);
   line-height: 1.14;
   font-weight: 600;
   letter-spacing: -0.03em;
@@ -8221,10 +8221,10 @@ body.light .spine-theme-wood .spine-shelf-board {
 }
 
 .landing-hero-copy {
-  margin: 0 0 24px;
-  max-width: 50ch;
+  margin: 0 0 28px;
+  max-width: 54ch;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 18px;
+  font-size: 20.5px;
   line-height: 1.65;
 }
 
@@ -8233,8 +8233,8 @@ body.light .spine-theme-wood .spine-shelf-board {
   align-items: center;
   gap: 9px;
   min-height: 28px;
-  margin-bottom: 36px;
-  font-size: 16px;
+  margin-bottom: 40px;
+  font-size: 17.5px;
   color: rgba(255, 255, 255, 0.5);
 }
 .landing-rotating-icon {
@@ -8256,8 +8256,8 @@ body.light .spine-theme-wood .spine-shelf-board {
 .landing-hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 28px;
+  gap: 16px;
+  margin-bottom: 32px;
 }
 
 .landing-hero-stat {
@@ -8272,17 +8272,17 @@ body.light .spine-theme-wood .spine-shelf-board {
 .landing-mini-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 32px;
+  gap: 36px;
 }
 .landing-mini-stat {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  font-size: 13px;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.45);
 }
 .landing-mini-stat .landing-hero-stat-num {
-  font-size: 25px;
+  font-size: 29px;
   font-family: var(--font-display);
 }
 
@@ -8369,7 +8369,7 @@ body.light .spine-theme-wood .spine-shelf-board {
 .landing-panel {
   position: relative;
   border-radius: 30px;
-  padding: 26px 26px 46px;
+  padding: 30px 30px 52px;
   box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.9);
 }
 .landing-search {
@@ -8379,9 +8379,9 @@ body.light .spine-theme-wood .spine-shelf-board {
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
-  padding: 15px 20px;
+  padding: 17px 23px;
   color: rgba(255, 255, 255, 0.4);
-  font-size: 17px;
+  font-size: 19px;
 }
 .landing-search kbd {
   margin-inline-start: auto;
@@ -8401,17 +8401,17 @@ body.light .spine-theme-wood .spine-shelf-board {
   gap: 4px;
 }
 .landing-panel-shelf-poster {
-  width: 84px;
+  width: 100px;
   aspect-ratio: 2 / 3;
   flex: none;
-  border-radius: 7px;
+  border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 10px 20px -6px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
   transform: rotate(var(--tilt));
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), z-index 0.3s;
 }
 .landing-panel-shelf-poster:not(:first-child) {
-  margin-inline-start: -20px;
+  margin-inline-start: -24px;
 }
 .landing-panel-shelf-poster:hover {
   transform: rotate(0deg) translateY(-6px) scale(1.08);
@@ -8445,8 +8445,8 @@ body.light .spine-theme-wood .spine-shelf-board {
   border-radius: 99px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
-  padding: 7px 13px;
-  font-size: 13px;
+  padding: 8px 15px;
+  font-size: 14px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.55);
 }
