@@ -4554,6 +4554,12 @@ body.light .header {
     padding: 0 0 10px;
     gap: 8px;
   }
+  /* بدون این، سرچ‌باکس (flex-basis: 260px) و دراپ‌داون Title تقریباً کل
+     عرض صفحه‌ی موبایل رو پر می‌کردن و دکمه‌ی A-Z تنها و بی‌دلیل می‌رفت خط
+     بعد. حالا سرچ خودش یه ردیف کامله، Title و A-Z با هم ردیف بعدی. */
+  .search-box {
+    flex-basis: 100%;
+  }
   .list-row {
     grid-template-columns: 44px minmax(0, 1fr) auto;
     gap: 10px;
