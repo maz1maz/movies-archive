@@ -38,6 +38,10 @@ export function AuthProvider({ children }) {
         setLoginError(data.error || 'Login failed')
         return false
       }
+      // یه لاگین تازه باید صفحه‌ی اصلی (FolderNav) رو نشون بده، نه بخشی که
+      // آخرین بار قبل از لاگ‌اوت باز بود — وگرنه App.jsx با section ذخیره‌شده
+      // تو localStorage مستقیم می‌ره تو همون بخش و هیچ‌وقت Home دیده نمی‌شه.
+      localStorage.removeItem('fa_section')
       setUser(data)
       setLoginOpen(false)
       return true
