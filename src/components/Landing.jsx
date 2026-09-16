@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { proxyImg } from '../utils/proxyImg.js'
 import { SHOWCASE_POSTERS, HERO_WALL_EXTRA_POSTERS } from '../data/showcasePosters.js'
 import LandingShowcase from './LandingShowcase.jsx'
+import LandingNews from './LandingNews.jsx'
 import {
   IconStar,
   IconLayers,
@@ -267,6 +268,8 @@ export default function Landing() {
       </section>
 
       <LandingShowcase />
+
+      <LandingNews />
 
       <section className="landing-cta">
         <IconBookshelf width={26} height={26} className="landing-gold-icon" />
