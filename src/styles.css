@@ -3248,6 +3248,10 @@ body.light .header {
 }
 .cine-drive-badge {
   background: #3b82f6;
+  /* این بج همیشه پس‌زمینه‌ی آبیِ ثابت داره (نه رنگ accent قابل‌تغییرِ
+     تم)، پس رنگ متنش هم باید ثابت سفید باشه، نه var(--accent-ink) که
+     برای پس‌زمینه‌ی accent (طلایی/روشن) طراحی شده و رو این آبی کم‌کنتراست می‌شد. */
+  color: #fff;
 }
 
 /* Bottom Row: Studio Left & Badges Right */
@@ -6358,7 +6362,9 @@ body.light .folder-back {
   }
   .modal-cine:not(.cine-panel) .cine-main-row {
     flex-direction: row;
-    align-items: flex-start;
+    /* stretch (نه flex-start) یعنی هم بالا هم‌تراز بمونن هم ستونِ اطلاعات
+       حداقل هم‌ارتفاعِ پوستر بشه، برای فیلم‌هایی که synopsis/اطلاعاتشون کمه */
+    align-items: stretch;
   }
   .modal-cine:not(.cine-panel) .cine-poster-wrap {
     width: 40%;
@@ -6380,6 +6386,7 @@ body.light .folder-back {
   }
   .modal-cine:not(.cine-panel) .cine-info-card {
     display: block;
+    flex: 1 1 auto;
   }
   .modal-cine:not(.cine-panel) .cine-info-card > * {
     flex: none !important;
