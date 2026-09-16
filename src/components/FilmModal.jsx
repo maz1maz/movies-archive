@@ -792,7 +792,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
             <div className="cine-more-details">
             {bookAdaptation?.basedOnBook && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+              <div className="cine-collection-box">
                 <div className="cine-section-label">BASED ON</div>
                 <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>
                   <a
@@ -813,7 +813,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {(film.originalLanguage || film.boxOffice) && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24 }}>
                 {film.originalLanguage && (
                   <div>
                     <div className="cine-section-label">LANGUAGE</div>
@@ -830,14 +830,14 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {film.tagline && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+              <div className="cine-collection-box">
                 <div className="cine-section-label">TAGLINE</div>
                 <p style={{ margin: '4px 0 0', fontSize: 13.5, fontStyle: 'italic' }}>“{film.tagline}”</p>
               </div>
             )}
 
             {(film.budget || film.revenue) && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24 }}>
                 {film.budget ? (
                   <div>
                     <div className="cine-section-label">BUDGET</div>
@@ -854,7 +854,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {(film.metascore || film.rottenTomatoes) && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24 }}>
                 {film.metascore ? (
                   <div>
                     <div className="cine-section-label">METASCORE</div>
@@ -871,7 +871,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {(film.releaseDate || film.status) && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24 }}>
                 {film.releaseDate ? (
                   <div>
                     <div className="cine-section-label">RELEASE DATE</div>
@@ -913,21 +913,21 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {Array.isArray(film.productionCompanies) && film.productionCompanies.length > 0 && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+              <div className="cine-collection-box">
                 <div className="cine-section-label">PRODUCTION COMPANIES</div>
                 <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.productionCompanies.join(', ')}</p>
               </div>
             )}
 
             {Array.isArray(film.spokenLanguages) && film.spokenLanguages.length > 0 && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+              <div className="cine-collection-box">
                 <div className="cine-section-label">SPOKEN LANGUAGES</div>
                 <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.spokenLanguages.join(', ')}</p>
               </div>
             )}
 
             {film.homepage && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+              <div className="cine-collection-box">
                 <div className="cine-section-label">OFFICIAL SITE</div>
                 <p style={{ margin: '4px 0 0', fontSize: 13.5, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
                   <a href={film.homepage} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
@@ -938,7 +938,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {(film.network || film.seriesStatus || film.schedule) && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24 }}>
                 {film.network ? (
                   <div>
                     <div className="cine-section-label">NETWORK</div>
