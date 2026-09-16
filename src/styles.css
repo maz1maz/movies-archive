@@ -3485,7 +3485,8 @@ body.light .header {
   border-color: var(--accent);
 }
 .cine-cast-item:hover .cine-actor-name {
-  color: var(--accent);
+  color: #a9bce6;
+  text-decoration: underline;
 }
 
 .cine-actor-avatar-wrap.avatar-loading {
@@ -3529,7 +3530,10 @@ body.light .header {
 .cine-actor-name {
   font-size: 10.5px;
   font-weight: 600;
-  color: var(--muted);
+  /* بازیگرها هم دقیقاً مثل کارگردان/نویسنده کلیک‌شدنی‌ان (onSelectPerson)،
+     پس باید همون رنگ طلاییِ لینک رو داشته باشن — نه خاکستری که فقط با
+     هاور طلایی می‌شه، چون رو موبایل هاور اصلاً دیده نمی‌شه. */
+  color: var(--accent);
   text-align: center;
   line-height: 1.2;
   word-break: break-word;
