@@ -9236,12 +9236,68 @@ body.light .spine-theme-wood .spine-shelf-board {
   }
   .landing-hero-inner {
     grid-template-columns: 1fr;
+    max-width: 1320px;
+    gap: 64px;
   }
   .landing-hero-text {
     max-width: none;
   }
   .landing-features {
     min-height: 0;
+  }
+  /* بزرگ‌ترشدنِ محتوای هیرو فقط برای دسکتاپ بود؛ رو موبایل/تبلت به
+     همون سایزهای قبلی برمی‌گردیم. */
+  .landing-eyebrow {
+    padding: 8px 17px;
+    font-size: 13px;
+  }
+  .landing-h1 {
+    margin: 26px 0 22px;
+    font-size: clamp(30px, 3.05vw, 43px);
+  }
+  .landing-hero-copy {
+    margin: 0 0 24px;
+    max-width: 50ch;
+    font-size: 18px;
+  }
+  .landing-rotating {
+    margin-bottom: 36px;
+    font-size: 16px;
+  }
+  .landing-hero-actions {
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .landing-mini-stats {
+    gap: 32px;
+  }
+  .landing-mini-stat {
+    font-size: 13px;
+  }
+  .landing-mini-stat .landing-hero-stat-num {
+    font-size: 25px;
+  }
+  .landing-btn-lg {
+    padding: 16px 32px;
+    font-size: 16.5px;
+  }
+  .landing-panel {
+    padding: 26px 26px 46px;
+  }
+  .landing-search {
+    padding: 15px 20px;
+    font-size: 17px;
+  }
+  .landing-panel-shelf-poster {
+    width: 84px;
+    border-radius: 7px;
+  }
+  .landing-panel-shelf-poster:not(:first-child) {
+    margin-inline-start: -20px;
+  }
+  .landing-panel-stat {
+    padding: 7px 13px;
+    font-size: 13px;
   }
 }
 
