@@ -60,6 +60,11 @@ const FEATURES = [
 
 const ROTATING_WORDS = ['Criterion spines', '4K UHD discs', 'NAS rips', 'box sets']
 
+// همون زاویه‌های کج‌شده‌ای که تو کلاژِ صفحه‌ی پوشه‌ها (بعد از لاگین) استفاده
+// می‌شه — دیوار پوستر این‌جا هم به‌جای ردیف‌های کاملاً صاف، حسِ یه دیوار
+// پوستر واقعی و کمی شلخته رو بگیره.
+const WALL_TILT_ANGLES = [-7, 4, -3, 6, -5, 3, -8, 5, -4, 7, -6, 2, -2, 8]
+
 // یه زیرمجموعه‌ی کوچیک از پوسترهای تاییدشده، برای «قفسه»ی داخل پنل شیشه‌ای
 // هیرو — به‌جای لیست آیکون‌های ساده، پوسترهای واقعی به شکل یه ردیف قفسه‌ی
 // فیزیکی (کج، هم‌پوشان) چیده می‌شن.
@@ -84,7 +89,11 @@ function PosterWallBackground() {
               style={{ '--dur': `${86 + col * 9}s` }}
             >
               {loop.map((src, i) => (
-                <div className="landing-wall-poster" key={`${col}-${i}`}>
+                <div
+                  className="landing-wall-poster"
+                  key={`${col}-${i}`}
+                  style={{ '--tilt': `${WALL_TILT_ANGLES[(col * perCol + i) % WALL_TILT_ANGLES.length]}deg` }}
+                >
                   <img src={proxyImg(src)} alt="" loading={col < 2 && i < 2 ? 'eager' : 'lazy'} />
                 </div>
               ))}
