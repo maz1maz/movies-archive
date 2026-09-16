@@ -131,10 +131,14 @@ export default function GallerySphere({ films, onBack, onOpenFilm }) {
         return true
       })
     if (deduped.length <= MAX_POSTERS) return deduped
-    const step = deduped.length / MAX_POSTERS
-    const sampled = []
-    for (let i = 0; i < MAX_POSTERS; i++) sampled.push(deduped[Math.floor(i * step)])
-    return sampled
+    // شافل Fisher-Yates بعد slice — هر بار که این صفحه باز می‌شه یه
+    // نمونه‌ی رندوم تازه از کل آرشیو (نه همیشه همون ۲۶۰ تا)
+    const shuffled = deduped.slice()
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    return shuffled.slice(0, MAX_POSTERS)
   }, [films])
 
   const n = postersOnly.length
