@@ -60,6 +60,12 @@ const FEATURES = [
 
 const ROTATING_WORDS = ['Criterion spines', '4K UHD discs', 'NAS rips', 'box sets']
 
+// یه زیرمجموعه‌ی کوچیک از پوسترهای تاییدشده، برای «قفسه»ی داخل پنل شیشه‌ای
+// هیرو — به‌جای لیست آیکون‌های ساده، پوسترهای واقعی به شکل یه ردیف قفسه‌ی
+// فیزیکی (کج، هم‌پوشان) چیده می‌شن.
+const SHELF_STRIP_POSTERS = SHOWCASE_POSTERS.slice(0, 6)
+const SHELF_TILTS = [-4, 3, -2, 4, -3, 2]
+
 function PosterWallBackground() {
   const columns = 6
   const perCol = 5
@@ -236,17 +242,25 @@ export default function Landing() {
                 <kbd>⌘K</kbd>
               </div>
 
-              <div className="landing-tiles">
-                {tiles.map((t) => (
-                  <div className="landing-tile" key={t.label}>
-                    <span className="landing-tile-icon">
-                      <t.icon width={17} height={17} />
-                    </span>
-                    <span className="landing-tile-text">
-                      <span className="landing-tile-label">{t.label}</span>
-                      <span className="landing-tile-meta">{t.meta}</span>
-                    </span>
+              <div className="landing-panel-shelf">
+                {SHELF_STRIP_POSTERS.map((src, i) => (
+                  <div
+                    className="landing-panel-shelf-poster"
+                    key={src}
+                    style={{ '--tilt': `${SHELF_TILTS[i % SHELF_TILTS.length]}deg` }}
+                  >
+                    <img src={proxyImg(src)} alt="" loading="lazy" />
                   </div>
+                ))}
+                <div className="landing-panel-shelf-ledge" aria-hidden="true" />
+              </div>
+
+              <div className="landing-panel-stats">
+                {tiles.map((t) => (
+                  <span className="landing-panel-stat" key={t.label}>
+                    <t.icon width={13} height={13} />
+                    {t.label}
+                  </span>
                 ))}
               </div>
             </div>

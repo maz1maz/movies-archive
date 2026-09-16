@@ -8361,51 +8361,66 @@ body.light .spine-theme-wood .spine-shelf-board {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.45);
 }
-.landing-tiles {
-  margin-top: 16px;
-  display: grid;
-  gap: 10px;
-}
-.landing-tile {
+.landing-panel-shelf {
+  position: relative;
+  margin: 28px 6px 20px;
+  padding-bottom: 14px;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.035);
-  padding: 12px 14px;
-  transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+  justify-content: center;
+  gap: 4px;
 }
-.landing-tile:hover {
-  transform: translateY(-2px);
-  border-color: rgba(234, 200, 104, 0.3);
-  background: rgba(255, 255, 255, 0.07);
-}
-.landing-tile-icon {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
+.landing-panel-shelf-poster {
+  width: 68px;
+  aspect-ratio: 2 / 3;
   flex: none;
-  border-radius: 999px;
-  border: 1px solid rgba(234, 200, 104, 0.3);
-  background: rgba(227, 181, 63, 0.12);
-  color: var(--gold-300);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 10px 20px -6px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transform: rotate(var(--tilt));
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), z-index 0.3s;
 }
-.landing-tile-text {
-  min-width: 0;
-  flex: 1;
+.landing-panel-shelf-poster:not(:first-child) {
+  margin-inline-start: -16px;
+}
+.landing-panel-shelf-poster:hover {
+  transform: rotate(0deg) translateY(-6px) scale(1.08);
+  z-index: 5;
+}
+.landing-panel-shelf-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.landing-panel-shelf-ledge {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 99px;
+  background: linear-gradient(to right, transparent, rgba(227, 181, 63, 0.55), transparent);
+}
+.landing-panel-stats {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 8px;
 }
-.landing-tile-label {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #fff;
+.landing-panel-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
 }
-.landing-tile-meta {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.4);
+.landing-panel-stat svg {
+  color: var(--gold-300);
 }
 
 .landing-chip {
