@@ -8372,7 +8372,7 @@ body.light .spine-theme-wood .spine-shelf-board {
 .landing-wall-tone {
   position: absolute;
   inset: 0;
-  background: rgba(7, 6, 9, 0.36);
+  background: rgba(7, 6, 9, 0.6);
 }
 .landing-wall-vignette {
   position: absolute;
