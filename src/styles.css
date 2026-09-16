@@ -8149,8 +8149,8 @@ body.light .spine-theme-wood .spine-shelf-board {
   padding: 24px 24px 64px;
   display: flex;
   align-items: center;
-  min-height: 100vh;
-  min-height: 100svh;
+  min-height: 120vh;
+  min-height: 120svh;
 }
 .landing-hero-inner {
   position: relative;
@@ -8339,7 +8339,7 @@ body.light .spine-theme-wood .spine-shelf-board {
 .landing-wall-tone {
   position: absolute;
   inset: 0;
-  background: rgba(7, 6, 9, 0.72);
+  background: rgba(7, 6, 9, 0.46);
 }
 .landing-wall-vignette {
   position: absolute;
