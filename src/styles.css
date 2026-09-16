@@ -8339,14 +8339,20 @@ body.light .spine-theme-wood .spine-shelf-board {
 .landing-wall-tone {
   position: absolute;
   inset: 0;
-  background: rgba(7, 6, 9, 0.46);
+  background: rgba(7, 6, 9, 0.3);
 }
 .landing-wall-vignette {
   position: absolute;
   inset: 0;
+  /* قبلاً یه گرادیان بالا-پایین با دو سر کاملاً مشکیِ solid (نه حتی
+     نیمه‌شفاف) داشتیم که عملاً پوسترهای بالا/پایینِ دیوار رو کامل
+     می‌پوشوند. الان یه گرادیان چپ‌به‌راست (تیره پشتِ متن سمت چپ، روشن‌تر
+     سمت پنل/راست که خودش پس‌زمینه‌ی شیشه‌ای مجزا داره) + یه محوشدگیِ
+     ملایم‌ترِ بالا-پایین جایگزینش شده، تا پوسترها واقعاً دیده بشن ولی
+     کنتراست متن حفظ بشه. */
   background:
-    radial-gradient(120% 80% at 50% 0%, transparent 0%, rgba(7, 6, 9, 0.55) 55%, #070609 100%),
-    linear-gradient(to bottom, var(--ink-950), rgba(7, 6, 9, 0.35) 40%, var(--ink-950)),
+    linear-gradient(100deg, rgba(7, 6, 9, 0.82) 0%, rgba(7, 6, 9, 0.55) 32%, rgba(7, 6, 9, 0.16) 56%, rgba(7, 6, 9, 0.32) 100%),
+    linear-gradient(to bottom, rgba(7, 6, 9, 0.65) 0%, rgba(7, 6, 9, 0.1) 16%, rgba(7, 6, 9, 0.1) 84%, rgba(7, 6, 9, 0.65) 100%),
     radial-gradient(60% 50% at 15% 35%, rgba(227, 181, 63, 0.16), transparent 70%),
     radial-gradient(55% 45% at 85% 60%, rgba(123, 91, 214, 0.16), transparent 70%);
 }
