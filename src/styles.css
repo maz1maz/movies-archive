@@ -8338,7 +8338,7 @@ body.light .spine-theme-wood .spine-shelf-board {
 .landing-panel {
   position: relative;
   border-radius: 26px;
-  padding: 20px;
+  padding: 20px 20px 38px;
   box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.9);
 }
 .landing-search {
