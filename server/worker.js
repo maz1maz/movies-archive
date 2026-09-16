@@ -206,7 +206,7 @@ async function handleFetch(request, env, ctx) {
     // ---- گیت کلی: بدون لاگین هیچ‌چیزی از سایت در دسترس نیست — نه مرور،
     // نه سرچ، هیچی. فقط خود مسیرهای auth (لاگین/گوگل/خروج/وضعیت فعلی)
     // بدون لاگین قابل‌دسترسن، وگرنه هیچ‌کس نمی‌تونه اصلاً وارد بشه. ----
-    const PUBLIC_AUTH_PATHS = ['/api/auth/login', '/api/auth/logout', '/api/auth/me', '/api/films/counts']
+    const PUBLIC_AUTH_PATHS = ['/api/auth/login', '/api/auth/logout', '/api/auth/me', '/api/films/counts', '/api/decades', '/api/cinema-news']
     if (!currentUser && pathname.startsWith('/api/') && !PUBLIC_AUTH_PATHS.includes(pathname)) {
       return json({ error: 'You need to log in to use the archive' }, 401, corsHeaders)
     }
@@ -2133,10 +2133,13 @@ async function handleFetch(request, env, ctx) {
 
       if (method === 'GET' && pathname === '/api/cinema-news') {
         try {
+          // مهمون‌ها (لندینگ پیش از لاگین) فقط بخش‌های عمومی (TMDB/RSS) رو
+          // می‌بینن — تولدهای «کالکشن شما» و «در راه (کالکشن شما)» چون از
+          // جدول films خودِ کاربر میان، فقط برای کاربر لاگین‌شده حساب می‌شن.
           const [birthdays, upcoming, trailers, headlines, headlinesFa, generalUpcoming, trending, trendingPeople, bornTodayGeneralRaw, festivals] =
             await Promise.all([
-              fetchTodaysBirthdays(db),
-              fetchUpcomingFromCollection(db, env),
+              currentUser ? fetchTodaysBirthdays(db) : Promise.resolve([]),
+              currentUser ? fetchUpcomingFromCollection(db, env) : Promise.resolve([]),
               fetchTrendingTrailers(db, env),
               fetchCinemaHeadlines(db),
               fetchCinemaHeadlinesFa(db),
@@ -2157,19 +2160,23 @@ async function handleFetch(request, env, ctx) {
             const nameLower = p.name.toLowerCase()
             if (collectionNames.has(nameLower)) continue
             let inCollection = false
-            try {
-              const like = `%${nameLower}%`
-              const filmsRes = await db
-                .prepare('SELECT title FROM films WHERE LOWER(director) LIKE ? OR LOWER("cast") LIKE ? LIMIT 3')
-                .bind(like, like)
-                .all()
-              const rows = filmsRes.results || []
-              if (rows.length) {
-                inCollection = true
-                birthdays.push({ name: p.name, photo: p.photo || null, age: p.age, films: rows.map((f) => f.title) })
-                collectionNames.add(nameLower)
-              }
-            } catch {}
+            // مهمون‌ها به films خودِ کاربر دسترسی ندارن، پس این چک اصلاً براشون
+            // اجرا نمی‌شه — همه‌ی bornTodayGeneralRaw همون‌طوری برمی‌گرده.
+            if (currentUser) {
+              try {
+                const like = `%${nameLower}%`
+                const filmsRes = await db
+                  .prepare('SELECT title FROM films WHERE LOWER(director) LIKE ? OR LOWER("cast") LIKE ? LIMIT 3')
+                  .bind(like, like)
+                  .all()
+                const rows = filmsRes.results || []
+                if (rows.length) {
+                  inCollection = true
+                  birthdays.push({ name: p.name, photo: p.photo || null, age: p.age, films: rows.map((f) => f.title) })
+                  collectionNames.add(nameLower)
+                }
+              } catch {}
+            }
             if (!inCollection) bornTodayGeneral.push(p)
           }
 
