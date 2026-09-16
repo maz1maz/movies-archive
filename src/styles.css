@@ -8784,6 +8784,100 @@ body.light .spine-theme-wood .spine-shelf-board {
   border-radius: 99px;
   background: linear-gradient(to right, rgba(179, 123, 24, 0.5), var(--gold-300));
 }
+.showcase-detail {
+  display: flex;
+  gap: 20px;
+  padding: 8px;
+}
+.showcase-detail-poster {
+  width: 130px;
+  aspect-ratio: 2 / 3;
+  flex: none;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.showcase-detail-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.showcase-detail-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+.showcase-detail-year {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+}
+.showcase-detail-meta {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.showcase-detail-formats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.showcase-detail-format {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.showcase-detail-format-physical {
+  background: rgba(227, 181, 63, 0.16);
+  color: var(--gold-300);
+}
+.showcase-detail-format-digital {
+  background: rgba(79, 163, 229, 0.16);
+  color: #6db8f2;
+}
+.showcase-detail-loc {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+.showcase-detail-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold-300);
+}
+.showcase-detail-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 2px;
+}
+.showcase-detail-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+@media (max-width: 520px) {
+  .showcase-detail {
+    flex-direction: column;
+  }
+  .showcase-detail-poster {
+    width: 96px;
+  }
+}
 .showcase-collections {
   display: grid;
   gap: 12px;

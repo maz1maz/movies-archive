@@ -1,7 +1,24 @@
 import { useState } from 'react'
 import { proxyImg } from '../utils/proxyImg.js'
 import { SHOWCASE_POSTERS } from '../data/showcasePosters.js'
-import { IconGrid, IconDisc, IconBarChart, IconSearch, IconPin, IconStar, IconLayers } from './icons.jsx'
+import { IconGrid, IconDisc, IconBarChart, IconSearch, IconPin, IconStar, IconLayers, IconFilm, IconHandshake, IconShare } from './icons.jsx'
+
+// نمونه‌ی واقعی از خودِ آرشیو — یه فیلم که هم نسخه‌ی فیزیکی هم دیجیتال داره،
+// تا نشون بده کلیک رو یه پوستر دقیقاً چه چیزی رو باز می‌کنه (فرمت‌ها،
+// لوکیشن قفسه/درایو، امتیاز، خلاصه‌ی داستان).
+const DETAIL_FILM = {
+  title: 'A Bad Moms Christmas',
+  year: 2017,
+  genre: 'Comedy',
+  runtime: '1h 44m',
+  rating: 5.6,
+  synopsis:
+    'A Bad Moms Christmas is a 2017 American Christmas comedy film written and directed by Jon Lucas and Scott Moore. It is a sequel to the 2016 film Bad Moms. The plot follows the three moms from the first film dealing with their own mothers visiting during the Christmas holiday.',
+  studio: 'STX Entertainment',
+  physicalLoc: 'Closet 1 · Shelf 2 · Row 1',
+  digitalLoc: 'Drive 11',
+  poster: 'https://m.media-amazon.com/images/M/MV5BMTUwNTA4MDMxNl5BMl5BanBnXkFtZTgwMjE4NjQ0MzI@._V1_SX300.jpg',
+}
 
 // Real physical titles with their actual shelf location and rating. Also
 // carries the same kind of detail (genres/synopsis/studio/box office)
@@ -123,6 +140,7 @@ const COLLECTIONS = [
 const TABS = [
   { id: 'wall', label: 'Poster wall', icon: IconGrid },
   { id: 'shelf', label: 'Shelf detail', icon: IconDisc },
+  { id: 'detail', label: 'Film page', icon: IconFilm },
   { id: 'collections', label: 'Collections', icon: IconLayers },
   { id: 'stats', label: 'Dashboard', icon: IconBarChart },
 ]
@@ -178,6 +196,50 @@ function ShelfList() {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+function FilmDetailPreview() {
+  const f = DETAIL_FILM
+  return (
+    <div className="showcase-detail">
+      <img src={proxyImg(f.poster)} alt="" loading="lazy" className="showcase-detail-poster" />
+      <div className="showcase-detail-body">
+        <h3 className="showcase-detail-title">
+          {f.title} <span className="showcase-detail-year">({f.year})</span>
+        </h3>
+        <p className="showcase-detail-meta">
+          {f.year} · {f.genre} · {f.runtime}
+        </p>
+        <div className="showcase-detail-formats">
+          <span className="showcase-detail-format showcase-detail-format-physical">
+            <IconDisc width={12} height={12} /> Blu-ray
+          </span>
+          <span className="showcase-detail-loc">
+            <IconPin width={11} height={11} /> {f.physicalLoc}
+          </span>
+          <span className="showcase-detail-format showcase-detail-format-digital">
+            <IconFilm width={12} height={12} /> Digital
+          </span>
+          <span className="showcase-detail-loc">
+            <IconPin width={11} height={11} /> {f.digitalLoc}
+          </span>
+        </div>
+        <span className="showcase-detail-rating">
+          <IconStar width={13} height={13} /> IMDb {f.rating}/10
+        </span>
+        <p className="showcase-shelf-synopsis">{f.synopsis}</p>
+        <p className="showcase-shelf-studio">{f.studio}</p>
+        <div className="showcase-detail-actions">
+          <span className="showcase-detail-action">
+            <IconHandshake width={13} height={13} /> Lend film
+          </span>
+          <span className="showcase-detail-action">
+            <IconShare width={13} height={13} /> Share
+          </span>
+        </div>
+      </div>
     </div>
   )
 }
@@ -300,6 +362,7 @@ export default function LandingShowcase() {
         <div className="showcase-panel">
           {tab === 'wall' && <PosterGrid />}
           {tab === 'shelf' && <ShelfList />}
+          {tab === 'detail' && <FilmDetailPreview />}
           {tab === 'collections' && <CollectionsList />}
           {tab === 'stats' && <Dashboard />}
         </div>
