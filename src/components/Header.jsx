@@ -128,8 +128,18 @@ export default function Header({
   // تا فضای بیشتری به محتوا بده. همچنین اگه پنل فیلتر/منو/A-Z باز بود، با
   // اسکرول بسته بشه — وگرنه رو پوسترها معلق می‌مونه و جلوی دیدشون رو می‌گیره.
   useEffect(() => {
+    let lastY = window.scrollY
     const onScroll = () => {
-      setCondensed(window.scrollY > 40)
+      const y = window.scrollY
+      // موبایل‌ها با جمع‌شدن نوار آدرس (که حتی با یه تپ ساده رو صفحه هم
+      // اتفاق می‌افته) یه اسکرول جعلی چندپیکسلی می‌فرستن — اگه بدون آستانه
+      // این رو «اسکرول واقعی» حساب کنیم، دقیقاً همون تپی که منو رو باز
+      // می‌کنه می‌تونه بلافاصله ببندتش یا با تغییر condensed (که ارتفاع
+      // هدر رو عوض می‌کنه و پنل موبایل موقعیتش به همون ارتفاع وابسته‌ست)
+      // باعث بشه پنل بپره.
+      if (Math.abs(y - lastY) < 8) return
+      lastY = y
+      setCondensed(y > 40)
       setFiltersOpen(false)
       setMenuOpen(false)
       setAzOpen(false)

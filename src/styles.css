@@ -4736,6 +4736,10 @@ body.light .header {
     width: auto;
     min-width: 0;
     max-height: calc(100vh - var(--header-h, 240px) - 24px);
+    /* dvh با جمع/بازشدن نوار آدرس موبایل هم‌زمان تنظیم می‌شه، برخلاف vh که
+       ثابت می‌مونه و باعث می‌شه فضای واقعی در دسترس برای اسکرول پنل، وسط
+       تعامل کاربر ناگهان عوض به نظر برسه. */
+    max-height: calc(100dvh - var(--header-h, 240px) - 24px);
     overflow-y: auto;
     overscroll-behavior: contain;
     touch-action: pan-y;
@@ -4806,6 +4810,14 @@ body.light .header {
     right: 12px;
     top: calc(var(--header-h, 240px) + 8px);
     width: auto;
+    /* برخلاف پنل منو، این یکی max-height/overflow نداشت — رو صفحه‌ی
+       کوتاه، فیلترهای پایینی (loan, ...) کلاً بیرون از دید می‌رفتن و
+       هیچ راهی برای اسکرول کردن بهشون نبود. */
+    max-height: calc(100vh - var(--header-h, 240px) - 24px);
+    max-height: calc(100dvh - var(--header-h, 240px) - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
 }
 @media (max-width: 480px) {
