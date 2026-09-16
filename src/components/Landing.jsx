@@ -292,7 +292,7 @@ export default function Landing() {
           {FEATURES.map((f) => (
             <div className="landing-feature-card" key={f.title}>
               <span className="landing-feature-icon">
-                <f.icon width={18} height={18} />
+                <f.icon width={22} height={22} />
               </span>
               <h3>{f.title}</h3>
               <p>{f.body}</p>
