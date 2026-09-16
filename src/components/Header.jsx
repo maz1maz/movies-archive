@@ -412,6 +412,29 @@ export default function Header({
                 </button>
               </div>
               <div className="header-menu-section">
+                <div className="header-menu-section-title">Account</div>
+                {isGuest ? (
+                  <button type="button" onClick={() => { openLogin(); setMenuOpen(false) }}>
+                    Log in
+                  </button>
+                ) : (
+                  <>
+                    <div style={{ padding: '4px 12px', color: 'var(--muted)', fontSize: 13 }}>
+                      {user.username} {isAdmin ? '(Admin)' : ''}
+                    </div>
+                    {isAdmin && (
+                      <button type="button" onClick={() => { setAdminOpen(true); setMenuOpen(false) }}>
+                        Manage Users
+                      </button>
+                    )}
+                    <button type="button" onClick={() => { logout(); setMenuOpen(false) }}>
+                      Log out
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="header-menu-section">
                 <div className="header-menu-section-title">Tools</div>
                 <button
                   type="button"
@@ -491,29 +514,6 @@ export default function Header({
                 >
                   <IconUpload width={15} height={15} /> Import Ratings (Letterboxd/IMDb)
                 </button>
-              </div>
-
-              <div className="header-menu-section">
-                <div className="header-menu-section-title">Account</div>
-                {isGuest ? (
-                  <button type="button" onClick={() => { openLogin(); setMenuOpen(false) }}>
-                    Log in
-                  </button>
-                ) : (
-                  <>
-                    <div style={{ padding: '4px 12px', color: 'var(--muted)', fontSize: 13 }}>
-                      {user.username} {isAdmin ? '(Admin)' : ''}
-                    </div>
-                    {isAdmin && (
-                      <button type="button" onClick={() => { setAdminOpen(true); setMenuOpen(false) }}>
-                        Manage Users
-                      </button>
-                    )}
-                    <button type="button" onClick={() => { logout(); setMenuOpen(false) }}>
-                      Log out
-                    </button>
-                  </>
-                )}
               </div>
             </div>
           </div>
