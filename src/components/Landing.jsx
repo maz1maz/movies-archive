@@ -176,18 +176,18 @@ export default function Landing() {
           <div className="landing-hero-text">
             <span className="landing-eyebrow">
               <span className="landing-pulse-dot" />
-              Now showing · personal film archive
+              Personal film archive · refined
             </span>
 
             <h1 className="landing-h1">
-              Every film you own,
+              Your entire cinematic world,
               <br />
-              <span className="landing-gold-text landing-serif-italic">finally in one archive.</span>
+              <span className="landing-gold-text landing-serif-italic">framed in the splendor of a dream.</span>
             </h1>
 
             <p className="landing-hero-copy">
-              A physical and digital media catalogue built to actually find things — turning a
-              wall of shelves and years of hard drives into one searchable, beautiful record.
+              No clunky spreadsheets. No lost discs. Just your pure obsession, transformed into a
+              sleek, searchable private cinema.
             </p>
 
             <div className="landing-rotating" aria-live="polite">
@@ -269,9 +269,9 @@ export default function Landing() {
         <div className="landing-section-head">
           <span className="landing-eyebrow landing-eyebrow-static">Inside the archive</span>
           <h2>
-            Built for a collection that
+            When a hobby turns into heritage,
             <br />
-            <span className="landing-gold-text landing-serif-italic">outgrew a spreadsheet.</span>
+            <span className="landing-gold-text landing-serif-italic">it deserves better than Excel.</span>
           </h2>
         </div>
         <div className="landing-features-grid">
