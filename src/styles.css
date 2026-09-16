@@ -9364,3 +9364,176 @@ body.light .spine-theme-wood .spine-shelf-board {
     font-size: 14px;
   }
 }
+
+/* ---------- Gallery sphere (post-login "Gallery" screen) — DOM-based 3D
+   poster projection, replacing the old WebGL/atlas sphere. Six switchable
+   layouts, drag/wheel/pinch to orbit + zoom, hover tooltip. ---------- */
+.sphere-page {
+  background: #0e0e10;
+  position: fixed;
+  inset: 0;
+  padding: 0;
+}
+.sphere-back {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.55);
+  color: #f4f3f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.sphere-layout-switch {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  max-width: calc(100vw - 32px);
+  overflow-x: auto;
+}
+.sphere-layout-btn {
+  border: none;
+  background: none;
+  color: rgba(244, 243, 240, 0.6);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.sphere-layout-btn:hover {
+  color: #f4f3f0;
+  background: rgba(255, 255, 255, 0.08);
+}
+.sphere-layout-btn-active {
+  color: var(--ink-950, #0e0e10);
+  background: linear-gradient(180deg, #f0cd6b 0%, #e3b53f 45%, #c9941f 100%);
+}
+.sphere-zoom-controls {
+  position: fixed;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+}
+.sphere-zoom-controls button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: none;
+  background: none;
+  color: rgba(244, 243, 240, 0.7);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.sphere-zoom-controls button:hover {
+  color: #f4f3f0;
+  background: rgba(255, 255, 255, 0.1);
+}
+.sphere-stage {
+  position: fixed;
+  inset: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 46%, rgba(227, 181, 63, 0.07), transparent 60%),
+    #0e0e10;
+}
+.sphere-stage:active {
+  cursor: grabbing;
+}
+.sphere-inner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.sphere-tile {
+  position: absolute;
+  will-change: transform, opacity;
+  transform-origin: 50% 50%;
+  pointer-events: auto;
+}
+.sphere-tile-inner {
+  width: 100%;
+  height: 100%;
+  transform: rotate(var(--tilt));
+  transform-origin: 50% 50%;
+  transition: transform 0.2s ease-out, filter 0.2s ease-out;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.sphere-tile:hover .sphere-tile-inner {
+  transform: rotate(0deg) scale(1.3);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.9), 0 0 0 1.5px rgba(255, 255, 255, 0.9);
+}
+.sphere-tile-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sphere-tooltip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4000;
+  pointer-events: none;
+  white-space: nowrap;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.85);
+  padding: 7px 13px;
+  text-align: center;
+  opacity: 0;
+  backdrop-filter: blur(8px);
+  transition: opacity 0.15s ease;
+}
+.sphere-tooltip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+.sphere-tooltip-sub {
+  margin-top: 2px;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.55);
+}
+@media (max-width: 640px) {
+  .sphere-zoom-controls {
+    right: 10px;
+  }
+  .sphere-layout-btn {
+    padding: 6px 11px;
+    font-size: 11px;
+  }
+}

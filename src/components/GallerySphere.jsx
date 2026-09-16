@@ -1,622 +1,499 @@
-import { useEffect, useRef, useState } from 'react'
-import { Renderer, Camera, Transform, Program, Mesh, Geometry, Texture, Vec3 } from 'ogl'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-// گالری کروی سه‌بعدی — پوسترها دور یه کره چیده می‌شن، کره خودش می‌چرخه،
-// با درگ هم می‌شه چرخوندش، با اسکرول زوم می‌کنه. کاملاً مستقل از موتور
-// voroforce قبلی (بدون مشکل سازگاری DXT1/iOS، چون از تکسچر خام استفاده می‌کنه).
+// گالری سه‌بعدیِ پوسترها — نسخه‌ی دوم، جایگزینِ نسخه‌ی قبلی (رندر WebGL/ogl
+// روی یه اطلس تکسچر از پیش‌ساخته‌شده با scripts/build-sphere-atlas.mjs).
+// اون نسخه هم نیاز به یه مرحله‌ی build جدا داشت (اگه اطلس ساخته نشده بود
+// صفحه خطا می‌داد) هم روی Safari/iOS به‌خاطر فشرده‌سازی DXT1/S3TC مشکل
+// داشت. این نسخه به‌جای GPU instancing، هر پوستر رو یه <img> ساده می‌ذاره
+// و موقعیت سه‌بعدیش رو با یه پروجکشن دستی (بدون WebGL) هر فریم حساب
+// می‌کنه — دقیقاً همون <img src={f.poster}> ایه که همه‌جای بقیه‌ی اپ
+// استفاده می‌شه، پس نه build جدا لازمه نه مشکل سازگاری مرورگر.
+// چون این‌جا هر پوستر یه DOM node واقعیه (نه یه سلول GPU)، با هزاران‌تا
+// روی موبایل کند می‌شه — برای همین (بر خلاف نسخه‌ی قبلی که کل آرشیو رو
+// می‌ذاشت) اینجا به MAX_POSTERS محدود می‌کنیم، با یه نمونه‌برداریِ یکنواخت
+// از کل آرشیو (نه فقط چندصدتای اول) تا تنوع واقعی حفظ بشه.
+const MAX_POSTERS = 260
 
-const vertex = /* glsl */ `
-  attribute vec3 center;
-  attribute vec2 corner;
-  attribute vec2 uv;
-  attribute float posterIndex;
-  varying vec2 vUv;
-  varying float vWorldY;
-  varying float vPosterIndex;
-  varying vec2 vCorner;
+const LAYOUTS = [
+  { key: 'sphere', label: 'Sphere' },
+  { key: 'galaxy', label: 'Galaxy' },
+  { key: 'grid', label: 'Wall' },
+  { key: 'helix', label: 'Helix' },
+  { key: 'wave', label: 'Wave' },
+  { key: 'ring', label: 'Rings' },
+]
 
-  uniform mat4 modelViewMatrix;
-  uniform mat4 projectionMatrix;
-  uniform float uRotationY;
-  uniform vec2 uBillboardSize;
-  uniform float uHoverIndex;
+const TILT_ANGLES = [-7, 4, -3, 6, -5, 3, -8, 5, -4, 7, -6, 2, -2, 8]
 
-  void main() {
-    vUv = uv;
-    vCorner = corner;
-    vPosterIndex = posterIndex;
-    float c = cos(uRotationY);
-    float s = sin(uRotationY);
-    vec3 rotated = vec3(
-      center.x * c - center.z * s,
-      center.y,
-      center.x * s + center.z * c
-    );
-    vWorldY = center.y; // قبل از چرخش کافیه، چون فقط دور Y می‌چرخیم و y عوض نمی‌شه
-
-    // پوستری که موس روشه، یه‌کم به سمت بیرون کره فاصله بگیره (برجسته بشه)
-    // -- حذف شد: باعث می‌شد موقعیت واقعی پوستر با محاسبه‌ی کلیک (که روی
-    // موقعیت اصلی/غیر-پاپ‌شده حساب می‌شه) فرق کنه و یه حلقه‌ی ناپایدار
-    // (پرش/عدم امکان کلیک) ایجاد می‌کرد. فقط حاشیه‌ی سفید (توی فرگمنت
-    // شیدر) کافیه و مشکلی نداره چون موقعیت رو عوض نمی‌کنه.
-
-    vec4 mvPosition = modelViewMatrix * vec4(rotated, 1.0);
-    // بعد از تبدیل model-view، آفست رو اضافه می‌کنیم؛ این باعث می‌شه
-    // پوستر همیشه رو به دوربین باشه (billboard) بدون محاسبه‌ی جداگانه.
-    mvPosition.xy += corner * uBillboardSize;
-    gl_Position = projectionMatrix * mvPosition;
-  }
-`;
-
-const fragment = /* glsl */ `
-  precision highp float;
-  varying vec2 vUv;
-  varying float vWorldY;
-  varying float vPosterIndex;
-  varying vec2 vCorner;
-  uniform sampler2D uAtlas;
-  uniform float uTime;
-  uniform float uRadius;
-  uniform float uHoverIndex;
-
-  void main() {
-    vec4 color = texture2D(uAtlas, vUv);
-    // نوار نوری طلایی که به‌آرومی از بالا به پایین کره رد می‌شه
-    // فرکانس قبلاً 0.9 بود که باعث می‌شد بیش از یک دور کامل sin() توی
-    // ارتفاع کره جا بشه (یعنی دو تا نوار هم‌زمان دیده بشه). با فرکانس
-    // کمتر، فقط یه دور کامل (یه نوار) توی کل ارتفاع کره جا می‌شه.
-    float wave = sin(vWorldY * 0.35 - uTime * 0.15); // خیلی کندتر شد (0.6 -> 0.15)
-    float band = smoothstep(0.985, 1.0, wave); // خیلی نازک‌تر شد (0.94-1.0 -> 0.985-1.0)
-    vec3 gold = vec3(0.95, 0.75, 0.25);
-    color.rgb = mix(color.rgb, color.rgb + gold * 0.55, band);
-
-    // هایلایت پوستری که موس روشه — یه حاشیه‌ی سفید دور همون یه پوستر
-    // (نه بقیه) تا کاربر قبل از کلیک مطمئن بشه دقیقاً کدوم رو نشونه گرفته
-    if (abs(vPosterIndex - uHoverIndex) < 0.5) {
-      float edge = max(abs(vCorner.x), abs(vCorner.y));
-      float border = smoothstep(0.88, 0.97, edge); // نازک‌تر شد (قبلاً 0.78-0.92)
-      color.rgb = mix(color.rgb, vec3(1.0), border * 0.9);
-    }
-
-    gl_FragColor = color;
-  }
-`;
-
-// اطلس ساده رو (که از قبل با scripts/build-sphere-atlas.mjs ساخته شده)
-// می‌خونه. یه فایل JPG ثابته، بدون هیچ درخواست زنده‌ای به Amazon/Wikimedia
-// (که قبلاً باعث بلاک‌شدن/CORS می‌شدن).
-async function loadStaticAtlas(onProgress) {
-  onProgress?.(10, 100)
-  const configRes = await fetch('/sphere-media/atlas-config.json')
-  if (!configRes.ok) throw new Error('atlas-config.json not found')
-  const config = await configRes.json()
-  onProgress?.(30, 100)
-
-  const img = await new Promise((resolve, reject) => {
-    const image = new Image()
-    image.decoding = 'async'
-    image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error('atlas.webp failed to load'))
-    image.src = '/sphere-media/atlas.webp?v=' + config.count // کش‌باستینگ ساده
-  })
-  onProgress?.(100, 100)
-
-  const { cols, rows } = config
-  const uvRects = new Array(config.count)
-  for (let i = 0; i < config.count; i++) {
-    const col = i % cols
-    const row = Math.floor(i / cols)
-    uvRects[i] = {
-      u0: col / cols,
-      v0: row / rows,
-      u1: (col + 1) / cols,
-      v1: (row + 1) / rows,
-    }
-  }
-  return { image: img, uvRects, count: config.count, ids: config.ids || [], titles: config.titles || [] }
+// شبه‌تصادفی deterministic (بدون کتابخونه‌ی اضافه) — برای jitter هر چیدمان
+function rnd(i, salt) {
+  const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453
+  return x - Math.floor(x)
 }
 
-// چیدمان یکنواخت نقاط روی سطح کره (الگوریتم Fibonacci sphere)
-function fibonacciSphere(n, radius) {
-  const points = []
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5))
+// موقعیتِ x/y/z (پیکسل) هر پوستر رو برای هر چیدمان حساب می‌کنه.
+function computeLayout(key, n, R) {
+  const p = new Float32Array(n * 3)
+  const golden = Math.PI * (3 - Math.sqrt(5))
   for (let i = 0; i < n; i++) {
-    const y = 1 - (i / (n - 1)) * 2 // از ۱ تا -۱
-    const r = Math.sqrt(1 - y * y)
-    const theta = goldenAngle * i
-    const x = Math.cos(theta) * r
-    const z = Math.sin(theta) * r
-    points.push([x * radius, y * radius, z * radius])
+    let x = 0
+    let y = 0
+    let z = 0
+    switch (key) {
+      case 'sphere': {
+        const yy = n > 1 ? 1 - (i / (n - 1)) * 2 : 0
+        const rad = Math.sqrt(Math.max(0, 1 - yy * yy))
+        const th = golden * i
+        const jitter = 0.94 + rnd(i, 3) * 0.12
+        x = Math.cos(th) * rad * R * jitter
+        y = yy * R * jitter
+        z = Math.sin(th) * rad * R * jitter
+        break
+      }
+      case 'galaxy': {
+        const t = i / n
+        const arm = i % 3
+        const ang = t * Math.PI * 3.2 + (arm * Math.PI * 2) / 3
+        const rr = R * (0.16 + t * 1.22) * (0.9 + rnd(i, 1) * 0.2)
+        x = Math.cos(ang) * rr
+        z = Math.sin(ang) * rr
+        y = (rnd(i, 2) - 0.5) * R * 0.22 + Math.sin(t * 9) * R * 0.05
+        break
+      }
+      case 'grid': {
+        const cols = Math.ceil(Math.sqrt(n * 1.9))
+        const rows = Math.ceil(n / cols)
+        const c = i % cols
+        const rw = Math.floor(i / cols)
+        const sx = (R * 2.35) / cols
+        const sy = sx * 1.52
+        x = (c - (cols - 1) / 2) * sx
+        y = (rw - (rows - 1) / 2) * sy
+        z = Math.sin(c * 0.55) * Math.cos(rw * 0.6) * R * 0.14
+        break
+      }
+      case 'helix': {
+        const ang = i * 0.36
+        const rr = R * 0.82
+        x = Math.cos(ang) * rr
+        z = Math.sin(ang) * rr
+        y = (i - (n - 1) / 2) * ((R * 2.5) / n)
+        break
+      }
+      case 'wave': {
+        const cols = Math.ceil(Math.sqrt(n * 2.4))
+        const rows = Math.ceil(n / cols)
+        const c = i % cols
+        const rw = Math.floor(i / cols)
+        const sx = (R * 2.6) / cols
+        x = (c - (cols - 1) / 2) * sx
+        z = (rw - (rows - 1) / 2) * sx * 1.5
+        y = Math.sin(c * 0.45 + rw * 0.35) * R * 0.34
+        break
+      }
+      case 'ring': {
+        const bands = 5
+        const per = Math.ceil(n / bands)
+        const band = Math.floor(i / per)
+        const idx = i % per
+        const ang = (idx / per) * Math.PI * 2 + band * 0.4
+        const rr = R * (0.42 + band * 0.19)
+        x = Math.cos(ang) * rr
+        z = Math.sin(ang) * rr
+        y = (band - (bands - 1) / 2) * R * 0.1 + (rnd(i, 4) - 0.5) * R * 0.04
+        break
+      }
+      default:
+        break
+    }
+    p[i * 3] = x
+    p[i * 3 + 1] = y
+    p[i * 3 + 2] = z
   }
-  return points
+  return p
 }
 
 export default function GallerySphere({ films, onBack, onOpenFilm }) {
-  const containerRef = useRef(null)
-  const [progress, setProgress] = useState({ loaded: 0, total: 0 })
-  const [ready, setReady] = useState(false)
-  const [loadError, setLoadError] = useState(null)
-  const marqueeTrackRefs = useRef([])
+  // همون منطق قبلی: هر فیلم بدون پوستر رو کنار می‌ذاریم، و چون یه فیلم
+  // می‌تونه هم نسخه‌ی فیزیکی هم دیجیتال داشته باشه (دو ردیف، یه پوستر)،
+  // بر اساس آدرس پوستر یکتاسازی می‌کنیم تا تکراری توی گالری نیاد.
+  // بعد، چون این‌جا هر پوستر یه DOM node واقعیه، به MAX_POSTERS با
+  // نمونه‌برداریِ یکنواخت (نه فقط N تای اول) محدود می‌کنیم.
+  const postersOnly = useMemo(() => {
+    const seen = new Set()
+    const deduped = films
+      .filter((f) => f.poster)
+      .slice()
+      .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+      .filter((f) => {
+        if (seen.has(f.poster)) return false
+        seen.add(f.poster)
+        return true
+      })
+    if (deduped.length <= MAX_POSTERS) return deduped
+    const step = deduped.length / MAX_POSTERS
+    const sampled = []
+    for (let i = 0; i < MAX_POSTERS; i++) sampled.push(deduped[Math.floor(i * step)])
+    return sampled
+  }, [films])
 
-  const seenPosters = new Set()
-  const postersOnly = films
-    .filter((f) => f.poster)
-    .slice()
-    .sort((a, b) => String(a.id).localeCompare(String(b.id)))
-    .filter((f) => {
-      if (seenPosters.has(f.poster)) return false
-      seenPosters.add(f.poster)
-      return true
-    })
+  const n = postersOnly.length
 
-  // --- نوارهای مارکی پشت کره: چند ردیف پوستر که از چپ/راست میان و
-  // پشت کره محو می‌شن. عکس‌ها مستقیم (بدون پراکسی) لود می‌شن چون فقط
-  // <img> ساده‌ست، نه canvas — CORS اینجا مشکلی ایجاد نمی‌کنه.
-  const MARQUEE_ROWS = 12
-  const marqueeRows = []
-  {
-    // قبلاً فقط ۷۰ تا پوستر نمونه بود که بین ۲۶ ردیف تقسیم بشه (~۳ تا هر
-    // ردیف) — عرض واقعیش خیلی کمتر از عرض صفحه بود، برای همون سمت راست
-    // خالی می‌موند. این بار از کل پوسترها استفاده می‌کنیم.
-    // چون هر تصویر مارکی خیلی باریکه (~۱۷px)، اگه هر ردیف تعداد کمی
-    // پوستر داشته باشه (قبلاً ۴۰تا)، عرض واقعی track خیلی کمتر از عرض
-    // صفحه می‌شه — و چون حرکت با translateX بین 0 و -نصف‌عرض track در
-    // نوسانه، هیچ‌وقت به سمت راست صفحه نمی‌رسه (این ریشه‌ی واقعی مشکل
-    // «سمت راست خالیه» بود، نه جهت انیمیشن). با ~۲۵۰ پوستر هر ردیف
-    // (۲۵۰*۱۷px ≈ ۴۲۵۰px) عرض track از هر صفحه‌ای بیشتره.
-    const perRow = 250
-    const sampleSize = Math.min(postersOnly.length, MARQUEE_ROWS * perRow)
-    const step = Math.max(1, Math.floor(postersOnly.length / sampleSize))
-    const sample = []
-    for (let i = 0; i < postersOnly.length && sample.length < sampleSize; i += step) {
-      sample.push(postersOnly[i])
+  const [layout, setLayout] = useState('sphere')
+  const wrapRef = useRef(null)
+  const stageRef = useRef(null)
+  const tipRef = useRef(null)
+  const tipTitleRef = useRef(null)
+  const tipSubRef = useRef(null)
+  const tiles = useRef([])
+  const [tileW, setTileW] = useState(52)
+
+  const cur = useRef(new Float32Array(n * 3))
+  const tgt = useRef(computeLayout(layout, n, 320))
+  const dims = useRef({ R: 320, w: 1000, h: 700 })
+  const hoverIdx = useRef(null)
+  const inited = useRef(false)
+
+  const S = useRef({
+    yaw: 0.4,
+    pitch: -0.18,
+    vYaw: 0,
+    vPitch: 0,
+    zoom: 1,
+    zoomT: 1,
+    drag: false,
+    px: 0,
+    py: 0,
+    moved: 0,
+    intro: 0,
+    pinchDist: null,
+    pinchZoomT: 1,
+  })
+
+  // موقع عوض‌شدن چیدمان، فقط هدف حرکت (tgt) عوض می‌شه — حلقه‌ی انیمیشن
+  // خودش با ease به سمت موقعیت جدید می‌ره، پس جابه‌جایی بین چیدمان‌ها
+  // نرمه، نه پرش ناگهانی.
+  useEffect(() => {
+    tgt.current = computeLayout(layout, n, dims.current.R)
+  }, [layout, n])
+
+  const relayout = useCallback(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const w = el.clientWidth
+    const h = el.clientHeight
+    const R = Math.max(170, Math.min(Math.min(w, h) * 0.46, 480))
+    dims.current = { R, w, h }
+    tgt.current = computeLayout(layout, n, R)
+    setTileW(Math.round(Math.max(30, Math.min(R * 0.172, 74))))
+    if (!inited.current) {
+      inited.current = true
+      // شروع از حالت «منفجرشده» بیرون از دید، تا آرشیو موقع لود انگار
+      // جمع می‌شه توی شکل نهایی (همون حس ورود قبلی)
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2
+        const b = Math.acos(2 * Math.random() - 1)
+        const rr = R * (2.6 + Math.random() * 2.4)
+        cur.current[i * 3] = Math.sin(b) * Math.cos(a) * rr
+        cur.current[i * 3 + 1] = Math.cos(b) * rr
+        cur.current[i * 3 + 2] = Math.sin(b) * Math.sin(a) * rr
+      }
     }
-    for (let r = 0; r < MARQUEE_ROWS; r++) {
-      const rowItems = sample.filter((_, i) => i % MARQUEE_ROWS === r)
-      marqueeRows.push([...rowItems, ...rowItems]) // دو نسخه، برای لوپ بی‌درز با translateX(-50%)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [n])
+
+  useEffect(() => {
+    relayout()
+    const el = wrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver(relayout)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [relayout])
+
+  // --- حلقه‌ی رندر: هر فریم موقعیت سه‌بعدی رو به ۲بعدی پروجکت می‌کنه و
+  // مستقیم روی استایل هر تایل می‌نویسه (بدون state/re-render) ---
+  useEffect(() => {
+    let raf
+    let last = performance.now()
+
+    const frame = (t) => {
+      raf = requestAnimationFrame(frame)
+      const dt = Math.min(0.05, (t - last) / 1000)
+      last = t
+      const s = S.current
+      const { R } = dims.current
+
+      s.intro = Math.min(1, s.intro + dt * 0.75)
+      if (!s.drag) {
+        s.vYaw *= 0.94
+        s.vPitch *= 0.9
+      }
+      // چرخش خودکار هیچ‌وقت متوقف نمی‌شه (طبق تجربه‌ی نسخه‌ی قبلی، کاربر
+      // ترجیح داد همیشه بچرخه، نه فقط موقع بی‌کاری)
+      const AUTO = 0.17
+      s.yaw += (s.vYaw + AUTO) * dt
+      s.pitch += s.vPitch * dt
+      s.pitch = Math.max(-1.15, Math.min(1.15, s.pitch))
+      s.zoom += (s.zoomT - s.zoom) * Math.min(1, dt * 7)
+
+      const cy = Math.cos(s.yaw)
+      const sy = Math.sin(s.yaw)
+      const cp = Math.cos(s.pitch)
+      const sp = Math.sin(s.pitch)
+      const D = R * 3.3
+      const ease = Math.min(1, dt * 4.2)
+      const breathe = Math.sin(t * 0.0005) * 0.02 + 1
+      let hx = 0
+      let hy = 0
+      let hs = 1
+      let hFound = false
+
+      for (let i = 0; i < n; i++) {
+        const el = tiles.current[i]
+        if (!el) continue
+        const k = i * 3
+        cur.current[k] += (tgt.current[k] - cur.current[k]) * ease
+        cur.current[k + 1] += (tgt.current[k + 1] - cur.current[k + 1]) * ease
+        cur.current[k + 2] += (tgt.current[k + 2] - cur.current[k + 2]) * ease
+
+        const x = cur.current[k]
+        const y = cur.current[k + 1]
+        const z = cur.current[k + 2]
+        const x1 = x * cy - z * sy
+        const z1 = x * sy + z * cy
+        const y2 = y * cp - z1 * sp
+        const z2 = y * sp + z1 * cp
+
+        const persp = Math.min(2.6, D / Math.max(40, D - z2))
+        const sc = persp * s.zoom * breathe
+        const x2 = x1 * persp * s.zoom
+        const yy2 = y2 * persp * s.zoom
+
+        let op = Math.max(0.06, Math.min(1, (persp - 0.66) / 0.55)) * s.intro
+        const pulse = 1
+
+        el.style.transform = `translate3d(${x2.toFixed(2)}px,${yy2.toFixed(2)}px,0) scale(${(sc * pulse).toFixed(3)})`
+        el.style.opacity = op.toFixed(3)
+        el.style.zIndex = String(1000 + Math.round(persp * 400))
+        const clickable = op > 0.3 ? 'auto' : 'none'
+        if (el.style.pointerEvents !== clickable) el.style.pointerEvents = clickable
+
+        if (hoverIdx.current === i) {
+          hx = x2
+          hy = yy2
+          hs = sc
+          hFound = true
+        }
+      }
+
+      if (tipRef.current) {
+        if (hFound && !s.drag) {
+          tipRef.current.style.transform = `translate3d(${hx.toFixed(1)}px, ${(hy - (tileW * 1.5 * hs) / 2 - 14).toFixed(1)}px, 0) translate(-50%,-100%)`
+          tipRef.current.style.opacity = '1'
+        } else {
+          tipRef.current.style.opacity = '0'
+        }
+      }
+    }
+
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
+  }, [n, tileW])
+
+  // --- تعامل: درگ برای چرخش، اسکرول/پینچ برای زوم، فلش‌ها برای چرخش ---
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+
+    const onWheel = (e) => {
+      e.preventDefault()
+      const s = S.current
+      s.zoomT = Math.max(0.45, Math.min(2.4, s.zoomT * (e.deltaY > 0 ? 0.92 : 1.08)))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+
+    const onKey = (e) => {
+      const s = S.current
+      if (e.key === 'ArrowLeft') s.vYaw -= 0.35
+      if (e.key === 'ArrowRight') s.vYaw += 0.35
+      if (e.key === 'ArrowUp') s.vPitch -= 0.25
+      if (e.key === 'ArrowDown') s.vPitch += 0.25
+    }
+    window.addEventListener('keydown', onKey)
+
+    const onMove = (e) => {
+      const s = S.current
+      if (!s.drag) return
+      const dx = e.clientX - s.px
+      const dy = e.clientY - s.py
+      s.px = e.clientX
+      s.py = e.clientY
+      s.moved += Math.abs(dx) + Math.abs(dy)
+      const k = 0.0052
+      s.yaw += dx * k
+      s.pitch = Math.max(-1.15, Math.min(1.15, s.pitch - dy * k))
+      s.vYaw = dx * k * 26
+      s.vPitch = -dy * k * 22
+      if (s.moved > 8 && tipRef.current) tipRef.current.style.opacity = '0'
+    }
+    const onUp = () => {
+      S.current.drag = false
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+
+    // پینچ دو انگشتی برای زوم روی موبایل (wheel روی تاچ وجود نداره)
+    const touchDist = (touches) => {
+      const dx = touches[0].clientX - touches[1].clientX
+      const dy = touches[0].clientY - touches[1].clientY
+      return Math.hypot(dx, dy)
+    }
+    const onTouchStart = (e) => {
+      if (e.touches.length === 2) {
+        S.current.drag = false
+        S.current.pinchDist = touchDist(e.touches)
+        S.current.pinchZoomT = S.current.zoomT
+      }
+    }
+    const onTouchMove = (e) => {
+      if (e.touches.length === 2 && S.current.pinchDist) {
+        e.preventDefault()
+        const dist = touchDist(e.touches)
+        const scale = dist / S.current.pinchDist
+        S.current.zoomT = Math.max(0.45, Math.min(2.4, S.current.pinchZoomT * scale))
+      }
+    }
+    const onTouchEnd = (e) => {
+      if (e.touches.length < 2) S.current.pinchDist = null
+    }
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd, { passive: true })
+
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [])
+
+  const down = (e) => {
+    const s = S.current
+    s.drag = true
+    s.moved = 0
+    s.px = e.clientX
+    s.py = e.clientY
+  }
+  const up = () => {
+    S.current.drag = false
+  }
+
+  const setTip = (f) => {
+    if (tipTitleRef.current) tipTitleRef.current.textContent = f ? f.title : ''
+    if (tipSubRef.current) {
+      tipSubRef.current.textContent = f ? [f.year, f.rating ? `★ ${Number(f.rating).toFixed(1)}` : null].filter(Boolean).join(' · ') : ''
     }
   }
 
-  useEffect(() => {
-    if (!containerRef.current || postersOnly.length === 0) return
-    let disposed = false
-    let cleanupFns = []
+  const zoomBy = (f) => {
+    const s = S.current
+    s.zoomT = Math.max(0.45, Math.min(2.4, s.zoomT * f))
+  }
+  const resetView = () => {
+    const s = S.current
+    s.zoomT = 1
+    s.yaw = 0.4
+    s.pitch = -0.18
+    s.vYaw = 0
+    s.vPitch = 0
+  }
 
-    async function init() {
-      const container = containerRef.current
-      const renderer = new Renderer({ dpr: Math.min(window.devicePixelRatio, 2), alpha: true })
-      const gl = renderer.gl
-      gl.clearColor(0, 0, 0, 0) // شفاف — تا نوارهای پوستر پشت صحنه (مارکی) دیده بشن
-      container.appendChild(gl.canvas)
-
-      const camera = new Camera(gl, { fov: 45, near: 0.1, far: 100 })
-      const RADIUS = 8
-      camera.position.set(0, 0, RADIUS * 2.4)
-      camera.lookAt([0, 0, 0])
-
-      // fov بالا عمودیه؛ رو صفحه‌ی باریک/عمودی (موبایل)، دید افقی به همون
-      // نسبت باریک‌تر می‌شه و کره کل صفحه رو پر می‌کنه بدون اینکه هیچ‌وقت
-      // لبه/شکل کرویش دیده بشه. برای جبران، رو صفحه‌های عمودی دوربین رو
-      // متناسب با باریکی صفحه عقب‌تر می‌بریم تا کل کره همیشه معلوم باشه.
-      let aspectCompensation = 1
-      function resize() {
-        const { clientWidth, clientHeight } = container
-        if (!clientWidth || !clientHeight) return
-        renderer.setSize(clientWidth, clientHeight)
-        const aspect = clientWidth / clientHeight
-        camera.perspective({ aspect })
-        aspectCompensation = aspect < 1 ? 1 / aspect : 1
-      }
-      resize()
-      window.addEventListener('resize', resize)
-      cleanupFns.push(() => window.removeEventListener('resize', resize))
-
-      const scene = new Transform()
-
-      const atlas = await loadStaticAtlas((loaded, total) => setProgress({ loaded, total }))
-      if (disposed) return
-      setReady(true)
-
-      const texture = new Texture(gl, { generateMipmaps: false, flipY: false })
-      texture.image = atlas.image
-      texture.needsUpdate = true
-
-      const n = atlas.count
-      const positions = fibonacciSphere(n, RADIUS)
-      // اطلس بر اساس films.json (یه snapshot ثابت) ساخته شده، ولی این
-      // کامپوننت دیتای زنده (allFilmsUnfiltered) رو می‌گیره که ممکنه فرق
-      // داشته باشه (فیلم جدید اضافه شده و...). به‌جای match با ایندکس آرایه
-      // (که قبلاً باعث می‌شد کلیک روی یه پوستر، اطلاعات فیلم اشتباه رو نشون
-      // بده)، از id واقعی هر فیلم استفاده می‌کنیم که همیشه درست باشه.
-      const filmsById = new Map(films.map((f) => [String(f.id), f]))
-      const centerArr = new Float32Array(n * 6 * 3)
-      const cornerArr = new Float32Array(n * 6 * 2)
-      const uvArr = new Float32Array(n * 6 * 2)
-      const indexArr = new Float32Array(n * 6)
-
-      const corners = [
-        [-1, -1], [1, -1], [1, 1],
-        [-1, -1], [1, 1], [-1, 1],
-      ]
-      const uvCorners = [
-        [0, 1], [1, 1], [1, 0],
-        [0, 1], [1, 0], [0, 0],
-      ]
-
-      let ci = 0, co = 0, ui = 0, ii = 0
-      for (let i = 0; i < n; i++) {
-        const [x, y, z] = positions[i]
-        const rect = atlas.uvRects[i]
-        for (let v = 0; v < 6; v++) {
-          centerArr[ci++] = x
-          centerArr[ci++] = y
-          centerArr[ci++] = z
-          cornerArr[co++] = corners[v][0]
-          cornerArr[co++] = corners[v][1]
-          const [uc, vc] = uvCorners[v]
-          uvArr[ui++] = uc === 0 ? rect.u0 : rect.u1
-          uvArr[ui++] = vc === 0 ? rect.v0 : rect.v1
-          indexArr[ii++] = i
-        }
-      }
-
-      const geometry = new Geometry(gl, {
-        center: { size: 3, data: centerArr },
-        corner: { size: 2, data: cornerArr },
-        uv: { size: 2, data: uvArr },
-        posterIndex: { size: 1, data: indexArr },
-      })
-
-      const billboardSize = ((RADIUS * 2 * Math.PI) / Math.sqrt(n) / 2.2) * 0.55 // قبلاً خیلی بزرگ بود، تقریباً نصفش کردیم
-
-      const program = new Program(gl, {
-        vertex,
-        fragment,
-        uniforms: {
-          uAtlas: { value: texture },
-          uRotationY: { value: 0 },
-          uBillboardSize: { value: [billboardSize * 0.66, billboardSize] },
-          uTime: { value: 0 },
-          uRadius: { value: RADIUS },
-          uHoverIndex: { value: -1 },
-        },
-        transparent: false,
-      })
-
-      const mesh = new Mesh(gl, { geometry, program })
-      mesh.setParent(scene)
-
-      // --- تعامل: چرخش خودکار + درگ برای چرخش دستی + اسکرول برای زوم ---
-      let autoRotation = 0
-      let dragRotation = 0
-      let camElevation = 1.1 // دیفالت رو به همون زاویه‌ی از بالا (نزدیک قطب شمال) که پسندیده شد گذاشتیم
-      let isDragging = false
-      let lastX = 0
-      let lastY = 0
-      let dragVelocity = 0
-      let camDistance = RADIUS * 2.4
-      const minDist = RADIUS * 1.3
-      const maxDist = RADIUS * 5
-      const MAX_ELEVATION = 1.45 // کمی کمتر از ۹۰ درجه، تا کاملاً روی قطب گیر نکنه
-
-      function onPointerDown(e) {
-        isDragging = true
-        lastX = e.clientX
-        lastY = e.clientY
-        dragVelocity = 0
-      }
-      function onPointerMove(e) {
-        if (!isDragging) return
-        const dx = e.clientX - lastX
-        const dy = e.clientY - lastY
-        lastX = e.clientX
-        lastY = e.clientY
-        dragVelocity = dx * 0.005
-        dragRotation += dragVelocity
-        camElevation = Math.min(MAX_ELEVATION, Math.max(-MAX_ELEVATION, camElevation + dy * 0.005))
-      }
-      function onPointerUp() {
-        isDragging = false
-      }
-      function onWheel(e) {
-        e.preventDefault()
-        camDistance = Math.min(maxDist, Math.max(minDist, camDistance * Math.exp(e.deltaY * 0.001)))
-      }
-
-      // --- پینچ دو انگشتی برای زوم روی موبایل (wheel روی تاچ وجود نداره) ---
-      let pinchStartDist = null
-      let pinchStartCamDistance = camDistance
-      function touchDist(touches) {
-        const dx = touches[0].clientX - touches[1].clientX
-        const dy = touches[0].clientY - touches[1].clientY
-        return Math.hypot(dx, dy)
-      }
-      function onTouchStart(e) {
-        if (e.touches.length === 2) {
-          isDragging = false // موقع پینچ، چرخش با انگشت اول رو خاموش کن
-          pinchStartDist = touchDist(e.touches)
-          pinchStartCamDistance = camDistance
-        }
-      }
-      function onTouchMove(e) {
-        if (e.touches.length === 2 && pinchStartDist) {
-          e.preventDefault()
-          const dist = touchDist(e.touches)
-          const scale = pinchStartDist / dist
-          camDistance = Math.min(maxDist, Math.max(minDist, pinchStartCamDistance * scale))
-        }
-      }
-      function onTouchEnd(e) {
-        if (e.touches.length < 2) pinchStartDist = null
-      }
-      gl.canvas.addEventListener('touchstart', onTouchStart, { passive: true })
-      gl.canvas.addEventListener('touchmove', onTouchMove, { passive: false })
-      gl.canvas.addEventListener('touchend', onTouchEnd, { passive: true })
-      cleanupFns.push(() => {
-        gl.canvas.removeEventListener('touchstart', onTouchStart)
-        gl.canvas.removeEventListener('touchmove', onTouchMove)
-        gl.canvas.removeEventListener('touchend', onTouchEnd)
-      })
-      gl.canvas.addEventListener('pointerdown', onPointerDown)
-      window.addEventListener('pointermove', onPointerMove)
-      window.addEventListener('pointerup', onPointerUp)
-      gl.canvas.addEventListener('wheel', onWheel, { passive: false })
-      cleanupFns.push(() => {
-        gl.canvas.removeEventListener('pointerdown', onPointerDown)
-        window.removeEventListener('pointermove', onPointerMove)
-        window.removeEventListener('pointerup', onPointerUp)
-        gl.canvas.removeEventListener('wheel', onWheel)
-      })
-
-      // کلیک (بدون درگ) = پیدا کردن نزدیک‌ترین پوستر به نقطه‌ی کلیک.
-      // این تابع (findNearestPoster) هم برای کلیک هم برای هاور (هایلایت)
-      // استفاده می‌شه — تا کاربر قبل از کلیک ببینه دقیقاً کدوم پوستر رو
-      // نشونه گرفته (چون با هزاران پوستر ریز، چشم به‌تنهایی کافی نیست).
-      function findNearestPoster(clientX, clientY) {
-        const rect = container.getBoundingClientRect()
-        const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1
-        const ndcY = -(((clientY - rect.top) / rect.height) * 2 - 1)
-        const totalRotation = autoRotation + dragRotation
-        const c = Math.cos(totalRotation)
-        const s = Math.sin(totalRotation)
-        let best = -1
-        let bestDist = Infinity
-        const v = new Vec3()
-        for (let i = 0; i < n; i++) {
-          const [x, y, z] = positions[i]
-          const rx = x * c - z * s
-          const rz = x * s + z * c
-          v.set(rx, y, rz)
-          v.applyMatrix4(camera.projectionViewMatrix)
-          if (v.z < -1 || v.z > 1) continue
-          const dx = v.x - ndcX
-          const dy = v.y - ndcY
-          const d = dx * dx + dy * dy
-          if (d < bestDist) {
-            bestDist = d
-            best = i
-          }
-        }
-        return { best, bestDist }
-      }
-
-      let dragMoved = false
-      let hoverRaf = null
-      function onPointerDownTrack() {
-        dragMoved = false
-      }
-      function onPointerMoveTrack(e) {
-        if (isDragging && Math.abs(e.movementX) > 2) dragMoved = true
-        // throttle با requestAnimationFrame — این محاسبه روی هزاران نقطه
-        // انجام می‌شه، نباید هر پیکسل حرکت موس یه بار اجرا بشه
-        if (hoverRaf) return
-        hoverRaf = requestAnimationFrame(() => {
-          hoverRaf = null
-          const { best, bestDist } = findNearestPoster(e.clientX, e.clientY)
-          program.uniforms.uHoverIndex.value = best >= 0 && bestDist < 0.15 ? best : -1
-        })
-      }
-      function onClick(e) {
-        if (dragMoved) return
-        const { best, bestDist } = findNearestPoster(e.clientX, e.clientY)
-        if (best >= 0 && bestDist < 0.15) {
-          const filmId = atlas.ids[best]
-          const film = filmId != null ? filmsById.get(String(filmId)) : undefined
-          if (film) onOpenFilm(film)
-        }
-      }
-      gl.canvas.addEventListener('pointerdown', onPointerDownTrack)
-      window.addEventListener('pointermove', onPointerMoveTrack)
-      gl.canvas.addEventListener('click', onClick)
-      cleanupFns.push(() => {
-        gl.canvas.removeEventListener('pointerdown', onPointerDownTrack)
-        window.removeEventListener('pointermove', onPointerMoveTrack)
-        gl.canvas.removeEventListener('click', onClick)
-        if (hoverRaf) cancelAnimationFrame(hoverRaf)
-      })
-
-      // (قبلاً اینجا سعی شد چرخش خودکار موقع هاور متوقف بشه، ولی کاربر
-      // نمی‌خواست بایسته — به‌جاش سرعت به‌شدت کم شد، بالاتر در AUTO_SPEED)
-
-      let raf
-      // خیلی کندتر شد (نسبت به قبل ~۴ برابر) — چرخش هیچ‌وقت متوقف نمی‌شه
-      // (طبق خواسته‌ی کاربر)، ولی اونقدر آروم که موقع نشونه‌گرفتن و کلیک،
-      // پوستر عملاً جابه‌جا نشه.
-      const AUTO_SPEED = 0.00002 // بین «اصلاً حس نمی‌شد» (0.000009) و «خیلی زیاد» (0.00006)
-      function loop(t) {
-        raf = requestAnimationFrame(loop)
-        autoRotation = t * AUTO_SPEED
-        program.uniforms.uRotationY.value = autoRotation + dragRotation
-        program.uniforms.uTime.value = t / 1000
-        const effDistance = camDistance * aspectCompensation
-        camera.position.set(0, effDistance * Math.sin(camElevation), effDistance * Math.cos(camElevation))
-        camera.lookAt([0, 0, 0])
-        renderer.render({ scene, camera })
-      }
-      raf = requestAnimationFrame(loop)
-      cleanupFns.push(() => cancelAnimationFrame(raf))
-    }
-
-    init().catch((err) => {
-      console.error('GallerySphere init failed:', err)
-      setLoadError(err.message || String(err))
-    })
-
-    return () => {
-      disposed = true
-      cleanupFns.forEach((fn) => fn())
-      if (containerRef.current) containerRef.current.innerHTML = ''
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postersOnly.length])
-
-  // انیمیشن مارکی با JS مستقیم (نه CSS keyframe) — کنترل کامل روی pixel
-  // واقعی، بدون وابستگی به اینکه ancestor transform داره یا نه، و بدون
-  // نیاز به حدس زدن مقدار درصدی که با CSS جواب نمی‌داد.
-  useEffect(() => {
-    let raf
-    let running = true
-    function loop() {
-      if (!running) return
-      raf = requestAnimationFrame(loop)
-      const now = performance.now() / 1000
-      marqueeTrackRefs.current.forEach((el, r) => {
-        if (!el) return
-        const half = el.scrollWidth / 2
-        if (!half) return
-        const speed = 22 + r * 2 // یه‌کم کندتر شد
-        const offset = (now * speed) % half
-        const reverse = r % 2 === 1
-        // reverse=false: از -half به 0 (وارد از چپ) | reverse=true: از 0 به -half (وارد از راست)
-        el.style.transform = reverse ? `translateX(${-offset}px)` : `translateX(${offset - half}px)`
-      })
-    }
-    raf = requestAnimationFrame(loop)
-    return () => {
-      running = false
-      cancelAnimationFrame(raf)
-    }
-  }, [marqueeRows.length])
-
-  const pct = progress.total ? Math.round((progress.loaded / progress.total) * 100) : 0
+  const tileH = tileW * 1.5
 
   return (
-    <div className="folder-nav" style={{ overflow: 'hidden' }}>
-      {/* نوارهای مارکی: پشت کره، یه ردیف تصویر که پیوسته رد می‌شن و خودِ
-          کره (که z-index بالاتر و مات‌ـه) طبیعتاً هرجا روش قرار بگیره
-          محوشون می‌کنه. با JS (نه CSS keyframe) کنترل می‌شه — چون قبلاً
-          چندبار امتحان شد و مطمئن نبودیم چرا سمت راست همیشه خالی می‌موند؛
-          این‌جوری مستقیم روی pixel واقعی کنترل داریم، بدون حدس. */}
-      <div
-        style={{
-          position: 'fixed',
-          top: '50%',
-          left: 0,
-          width: '100vw',
-          transform: 'translateY(-50%)',
-          zIndex: 1,
-          overflow: 'hidden',
-          pointerEvents: 'none',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        {marqueeRows.map((rowItems, r) => {
-          if (rowItems.length === 0) return null
-          return (
-            <div key={r} style={{ width: '100%', height: 26, overflow: 'hidden' }}>
-              <div
-                ref={(el) => {
-                  marqueeTrackRefs.current[r] = el
-                }}
-                style={{
-                  display: 'flex',
-                  width: 'max-content',
-                  height: '100%',
-                  opacity: 0.55,
-                  willChange: 'transform',
-                }}
-              >
-                {rowItems.map((f, i) => (
-                  <img
-                    key={i}
-                    src={f.poster}
-                    alt=""
-                    style={{ height: '100%', width: 'auto', objectFit: 'cover', flexShrink: 0 }}
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      <button
-        className="btn btn-ghost"
-        onClick={onBack}
-        style={{
-          position: 'fixed',
-          top: 16,
-          left: 16,
-          zIndex: 9999,
-          background: 'rgba(0,0,0,0.55)',
-          color: '#f4f3f0',
-          border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: 8,
-          padding: '8px 16px',
-          cursor: 'pointer',
-        }}
-      >
+    <div className="folder-nav sphere-page" style={{ overflow: 'hidden' }}>
+      <button className="btn btn-ghost sphere-back" onClick={onBack}>
         ← Back
       </button>
-      {!ready && !loadError && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-            color: '#eee',
-            background: '#0a0a0c',
-            zIndex: 10,
-          }}
-        >
-          <div>Loading spherical gallery…</div>
-          <div style={{ width: 240, height: 6, background: '#333', borderRadius: 4, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${pct}%`, background: '#c0392b', transition: 'width 0.15s linear' }} />
+
+      <div className="sphere-layout-switch">
+        {LAYOUTS.map((l) => (
+          <button
+            key={l.key}
+            type="button"
+            className={layout === l.key ? 'sphere-layout-btn sphere-layout-btn-active' : 'sphere-layout-btn'}
+            onClick={() => setLayout(l.key)}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="sphere-zoom-controls">
+        <button type="button" onClick={() => zoomBy(1.18)} aria-label="Zoom in">
+          +
+        </button>
+        <button type="button" onClick={() => zoomBy(0.85)} aria-label="Zoom out">
+          −
+        </button>
+        <button type="button" onClick={resetView} aria-label="Reset view">
+          ⟳
+        </button>
+      </div>
+
+      <div
+        ref={wrapRef}
+        className="sphere-stage"
+        onPointerDown={down}
+        onPointerUp={up}
+        onPointerCancel={up}
+        onPointerLeave={() => {
+          hoverIdx.current = null
+          setTip(null)
+        }}
+      >
+        <div ref={stageRef} className="sphere-inner">
+          {postersOnly.map((f, i) => (
+            <div
+              key={f.id}
+              ref={(el) => {
+                tiles.current[i] = el
+              }}
+              className="sphere-tile"
+              style={{ width: tileW, height: tileH, marginLeft: -tileW / 2, marginTop: -tileH / 2 }}
+              onPointerEnter={() => {
+                hoverIdx.current = i
+                setTip(f)
+              }}
+              onPointerLeave={() => {
+                if (hoverIdx.current === i) {
+                  hoverIdx.current = null
+                  setTip(null)
+                }
+              }}
+              onClick={() => {
+                if (S.current.moved < 7) onOpenFilm(f)
+              }}
+            >
+              <div className="sphere-tile-inner" style={{ '--tilt': `${TILT_ANGLES[i % TILT_ANGLES.length]}deg` }}>
+                <img src={f.poster} alt="" loading={i < 24 ? 'eager' : 'lazy'} />
+              </div>
+            </div>
+          ))}
+
+          <div ref={tipRef} className="sphere-tooltip">
+            <div ref={tipTitleRef} className="sphere-tooltip-title" />
+            <div ref={tipSubRef} className="sphere-tooltip-sub" />
           </div>
         </div>
-      )}
-      {loadError && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            color: '#eee',
-            background: '#0a0a0c',
-            zIndex: 10,
-            textAlign: 'center',
-            padding: 20,
-          }}
-        >
-          <div>Gallery atlas not built yet.</div>
-          <code style={{ opacity: 0.7 }}>node scripts/build-sphere-atlas.mjs</code>
-          <div style={{ fontSize: 12, opacity: 0.5, marginTop: 8 }}>{loadError}</div>
-        </div>
-      )}
-      <div ref={containerRef} style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', zIndex: 2 }} />
+      </div>
     </div>
   )
 }
