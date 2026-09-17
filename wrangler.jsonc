@@ -3,7 +3,7 @@
   // This file exists so `npx wrangler deploy` does NOT try to auto-detect the
   // framework — auto-configuration fails on Vite 5 projects ("cannot be
   // automatically configured... update Vite to at least 6.0.0").
-  "name": "movies-archive",
+  "name": "cinearchive",
   "compatibility_date": "2026-07-22",
   "compatibility_flags": ["nodejs_compat"],
   "main": "server/worker.js",
