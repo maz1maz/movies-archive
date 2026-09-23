@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
 import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
 
@@ -8,12 +8,29 @@ function sortKey(title) {
     .toLowerCase()
 }
 
+// روی موبایل/تاچ اصلاً هاور واقعی نداریم — پس تپ اول فقط قاب رو باز می‌کنه
+// (مثل هاور دسکتاپ)، تپ دوم روی همون قاب باز جزئیات رو باز می‌کنه. روی
+// دستگاه‌های با ماوس/تراک‌پد، کلیک همیشه بلافاصله جزئیات رو باز می‌کنه چون
+// هاور واقعی از قبل قاب رو باز کرده.
+function useHasHoverInput() {
+  const [hasHover, setHasHover] = useState(true)
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const sync = () => setHasHover(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+  return hasHover
+}
+
 export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsChanged }) {
   const [closetFilter, setClosetFilter] = useState('')
   const [shelfTheme, setShelfTheme] = useState('wood')
   const [shelfScale, setShelfScale] = useState(1)
   const [hoveredFilm, setHoveredFilm] = useState(null)
   const [hoveredKey, setHoveredKey] = useState(null)
+  const hasHoverInput = useHasHoverInput()
   const [searchQuery, setSearchQuery] = useState('')
   const [manageOpen, setManageOpen] = useState(false)
   const [resetCloset, setResetCloset] = useState('')
@@ -700,7 +717,14 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                                 setHoveredFilm(null)
                                 setHoveredKey(null)
                               }}
-                              onClick={() => onSelectFilm(f)}
+                              onClick={() => {
+                                if (!hasHoverInput && hoveredKey !== key) {
+                                  setHoveredFilm(f)
+                                  setHoveredKey(key)
+                                  return
+                                }
+                                onSelectFilm(f)
+                              }}
                               title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                             >
                               <span className="shelf-hover-edge" />
