@@ -7163,25 +7163,20 @@ body.light .dashboard-panel {
   z-index: 4;
 }
 
-/* All Blu-ray spines in one single continuous row */
+/* قفسه: چیدمانِ اصلیِ نمونه‌ی مرجع (ExpandingGallery) رو مو‌به‌مو پیاده کردیم —
+   بدون framer-motion، فقط flex-grow/flex-basis + یه پنل تصویرِ absolute که با
+   left/padding/opacity باز می‌شه. عمداً هیچ سایه‌ی چندلایه، گلر، یا لیفت
+   سه‌بعدی نداره — دقیقاً همون سادگیِ نمونه، چون خودِ اون سنگینی بصری (نه فقط
+   تعداد جلد) بخشی از چیزی بود که لگ حس می‌شد. */
 .bluray-shelf {
   display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
-  gap: 2px;
+  align-items: stretch;
+  gap: 0;
   flex-wrap: nowrap;
-  padding-bottom: 1px;
   position: relative;
   z-index: 10;
-  min-height: calc(310px * var(--spine-scale, 1));
+  height: calc(310px * var(--spine-scale, 1));
   width: 100%;
-  /* قبلاً overflow:hidden + هر جلد flex:1 1 0% بود، یعنی همه‌ی جلدهای یه
-     قفسه همیشه دقیقاً عرض کانتینر رو پر می‌کردن — پس با هاورِ هرکدوم، کل
-     بقیه‌ی جلدهای همون ردیف (که می‌تونه صدها تا باشه) باید فوراً
-     دوباره‌محاسبه و ریسایز می‌شدن، که با قفسه‌های پرتعداد کند و لگ‌دار
-     بود. الان هر جلد عرض ثابت داره (مثل نسخه‌ی فشرده‌ی موبایلِ نمونه‌ای که
-     برام فرستادی) و فقط اسکرول افقی داره — هاور/فعال‌شدنِ یه جلد فقط عرض
-     همون یکی رو عوض می‌کنه، نه بقیه رو. */
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
@@ -7197,6 +7192,188 @@ body.light .dashboard-panel {
   background: transparent;
 }
 
+.shelf-spine {
+  position: relative;
+  height: 100%;
+  flex: 0 0 calc(38px * var(--spine-scale, 1));
+  overflow: hidden;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: flex-basis 0.7s cubic-bezier(0.72, 0, 0.28, 1);
+}
+.shelf-spine:last-child {
+  border-right: none;
+}
+.shelf-spine:hover,
+.shelf-spine.active {
+  flex-basis: min(230px, 55vw);
+}
+
+.shelf-spine-lift {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.025);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.shelf-spine:hover .shelf-spine-lift {
+  opacity: 1;
+}
+
+.shelf-spine-panel {
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  left: 0;
+  padding: 0;
+  opacity: 0;
+  transition: left 0.7s cubic-bezier(0.72, 0, 0.28, 1), padding 0.7s cubic-bezier(0.72, 0, 0.28, 1),
+    opacity 0.7s cubic-bezier(0.72, 0, 0.28, 1);
+  pointer-events: none;
+}
+.shelf-spine:hover .shelf-spine-panel,
+.shelf-spine.active .shelf-spine-panel {
+  left: 34px;
+  padding: 8px;
+  opacity: 1;
+}
+.shelf-spine-panel-inner {
+  position: relative;
+  display: block;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #131315;
+}
+.shelf-spine-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scale(1.1);
+  transition: transform 1.2s ease-out;
+}
+.shelf-spine:hover .shelf-spine-img,
+.shelf-spine.active .shelf-spine-img {
+  transform: scale(1);
+}
+.shelf-spine-grad-top,
+.shelf-spine-grad-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+.shelf-spine-grad-top {
+  top: 0;
+  height: 72px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent);
+}
+.shelf-spine-grad-bottom {
+  bottom: 0;
+  height: 84px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent);
+}
+.shelf-spine-meta {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+}
+.shelf-spine-blurb {
+  display: block;
+  margin: 0;
+  max-width: 16rem;
+  font-size: 11px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.75);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.4s ease 0.15s, transform 0.4s ease 0.15s;
+}
+.shelf-spine:hover .shelf-spine-blurb,
+.shelf-spine.active .shelf-spine-blurb {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.shelf-spine-year {
+  position: absolute;
+  left: 11px;
+  top: 14px;
+  z-index: 3;
+  writing-mode: vertical-rl;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
+}
+.shelf-spine:hover .shelf-spine-year,
+.shelf-spine.active .shelf-spine-year {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.shelf-spine-title {
+  position: absolute;
+  bottom: 20px;
+  left: 9px;
+  z-index: 3;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  max-height: calc(100% - 40px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+  transition: color 0.4s ease;
+}
+.shelf-spine:hover .shelf-spine-title,
+.shelf-spine.active .shelf-spine-title {
+  color: #f2f2ef;
+}
+
+.shelf-spine-dot {
+  position: absolute;
+  bottom: 8px;
+  left: 14px;
+  z-index: 3;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background 0.4s ease;
+}
+.shelf-spine:hover .shelf-spine-dot,
+.shelf-spine.active .shelf-spine-dot {
+  background: #f2f2ef;
+}
+
+@media (max-width: 640px) {
+  .shelf-spine {
+    flex-basis: calc(30px * var(--spine-scale, 1));
+  }
+}
+
+/* قفسه‌ی قدیمیِ سبکِ «جلد بلوری» — فقط برای LocationBrowserModal نگه داشته
+   شده (اون کامپوننت جدا از BookshelfView این کلاس‌ها رو مستقیم مصرف می‌کنه
+   و طراحی جدیدِ shelf-spine بالا فقط برای بوک‌شلف فیزیکاله). */
 .bluray-case {
   flex: 0 0 auto;
   width: calc(34px * var(--spine-scale, 1));
@@ -7216,12 +7393,6 @@ body.light .dashboard-panel {
     inset -2px 0 0 rgba(0, 0, 0, 0.5),
     inset 0 3px 0 rgba(255, 255, 255, 0.35),
     1px 0 4px rgba(0, 0, 0, 0.6);
-  /* width هر فریم روی کل ردیف reflow می‌ندازه (تعیین‌کننده‌ی layout‌ه، نه
-     فقط compositing مثل transform) — رو موس‌گردوندنِ سریع روی یه قفسه‌ی
-     پرجمعیت، هرچی این مدت طولانی‌تر باشه احتمال هم‌پوشانیِ چندتا انیمیشنِ
-     width هم‌زمان بیشتره؛ کوتاهش کردیم. box-shadow هم دیگه انیمیت
-     نمی‌شه (فقط instant عوض می‌شه) چون animate کردنِ چندلایه گرون‌تره.
-     transform (translate/scale) خودش GPU-only‌ه، مشکلی نداشت. */
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: bottom center;
   overflow: hidden;
@@ -7261,8 +7432,6 @@ body.light .dashboard-panel {
 .bluray-case.case-active .case-poster-reveal img {
   filter: brightness(0.85) saturate(1.15);
 }
-/* بدون این، لیبل «BLU-RAY»/فرمت بالا و badge استودیو پایین (که پس‌زمینه‌ی
-   شفافی دارن) روی پوسترهای روشن ناخوانا می‌شن. */
 .case-poster-reveal::before,
 .case-poster-reveal::after {
   content: '';
@@ -7312,9 +7481,6 @@ body.light .dashboard-panel {
   letter-spacing: 0.5px;
   flex-shrink: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  /* z-index بدون position اثری نداره — تا الان اهمیتی نداشت چون هیچ‌چیزی
-     رو این عنصر (که z-index:1 داره) قرار نمی‌گرفت، ولی الان با اضافه‌شدن
-     case-poster-reveal لازمه که هدر واقعاً بالای اون نمایش داده بشه. */
   position: relative;
   z-index: 3;
 }
@@ -7379,9 +7545,6 @@ body.light .dashboard-panel {
   gap: 6px;
   transition: opacity 0.3s ease;
 }
-/* خودِ پوستر واقعی معمولاً اسم فیلم رو تو طرحش داره — با باز شدنِ جلد،
-   اسمِ روی جلد (که فقط برای حالت جمع‌شده/باریک لازمه) کاملاً محو می‌شه
-   تا پوستر تنها و تمیز دیده بشه، نه یه برچسبِ اضافه روش. */
 .bluray-case:hover .spine-title,
 .bluray-case.case-active .spine-title {
   opacity: 0;
@@ -7412,6 +7575,29 @@ body.light .dashboard-panel {
 .footer-crit { color: #d4af37; }
 .footer-hdr { color: #eab308; }
 .footer-w { color: #94a3b8; }
+
+.spine-copy-badge {
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0.85;
+  margin-left: 2px;
+}
+
+.spine-remove-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 4;
+}
 
 /* Thick Walnut Wooden Ledge at the bottom */
 .cinema-wood-ledge {

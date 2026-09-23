@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
-import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
 
 function sortKey(title) {
   return String(title || '')
@@ -749,51 +748,47 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
                     <div className="shelf-inner-shadow" />
                     <div className="bluray-shelf">
-                      {sec.cases.map(({ f, idx, copyIdx }, i) => {
-                        const style = getSpineColor(f, idx)
-                        const isCriterion = f.criterion || style.type === 'criterion'
-                        const is4k = style.type === '4k'
-                        const isSteelbook = style.type === 'steelbook'
+                      {sec.cases.map(({ f, copyIdx }, i) => {
                         const copyCount = Math.max(1, Number(f.copies) || 1)
                         const secKey = sectionKeyOf(sec)
                         const isActive = activeSectionKey === secKey && activeIndex === i
+                        // یه خط توصیفیِ کوتاه، مثل blurb تو نمونه‌ای که فرستادی
+                        const blurb = [f.director ? `Dir. ${f.director}` : null, f.genre ? (Array.isArray(f.genre) ? f.genre[0] : f.genre) : null]
+                          .filter(Boolean)
+                          .join(' · ')
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={`${f.id}-${copyIdx}`}
                             ref={(el) => {
                               caseRefs.current[`${secKey}::${i}`] = el
                             }}
-                            className={`bluray-case ${isActive ? 'case-active' : ''} ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
-                            style={{
-                              backgroundColor: style.bg,
-                              background: style.bg,
-                              '--spine-text': style.text,
-                            }}
+                            className={`shelf-spine ${isActive ? 'active' : ''}`}
                             onMouseEnter={() => {
                               setHoveredFilm(f)
                               hoverPos.current = { sectionKey: secKey, index: i }
                             }}
+                            onFocus={() => setHoveredFilm(f)}
                             onClick={() => onSelectFilm(f)}
                             title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                           >
-                            <div className="case-glare" />
-
-                            {/* TEMP: پوستر خاموش برای تست این‌که خودِ img‌ها منبع لگ‌ان یا نه */}
-
-                            <div className="case-header">
-                              {isCriterion ? 'C' : is4k ? '4K UHD' : isSteelbook ? 'STEELBOOK' : 'BLU-RAY'}
-                            </div>
-
-                            <div className="case-spine">
-                              <span className="spine-title" style={{ color: style.text || '#fff' }}>
-                                {f.title}
+                            <span className="shelf-spine-lift" aria-hidden="true" />
+                            <span className="shelf-spine-panel" aria-hidden="true">
+                              <span className="shelf-spine-panel-inner">
+                                {f.poster && <img src={f.poster} alt="" loading="lazy" className="shelf-spine-img" />}
+                                <span className="shelf-spine-grad-top" />
+                                <span className="shelf-spine-grad-bottom" />
+                                {blurb && (
+                                  <span className="shelf-spine-meta">
+                                    <span className="shelf-spine-blurb">{blurb}</span>
+                                  </span>
+                                )}
                               </span>
-                            </div>
-
-                            <div className={`case-footer footer-${style.badge || 'dts'}`} style={{ color: style.text || '#aaa' }}>
-                              <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
-                            </div>
-                          </div>
+                            </span>
+                            {f.year && <span className="shelf-spine-year">{f.year}</span>}
+                            <span className="shelf-spine-title">{f.title}</span>
+                            <span className="shelf-spine-dot" aria-hidden="true" />
+                          </button>
                         )
                       })}
                     </div>
