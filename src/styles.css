@@ -7163,14 +7163,10 @@ body.light .dashboard-panel {
   z-index: 4;
 }
 
-/* قفسه: پورتِ عینیِ کامپوننتِ ExpandingGallery.tsx از پروژه‌ی مرجع (zip
-   hover2) — همون اعداد دقیقِ Tailwind (left-12, md:left-[4.6rem], h-24,
-   text-[11px], ...) رو به px/rem ترجمه کردیم، همون flex-grow نسبیِ
-   EXPAND_GROW=7 (نه عرض ثابت)، همون --ease-expand و همون حالتِ compact
-   برای موبایل (زیر 768px: اسکرول افقی با عرضِ جمع‌شده‌ی ثابت). بزرگ‌شدنِ
-   جلدِ هاورشده کاملاً با CSS (:hover) انجام می‌شه، نه state — چون خودِ
-   الگوریتمِ flex مرورگر به‌طور خودکار بقیه‌ی خواهر و برادرها رو کوچیک
-   می‌کنه، دقیقاً همون رفتار نمونه ولی بدون ری‌رندرِ React روی هر هاور. */
+/* قفسه: کانتینرِ اصلیِ ردیف. عرض هر ستون (بسته/باز) رو خودِ
+   ShelfHoverGallery تو BookshelfView.jsx از رو عرضِ واقعیِ این کانتینر و
+   تعداد فیلم‌ها حساب می‌کنه، و framer-motion (یه spring) انیمیتش می‌کنه —
+   این‌جا فقط ظاهرِ ثابتِ خودِ قفسه (رنگ چوب، اسکرول‌بار مخفی) تعریفه. */
 .bluray-shelf {
   display: flex;
   align-items: stretch;
@@ -7195,22 +7191,16 @@ body.light .dashboard-panel {
   background: transparent;
 }
 
-/* پورتِ عینیِ HoverGallery.tsx (پروژه‌ی مرجعِ دوم که خواستی جایگزین بشه):
-   عرضِ هر ستون رو خودِ کامپوننت (نه CSS) از رو اندازه‌ی واقعیِ کانتینر و
-   تعداد آیتم حساب می‌کنه (computeLayout در BookshelfView.jsx)، و باز/بسته
-   شدنش با یه اسپرینگِ framer-motion انیمیت می‌شه، نه CSS transition. اینجا
-   فقط ظاهرِ ثابتِ هر بخش (گاتر عنوان، گاترِ سال، دکمه‌ی پوستر، پیلِ پایین)
-   رو با همون مقادیرِ Tailwind نمونه پیاده کردیم. */
+/* پورتِ عینیِ سومین مرجع (arena.site «Physical Filmshelf»، ShelfSection.tsx
+   + FilmCover.tsx): بدون پوستر عکسی. هر جلدِ بسته یه اسپاینِ رنگیِ واقعیه
+   (برچسبِ فرمت بالا، برچسبِ کدکِ صدا پایین)؛ هاور/فوکوس با یه اسپرینگِ
+   framer-motion عرضش رو باز می‌کنه و یه چرخشِ سه‌بعدیِ ظریف (rotateY) یه
+   جلدِ گرافیکیِ رویه (سه طرحِ متفاوت) رو نشون می‌ده. */
 .hovergallery-scroll {
   scrollbar-width: none;
 }
 .hovergallery-scroll::-webkit-scrollbar {
   display: none;
-}
-
-.hovergallery-side {
-  height: 100%;
-  flex-shrink: 0;
 }
 
 .vtext {
@@ -7228,173 +7218,222 @@ body.light .dashboard-panel {
   flex-shrink: 0;
   cursor: pointer;
   overflow: hidden;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
   outline: none;
   -webkit-user-select: none;
   user-select: none;
-}
-.hovergallery-panel:last-child {
-  border-right: none;
+  margin-right: 3px;
+  transition: filter 0.2s ease;
 }
 .hovergallery-panel:focus-visible {
   outline: 1px solid rgba(255, 255, 255, 0.45);
   outline-offset: -1px;
 }
-
-.hovergallery-row {
-  display: flex;
-  height: 100%;
+.hovergallery-panel:hover {
+  filter: brightness(1.1);
 }
 
-/* گاترِ عنوان الان خودِ «جلدِ» رنگیِ فیلمه — پس‌زمینه‌ش رنگِ واقعیِ جلد
-   (از getSpineColor) هست، با یه برچسبِ فرمت (4K UHD / BLU-RAY / DVD
-   VIDEO / CRIT. COLL.) بالا و یه برچسبِ کدکِ صدا پایین، دقیقاً مثل
-   جلدهای فیزیکیِ واقعی — نه یه پوسترِ عکسی. */
-.hovergallery-title-gutter {
+.hovergallery-spine-face {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+.hovergallery-spine-top {
+  display: flex;
   flex-shrink: 0;
+  height: 13%;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4px;
+}
+.hovergallery-spine-mid {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 0 clamp(16px, 4vh, 28px);
+  justify-content: center;
   overflow: hidden;
 }
-.hovergallery-format-badge-top,
-.hovergallery-format-badge-bottom {
+.hovergallery-spine-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  font-size: 11.5px;
+}
+.hovergallery-spine-bottom {
+  display: flex;
+  flex-direction: column;
   flex-shrink: 0;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
+  height: 13%;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 6px;
+}
+.hovergallery-spine-copies {
+  margin-top: 2px;
+  border-radius: 1px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 0 4px;
+  font-size: 7px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hovergallery-format-tag,
+.hovergallery-format-tag-line {
+  display: block;
   text-align: center;
-  line-height: 1.3;
+  font-size: 6.5px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.hovergallery-format-c {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 1px;
+  background: #e5622a;
+  font-size: 9px;
+  font-weight: 700;
+  color: #000;
+}
+.hovergallery-codec-tag,
+.hovergallery-codec-tag-line {
+  display: block;
+  text-align: center;
+  font-size: 6px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   opacity: 0.9;
 }
-.hovergallery-title {
-  font-size: 14px;
-  font-weight: 600;
-  opacity: 0.92;
-}
 
-.hovergallery-right {
-  display: flex;
-  height: 100%;
-  min-width: 0;
-  flex: 1 1 auto;
-  padding: 10px 10px 10px 0;
+.hovergallery-cover-flip {
+  position: absolute;
+  inset: 0;
+  background: #0d0d0d;
+  transform-origin: left center;
+  transform-style: preserve-3d;
 }
-
-.hovergallery-open {
-  position: relative;
-  min-height: 0;
-  min-width: 0;
-  flex: 1 1 auto;
-  cursor: pointer;
+.hovergallery-cover-inset {
+  position: absolute;
+  inset: 3px;
   overflow: hidden;
-  border-radius: 10px;
-  background: #141315;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+.hovergallery-cover-shade {
+  pointer-events: none;
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 33%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
 }
 
-.hovergallery-cover {
+.hovergallery-cover-shell {
   position: relative;
   height: 100%;
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  opacity: 0;
-  transition: opacity 0.35s ease;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  container-type: inline-size;
 }
-.hovergallery-cover.active {
-  opacity: 1;
-}
-.hovergallery-cover-accent {
+.hovergallery-cover-vignette {
+  pointer-events: none;
   position: absolute;
   inset: 0;
-  opacity: 0.16;
-  clip-path: polygon(30% 0%, 68% 0%, 40% 100%, 4% 100%);
+  background: radial-gradient(120% 80% at 50% 120%, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 60%);
 }
-.hovergallery-cover-top {
+.hovergallery-cover-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 7%;
+}
+.hovergallery-cover-row {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 8px;
-  padding: 14px 16px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
 }
-.hovergallery-cover-studio {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.75);
+.hovergallery-cover-row span {
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+.hovergallery-cover-center {
+  padding-inline: 2%;
+  text-align: center;
+}
+.hovergallery-cover-rule {
+  height: 1px;
+  width: 100%;
+  opacity: 0.45;
+  margin-bottom: 4%;
+}
+.hovergallery-cover-center .hovergallery-cover-rule:last-child {
+  margin-bottom: 0;
+  margin-top: 4%;
+}
+.hovergallery-cover-title-block {
+  margin: 0;
+  line-height: 1.02;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
   text-transform: uppercase;
 }
-.hovergallery-cover-year {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.55);
-}
-.hovergallery-cover-tag {
-  position: relative;
-  margin: 8px 16px 0;
-  align-self: flex-start;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #f2f2ef;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 4px;
-  padding: 3px 7px;
-}
-.hovergallery-cover-bottom {
-  position: relative;
-  margin-top: auto;
-  padding: 0 16px 14px;
-}
-.hovergallery-cover-title {
+.hovergallery-cover-year-ghost {
+  pointer-events: none;
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
   font-family: var(--font-serif, Georgia, serif);
   font-style: italic;
-  font-size: clamp(1rem, 2.4vw, 1.55rem);
-  line-height: 1.15;
-  color: #fff;
-  margin-bottom: 4px;
+  opacity: 0.18;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(52px, 44cqw, 210px);
+  line-height: 0.8;
 }
-.hovergallery-cover-meta {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.65);
-  margin-bottom: 2px;
+.hovergallery-cover-tail {
+  position: relative;
+  margin-top: auto;
 }
-.hovergallery-cover-director {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 10px;
-}
-.hovergallery-cover-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.hovergallery-cover-location {
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.45);
+.hovergallery-cover-director-line {
+  margin: 0;
+  margin-top: 3%;
   text-transform: uppercase;
+  opacity: 0.7;
+  letter-spacing: 0.18em;
 }
-.hovergallery-cover-cta {
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 6px 14px;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  color: #fff;
-  text-transform: uppercase;
-  white-space: nowrap;
+.hovergallery-cover-title-italic {
+  margin: 0;
+  margin-top: 2%;
+  font-family: var(--font-serif, Georgia, serif);
+  font-style: italic;
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+  overflow-wrap: break-word;
 }
-.hovergallery-open:hover .hovergallery-cover-cta {
-  background: #f2f2ef;
-  color: #0b0b0c;
+.hovergallery-cover-rings {
+  pointer-events: none;
+  position: absolute;
+  top: 14%;
+  right: -16%;
+  height: 62%;
+  width: 62%;
+  opacity: 0.4;
 }
 
 /* قفسه‌ی قدیمیِ سبکِ «جلد بلوری» — فقط برای LocationBrowserModal نگه داشته
