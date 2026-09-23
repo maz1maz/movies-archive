@@ -120,7 +120,6 @@ function ShelfHoverGallery({ cases, onSelectFilm, onHoverFilm }) {
           {layout.side > 1 && <div className="hovergallery-side" style={{ width: layout.side / 2 }} />}
           {cases.map(({ f, copyIdx }, index) => {
             const isActive = index === active
-            const copyCount = Math.max(1, Number(f.copies) || 1)
             return (
               <motion.div
                 key={`${f.id}-${copyIdx}`}
@@ -145,7 +144,6 @@ function ShelfHoverGallery({ cases, onSelectFilm, onHoverFilm }) {
                 role="listitem"
                 aria-expanded={isActive}
                 aria-label={`${f.title}, ${f.year || 'N/A'}. ${isActive ? 'Expanded.' : 'Collapsed.'}`}
-                title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
               >
                 <div className="hovergallery-row" style={{ width: layout.expanded }}>
                   <div className="hovergallery-title-gutter" style={{ width: layout.col }}>
