@@ -48,6 +48,17 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   const [activeIndex, setActiveIndex] = useState(null)
   const hoverPos = useRef({ sectionKey: null, index: null })
   const caseRefs = useRef({})
+  // زیر ۷۶۸px (breakpoint موبایلِ md توی نمونه‌ی مرجع)، قفسه به‌جای
+  // flex-grow نسبی، اسکرولِ افقی با عرضِ جمع‌شده‌ی ثابت می‌شه — دقیقاً
+  // همون منطقِ compact توی ExpandingGallery.tsx.
+  const [compact, setCompact] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const update = () => setCompact(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
   const [searchQuery, setSearchQuery] = useState('')
   const [manageOpen, setManageOpen] = useState(false)
   const [resetCloset, setResetCloset] = useState('')
@@ -747,7 +758,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   <div className="shelf-overhead-light" />
                   <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
                     <div className="shelf-inner-shadow" />
-                    <div className="bluray-shelf">
+                    <div className={`bluray-shelf ${compact ? 'shelf-compact' : ''}`}>
                       {sec.cases.map(({ f, copyIdx }, i) => {
                         const copyCount = Math.max(1, Number(f.copies) || 1)
                         const secKey = sectionKeyOf(sec)
@@ -778,11 +789,15 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                                 {f.poster && <img src={f.poster} alt="" loading="lazy" className="shelf-spine-img" />}
                                 <span className="shelf-spine-grad-top" />
                                 <span className="shelf-spine-grad-bottom" />
-                                {blurb && (
-                                  <span className="shelf-spine-meta">
-                                    <span className="shelf-spine-blurb">{blurb}</span>
+                                <span className="shelf-spine-meta">
+                                  <span className="shelf-spine-blurb">{blurb}</span>
+                                  <span className="shelf-spine-open" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                      <path d="M7 17L17 7" strokeLinecap="round" />
+                                      <path d="M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
                                   </span>
-                                )}
+                                </span>
                               </span>
                             </span>
                             {f.year && <span className="shelf-spine-year">{f.year}</span>}
