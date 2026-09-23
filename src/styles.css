@@ -7224,11 +7224,10 @@ body.light .dashboard-panel {
 }
 .bluray-shelf.shelf-compact .shelf-spine {
   flex: 0 0 calc(52px * var(--spine-scale, 1));
-  flex-shrink: 0;
 }
 .bluray-shelf.shelf-compact .shelf-spine:hover,
 .bluray-shelf.shelf-compact .shelf-spine.active {
-  flex: 1 1 80%;
+  flex: 0 0 80%;
 }
 
 .shelf-spine-lift {

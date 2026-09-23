@@ -51,14 +51,22 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   // زیر ۷۶۸px (breakpoint موبایلِ md توی نمونه‌ی مرجع)، قفسه به‌جای
   // flex-grow نسبی، اسکرولِ افقی با عرضِ جمع‌شده‌ی ثابت می‌شه — دقیقاً
   // همون منطقِ compact توی ExpandingGallery.tsx.
-  const [compact, setCompact] = useState(false)
+  const [narrowScreen, setNarrowScreen] = useState(false)
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)')
-    const update = () => setCompact(mq.matches)
+    const update = () => setNarrowScreen(mq.matches)
     update()
     mq.addEventListener('change', update)
     return () => mq.removeEventListener('change', update)
   }, [])
+  // نمونه‌ی مرجع رو با ~۱۵ تا آیتم تست کرده بودن؛ قفسه‌های واقعیِ ما ۴۰
+  // تا ۵۵ تا جلد تو یه ردیف دارن. flex-grow نسبیِ خودِ نمونه رو ۵۰+ تا
+  // خواهر گذاشتیم، هر هاور کل ردیف رو دوباره‌چیدمان می‌ده و رو دستگاه‌های
+  // معمولی افت فریم/لگ محسوس می‌ده (خودِ نمونه هیچ‌وقت این تعداد آیتم رو
+  // تست نکرده بود). برای ردیف‌های پرجمعیت، همون حالت compact خودِ نمونه
+  // (عرض ثابت + اسکرول، به‌جای flex-grow نسبی) رو به‌کار می‌بریم — طراحی
+  // یکیه، فقط شرطِ فعال‌شدنش عریض‌تره.
+  const COMPACT_ITEM_THRESHOLD = 20
   const [searchQuery, setSearchQuery] = useState('')
   const [manageOpen, setManageOpen] = useState(false)
   const [resetCloset, setResetCloset] = useState('')
@@ -758,7 +766,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   <div className="shelf-overhead-light" />
                   <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
                     <div className="shelf-inner-shadow" />
-                    <div className={`bluray-shelf ${compact ? 'shelf-compact' : ''}`}>
+                    <div className={`bluray-shelf ${narrowScreen || sec.cases.length > COMPACT_ITEM_THRESHOLD ? 'shelf-compact' : ''}`}>
                       {sec.cases.map(({ f, copyIdx }, i) => {
                         const copyCount = Math.max(1, Number(f.copies) || 1)
                         const secKey = sectionKeyOf(sec)
