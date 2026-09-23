@@ -8,6 +8,32 @@ function sortKey(title) {
     .toLowerCase()
 }
 
+// قفسه‌ای که هنوز رو صفحه دیده نشده، اصلاً mount نمی‌شه (فقط یه جای‌خالیِ
+// هم‌ارتفاع) — با ۶۷۲۵ تا فیلم، اگه همه‌ی قفسه‌ها (و صدها تگ img پوستر
+// توشون) از همون اول تو DOM باشن، خودِ صفحه سنگین و کند می‌شه، جدا از
+// این‌که هاور رو کدوم جلد باشه. اولین باری که قفسه نزدیک دیدرَسه mount
+// می‌شه و دیگه unmount نمی‌شه (تا اسکرول به بالا دوباره خالی نشه).
+function LazyShelf({ minHeight, children }) {
+  const ref = useRef(null)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    if (visible || !ref.current) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setVisible(true)
+        obs.disconnect()
+      }
+    }, { rootMargin: '600px 0px' })
+    obs.observe(ref.current)
+    return () => obs.disconnect()
+  }, [visible])
+  return (
+    <div ref={ref} style={visible ? undefined : { minHeight }}>
+      {visible ? children : null}
+    </div>
+  )
+}
+
 export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsChanged }) {
   const [closetFilter, setClosetFilter] = useState('')
   const [shelfTheme, setShelfTheme] = useState('wood')
@@ -717,6 +743,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   </span>
                 </div>
 
+                <LazyShelf minHeight={`${Math.round(420 * shelfScale)}px`}>
                 <div className={`cinema-wood-shelf-wrapper shelf-theme-${shelfTheme}`}>
                   <div className="shelf-overhead-light" />
                   <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
@@ -789,6 +816,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   </div>
                   <div className="cinema-wood-ledge" />
                 </div>
+                </LazyShelf>
               </div>
             ))
           )}
