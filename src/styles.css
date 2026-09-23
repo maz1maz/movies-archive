@@ -7175,14 +7175,31 @@ body.light .dashboard-panel {
   z-index: 10;
   min-height: calc(310px * var(--spine-scale, 1));
   width: 100%;
-  overflow: hidden;
+  /* قبلاً overflow:hidden + هر جلد flex:1 1 0% بود، یعنی همه‌ی جلدهای یه
+     قفسه همیشه دقیقاً عرض کانتینر رو پر می‌کردن — پس با هاورِ هرکدوم، کل
+     بقیه‌ی جلدهای همون ردیف (که می‌تونه صدها تا باشه) باید فوراً
+     دوباره‌محاسبه و ریسایز می‌شدن، که با قفسه‌های پرتعداد کند و لگ‌دار
+     بود. الان هر جلد عرض ثابت داره (مثل نسخه‌ی فشرده‌ی موبایلِ نمونه‌ای که
+     برام فرستادی) و فقط اسکرول افقی داره — هاور/فعال‌شدنِ یه جلد فقط عرض
+     همون یکی رو عوض می‌کنه، نه بقیه رو. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+}
+.bluray-shelf::-webkit-scrollbar {
+  height: 6px;
+}
+.bluray-shelf::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
+.bluray-shelf::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-/* Individual 3D Spine Case - 0 min-width + flex 1 1 0% ensures 0 scrollbar */
 .bluray-case {
-  flex: 1 1 0%;
-  min-width: 0;
-  max-width: calc(34px * var(--spine-scale, 1));
+  flex: 0 0 auto;
+  width: calc(34px * var(--spine-scale, 1));
   height: calc(310px * var(--spine-scale, 1));
   background: var(--case-bg, #1e3a8a);
   color: var(--case-text, #fff);
@@ -7194,27 +7211,23 @@ body.light .dashboard-panel {
   position: relative;
   cursor: pointer;
   user-select: none;
-  box-shadow: 
+  box-shadow:
     inset 2px 0 0 rgba(255, 255, 255, 0.25),
     inset -2px 0 0 rgba(0, 0, 0, 0.5),
     inset 0 3px 0 rgba(255, 255, 255, 0.35),
     1px 0 4px rgba(0, 0, 0, 0.6);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease,
-    flex-grow 0.7s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    width 0.55s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: bottom center;
   overflow: hidden;
   padding: 0;
 }
 
-.bluray-case:hover {
+.bluray-case:hover,
+.bluray-case.case-active {
   transform: translateY(-20px) translateZ(15px) scale(1.03);
   z-index: 30;
-  /* پوسترها روی قفسه فقط رنگیِ صاف بودن — این باعث می‌شه با هاور، جلد
-     مثل کشیدنِ کتاب از قفسه پهن‌تر بشه و پوستر واقعیش پشتِ عنوانِ عمودی
-     نمایان بشه (بقیه‌ی جلدها رو همون قفسه، چون flex:1 1 0% هستن، خودشون
-     جمع می‌شن تا جا باز کنن). */
-  flex-grow: 12;
-  max-width: min(280px, 45vw);
+  width: min(260px, 60vw);
   box-shadow:
     0 22px 40px rgba(0, 0, 0, 0.85),
     0 0 0 2px #38bdf8,
@@ -7235,10 +7248,12 @@ body.light .dashboard-panel {
   filter: brightness(0.5) saturate(1.1);
   transition: filter 0.5s ease;
 }
-.bluray-case:hover .case-poster-reveal {
+.bluray-case:hover .case-poster-reveal,
+.bluray-case.case-active .case-poster-reveal {
   opacity: 1;
 }
-.bluray-case:hover .case-poster-reveal img {
+.bluray-case:hover .case-poster-reveal img,
+.bluray-case.case-active .case-poster-reveal img {
   filter: brightness(0.85) saturate(1.15);
 }
 /* بدون این، لیبل «BLU-RAY»/فرمت بالا و badge استودیو پایین (که پس‌زمینه‌ی
@@ -7357,6 +7372,26 @@ body.light .dashboard-panel {
   display: flex;
   align-items: center;
   gap: 6px;
+  transition: writing-mode 0s, transform 0.3s ease;
+}
+/* پهن‌شدنِ جلد با هاور جا برای متنِ افقی باز می‌کنه — عمودی موندنِ اسم روی
+   یه پوستر عریض، مثل قبل، ناخوانا و بی‌ربط به شکل واقعیِ عنوانِ پوستره. */
+.bluray-case:hover .case-spine,
+.bluray-case.case-active .case-spine {
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 8px 14px 16px;
+}
+.bluray-case:hover .spine-title,
+.bluray-case.case-active .spine-title {
+  writing-mode: horizontal-tb;
+  transform: none;
+  white-space: normal;
+  text-align: left;
+  font-size: 16px;
+  line-height: 1.25;
+  max-height: none;
+  max-width: 100%;
 }
 
 /* Colored Audio/Studio Footer Badge exactly like image.png! */

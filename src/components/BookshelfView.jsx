@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
 import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
 
@@ -13,6 +13,12 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   const [shelfTheme, setShelfTheme] = useState('wood')
   const [shelfScale, setShelfScale] = useState(1)
   const [hoveredFilm, setHoveredFilm] = useState(null)
+  // انتخابِ فعلی روی قفسه (با هاور یا کلید جهت‌دار) — برخلاف :hover خالص که
+  // با برداشتن موس بسته می‌شه، این می‌مونه تا با فلش چپ/راست بشه رو همون
+  // ردیف جابه‌جا شد، بدون نیاز به نگه‌داشتن موس رو یه جلد.
+  const [activeSectionKey, setActiveSectionKey] = useState(null)
+  const [activeIndex, setActiveIndex] = useState(null)
+  const caseRefs = useRef({})
   const [searchQuery, setSearchQuery] = useState('')
   const [manageOpen, setManageOpen] = useState(false)
   const [resetCloset, setResetCloset] = useState('')
@@ -257,8 +263,48 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
       }
       map[key].films.push(f)
     }
-    return Object.values(map)
+    // فلت‌کردنِ فیلم‌ها+نسخه‌ها به یه آرایه‌ی یکتا از «جلدها»، یه‌بار اینجا —
+    // هم برای رندر هم برای این‌که ناوبری با کیبورد بدونه ایندکس بعدی/قبلی
+    // چیه و کل تعداد جلدهای این قفسه چندتاست.
+    return Object.values(map).map((sec) => {
+      const cases = sec.films.flatMap((f, idx) => {
+        const copyCount = Math.max(1, Number(f.copies) || 1)
+        return Array.from({ length: copyCount }, (_, copyIdx) => ({ f, idx, copyIdx }))
+      })
+      return { ...sec, cases }
+    })
   }, [filteredFilms])
+
+  const sectionKeyOf = (sec) => `${sec.closet}-${sec.row}-${sec.shelf}`
+
+  const activateCase = (sectionKey, index) => {
+    setActiveSectionKey(sectionKey)
+    setActiveIndex(index)
+    const ref = caseRefs.current[`${sectionKey}::${index}`]
+    if (ref) ref.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }
+
+  // فلش چپ/راست، وقتی یه جلد فعاله، انتخاب رو رو همون ردیفِ قفسه می‌بره
+  // جلو/عقب — تا لازم نباشه موس رو دقیقاً نگه‌داری رو هر جلد که ببینیش.
+  useEffect(() => {
+    if (activeSectionKey == null || activeIndex == null) return
+    const onKey = (e) => {
+      const tag = e.target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      const sec = shelfSections.find((s) => sectionKeyOf(s) === activeSectionKey)
+      if (!sec || !sec.cases.length) return
+      e.preventDefault()
+      const delta = e.key === 'ArrowRight' ? 1 : -1
+      const next = Math.max(0, Math.min(sec.cases.length - 1, activeIndex + delta))
+      if (next === activeIndex) return
+      setHoveredFilm(sec.cases[next].f)
+      activateCase(activeSectionKey, next)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSectionKey, activeIndex, shelfSections])
 
   const totalCopies = useMemo(
     () => filteredFilms.reduce((sum, f) => sum + (Number(f.copies) || 1), 0),
@@ -672,27 +718,30 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
                     <div className="shelf-inner-shadow" />
                     <div className="bluray-shelf">
-                      {sec.films.flatMap((f, idx) => {
+                      {sec.cases.map(({ f, idx, copyIdx }, i) => {
                         const style = getSpineColor(f, idx)
                         const isCriterion = f.criterion || style.type === 'criterion'
                         const is4k = style.type === '4k'
                         const isSteelbook = style.type === 'steelbook'
-                        // نسخه‌های اضافه (copies > 1) واقعاً کنار هم به‌عنوان
-                        // جلدهای جدا رو قفسه می‌ذاریم — نه یه جلد با بج «×N»،
-                        // چون تو یه قفسه‌ی واقعی هم چند نسخه از یه فیلم واقعاً
-                        // چندتا جلد جدا هستن، نه یکی با یه برچسب.
                         const copyCount = Math.max(1, Number(f.copies) || 1)
-                        return Array.from({ length: copyCount }, (_, copyIdx) => (
+                        const secKey = sectionKeyOf(sec)
+                        const isActive = activeSectionKey === secKey && activeIndex === i
+                        return (
                           <div
                             key={`${f.id}-${copyIdx}`}
-                            className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
+                            ref={(el) => {
+                              caseRefs.current[`${secKey}::${i}`] = el
+                            }}
+                            className={`bluray-case ${isActive ? 'case-active' : ''} ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
                             style={{
                               backgroundColor: style.bg,
                               background: style.bg,
                               '--spine-text': style.text,
                             }}
-                            onMouseEnter={() => setHoveredFilm(f)}
-                            onMouseLeave={() => setHoveredFilm(null)}
+                            onMouseEnter={() => {
+                              setHoveredFilm(f)
+                              activateCase(secKey, i)
+                            }}
                             onClick={() => onSelectFilm(f)}
                             title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                           >
@@ -718,7 +767,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                               <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
                             </div>
                           </div>
-                        ))
+                        )
                       })}
                     </div>
 
