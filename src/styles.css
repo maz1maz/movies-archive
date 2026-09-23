@@ -7206,10 +7206,11 @@ body.light .dashboard-panel {
 .vtext {
   writing-mode: vertical-rl;
   text-orientation: mixed;
-  transform: rotate(180deg);
+  rotate: 180deg;
   white-space: nowrap;
   line-height: 1;
   letter-spacing: 0.02em;
+  transition: none;
 }
 
 .hovergallery-panel {
@@ -7223,14 +7224,10 @@ body.light .dashboard-panel {
   -webkit-user-select: none;
   user-select: none;
   margin-right: 3px;
-  transition: filter 0.2s ease;
 }
 .hovergallery-panel:focus-visible {
   outline: 1px solid rgba(255, 255, 255, 0.45);
   outline-offset: -1px;
-}
-.hovergallery-panel:hover {
-  filter: brightness(1.1);
 }
 
 .hovergallery-spine-face {
