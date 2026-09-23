@@ -778,11 +778,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                           >
                             <div className="case-glare" />
 
-                            {f.poster && (
-                              <div className="case-poster-reveal">
-                                <img src={f.poster} alt="" loading="lazy" />
-                              </div>
-                            )}
+                            {/* TEMP: پوستر خاموش برای تست این‌که خودِ img‌ها منبع لگ‌ان یا نه */}
 
                             <div className="case-header">
                               {isCriterion ? 'C' : is4k ? '4K UHD' : isSteelbook ? 'STEELBOOK' : 'BLU-RAY'}
