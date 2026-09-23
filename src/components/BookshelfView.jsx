@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
 import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
 
 function sortKey(title) {
@@ -34,249 +33,28 @@ function LazyShelf({ minHeight, children }) {
   )
 }
 
-// پورتِ عینیِ سومین (و آخرین) مرجع: ShelfSection.tsx + FilmCover.tsx از
-// پروژه‌ی arena.site («Physical Filmshelf»). برخلاف دو مرجعِ قبلی، اینجا
-// پوستر عکسی اصلاً وجود نداره — باز شدنِ هر جلد یه جلدِ گرافیکیِ رویه (سه
-// طرح متفاوت، بر اساس hash عنوان) با یه چرخشِ سه‌بعدیِ ظریف (rotateY) نشون
-// می‌ده. عرضِ ستون‌ها هم از رو عرضِ واقعیِ قفسه و تعدادِ فیلم‌ها حساب می‌شه.
-
-function hashStr(text) {
-  let value = 0
-  const s = String(text || '')
-  for (let i = 0; i < s.length; i++) value = (value * 31 + s.charCodeAt(i)) >>> 0
-  return value
-}
-
-function hexChannel(hex, index) {
-  return parseInt(hex.slice(1 + index * 2, 3 + index * 2), 16)
-}
-
-function mixHex(hex, target, amount) {
-  const a = [0, 1, 2].map((i) => hexChannel(hex, i))
-  const b = [0, 1, 2].map((i) => hexChannel(target, i))
-  const out = a.map((v, i) => Math.round(v + (b[i] - v) * amount))
-  return `#${out.map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('')}`
-}
-
-function readableInk(hex) {
-  const r = hexChannel(hex, 0)
-  const g = hexChannel(hex, 1)
-  const b = hexChannel(hex, 2)
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 150 ? '#0f0e0c' : '#f4f1e9'
-}
-
-// نمونه‌ی مرجع رنگِ هر جلد رو دستی تو دیتای دمو انتخاب کرده بود (رنگ‌های
-// خاکی/کدر مثل #b8b2a4, #6d5a3c, #2f4a6b, ...). ما ۶۷۲۵ تا فیلم داریم و
-// نمی‌تونیم دستی رنگ بدیم، پس همون طیفِ رنگیِ نمونه رو به یه پالت تبدیل
-// کردیم و بر اساس hash عنوان انتخاب می‌کنیم — نتیجه‌ش همون حسِ کدر و
-// واقعیِ نمونه‌ست، فقط این‌بار الگوریتمی.
-const SPINE_PALETTE = [
-  '#b8b2a4', '#8f8a7a', '#d9d4c7', '#4a5d6b', '#6d5a3c', '#c4762f', '#3f4a52', '#2c3a44',
-  '#7c6a4a', '#8a8f94', '#c9bda6', '#5b7f9e', '#1b2a3a', '#d9c9b8', '#7a2f34', '#c9a227',
-  '#3e5c46', '#5a6b3f', '#b5793a', '#8f2f2a', '#4a4a4a', '#2f4a6b', '#6b6257', '#1f4a5c',
-  '#a83232', '#d9d6cf', '#b9524a', '#3a3a3a', '#6d2f5a', '#c9a86a', '#3f6f6a', '#17181a',
-]
-
-function filmSpineColor(film) {
-  if (film.posterColor && /^#[0-9a-f]{6}$/i.test(film.posterColor)) return film.posterColor
-  return SPINE_PALETTE[hashStr(film.title) % SPINE_PALETTE.length]
-}
-
-// فرمت (BLU/4K/CRITERION/DVD/STEEL) و کدکِ صدا (DOLBY HD/DTS-HD/ATMOS) تو
-// نمونه دستی بود؛ ما از فیلدهای واقعیِ فیلم (criterion, format) و برای
-// کدک از hash (چون دیتای واقعیِ کدک صدا نداریم، فقط برای تنوعِ بصریه)
-// می‌سازیمشون.
-function filmFormat(film) {
-  if (film.criterion) return 'CRITERION'
-  const s = `${film.title || ''} ${film.format || ''}`.toLowerCase()
-  if (s.includes('steelbook') || s.includes('steel book')) return 'STEEL'
-  if (s.includes('4k') || s.includes('uhd')) return '4K'
-  if (s.includes('dvd')) return 'DVD'
-  return 'BLU'
-}
-
-const CODECS = ['DOLBY HD', 'DTS-HD', 'ATMOS']
-function filmCodec(film) {
-  return CODECS[hashStr(`${film.title}::codec`) % CODECS.length]
-}
-
-const FORMAT_LABEL = { BLU: 'BLU-RAY', '4K': '4K UHD', CRITERION: 'CRITERION', DVD: 'DVD', STEEL: 'STEELBOOK' }
-
-function useFineHover() {
-  const [fine, setFine] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia('(hover: hover) and (pointer: fine)').matches : true
-  )
-  useEffect(() => {
-    const mq = window.matchMedia('(hover: hover) and (pointer: fine)')
-    const update = () => setFine(mq.matches)
-    update()
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
-  }, [])
-  return fine
-}
-
-function CoverMetaRow({ micro, film, num, bottom }) {
-  return (
-    <div className="hovergallery-cover-row" style={{ fontSize: micro }}>
-      <span>{bottom ? FORMAT_LABEL[film.coverFormat] : `№ ${num}`}</span>
-      <span>{bottom ? film.year || '' : `${film.runtime || '?'} min`}</span>
-    </div>
-  )
-}
-
-// جلدِ گرافیکیِ رویه — دقیقاً همون FilmCover.tsx مرجع: سه طرحِ متفاوت (بر
-// اساس hash عنوان)، رنگ از spine گرفته می‌شه، و از container query (نه
-// اندازه‌ی صفحه) برای مقیاسِ فونت استفاده می‌کنه چون خودِ ستون می‌تونه از
-// ۳۰px تا صدها پیکسل عرض داشته باشه.
-function FilmCover({ film }) {
-  const col = film.coverColor
-  const ink = readableInk(col)
-  const base = mixHex(col, '#000000', 0.42)
-  const lift = mixHex(col, '#ffffff', 0.14)
-  const variant = hashStr(film.title) % 3
-  const num = String((hashStr(film.title) % 900) + 100)
-
-  const shell = {
-    containerType: 'inline-size',
-    color: ink,
-    background: `radial-gradient(130% 95% at 18% 8%, ${lift} 0%, ${col} 42%, ${base} 100%)`,
+// همون تکنیکِ «studio-hover-rail» که رو صفحه‌ی لندینگ جواب داده بود
+// (بدون framer-motion، فقط CSS flex-grow + transition) — عیناً برای قفسه.
+// تفاوتِ اصلی با نسخه‌های قبلیِ من دقیقاً همینه: انیمیشن رو مرورگر با CSS
+// transition انجام می‌ده (سبک، compositor-friendly)، نه با اسپرینگِ JS که
+// هر فریم باید محاسبه و روی inline style ست بشه — رو ۴۰-۵۵ تا خواهرِ
+// هم‌زمان، این تفاوت محسوسه.
+function settleHoverFactory(pendingRef, hoverIdRef, setActiveId, onHoverFilm) {
+  return (film) => {
+    if (pendingRef.current) clearTimeout(pendingRef.current)
+    pendingRef.current = setTimeout(() => {
+      pendingRef.current = null
+      hoverIdRef.current = film.id
+      setActiveId(film.id)
+      onHoverFilm?.(film)
+    }, 30)
   }
-  const micro = 'clamp(6px, 2.7cqw, 13px)'
-  const titleSize = 'clamp(13px, 10.6cqw, 46px)'
-
-  return (
-    <div className="hovergallery-cover-shell" style={shell}>
-      <div className="hovergallery-cover-vignette" />
-
-      {variant === 0 && (
-        <div className="hovergallery-cover-frame">
-          <CoverMetaRow micro={micro} film={film} num={num} />
-          <div className="hovergallery-cover-center">
-            <div className="hovergallery-cover-rule" style={{ background: ink }} />
-            <h3 className="hovergallery-cover-title-block" style={{ fontSize: titleSize }}>
-              {film.title}
-            </h3>
-            <div className="hovergallery-cover-rule" style={{ background: ink }} />
-          </div>
-          <CoverMetaRow micro={micro} film={film} num={num} bottom />
-        </div>
-      )}
-
-      {variant === 1 && (
-        <div className="hovergallery-cover-frame">
-          <CoverMetaRow micro={micro} film={film} num={num} />
-          <span className="hovergallery-cover-year-ghost" aria-hidden="true">
-            {film.year || ''}
-          </span>
-          <div className="hovergallery-cover-tail">
-            <h3 className="hovergallery-cover-title-block" style={{ fontSize: titleSize }}>
-              {film.title}
-            </h3>
-            {film.director && (
-              <p className="hovergallery-cover-director-line" style={{ fontSize: micro }}>
-                {film.director}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {variant === 2 && (
-        <div className="hovergallery-cover-frame">
-          <CoverMetaRow micro={micro} film={film} num={num} />
-          <svg className="hovergallery-cover-rings" viewBox="0 0 100 100" aria-hidden="true">
-            <circle cx="50" cy="50" r="46" stroke={ink} strokeWidth="1" fill="none" />
-            <circle cx="50" cy="50" r="30" stroke={ink} strokeWidth="0.5" fill="none" />
-            <circle cx="50" cy="50" r="3" fill={ink} />
-          </svg>
-          <div className="hovergallery-cover-tail">
-            {film.director && (
-              <p className="hovergallery-cover-director-line" style={{ fontSize: micro }}>
-                {film.director}
-              </p>
-            )}
-            <h3 className="hovergallery-cover-title-italic" style={{ fontSize: `calc(${titleSize} * 1.12)` }}>
-              {film.title}
-            </h3>
-          </div>
-          <CoverMetaRow micro={micro} film={film} num={num} bottom />
-        </div>
-      )}
-    </div>
-  )
 }
 
-function FormatTag({ format, ink }) {
-  if (format === 'CRITERION') {
-    return <span className="hovergallery-format-c">C</span>
-  }
-  const label =
-    format === 'BLU'
-      ? ['BLU', 'RAY']
-      : format === '4K'
-        ? ['4K', 'UHD']
-        : format === 'STEEL'
-          ? ['STEEL', 'BOOK']
-          : ['DVD']
-  return (
-    <span className="hovergallery-format-tag" style={{ color: ink }}>
-      {label.map((line) => (
-        <span key={line} className="hovergallery-format-tag-line">
-          {line}
-        </span>
-      ))}
-    </span>
-  )
-}
-
-function CodecTag({ codec, ink }) {
-  const lines = codec.split(' ')
-  return (
-    <span className="hovergallery-codec-tag" style={{ color: ink }}>
-      {lines.map((line) => (
-        <span key={line} className="hovergallery-codec-tag-line">
-          {line}
-        </span>
-      ))}
-    </span>
-  )
-}
-
-// نسخه‌ی اصلی (stiffness:340, damping:38, mass:0.8) رو عیناً پیاده کرده
-// بودیم، ولی رو گوشیِ واقعیِ کاربر کلِ توالی (تأخیرِ هاور + باز شدنِ عرض +
-// چرخشِ جلد) کند و مرحله‌مرحله حس می‌شد. سریع‌ترش کردیم — همون فنرِ
-// overdamped (بدون پرش)، فقط سفت‌تر و سبک‌تر که زودتر می‌رسه.
-const CASE_SPRING = { type: 'spring', stiffness: 560, damping: 42, mass: 0.55 }
-
-function ShelfHoverGallery({ films, shelfScale, onSelectFilm, onHoverFilm }) {
-  const innerRef = useRef(null)
+function ShelfHoverGallery({ films, onSelectFilm, onHoverFilm }) {
   const hoverId = useRef(null)
-  const skipScroll = useRef(true)
-  // یه جلدِ باز، همسایه‌هاش رو کنار می‌زنه — یعنی لبه‌ی جلدِ همسایه، زیرِ
-  // یه کرسرِ کاملاً ثابت، جابه‌جا می‌شه. اگه کرسر درست رو مرزِ دو تا جلد
-  // بوده باشه، این جابه‌جاییِ چند-پیکسلی خودش می‌تونه mouseenter رو جلدِ
-  // بغلی رو ترییگر کنه، که اونم با باز شدنش دوباره کرسر رو برمی‌گردونه رو
-  // جلدِ اول — یه حلقه‌ی تندِ باز/بسته که رو ویدیوی واقعی دیده شد. برای
-  // حذفش، فعال‌شدن رو چند میلی‌ثانیه («ته‌نشین شدنِ هاور») معلق می‌کنیم؛
-  // اگه یه mouseenter جدید سریع‌تر از اون برسه (دقیقاً همین حلقه)، تایمر
-  // ریست می‌شه و چیزی عوض نمی‌شه — فقط وقتی موس واقعاً رو یه جلد بند شد
-  // (نه وسطِ نوسان)، اون جلد فعال می‌شه.
   const pendingHover = useRef(null)
-  const [width, setWidth] = useState(0)
   const [activeId, setActiveId] = useState(films[0]?.id ?? null)
-  const reduce = useReducedMotion()
-  const fine = useFineHover()
-
-  useEffect(() => {
-    const el = innerRef.current
-    if (!el) return
-    const measure = () => setWidth((prev) => (prev === el.clientWidth ? prev : el.clientWidth))
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
 
   useEffect(() => {
     return () => {
@@ -284,49 +62,10 @@ function ShelfHoverGallery({ films, shelfScale, onSelectFilm, onHoverFilm }) {
     }
   }, [])
 
-  const settleHover = (film) => {
-    if (pendingHover.current) clearTimeout(pendingHover.current)
-    pendingHover.current = setTimeout(() => {
-      pendingHover.current = null
-      hoverId.current = film.id
-      setActiveId(film.id)
-      onHoverFilm?.(film)
-    }, 30)
-  }
-
-  const anyActive = films.some((f) => f.id === activeId) ? activeId : null
-
-  const minW = 30 * shelfScale
-  const maxW = 68 * shelfScale
-  const padding = 24
-  const avail = Math.max(0, width - padding)
-  let base = films.length > 0 ? avail / films.length : minW
-  let scrolls = false
-  if (base < minW) {
-    base = minW
-    scrolls = true
-  } else if (base > maxW) {
-    base = maxW
-  }
-  const expanded = Math.max(base, 206 * shelfScale)
-
-  useEffect(() => {
-    if (skipScroll.current) {
-      skipScroll.current = false
-      return
-    }
-    if (!anyActive || hoverId.current === anyActive || !scrolls) return
-    const el = innerRef.current?.querySelector(`[data-film="${anyActive}"]`)
-    if (!el) return
-    const frame = requestAnimationFrame(() => {
-      el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: reduce ? 'auto' : 'smooth' })
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [anyActive, scrolls, reduce])
+  const settleHover = settleHoverFactory(pendingHover, hoverId, setActiveId, onHoverFilm)
 
   return (
     <div
-      ref={innerRef}
       onMouseLeave={() => {
         hoverId.current = null
         if (pendingHover.current) {
@@ -334,30 +73,17 @@ function ShelfHoverGallery({ films, shelfScale, onSelectFilm, onHoverFilm }) {
           pendingHover.current = null
         }
       }}
-      className="bluray-shelf hovergallery-scroll"
+      className="bluray-shelf shelf-hover-rail"
     >
       {films.map((film) => {
-        const active = film.id === anyActive
-        const col = filmSpineColor(film)
-        const ink = readableInk(col)
-        const format = filmFormat(film)
-        const codec = filmCodec(film)
+        const active = film.id === activeId
         const copyCount = Math.max(1, Number(film.copies) || 1)
         return (
-          <motion.div
+          <button
+            type="button"
             key={film.id}
-            data-film={film.id}
-            role="button"
-            tabIndex={active ? 0 : -1}
-            aria-expanded={active}
-            aria-label={`${film.title}, ${film.year || 'N/A'}. ${active ? 'Cover revealed.' : 'Spine.'}`}
-            initial={false}
-            animate={{ width: active ? expanded : base, opacity: anyActive && !active ? 0.58 : 1 }}
-            transition={reduce ? { duration: 0 } : CASE_SPRING}
-            onMouseEnter={() => {
-              if (!fine) return
-              settleHover(film)
-            }}
+            className={`shelf-hover-col ${active ? 'shelf-hover-col-active' : ''}`}
+            onMouseEnter={() => settleHover(film)}
             onFocus={() => {
               if (pendingHover.current) clearTimeout(pendingHover.current)
               setActiveId(film.id)
@@ -369,55 +95,23 @@ function ShelfHoverGallery({ films, shelfScale, onSelectFilm, onHoverFilm }) {
                 onSelectFilm(film)
                 return
               }
-              hoverId.current = fine ? film.id : null
+              hoverId.current = film.id
               setActiveId(film.id)
               onHoverFilm?.(film)
             }}
-            onKeyDown={(e) => {
-              if (e.key !== 'Enter' && e.key !== ' ') return
-              e.preventDefault()
-              if (film.id === activeId) onSelectFilm(film)
-              else setActiveId(film.id)
-            }}
-            className="hovergallery-panel"
-            style={{
-              background: `linear-gradient(90deg, rgba(0,0,0,0.45) 0%, rgba(255,255,255,0.10) 18%, rgba(255,255,255,0.04) 55%, rgba(0,0,0,0.42) 100%), ${col}`,
-              boxShadow: active
-                ? '0 26px 34px -14px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.22)'
-                : 'inset 0 -14px 18px -14px rgba(0,0,0,0.85)',
-              zIndex: active ? 20 : 1,
-              transformOrigin: 'left center',
-              transformStyle: 'preserve-3d',
-              perspective: '850px',
-            }}
+            aria-expanded={active}
+            aria-label={`${film.title}, ${film.year || 'N/A'}.`}
           >
-            {active ? (
-              <motion.div
-                className="hovergallery-cover-flip"
-                initial={false}
-                animate={{ rotateY: reduce ? 0 : -13 }}
-                transition={reduce ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <div className="hovergallery-cover-inset">
-                  <FilmCover film={{ ...film, coverColor: col, coverFormat: format }} />
-                </div>
-                <div className="hovergallery-cover-shade" />
-              </motion.div>
-            ) : (
-              <div className="hovergallery-spine-face" style={{ color: ink }}>
-                <div className="hovergallery-spine-top">
-                  <FormatTag format={format} ink={ink} />
-                </div>
-                <div className="hovergallery-spine-mid">
-                  <span className="vtext hovergallery-spine-title">{film.title}</span>
-                </div>
-                <div className="hovergallery-spine-bottom">
-                  <CodecTag codec={codec} ink={ink} />
-                  {copyCount > 1 && <span className="hovergallery-spine-copies">×{copyCount}</span>}
-                </div>
-              </div>
-            )}
-          </motion.div>
+            <span className="shelf-hover-bg">
+              {film.poster && <img src={film.poster} alt="" loading="lazy" decoding="async" />}
+              <span className="shelf-hover-scrim" />
+            </span>
+            <span className="shelf-hover-year">{film.year || ''}</span>
+            <span className="shelf-hover-label">
+              {film.title}
+              {copyCount > 1 && <em>×{copyCount}</em>}
+            </span>
+          </button>
         )
       })}
     </div>
@@ -1088,7 +782,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   <div className="shelf-overhead-light" />
                   <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
                     <div className="shelf-inner-shadow" />
-                    <ShelfHoverGallery films={sec.films} shelfScale={shelfScale} onSelectFilm={onSelectFilm} onHoverFilm={setHoveredFilm} />
+                    <ShelfHoverGallery films={sec.films} onSelectFilm={onSelectFilm} onHoverFilm={setHoveredFilm} />
 
                     <div className="shelf-props-layer">
                       <div className="shelf-prop prop-ticket-stub" title="Vintage Cinema Ticket" />

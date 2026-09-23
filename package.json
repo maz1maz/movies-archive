@@ -20,7 +20,6 @@
   "dependencies": {
     "@tweakpane/plugin-essentials": "^0.2.1",
     "express": "^4.19.2",
-    "framer-motion": "^13.4.1",
     "jszip": "^3.10.1",
     "multer": "^2.2.0",
     "ogl": "^1.0.11",
