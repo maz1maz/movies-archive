@@ -7231,6 +7231,226 @@ body.light .dashboard-panel {
 .footer-hdr { color: #eab308; }
 .footer-w { color: #94a3b8; }
 
+/* =========================================================
+   HOVER-EXPAND SHELF FRAMES — poster + year + vertical name,
+   spine widens into a full poster frame on hover. Pure CSS
+   (flex-grow transition), no JS-driven layout animation.
+   ========================================================= */
+.shelf-hover-row {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 2px;
+  flex-wrap: nowrap;
+  padding-bottom: 1px;
+  position: relative;
+  z-index: 10;
+  min-height: calc(310px * var(--spine-scale, 1));
+  width: 100%;
+  overflow: hidden;
+}
+
+.shelf-hover-frame {
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: calc(34px * var(--spine-scale, 1));
+  height: calc(310px * var(--spine-scale, 1));
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-radius: 4px 4px 1px 1px;
+  background: #0d0f13;
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+  box-shadow:
+    inset 2px 0 0 rgba(255, 255, 255, 0.08),
+    1px 0 4px rgba(0, 0, 0, 0.5);
+  transition: flex-grow 520ms cubic-bezier(0.22, 1, 0.36, 1), max-width 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.shelf-hover-frame.is-active {
+  flex-grow: 14;
+  max-width: calc(320px * var(--spine-scale, 1));
+  z-index: 30;
+  box-shadow:
+    0 18px 34px rgba(0, 0, 0, 0.75),
+    0 0 0 1px var(--accent, #ff4a1c);
+}
+
+.shelf-hover-edge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 2px;
+  background: var(--accent, #ff4a1c);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.4s ease-out;
+  z-index: 5;
+}
+.shelf-hover-frame.is-active .shelf-hover-edge {
+  transform: scaleY(1);
+}
+
+/* label rail — index, year (revealed on hover), vertical title */
+.shelf-hover-rail {
+  position: relative;
+  z-index: 4;
+  flex: 0 0 calc(30px * var(--spine-scale, 1));
+  width: calc(30px * var(--spine-scale, 1));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  overflow: hidden;
+}
+.shelf-hover-index {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--accent, #ff4a1c);
+  opacity: 0.85;
+  font-weight: 700;
+}
+.shelf-hover-year {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--accent, #ff4a1c);
+  opacity: 0;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  margin: 6px 0;
+}
+.shelf-hover-frame.is-active .shelf-hover-year {
+  opacity: 1;
+}
+.shelf-hover-title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 100%;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.85);
+  transition: color 0.3s ease;
+}
+.shelf-hover-frame:hover .shelf-hover-title,
+.shelf-hover-frame.is-active .shelf-hover-title {
+  color: #f5f3ee;
+}
+
+/* the poster pane, revealed as the frame grows */
+.shelf-hover-photo {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+.shelf-hover-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.06);
+  filter: brightness(0.4);
+  opacity: 0.55;
+  transition: transform 0.9s ease-out, filter 0.9s ease-out, opacity 0.9s ease-out;
+}
+.shelf-hover-frame.is-active .shelf-hover-img {
+  transform: scale(1);
+  filter: brightness(1);
+  opacity: 1;
+}
+.shelf-hover-noimg {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 11px);
+  opacity: 0.5;
+}
+.shelf-hover-gradient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.05) 45%, rgba(0, 0, 0, 0.25) 100%);
+}
+
+/* museum label — format + director, only legible once expanded */
+.shelf-hover-label {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 10px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.shelf-hover-frame.is-active .shelf-hover-label {
+  opacity: 1;
+  transform: translateY(0);
+}
+.shelf-hover-label-format {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-text, #f5f3ee);
+}
+.shelf-hover-label-dir {
+  font-size: 12.5px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.75);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shelf-hover-frame.criterion .shelf-hover-label-format { color: #d4af37; }
+.shelf-hover-frame.four-k .shelf-hover-label-format { color: #eab308; }
+.shelf-hover-frame.steelbook .shelf-hover-label-format { color: #cbd5e1; }
+
+@media (max-width: 640px) {
+  .shelf-hover-row {
+    min-height: calc(185px * var(--spine-scale, 1));
+  }
+  .shelf-hover-frame {
+    height: calc(185px * var(--spine-scale, 1));
+    max-width: calc(24px * var(--spine-scale, 1));
+  }
+  .shelf-hover-frame.is-active {
+    max-width: calc(200px * var(--spine-scale, 1));
+  }
+  .shelf-hover-rail {
+    flex-basis: calc(22px * var(--spine-scale, 1));
+    width: calc(22px * var(--spine-scale, 1));
+  }
+  .shelf-hover-title {
+    font-size: 11px;
+  }
+  .shelf-hover-label-dir {
+    display: none;
+  }
+}
+
 /* Thick Walnut Wooden Ledge at the bottom */
 .cinema-wood-ledge {
   height: 24px;

@@ -13,6 +13,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   const [shelfTheme, setShelfTheme] = useState('wood')
   const [shelfScale, setShelfScale] = useState(1)
   const [hoveredFilm, setHoveredFilm] = useState(null)
+  const [hoveredKey, setHoveredKey] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [manageOpen, setManageOpen] = useState(false)
   const [resetCloset, setResetCloset] = useState('')
@@ -671,48 +672,60 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   <div className="shelf-overhead-light" />
                   <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
                     <div className="shelf-inner-shadow" />
-                    <div className="bluray-shelf">
+                    <div className="shelf-hover-row">
                       {sec.films.flatMap((f, idx) => {
                         const style = getSpineColor(f, idx)
                         const isCriterion = f.criterion || style.type === 'criterion'
                         const is4k = style.type === '4k'
                         const isSteelbook = style.type === 'steelbook'
+                        const formatLabel = isCriterion ? 'CRITERION' : is4k ? '4K UHD' : isSteelbook ? 'STEELBOOK' : 'BLU-RAY'
                         // نسخه‌های اضافه (copies > 1) واقعاً کنار هم به‌عنوان
                         // جلدهای جدا رو قفسه می‌ذاریم — نه یه جلد با بج «×N»،
                         // چون تو یه قفسه‌ی واقعی هم چند نسخه از یه فیلم واقعاً
                         // چندتا جلد جدا هستن، نه یکی با یه برچسب.
                         const copyCount = Math.max(1, Number(f.copies) || 1)
-                        return Array.from({ length: copyCount }, (_, copyIdx) => (
-                          <div
-                            key={`${f.id}-${copyIdx}`}
-                            className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
-                            style={{
-                              backgroundColor: style.bg,
-                              background: style.bg,
-                              '--spine-text': style.text,
-                            }}
-                            onMouseEnter={() => setHoveredFilm(f)}
-                            onMouseLeave={() => setHoveredFilm(null)}
-                            onClick={() => onSelectFilm(f)}
-                            title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
-                          >
-                            <div className="case-glare" />
-
-                            <div className="case-header">
-                              {isCriterion ? 'C' : is4k ? '4K UHD' : isSteelbook ? 'STEELBOOK' : 'BLU-RAY'}
+                        return Array.from({ length: copyCount }, (_, copyIdx) => {
+                          const key = `${f.id}-${copyIdx}`
+                          const active = hoveredKey === key
+                          return (
+                            <div
+                              key={key}
+                              className={`shelf-hover-frame ${active ? 'is-active' : ''} ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
+                              style={{ '--accent': style.bg, '--accent-text': style.text }}
+                              onMouseEnter={() => {
+                                setHoveredFilm(f)
+                                setHoveredKey(key)
+                              }}
+                              onMouseLeave={() => {
+                                setHoveredFilm(null)
+                                setHoveredKey(null)
+                              }}
+                              onClick={() => onSelectFilm(f)}
+                              title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
+                            >
+                              <span className="shelf-hover-edge" />
+                              <div className="shelf-hover-rail">
+                                <span className="shelf-hover-index">{String(idx + 1).padStart(2, '0')}</span>
+                                <span className="shelf-hover-year">{f.year || ''}</span>
+                                <span className="shelf-hover-title">{f.title}</span>
+                              </div>
+                              <div className="shelf-hover-photo">
+                                {f.poster ? (
+                                  <img src={f.poster} alt={f.title} className="shelf-hover-img" loading="lazy" />
+                                ) : (
+                                  <div className="shelf-hover-noimg">🎬</div>
+                                )}
+                                <span className="shelf-hover-gradient" />
+                                <div className="shelf-hover-label">
+                                  <span className="shelf-hover-label-format">
+                                    {style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || formatLabel}
+                                  </span>
+                                  {f.director && <span className="shelf-hover-label-dir">Dir: {f.director}</span>}
+                                </div>
+                              </div>
                             </div>
-
-                            <div className="case-spine">
-                              <span className="spine-title" style={{ color: style.text || '#fff' }}>
-                                {f.title}
-                              </span>
-                            </div>
-
-                            <div className={`case-footer footer-${style.badge || 'dts'}`} style={{ color: style.text || '#aaa' }}>
-                              <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
-                            </div>
-                          </div>
-                        ))
+                          )
+                        })
                       })}
                     </div>
 
