@@ -249,6 +249,16 @@ function ShelfHoverGallery({ films, shelfScale, onSelectFilm, onHoverFilm }) {
   const innerRef = useRef(null)
   const hoverId = useRef(null)
   const skipScroll = useRef(true)
+  // یه جلدِ باز، همسایه‌هاش رو کنار می‌زنه — یعنی لبه‌ی جلدِ همسایه، زیرِ
+  // یه کرسرِ کاملاً ثابت، جابه‌جا می‌شه. اگه کرسر درست رو مرزِ دو تا جلد
+  // بوده باشه، این جابه‌جاییِ چند-پیکسلی خودش می‌تونه mouseenter رو جلدِ
+  // بغلی رو ترییگر کنه، که اونم با باز شدنش دوباره کرسر رو برمی‌گردونه رو
+  // جلدِ اول — یه حلقه‌ی تندِ باز/بسته که رو ویدیوی واقعی دیده شد. برای
+  // حذفش، فعال‌شدن رو چند میلی‌ثانیه («ته‌نشین شدنِ هاور») معلق می‌کنیم؛
+  // اگه یه mouseenter جدید سریع‌تر از اون برسه (دقیقاً همین حلقه)، تایمر
+  // ریست می‌شه و چیزی عوض نمی‌شه — فقط وقتی موس واقعاً رو یه جلد بند شد
+  // (نه وسطِ نوسان)، اون جلد فعال می‌شه.
+  const pendingHover = useRef(null)
   const [width, setWidth] = useState(0)
   const [activeId, setActiveId] = useState(films[0]?.id ?? null)
   const reduce = useReducedMotion()
@@ -263,6 +273,22 @@ function ShelfHoverGallery({ films, shelfScale, onSelectFilm, onHoverFilm }) {
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
+
+  useEffect(() => {
+    return () => {
+      if (pendingHover.current) clearTimeout(pendingHover.current)
+    }
+  }, [])
+
+  const settleHover = (film) => {
+    if (pendingHover.current) clearTimeout(pendingHover.current)
+    pendingHover.current = setTimeout(() => {
+      pendingHover.current = null
+      hoverId.current = film.id
+      setActiveId(film.id)
+      onHoverFilm?.(film)
+    }, 65)
+  }
 
   const anyActive = films.some((f) => f.id === activeId) ? activeId : null
 
@@ -299,6 +325,10 @@ function ShelfHoverGallery({ films, shelfScale, onSelectFilm, onHoverFilm }) {
       ref={innerRef}
       onMouseLeave={() => {
         hoverId.current = null
+        if (pendingHover.current) {
+          clearTimeout(pendingHover.current)
+          pendingHover.current = null
+        }
       }}
       className="bluray-shelf hovergallery-scroll"
     >
@@ -322,15 +352,15 @@ function ShelfHoverGallery({ films, shelfScale, onSelectFilm, onHoverFilm }) {
             transition={reduce ? { duration: 0 } : CASE_SPRING}
             onMouseEnter={() => {
               if (!fine) return
-              hoverId.current = film.id
-              setActiveId(film.id)
-              onHoverFilm?.(film)
+              settleHover(film)
             }}
             onFocus={() => {
+              if (pendingHover.current) clearTimeout(pendingHover.current)
               setActiveId(film.id)
               onHoverFilm?.(film)
             }}
             onClick={() => {
+              if (pendingHover.current) clearTimeout(pendingHover.current)
               if (film.id === activeId) {
                 onSelectFilm(film)
                 return
