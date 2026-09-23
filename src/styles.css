@@ -7390,6 +7390,46 @@ body.light .dashboard-panel {
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.05) 45%, rgba(0, 0, 0, 0.25) 100%);
 }
 
+/* small round format disc, top-left of the poster once expanded */
+.shelf-hover-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 6;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  background: rgba(37, 99, 235, 0.85);
+  display: grid;
+  place-items: center;
+  font-size: 7px;
+  font-weight: 900;
+  color: #fff;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s;
+}
+.shelf-hover-frame.is-active .shelf-hover-badge {
+  opacity: 1;
+  transform: scale(1);
+}
+.shelf-hover-frame.criterion .shelf-hover-badge {
+  background: #f9fafb;
+  color: #111827;
+  border-color: #111827;
+}
+.shelf-hover-frame.four-k .shelf-hover-badge {
+  background: #09090b;
+  color: #eab308;
+  border-color: #eab308;
+}
+.shelf-hover-frame.steelbook .shelf-hover-badge {
+  background: #9ca3af;
+  color: #111827;
+  border-color: #fff;
+}
+
 /* museum label — format + director, only legible once expanded */
 .shelf-hover-label {
   position: absolute;

@@ -716,6 +716,9 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                                   <div className="shelf-hover-noimg">🎬</div>
                                 )}
                                 <span className="shelf-hover-gradient" />
+                                <span className="shelf-hover-badge">
+                                  {isCriterion ? 'C' : is4k ? '4K' : ''}
+                                </span>
                                 <div className="shelf-hover-label">
                                   <span className="shelf-hover-label-format">
                                     {style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || formatLabel}
