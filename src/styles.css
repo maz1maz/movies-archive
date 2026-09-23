@@ -7195,259 +7195,171 @@ body.light .dashboard-panel {
   background: transparent;
 }
 
-.shelf-spine {
+/* پورتِ عینیِ HoverGallery.tsx (پروژه‌ی مرجعِ دوم که خواستی جایگزین بشه):
+   عرضِ هر ستون رو خودِ کامپوننت (نه CSS) از رو اندازه‌ی واقعیِ کانتینر و
+   تعداد آیتم حساب می‌کنه (computeLayout در BookshelfView.jsx)، و باز/بسته
+   شدنش با یه اسپرینگِ framer-motion انیمیت می‌شه، نه CSS transition. اینجا
+   فقط ظاهرِ ثابتِ هر بخش (گاتر عنوان، گاترِ سال، دکمه‌ی پوستر، پیلِ پایین)
+   رو با همون مقادیرِ Tailwind نمونه پیاده کردیم. */
+.hovergallery-scroll {
+  scrollbar-width: none;
+}
+.hovergallery-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.hovergallery-side {
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.vtext {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.hovergallery-panel {
   position: relative;
   height: 100%;
-  flex: 1 1 0%;
-  overflow: hidden;
-  border: none;
-  border-right: 1px solid rgba(255, 255, 255, 0.07);
-  background: transparent;
-  padding: 0;
-  margin: 0;
+  flex-shrink: 0;
   cursor: pointer;
-  text-align: left;
+  overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   outline: none;
-  -webkit-tap-highlight-color: transparent;
-  transition: flex-grow 780ms var(--ease-expand, cubic-bezier(0.72, 0, 0.28, 1)),
-    flex-basis 780ms var(--ease-expand, cubic-bezier(0.72, 0, 0.28, 1));
+  -webkit-user-select: none;
+  user-select: none;
 }
-.shelf-spine:last-child {
+.hovergallery-panel:last-child {
   border-right: none;
 }
-.shelf-spine:focus-visible {
-  background: rgba(255, 255, 255, 0.04);
-}
-.shelf-spine:hover,
-.shelf-spine.active {
-  flex: 7 1 0%;
-}
-.bluray-shelf.shelf-compact .shelf-spine {
-  flex: 0 0 calc(52px * var(--spine-scale, 1));
-}
-.bluray-shelf.shelf-compact .shelf-spine:hover,
-.bluray-shelf.shelf-compact .shelf-spine.active {
-  /* روی صفحه‌ی موبایلِ نمونه، ۸۰٪ همون عرضِ باریکِ تلفنه؛ ولی وقتی این
-     حالت به‌خاطر تعداد زیادِ جلدها رو یه مانیتور پهن هم فعال می‌شه، ۸۰٪
-     از یه ردیفِ خیلی پهن یعنی چند صد پیکسل عرض برای یه قفسه‌ی فقط
-     310px قدی — پوستر به‌جای یه کارتِ عمودی، یه باندِ افقیِ غول‌پیکر و
-     بیرون‌زده از قفسه می‌شه. سقفش رو به یه عرضِ متناسب با ارتفاعِ قفسه
-     (تقریباً نسبتِ پوستر) محدود کردیم. */
-  flex: 0 0 min(80%, calc(230px * var(--spine-scale, 1)));
+.hovergallery-panel:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.45);
+  outline-offset: -1px;
 }
 
-.shelf-spine-lift {
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.025);
-  opacity: 0;
-  transition: opacity 0.5s ease;
-  pointer-events: none;
-}
-.shelf-spine:hover .shelf-spine-lift {
-  opacity: 1;
+.hovergallery-row {
+  display: flex;
+  height: 100%;
 }
 
-.shelf-spine-panel {
-  position: absolute;
-  inset-block: 0;
-  right: 0;
-  left: 0;
-  padding: 0;
-  opacity: 0;
-  transition: left 700ms var(--ease-expand, cubic-bezier(0.72, 0, 0.28, 1)),
-    padding 700ms var(--ease-expand, cubic-bezier(0.72, 0, 0.28, 1)),
-    opacity 700ms var(--ease-expand, cubic-bezier(0.72, 0, 0.28, 1));
-  pointer-events: none;
+.hovergallery-title-gutter {
+  display: flex;
+  height: 100%;
+  flex-shrink: 0;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: clamp(22px, 5.5vh, 46px);
 }
-.shelf-spine:hover .shelf-spine-panel,
-.shelf-spine.active .shelf-spine-panel {
-  left: 48px;
-  padding: 10px;
-  opacity: 1;
+.hovergallery-title {
+  font-size: 15px;
+  color: #7f7f7f;
+  font-weight: 500;
+  transition: color 0.3s ease, font-weight 0.3s ease;
 }
-@media (min-width: 768px) {
-  .shelf-spine:hover .shelf-spine-panel,
-  .shelf-spine.active .shelf-spine-panel {
-    left: 73.6px;
-    padding: 12px;
+.hovergallery-title.active {
+  color: #fff;
+  font-weight: 600;
+}
+
+.hovergallery-right {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 6px;
+  padding-top: 56px;
+  padding-right: 14px;
+  padding-bottom: 14px;
+}
+@media (min-width: 640px) {
+  .hovergallery-right {
+    padding-top: 64px;
   }
 }
-.shelf-spine-panel-inner {
+
+.hovergallery-year-gutter {
+  display: flex;
+  width: 30px;
+  flex-shrink: 0;
+  justify-content: center;
+}
+.hovergallery-year {
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.hovergallery-year.active {
+  opacity: 1;
+  transition-delay: 0.08s;
+}
+
+.hovergallery-open {
   position: relative;
-  display: block;
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #141315;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.hovergallery-photo {
   height: 100%;
   width: 100%;
-  overflow: hidden;
-  border-radius: 8px;
-  background: #131315;
+  transform: scale(1.06);
+  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.shelf-spine-img {
+.hovergallery-photo.active {
+  transform: scale(1);
+}
+.hovergallery-photo img,
+.hovergallery-photo-fallback {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  transform: scale(1.1);
-  transition: transform 1400ms ease-out;
 }
-.shelf-spine:hover .shelf-spine-img,
-.shelf-spine.active .shelf-spine-img {
-  transform: scale(1);
+.hovergallery-photo-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e1e20;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 28px;
 }
-.shelf-spine.active:hover .shelf-spine-img {
-  transform: scale(1.04);
-}
-.shelf-spine-grad-top,
-.shelf-spine-grad-bottom {
-  position: absolute;
-  left: 0;
-  right: 0;
+
+.hovergallery-pill {
   pointer-events: none;
-}
-.shelf-spine-grad-top {
-  top: 0;
-  height: 96px;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent);
-}
-.shelf-spine-grad-bottom {
-  bottom: 0;
-  height: 112px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent);
-}
-.shelf-spine-meta {
   position: absolute;
   bottom: 16px;
   left: 16px;
-  right: 16px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-}
-.shelf-spine-blurb {
-  display: block;
-  margin: 0;
-  max-width: 16rem;
-  font-size: 11px;
-  line-height: 1.625;
-  letter-spacing: 0.025em;
-  color: rgba(255, 255, 255, 0.75);
-  opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-.shelf-spine:hover .shelf-spine-blurb,
-.shelf-spine.active .shelf-spine-blurb {
-  opacity: 1;
-  transform: translateY(0);
-  transition-delay: 300ms;
-}
-
-.shelf-spine-open {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.4);
+  padding: 6px 12px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
   color: #fff;
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+  text-transform: uppercase;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 0.5s ease, transform 0.5s ease, background-color 0.5s ease, color 0.5s ease;
+  transform: translateY(8px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
 }
-.shelf-spine-open svg {
-  width: 16px;
-  height: 16px;
-}
-.shelf-spine:hover .shelf-spine-open,
-.shelf-spine.active .shelf-spine-open {
+.hovergallery-pill.active {
   opacity: 1;
   transform: translateY(0);
-  transition-delay: 300ms;
-}
-.shelf-spine:hover .shelf-spine-open {
-  background: #f2f2ef;
-  color: #0b0b0c;
-}
-
-.shelf-spine-year {
-  position: absolute;
-  left: 16px;
-  top: 20px;
-  z-index: 10;
-  writing-mode: vertical-rl;
-  font-size: 12px;
-  letter-spacing: 0.35em;
-  color: rgba(255, 255, 255, 0.85);
-  opacity: 0;
-  transform: translateY(-8px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-@media (min-width: 768px) {
-  .shelf-spine-year {
-    left: 21.6px;
-    top: 24px;
-    font-size: 13px;
-  }
-}
-.shelf-spine:hover .shelf-spine-year,
-.shelf-spine.active .shelf-spine-year {
-  opacity: 1;
-  transform: translateY(0);
-  transition-delay: 200ms;
-}
-
-.shelf-spine-title {
-  position: absolute;
-  bottom: 28px;
-  left: 12px;
-  z-index: 10;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  white-space: nowrap;
-  max-height: calc(100% - 40px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.82rem;
-  font-weight: 500;
-  letter-spacing: -0.025em;
-  color: #8b8b8e;
-  transition: color 0.5s ease;
-}
-@media (min-width: 768px) {
-  .shelf-spine-title {
-    left: 18.4px;
-    font-size: clamp(0.95rem, 1.35vw, 1.3rem);
-  }
-}
-.shelf-spine:hover .shelf-spine-title,
-.shelf-spine.active .shelf-spine-title {
-  color: #f2f2ef;
-}
-
-.shelf-spine-dot {
-  position: absolute;
-  bottom: 10px;
-  left: 16.8px;
-  z-index: 10;
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
-  transition: background-color 0.5s ease;
-}
-@media (min-width: 768px) {
-  .shelf-spine-dot {
-    left: 23.2px;
-  }
-}
-.shelf-spine:hover .shelf-spine-dot,
-.shelf-spine.active .shelf-spine-dot {
-  background: #f2f2ef;
+  transition-delay: 0.42s;
 }
 
 /* قفسه‌ی قدیمیِ سبکِ «جلد بلوری» — فقط برای LocationBrowserModal نگه داشته

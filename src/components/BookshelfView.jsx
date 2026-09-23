@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
 
 function sortKey(title) {
@@ -33,40 +34,161 @@ function LazyShelf({ minHeight, children }) {
   )
 }
 
+// پورتِ عینیِ HoverGallery.tsx (پروژه‌ی مرجعِ دوم، create-hover-expand-effect).
+// اون قفسه با ~۱۵ تا آیتم، عرضِ هر ستون و اندازه‌ی پوستر رو از رو عرض/ارتفاعِ
+// واقعیِ کانتینر حساب می‌کنه (نه یه درصدِ ثابت)؛ وقتی تعداد آیتم زیاد بشه و
+// دیگه جا نشه، خودش می‌ره تو حالت اسکرول با حداقل‌عرضِ ستون. همون منطق رو
+// این‌جا هم عیناً پیاده کردیم.
+const MIN_COL = 42
+const MAX_COL = 92
+
+function computeLayout(width, height, count) {
+  const yearW = 30
+  const gutter = 16
+  const gap = 8
+  const extras = yearW + gap + gutter
+  const targetImage = Math.min(400, Math.max(210, Math.min(width * 0.32, Math.max(height - 24, 320) * 0.5)))
+
+  let col = (width - targetImage - extras) / count
+  let image = targetImage
+  let scroll = false
+
+  if (col < MIN_COL) {
+    col = MIN_COL
+    scroll = true
+    image = Math.min(targetImage, Math.max(188, width * 0.66 - extras - col))
+  } else if (col > MAX_COL) {
+    col = MAX_COL
+    const maxImage = Math.min(520, Math.max(240, (height - 24) * 0.58))
+    image = Math.min(width - col * count - extras, maxImage)
+  }
+
+  const expanded = col + extras + image
+  const used = scroll ? width : col * (count - 1) + expanded
+  const side = scroll ? 0 : Math.max(0, width - used)
+
+  return {
+    col: Math.max(MIN_COL, col),
+    expanded: Math.max(expanded, col + 180),
+    side,
+    scroll,
+  }
+}
+
+function useFineHover() {
+  const [fine, setFine] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(hover: hover) and (pointer: fine)').matches : true
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const update = () => setFine(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return fine
+}
+
+const SPRING = { type: 'spring', stiffness: 320, damping: 36, mass: 0.8 }
+
+function ShelfHoverGallery({ cases, onSelectFilm, onHoverFilm }) {
+  const wrapRef = useRef(null)
+  const [size, setSize] = useState({ w: 0, h: 0 })
+  const [active, setActive] = useState(0)
+  const reduce = useReducedMotion()
+  const fine = useFineHover()
+
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const measure = () => {
+      const next = { w: el.clientWidth, h: el.clientHeight }
+      setSize((prev) => (prev.w === next.w && prev.h === next.h ? prev : next))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  const layout = size.w > 0 ? computeLayout(size.w, size.h, cases.length) : null
+
+  return (
+    <div ref={wrapRef} className="bluray-shelf hovergallery-scroll">
+      {layout && size.w > 0 && (
+        <>
+          {layout.side > 1 && <div className="hovergallery-side" style={{ width: layout.side / 2 }} />}
+          {cases.map(({ f, copyIdx }, index) => {
+            const isActive = index === active
+            const copyCount = Math.max(1, Number(f.copies) || 1)
+            return (
+              <motion.div
+                key={`${f.id}-${copyIdx}`}
+                className="hovergallery-panel"
+                initial={false}
+                animate={{ width: isActive ? layout.expanded : layout.col }}
+                transition={reduce ? { duration: 0 } : SPRING}
+                onMouseEnter={() => {
+                  if (!fine) return
+                  setActive(index)
+                  onHoverFilm?.(f)
+                }}
+                onFocus={() => {
+                  setActive(index)
+                  onHoverFilm?.(f)
+                }}
+                onClick={() => {
+                  if (isActive) onSelectFilm(f)
+                  else setActive(index)
+                }}
+                tabIndex={isActive ? 0 : -1}
+                role="listitem"
+                aria-expanded={isActive}
+                aria-label={`${f.title}, ${f.year || 'N/A'}. ${isActive ? 'Expanded.' : 'Collapsed.'}`}
+                title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
+              >
+                <div className="hovergallery-row" style={{ width: layout.expanded }}>
+                  <div className="hovergallery-title-gutter" style={{ width: layout.col }}>
+                    <span className={`vtext hovergallery-title ${isActive ? 'active' : ''}`}>{f.title}</span>
+                  </div>
+                  <div className="hovergallery-right">
+                    <div className="hovergallery-year-gutter">
+                      <span className={`vtext hovergallery-year ${isActive ? 'active' : ''}`}>{f.year || ''}</span>
+                    </div>
+                    <div
+                      className="hovergallery-open"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (isActive) onSelectFilm(f)
+                        else setActive(index)
+                      }}
+                    >
+                      <div className={`hovergallery-photo ${isActive ? 'active' : ''}`}>
+                        {f.poster ? (
+                          <img src={f.poster} alt={f.title} draggable={false} loading="lazy" />
+                        ) : (
+                          <div className="hovergallery-photo-fallback">{(f.title || '?').charAt(0)}</div>
+                        )}
+                      </div>
+                      <span className={`hovergallery-pill ${isActive ? 'active' : ''}`}>Open details</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )
+          })}
+          {layout.side > 1 && <div className="hovergallery-side" style={{ width: layout.side / 2 }} />}
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsChanged }) {
   const [closetFilter, setClosetFilter] = useState('')
   const [shelfTheme, setShelfTheme] = useState('wood')
   const [shelfScale, setShelfScale] = useState(1)
   const [hoveredFilm, setHoveredFilm] = useState(null)
-  // انتخابِ فعلی برای ناوبری با کیبورد. خودِ باز‌شدنِ بصری با هاور رو CSS
-  // خالص (:hover) انجام می‌ده، مجانیه — این state فقط وقتی واقعاً لازم
-  // می‌شه (فلش زده بشه) رندر می‌گیره؛ موقع هاورِ ساده با موس، آخرین
-  // موقعیت رو تو یه ref (بدون رندر) نگه می‌داریم تا فلش بدونه از کجا
-  // شروع کنه. اگه این هم state بود و رو هر mouseenter رندر می‌گرفت،
-  // رد کردن موس رو یه ردیف پر (۵۰+ جلد) خودش می‌شد یه منبع لگ جدید.
-  const [activeSectionKey, setActiveSectionKey] = useState(null)
-  const [activeIndex, setActiveIndex] = useState(null)
-  const hoverPos = useRef({ sectionKey: null, index: null })
-  const caseRefs = useRef({})
-  // زیر ۷۶۸px (breakpoint موبایلِ md توی نمونه‌ی مرجع)، قفسه به‌جای
-  // flex-grow نسبی، اسکرولِ افقی با عرضِ جمع‌شده‌ی ثابت می‌شه — دقیقاً
-  // همون منطقِ compact توی ExpandingGallery.tsx.
-  const [narrowScreen, setNarrowScreen] = useState(false)
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)')
-    const update = () => setNarrowScreen(mq.matches)
-    update()
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
-  }, [])
-  // نمونه‌ی مرجع رو با ~۱۵ تا آیتم تست کرده بودن؛ قفسه‌های واقعیِ ما ۴۰
-  // تا ۵۵ تا جلد تو یه ردیف دارن. flex-grow نسبیِ خودِ نمونه رو ۵۰+ تا
-  // خواهر گذاشتیم، هر هاور کل ردیف رو دوباره‌چیدمان می‌ده و رو دستگاه‌های
-  // معمولی افت فریم/لگ محسوس می‌ده (خودِ نمونه هیچ‌وقت این تعداد آیتم رو
-  // تست نکرده بود). برای ردیف‌های پرجمعیت، همون حالت compact خودِ نمونه
-  // (عرض ثابت + اسکرول، به‌جای flex-grow نسبی) رو به‌کار می‌بریم — طراحی
-  // یکیه، فقط شرطِ فعال‌شدنش عریض‌تره.
-  const COMPACT_ITEM_THRESHOLD = 20
   const [searchQuery, setSearchQuery] = useState('')
   const [manageOpen, setManageOpen] = useState(false)
   const [resetCloset, setResetCloset] = useState('')
@@ -322,37 +444,6 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
       return { ...sec, cases }
     })
   }, [filteredFilms])
-
-  const sectionKeyOf = (sec) => `${sec.closet}-${sec.row}-${sec.shelf}`
-
-  // فلش چپ/راست، از آخرین جلدی که موس روش بوده (یا قبلاً با کیبورد بهش
-  // رفته)، رو همون ردیفِ قفسه جلو/عقب می‌بره. فقط همین‌جا (نه موقع هاورِ
-  // ساده‌ی موس) state واقعاً ست می‌شه و اسکرول انجام می‌شه — چون رد کردن
-  // موس رو یه ردیفِ پرجمعیت (۵۰+ جلد)، اگه هرکدوم رندر/اسکرول جدا می‌گرفت،
-  // خودش می‌شد یه منبع لگ.
-  useEffect(() => {
-    const onKey = (e) => {
-      const tag = e.target?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-      const pos = activeIndex != null ? { sectionKey: activeSectionKey, index: activeIndex } : hoverPos.current
-      if (pos.sectionKey == null || pos.index == null) return
-      const sec = shelfSections.find((s) => sectionKeyOf(s) === pos.sectionKey)
-      if (!sec || !sec.cases.length) return
-      e.preventDefault()
-      const delta = e.key === 'ArrowRight' ? 1 : -1
-      const next = Math.max(0, Math.min(sec.cases.length - 1, pos.index + delta))
-      if (next === pos.index && activeIndex != null) return
-      setHoveredFilm(sec.cases[next].f)
-      setActiveSectionKey(pos.sectionKey)
-      setActiveIndex(next)
-      const ref = caseRefs.current[`${pos.sectionKey}::${next}`]
-      if (ref) ref.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSectionKey, activeIndex, shelfSections])
 
   const totalCopies = useMemo(
     () => filteredFilms.reduce((sum, f) => sum + (Number(f.copies) || 1), 0),
@@ -766,55 +857,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   <div className="shelf-overhead-light" />
                   <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
                     <div className="shelf-inner-shadow" />
-                    <div className={`bluray-shelf ${narrowScreen || sec.cases.length > COMPACT_ITEM_THRESHOLD ? 'shelf-compact' : ''}`}>
-                      {sec.cases.map(({ f, copyIdx }, i) => {
-                        const copyCount = Math.max(1, Number(f.copies) || 1)
-                        const secKey = sectionKeyOf(sec)
-                        const isActive = activeSectionKey === secKey && activeIndex === i
-                        // یه خط توصیفیِ کوتاه، مثل blurb تو نمونه‌ای که فرستادی
-                        const blurb = [f.director ? `Dir. ${f.director}` : null, f.genre ? (Array.isArray(f.genre) ? f.genre[0] : f.genre) : null]
-                          .filter(Boolean)
-                          .join(' · ')
-                        return (
-                          <button
-                            type="button"
-                            key={`${f.id}-${copyIdx}`}
-                            ref={(el) => {
-                              caseRefs.current[`${secKey}::${i}`] = el
-                            }}
-                            className={`shelf-spine ${isActive ? 'active' : ''}`}
-                            onMouseEnter={() => {
-                              setHoveredFilm(f)
-                              hoverPos.current = { sectionKey: secKey, index: i }
-                            }}
-                            onFocus={() => setHoveredFilm(f)}
-                            onClick={() => onSelectFilm(f)}
-                            title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
-                          >
-                            <span className="shelf-spine-lift" aria-hidden="true" />
-                            <span className="shelf-spine-panel" aria-hidden="true">
-                              <span className="shelf-spine-panel-inner">
-                                {f.poster && <img src={f.poster} alt="" loading="lazy" className="shelf-spine-img" />}
-                                <span className="shelf-spine-grad-top" />
-                                <span className="shelf-spine-grad-bottom" />
-                                <span className="shelf-spine-meta">
-                                  <span className="shelf-spine-blurb">{blurb}</span>
-                                  <span className="shelf-spine-open" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                                      <path d="M7 17L17 7" strokeLinecap="round" />
-                                      <path d="M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                  </span>
-                                </span>
-                              </span>
-                            </span>
-                            {f.year && <span className="shelf-spine-year">{f.year}</span>}
-                            <span className="shelf-spine-title">{f.title}</span>
-                            <span className="shelf-spine-dot" aria-hidden="true" />
-                          </button>
-                        )
-                      })}
-                    </div>
+                    <ShelfHoverGallery cases={sec.cases} onSelectFilm={onSelectFilm} onHoverFilm={setHoveredFilm} />
 
                     <div className="shelf-props-layer">
                       <div className="shelf-prop prop-ticket-stub" title="Vintage Cinema Ticket" />
