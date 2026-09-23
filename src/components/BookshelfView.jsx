@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
+import { getSpineColor, getEditionBadge, getStudioBadgeText, getFormatLabel } from '../utils/shelfDisplay.js'
 
 function sortKey(title) {
   return String(title || '')
     .replace(/^the\s+/i, '')
     .toLowerCase()
+}
+
+function formatRuntime(min) {
+  if (!min) return ''
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
 // قفسه‌ای که هنوز رو صفحه دیده نشده، اصلاً mount نمی‌شه (فقط یه جای‌خالیِ
@@ -120,6 +128,11 @@ function ShelfHoverGallery({ cases, onSelectFilm, onHoverFilm }) {
           {layout.side > 1 && <div className="hovergallery-side" style={{ width: layout.side / 2 }} />}
           {cases.map(({ f, copyIdx }, index) => {
             const isActive = index === active
+            const style = getSpineColor(f, index)
+            const formatLabel = getFormatLabel(f, style.type)
+            const bottomBadgeText = style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'
+            const copyCount = Math.max(1, Number(f.copies) || 1)
+            const metaParts = [f.year, formatRuntime(f.runtime), f.country].filter(Boolean)
             return (
               <motion.div
                 key={`${f.id}-${copyIdx}`}
@@ -146,13 +159,18 @@ function ShelfHoverGallery({ cases, onSelectFilm, onHoverFilm }) {
                 aria-label={`${f.title}, ${f.year || 'N/A'}. ${isActive ? 'Expanded.' : 'Collapsed.'}`}
               >
                 <div className="hovergallery-row" style={{ width: layout.expanded }}>
-                  <div className="hovergallery-title-gutter" style={{ width: layout.col }}>
-                    <span className={`vtext hovergallery-title ${isActive ? 'active' : ''}`}>{f.title}</span>
+                  <div className="hovergallery-title-gutter" style={{ width: layout.col, background: style.bg }}>
+                    <span className="hovergallery-format-badge-top" style={{ color: style.text }}>
+                      {formatLabel}
+                    </span>
+                    <span className={`vtext hovergallery-title ${isActive ? 'active' : ''}`} style={{ color: style.text }}>
+                      {f.title}
+                    </span>
+                    <span className="hovergallery-format-badge-bottom" style={{ color: style.text }}>
+                      {bottomBadgeText}
+                    </span>
                   </div>
                   <div className="hovergallery-right">
-                    <div className="hovergallery-year-gutter">
-                      <span className={`vtext hovergallery-year ${isActive ? 'active' : ''}`}>{f.year || ''}</span>
-                    </div>
                     <div
                       className="hovergallery-open"
                       onClick={(e) => {
@@ -161,14 +179,33 @@ function ShelfHoverGallery({ cases, onSelectFilm, onHoverFilm }) {
                         else setActive(index)
                       }}
                     >
-                      <div className={`hovergallery-photo ${isActive ? 'active' : ''}`}>
-                        {f.poster ? (
-                          <img src={f.poster} alt={f.title} draggable={false} loading="lazy" />
-                        ) : (
-                          <div className="hovergallery-photo-fallback">{(f.title || '?').charAt(0)}</div>
-                        )}
+                      <div className={`hovergallery-cover ${isActive ? 'active' : ''}`}>
+                        <div className="hovergallery-cover-accent" style={{ background: style.bg }} />
+                        <div className="hovergallery-cover-top">
+                          <span className="hovergallery-cover-studio">
+                            {getStudioBadgeText(f.studio) || f.studio || ''}
+                          </span>
+                          <span className="hovergallery-cover-year">{f.year || ''}</span>
+                        </div>
+                        <span className="hovergallery-cover-tag">
+                          {[formatLabel, bottomBadgeText].filter(Boolean).join(' · ')}
+                        </span>
+                        <div className="hovergallery-cover-bottom">
+                          <div className="hovergallery-cover-title">{f.title}</div>
+                          {metaParts.length > 0 && <div className="hovergallery-cover-meta">{metaParts.join(' · ')}</div>}
+                          {f.director && <div className="hovergallery-cover-director">Dir. {f.director}</div>}
+                          <div className="hovergallery-cover-footer">
+                            {copyCount > 1 ? (
+                              <span className="hovergallery-cover-location">
+                                Copy {copyIdx + 1}/{copyCount}
+                              </span>
+                            ) : (
+                              <span />
+                            )}
+                            <span className="hovergallery-cover-cta">Open case</span>
+                          </div>
+                        </div>
                       </div>
-                      <span className={`hovergallery-pill ${isActive ? 'active' : ''}`}>Open details</span>
                     </div>
                   </div>
                 </div>

@@ -132,6 +132,18 @@ export function getEditionBadge(film) {
   return idHash % 2 === 0 ? 'DOLBY' : 'DTS-HD'
 }
 
+// برچسبِ فرمتِ بالای جلد (4K UHD / BLU-RAY / DVD VIDEO / CRIT. COLL.) —
+// اول کرایتریون، بعد فیلدِ واقعیِ format فیلم، وگرنه نوعِ استخراج‌شده از
+// getSpineColor.
+export function getFormatLabel(film, spineType) {
+  if (film.criterion) return 'CRIT. COLL.'
+  const fmt = String(film.format || '').toLowerCase()
+  if (fmt.includes('4k') || fmt.includes('uhd') || spineType === '4k') return '4K UHD'
+  if (fmt.includes('dvd')) return 'DVD VIDEO'
+  if (spineType === 'steelbook') return 'STEELBOOK'
+  return 'BLU-RAY'
+}
+
 export function getStudioBadgeText(studio) {
   const s = String(studio || '').trim()
   if (!s) return null
