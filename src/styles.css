@@ -7216,8 +7216,13 @@ body.light .dashboard-panel {
     inset -2px 0 0 rgba(0, 0, 0, 0.5),
     inset 0 3px 0 rgba(255, 255, 255, 0.35),
     1px 0 4px rgba(0, 0, 0, 0.6);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease,
-    width 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  /* width هر فریم روی کل ردیف reflow می‌ندازه (تعیین‌کننده‌ی layout‌ه، نه
+     فقط compositing مثل transform) — رو موس‌گردوندنِ سریع روی یه قفسه‌ی
+     پرجمعیت، هرچی این مدت طولانی‌تر باشه احتمال هم‌پوشانیِ چندتا انیمیشنِ
+     width هم‌زمان بیشتره؛ کوتاهش کردیم. box-shadow هم دیگه انیمیت
+     نمی‌شه (فقط instant عوض می‌شه) چون animate کردنِ چندلایه گرون‌تره.
+     transform (translate/scale) خودش GPU-only‌ه، مشکلی نداشت. */
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: bottom center;
   overflow: hidden;
   padding: 0;
@@ -7372,26 +7377,14 @@ body.light .dashboard-panel {
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: writing-mode 0s, transform 0.3s ease;
+  transition: opacity 0.3s ease;
 }
-/* پهن‌شدنِ جلد با هاور جا برای متنِ افقی باز می‌کنه — عمودی موندنِ اسم روی
-   یه پوستر عریض، مثل قبل، ناخوانا و بی‌ربط به شکل واقعیِ عنوانِ پوستره. */
-.bluray-case:hover .case-spine,
-.bluray-case.case-active .case-spine {
-  align-items: flex-end;
-  justify-content: flex-start;
-  padding: 8px 14px 16px;
-}
+/* خودِ پوستر واقعی معمولاً اسم فیلم رو تو طرحش داره — با باز شدنِ جلد،
+   اسمِ روی جلد (که فقط برای حالت جمع‌شده/باریک لازمه) کاملاً محو می‌شه
+   تا پوستر تنها و تمیز دیده بشه، نه یه برچسبِ اضافه روش. */
 .bluray-case:hover .spine-title,
 .bluray-case.case-active .spine-title {
-  writing-mode: horizontal-tb;
-  transform: none;
-  white-space: normal;
-  text-align: left;
-  font-size: 16px;
-  line-height: 1.25;
-  max-height: none;
-  max-width: 100%;
+  opacity: 0;
 }
 
 /* Colored Audio/Studio Footer Badge exactly like image.png! */

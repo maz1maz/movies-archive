@@ -13,11 +13,15 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   const [shelfTheme, setShelfTheme] = useState('wood')
   const [shelfScale, setShelfScale] = useState(1)
   const [hoveredFilm, setHoveredFilm] = useState(null)
-  // انتخابِ فعلی روی قفسه (با هاور یا کلید جهت‌دار) — برخلاف :hover خالص که
-  // با برداشتن موس بسته می‌شه، این می‌مونه تا با فلش چپ/راست بشه رو همون
-  // ردیف جابه‌جا شد، بدون نیاز به نگه‌داشتن موس رو یه جلد.
+  // انتخابِ فعلی برای ناوبری با کیبورد. خودِ باز‌شدنِ بصری با هاور رو CSS
+  // خالص (:hover) انجام می‌ده، مجانیه — این state فقط وقتی واقعاً لازم
+  // می‌شه (فلش زده بشه) رندر می‌گیره؛ موقع هاورِ ساده با موس، آخرین
+  // موقعیت رو تو یه ref (بدون رندر) نگه می‌داریم تا فلش بدونه از کجا
+  // شروع کنه. اگه این هم state بود و رو هر mouseenter رندر می‌گرفت،
+  // رد کردن موس رو یه ردیف پر (۵۰+ جلد) خودش می‌شد یه منبع لگ جدید.
   const [activeSectionKey, setActiveSectionKey] = useState(null)
   const [activeIndex, setActiveIndex] = useState(null)
+  const hoverPos = useRef({ sectionKey: null, index: null })
   const caseRefs = useRef({})
   const [searchQuery, setSearchQuery] = useState('')
   const [manageOpen, setManageOpen] = useState(false)
@@ -277,29 +281,29 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
 
   const sectionKeyOf = (sec) => `${sec.closet}-${sec.row}-${sec.shelf}`
 
-  const activateCase = (sectionKey, index) => {
-    setActiveSectionKey(sectionKey)
-    setActiveIndex(index)
-    const ref = caseRefs.current[`${sectionKey}::${index}`]
-    if (ref) ref.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
-  }
-
-  // فلش چپ/راست، وقتی یه جلد فعاله، انتخاب رو رو همون ردیفِ قفسه می‌بره
-  // جلو/عقب — تا لازم نباشه موس رو دقیقاً نگه‌داری رو هر جلد که ببینیش.
+  // فلش چپ/راست، از آخرین جلدی که موس روش بوده (یا قبلاً با کیبورد بهش
+  // رفته)، رو همون ردیفِ قفسه جلو/عقب می‌بره. فقط همین‌جا (نه موقع هاورِ
+  // ساده‌ی موس) state واقعاً ست می‌شه و اسکرول انجام می‌شه — چون رد کردن
+  // موس رو یه ردیفِ پرجمعیت (۵۰+ جلد)، اگه هرکدوم رندر/اسکرول جدا می‌گرفت،
+  // خودش می‌شد یه منبع لگ.
   useEffect(() => {
-    if (activeSectionKey == null || activeIndex == null) return
     const onKey = (e) => {
       const tag = e.target?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-      const sec = shelfSections.find((s) => sectionKeyOf(s) === activeSectionKey)
+      const pos = activeIndex != null ? { sectionKey: activeSectionKey, index: activeIndex } : hoverPos.current
+      if (pos.sectionKey == null || pos.index == null) return
+      const sec = shelfSections.find((s) => sectionKeyOf(s) === pos.sectionKey)
       if (!sec || !sec.cases.length) return
       e.preventDefault()
       const delta = e.key === 'ArrowRight' ? 1 : -1
-      const next = Math.max(0, Math.min(sec.cases.length - 1, activeIndex + delta))
-      if (next === activeIndex) return
+      const next = Math.max(0, Math.min(sec.cases.length - 1, pos.index + delta))
+      if (next === pos.index && activeIndex != null) return
       setHoveredFilm(sec.cases[next].f)
-      activateCase(activeSectionKey, next)
+      setActiveSectionKey(pos.sectionKey)
+      setActiveIndex(next)
+      const ref = caseRefs.current[`${pos.sectionKey}::${next}`]
+      if (ref) ref.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -740,7 +744,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                             }}
                             onMouseEnter={() => {
                               setHoveredFilm(f)
-                              activateCase(secKey, i)
+                              hoverPos.current = { sectionKey: secKey, index: i }
                             }}
                             onClick={() => onSelectFilm(f)}
                             title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
