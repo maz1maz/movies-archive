@@ -243,7 +243,11 @@ function CodecTag({ codec, ink }) {
   )
 }
 
-const CASE_SPRING = { type: 'spring', stiffness: 340, damping: 38, mass: 0.8 }
+// نسخه‌ی اصلی (stiffness:340, damping:38, mass:0.8) رو عیناً پیاده کرده
+// بودیم، ولی رو گوشیِ واقعیِ کاربر کلِ توالی (تأخیرِ هاور + باز شدنِ عرض +
+// چرخشِ جلد) کند و مرحله‌مرحله حس می‌شد. سریع‌ترش کردیم — همون فنرِ
+// overdamped (بدون پرش)، فقط سفت‌تر و سبک‌تر که زودتر می‌رسه.
+const CASE_SPRING = { type: 'spring', stiffness: 560, damping: 42, mass: 0.55 }
 
 function ShelfHoverGallery({ films, shelfScale, onSelectFilm, onHoverFilm }) {
   const innerRef = useRef(null)
@@ -287,7 +291,7 @@ function ShelfHoverGallery({ films, shelfScale, onSelectFilm, onHoverFilm }) {
       hoverId.current = film.id
       setActiveId(film.id)
       onHoverFilm?.(film)
-    }, 65)
+    }, 30)
   }
 
   const anyActive = films.some((f) => f.id === activeId) ? activeId : null
@@ -392,7 +396,7 @@ function ShelfHoverGallery({ films, shelfScale, onSelectFilm, onHoverFilm }) {
                 className="hovergallery-cover-flip"
                 initial={false}
                 animate={{ rotateY: reduce ? 0 : -13 }}
-                transition={reduce ? { duration: 0 } : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                transition={reduce ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               >
                 <div className="hovergallery-cover-inset">
                   <FilmCover film={{ ...film, coverColor: col, coverFormat: format }} />
