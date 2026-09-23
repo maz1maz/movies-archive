@@ -8762,6 +8762,117 @@ body.light .spine-theme-wood .spine-shelf-board {
   }
 }
 
+/* ---- studio hover-expand rail ---- */
+.studio-showcase {
+  padding-bottom: 88px;
+}
+.studio-hover-rail {
+  display: flex;
+  align-items: stretch;
+  height: 420px;
+  border-radius: 20px;
+  overflow: hidden;
+  padding: 0;
+}
+.studio-hover-col {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  transition: flex-grow 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.studio-hover-col:last-child {
+  border-right: none;
+}
+.studio-hover-col-active {
+  flex-grow: 7;
+}
+.studio-hover-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.studio-hover-col-active .studio-hover-bg {
+  opacity: 1;
+}
+.studio-hover-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(35%) brightness(0.75);
+}
+.studio-hover-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7, 6, 9, 0.15) 0%, rgba(7, 6, 9, 0.05) 40%, rgba(7, 6, 9, 0.85) 100%);
+}
+.studio-hover-year {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 26px;
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
+}
+.studio-hover-col-active .studio-hover-year {
+  opacity: 1;
+  transform: translateY(0);
+}
+.studio-hover-label {
+  position: absolute;
+  left: 14px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.4s ease;
+}
+.studio-hover-col-active .studio-hover-label {
+  color: #fff;
+  font-size: 15px;
+}
+.studio-hover-label em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  opacity: 0;
+  transition: opacity 0.3s ease 0.15s;
+}
+.studio-hover-col-active .studio-hover-label em {
+  opacity: 1;
+  color: var(--gold-300);
+}
+
+@media (max-width: 760px) {
+  .studio-hover-rail {
+    height: 340px;
+  }
+  .studio-hover-col {
+    flex-basis: 34px;
+  }
+  .studio-hover-col-active {
+    flex-grow: 5;
+  }
+}
+
 /* ---- final cta ---- */
 .landing-cta {
   max-width: 640px;
