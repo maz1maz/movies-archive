@@ -1,22 +1,23 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import DashboardOverview from './DashboardOverview.jsx'
-import OscarsPanel from './OscarsPanel.jsx'
-import GenreTopsPanel from './GenreTopsPanel.jsx'
-import CraftsPanel from './CraftsPanel.jsx'
-import DashboardExportPanel from './DashboardExportPanel.jsx'
-import DashboardRecommendPanel from './DashboardRecommendPanel.jsx'
-import DashboardWatchlistsPanel from './DashboardWatchlistsPanel.jsx'
-import DashboardDuplicatesPanel from './DashboardDuplicatesPanel.jsx'
-import DashboardLoanedPanel from './DashboardLoanedPanel.jsx'
-import DashboardOrderListPanel from './DashboardOrderListPanel.jsx'
-import DashboardRoadmapPanel from './DashboardRoadmapPanel.jsx'
-import DashboardHealthPanel from './DashboardHealthPanel.jsx'
-import DashboardAuditPanel from './DashboardAuditPanel.jsx'
-import DashboardApiUsagePanel from './DashboardApiUsagePanel.jsx'
-import DashboardFollowedPanel from './DashboardFollowedPanel.jsx'
-import DashboardCollectionsPanel from './DashboardCollectionsPanel.jsx'
-import DashboardWrappedPanel from './DashboardWrappedPanel.jsx'
 import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconDice, IconClapper, IconBookshelf, IconLayers, IconHandshake, IconSparkles, IconCheck, IconDocument, IconUser } from './icons.jsx'
+
+const OscarsPanel = lazy(() => import('./OscarsPanel.jsx'))
+const GenreTopsPanel = lazy(() => import('./GenreTopsPanel.jsx'))
+const CraftsPanel = lazy(() => import('./CraftsPanel.jsx'))
+const DashboardExportPanel = lazy(() => import('./DashboardExportPanel.jsx'))
+const DashboardRecommendPanel = lazy(() => import('./DashboardRecommendPanel.jsx'))
+const DashboardWatchlistsPanel = lazy(() => import('./DashboardWatchlistsPanel.jsx'))
+const DashboardDuplicatesPanel = lazy(() => import('./DashboardDuplicatesPanel.jsx'))
+const DashboardLoanedPanel = lazy(() => import('./DashboardLoanedPanel.jsx'))
+const DashboardOrderListPanel = lazy(() => import('./DashboardOrderListPanel.jsx'))
+const DashboardRoadmapPanel = lazy(() => import('./DashboardRoadmapPanel.jsx'))
+const DashboardHealthPanel = lazy(() => import('./DashboardHealthPanel.jsx'))
+const DashboardAuditPanel = lazy(() => import('./DashboardAuditPanel.jsx'))
+const DashboardApiUsagePanel = lazy(() => import('./DashboardApiUsagePanel.jsx'))
+const DashboardFollowedPanel = lazy(() => import('./DashboardFollowedPanel.jsx'))
+const DashboardCollectionsPanel = lazy(() => import('./DashboardCollectionsPanel.jsx'))
+const DashboardWrappedPanel = lazy(() => import('./DashboardWrappedPanel.jsx'))
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: IconBarChart },
@@ -86,22 +87,24 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
           })}
         </nav>
         {tab === 'overview' && <DashboardOverview films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} isAdmin={isAdmin} onFilmsChanged={onFilmsChanged} />}
-        {tab === 'wrapped' && <DashboardWrappedPanel films={films} onOpenPerson={onOpenPerson} />}
-        {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
-        {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
-        {tab === 'crafts' && <CraftsPanel films={films} onOpenFilm={onOpenFilm} />}
-        {tab === 'watchlists' && <DashboardWatchlistsPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
-        {tab === 'followed' && <DashboardFollowedPanel onOpenPerson={onOpenPerson} />}
-        {tab === 'collections' && <DashboardCollectionsPanel films={films} onOpenFilm={onOpenFilm} />}
-        {tab === 'health' && <DashboardHealthPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
-        {tab === 'audit' && <DashboardAuditPanel films={films} onOpenFilm={onOpenFilm} />}
-        {tab === 'apiusage' && <DashboardApiUsagePanel />}
-        {tab === 'duplicates' && <DashboardDuplicatesPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
-        {tab === 'loaned' && <DashboardLoanedPanel films={films} onOpenFilm={onOpenFilm} />}
-        {tab === 'orderlist' && <DashboardOrderListPanel />}
-        {tab === 'recommend' && <DashboardRecommendPanel films={films} onOpenFilm={onOpenFilm} />}
-        {tab === 'export' && <DashboardExportPanel films={films} />}
-        {tab === 'roadmap' && <DashboardRoadmapPanel />}
+        <Suspense fallback={<div className="dashboard-panel-loading">Loading…</div>}>
+          {tab === 'wrapped' && <DashboardWrappedPanel films={films} onOpenPerson={onOpenPerson} />}
+          {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
+          {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
+          {tab === 'crafts' && <CraftsPanel films={films} onOpenFilm={onOpenFilm} />}
+          {tab === 'watchlists' && <DashboardWatchlistsPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
+          {tab === 'followed' && <DashboardFollowedPanel onOpenPerson={onOpenPerson} />}
+          {tab === 'collections' && <DashboardCollectionsPanel films={films} onOpenFilm={onOpenFilm} />}
+          {tab === 'health' && <DashboardHealthPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
+          {tab === 'audit' && <DashboardAuditPanel films={films} onOpenFilm={onOpenFilm} />}
+          {tab === 'apiusage' && <DashboardApiUsagePanel />}
+          {tab === 'duplicates' && <DashboardDuplicatesPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
+          {tab === 'loaned' && <DashboardLoanedPanel films={films} onOpenFilm={onOpenFilm} />}
+          {tab === 'orderlist' && <DashboardOrderListPanel />}
+          {tab === 'recommend' && <DashboardRecommendPanel films={films} onOpenFilm={onOpenFilm} />}
+          {tab === 'export' && <DashboardExportPanel films={films} />}
+          {tab === 'roadmap' && <DashboardRoadmapPanel />}
+        </Suspense>
       </div>
     </div>
   )
