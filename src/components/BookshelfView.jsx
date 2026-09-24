@@ -13,26 +13,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   const [closetFilter, setClosetFilter] = useState('')
   const [shelfTheme, setShelfTheme] = useState('wood')
   const [shelfScale, setShelfScale] = useState(1)
-  const [hoveredFilm, setHoveredFilm] = useState(null)
-  const [hoverAnchorRect, setHoverAnchorRect] = useState(null)
   const shelfBodyRef = useRef(null)
-
-  const handleSpineEnter = (e, f) => {
-    setHoveredFilm(f)
-    setHoverAnchorRect(e.currentTarget.getBoundingClientRect())
-  }
-  // شناور هاور نباید زیر هدر + نوار جزئیاتِ چسبان بالای صفحه بره -- اون دوتا
-  // فضای بالای ناحیه‌ی اسکرول رو گرفتن، پس یه کف براش حساب می‌کنیم.
-  const minCardTop = () => {
-    const stickyBottom = shelfBodyRef.current
-      ?.querySelector('.spine-inspector-bar')
-      ?.getBoundingClientRect().bottom
-    return (stickyBottom || 0) + 10
-  }
-  const handleSpineLeave = () => {
-    setHoveredFilm(null)
-    setHoverAnchorRect(null)
-  }
   const [searchQuery, setSearchQuery] = useState('')
   const [manageOpen, setManageOpen] = useState(false)
   const [resetCloset, setResetCloset] = useState('')
@@ -642,64 +623,6 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
         </div>
 
         <div className="location-browser-body" style={{ padding: '24px 28px 40px' }} ref={shelfBodyRef}>
-          <div className="spine-inspector-bar">
-            {hoveredFilm ? (
-              <div className="spine-inspector-content">
-                <div className="spine-inspector-poster">
-                  {hoveredFilm.poster ? (
-                    <img src={proxyImg(hoveredFilm.poster)} alt={hoveredFilm.title} />
-                  ) : (
-                    <div className="spine-inspector-poster-fallback">🎬</div>
-                  )}
-                </div>
-                <div className="spine-inspector-details">
-                  <div className="spine-inspector-line1">
-                    <span className="spine-inspector-title">{hoveredFilm.title}</span>
-                    {hoveredFilm.originalTitle && hoveredFilm.originalTitle !== hoveredFilm.title && (
-                      <span className="spine-inspector-orig">({hoveredFilm.originalTitle})</span>
-                    )}
-                    {hoveredFilm.year && <span className="spine-inspector-year">{hoveredFilm.year}</span>}
-                  </div>
-                  <div className="spine-inspector-line2">
-                    {hoveredFilm.director && (
-                      <span className="spine-inspector-dir">Dir: {hoveredFilm.director}</span>
-                    )}
-                    {hoveredFilm.studio && (
-                      <span className="spine-inspector-studio">{hoveredFilm.studio}</span>
-                    )}
-                  </div>
-                  <div className="spine-inspector-badges">
-                    {hoveredFilm.rating && (
-                      <span className="spine-inspector-badge badge-imdb">★ {hoveredFilm.rating.toFixed(1)} IMDb</span>
-                    )}
-                    <span className="spine-inspector-badge badge-loc">
-                      C{hoveredFilm.closet || '–'} R{hoveredFilm.row || '–'} S{hoveredFilm.shelf || '–'}
-                    </span>
-                    <span className="spine-inspector-badge badge-format">
-                      {hoveredFilm.format || 'Blu-ray'}
-                    </span>
-                    {hoveredFilm.criterion && (
-                      <span className="spine-inspector-badge badge-criterion">
-                        CRITERION{hoveredFilm.criterionCopies > 1 ? ` ×${hoveredFilm.criterionCopies}` : ''}
-                      </span>
-                    )}
-                    {hoveredFilm.copies > 1 && (
-                      <span className="spine-inspector-badge badge-copies">×{hoveredFilm.copies} copies</span>
-                    )}
-                  </div>
-                </div>
-                <div className="spine-inspector-cta">
-                  <span>Click case to open full details →</span>
-                </div>
-              </div>
-            ) : (
-              <div className="spine-inspector-empty">
-                <span className="spine-inspector-empty-icon">✨</span>
-                <span>Hover over any Blu-ray case on the bookshelves below to inspect its poster and details.</span>
-              </div>
-            )}
-          </div>
-
           {shelfSections.length === 0 ? (
             <div className="status empty-state">
               <p>No films found on this bookshelf.</p>
@@ -744,25 +667,48 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                               background: style.bg,
                               '--spine-text': style.text,
                             }}
-                            onMouseEnter={(e) => handleSpineEnter(e, f)}
-                            onMouseLeave={handleSpineLeave}
                             onClick={() => onSelectFilm(f)}
                             title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                           >
                             <div className="case-glare" />
 
-                            <div className="case-header">
-                              {isCriterion ? 'C' : is4k ? '4K UHD' : isSteelbook ? 'STEELBOOK' : 'BLU-RAY'}
+                            <div className="case-spine-view">
+                              <div className="case-header">
+                                {isCriterion ? 'C' : is4k ? '4K UHD' : isSteelbook ? 'STEELBOOK' : 'BLU-RAY'}
+                              </div>
+
+                              <div className="case-spine">
+                                <span className="spine-title" style={{ color: style.text || '#fff' }}>
+                                  {f.title}
+                                </span>
+                              </div>
+
+                              <div className={`case-footer footer-${style.badge || 'dts'}`} style={{ color: style.text || '#aaa' }}>
+                                <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
+                              </div>
                             </div>
 
-                            <div className="case-spine">
-                              <span className="spine-title" style={{ color: style.text || '#fff' }}>
-                                {f.title}
-                              </span>
-                            </div>
-
-                            <div className={`case-footer footer-${style.badge || 'dts'}`} style={{ color: style.text || '#aaa' }}>
-                              <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
+                            <div className="case-expand-view">
+                              <div className="case-expand-poster">
+                                {f.poster ? (
+                                  <img src={proxyImg(f.poster)} alt="" loading="lazy" decoding="async" />
+                                ) : (
+                                  <div className="case-expand-poster-fallback">🎬</div>
+                                )}
+                              </div>
+                              <div className="case-expand-info">
+                                <div className="case-expand-title">
+                                  {f.title}
+                                  {f.year && <span className="case-expand-year"> ({f.year})</span>}
+                                </div>
+                                {f.director && <div className="case-expand-director">Dir: {f.director}</div>}
+                                <div className="case-expand-badges">
+                                  {f.rating && <span>★ {f.rating.toFixed(1)}</span>}
+                                  <span>C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}</span>
+                                  {f.copies > 1 && <span>×{f.copies}</span>}
+                                </div>
+                                <div className="case-expand-cta">Click to open →</div>
+                              </div>
                             </div>
                           </div>
                         ))
@@ -787,39 +733,6 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
             ))
           )}
         </div>
-
-        {hoveredFilm && hoverAnchorRect && (() => {
-          const safeTop = minCardTop()
-          const fitsAbove = hoverAnchorRect.top - 10 - safeTop >= 90
-          return (
-          <div
-            className={`spine-hover-card ${fitsAbove ? '' : 'spine-hover-card-below'}`}
-            style={{
-              left: Math.min(Math.max(hoverAnchorRect.left + hoverAnchorRect.width / 2, 150), window.innerWidth - 150),
-              top: fitsAbove ? hoverAnchorRect.top - 10 : Math.max(hoverAnchorRect.bottom + 10, safeTop),
-            }}
-          >
-            <div className="spine-hover-card-poster">
-              {hoveredFilm.poster ? (
-                <img src={proxyImg(hoveredFilm.poster)} alt="" decoding="async" />
-              ) : (
-                <div className="spine-inspector-poster-fallback">🎬</div>
-              )}
-            </div>
-            <div className="spine-hover-card-info">
-              <div className="spine-hover-card-title">
-                {hoveredFilm.title}
-                {hoveredFilm.year && <span className="spine-hover-card-year"> ({hoveredFilm.year})</span>}
-              </div>
-              {hoveredFilm.director && <div className="spine-hover-card-director">Dir: {hoveredFilm.director}</div>}
-              <div className="spine-hover-card-badges">
-                {hoveredFilm.rating && <span>★ {hoveredFilm.rating.toFixed(1)}</span>}
-                <span>C{hoveredFilm.closet || '–'} R{hoveredFilm.row || '–'} S{hoveredFilm.shelf || '–'}</span>
-              </div>
-            </div>
-          </div>
-          )
-        })()}
       </div>
     </div>
   )
