@@ -7250,6 +7250,8 @@ body.light .dashboard-panel {
   overflow: hidden;
 }
 
+/* flex-grow itself is animated by framer-motion (inline style, spring) in
+   BookshelfView.jsx, not by a CSS transition — see shelfHoverSpring there. */
 .shelf-hover-frame {
   flex: 1 1 0%;
   min-width: 0;
@@ -7266,11 +7268,10 @@ body.light .dashboard-panel {
   box-shadow:
     inset 2px 0 0 rgba(255, 255, 255, 0.08),
     1px 0 4px rgba(0, 0, 0, 0.5);
-  transition: flex-grow 520ms cubic-bezier(0.22, 1, 0.36, 1), max-width 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: max-width 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .shelf-hover-frame.is-active {
-  flex-grow: 14;
   max-width: calc(320px * var(--spine-scale, 1));
   z-index: 30;
   box-shadow:

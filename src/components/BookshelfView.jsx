@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
 import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
 
@@ -7,6 +8,11 @@ function sortKey(title) {
     .replace(/^the\s+/i, '')
     .toLowerCase()
 }
+
+// انیمیشن flex-grow با CSS transition خام هر فریم کل ردیف رو reflow می‌کنه
+// (کند می‌شه وقتی صدها اسپاین تو یه ردیف باشن). Framer Motion همون مقدار رو
+// با یه spring نرم‌تر می‌ده که رفتارش با کورسِر/دست طبیعی‌تره.
+const shelfHoverSpring = { type: 'spring', stiffness: 190, damping: 26, mass: 0.9 }
 
 // روی موبایل/تاچ اصلاً هاور واقعی نداریم — پس تپ اول فقط قاب رو باز می‌کنه
 // (مثل هاور دسکتاپ)، تپ دوم روی همون قاب باز جزئیات رو باز می‌کنه. روی
@@ -31,6 +37,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   const [hoveredFilm, setHoveredFilm] = useState(null)
   const [hoveredKey, setHoveredKey] = useState(null)
   const hasHoverInput = useHasHoverInput()
+  const reduceMotion = useReducedMotion()
   const [searchQuery, setSearchQuery] = useState('')
   const [manageOpen, setManageOpen] = useState(false)
   const [resetCloset, setResetCloset] = useState('')
@@ -705,10 +712,12 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                           const key = `${f.id}-${copyIdx}`
                           const active = hoveredKey === key
                           return (
-                            <div
+                            <motion.div
                               key={key}
                               className={`shelf-hover-frame ${active ? 'is-active' : ''} ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
                               style={{ '--accent': style.bg, '--accent-text': style.text }}
+                              animate={{ flexGrow: active ? 14 : 1 }}
+                              transition={reduceMotion ? { duration: 0 } : shelfHoverSpring}
                               onMouseEnter={() => {
                                 setHoveredFilm(f)
                                 setHoveredKey(key)
@@ -750,7 +759,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                                   {f.director && <span className="shelf-hover-label-dir">Dir: {f.director}</span>}
                                 </div>
                               </div>
-                            </div>
+                            </motion.div>
                           )
                         })
                       })}
