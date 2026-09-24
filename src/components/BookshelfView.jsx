@@ -49,12 +49,26 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   // جلدهای همون ردیف جمع می‌شن که جا باز کنن؛ به ردیف بعد سرریز نمی‌شه و
   // ردیف‌های دیگه اصلاً تکون نمی‌خورن.
   const [itemsPerRow, setItemsPerRow] = useState(24)
-  const firstRowRef = useRef(null)
+  // این رو به .cinema-wood-shelf بخش اول وصل می‌کنیم (نه به خودِ ردیف) --
+  // چون عرض .cinema-wood-shelf فقط به عرض مودال و shelfScale بستگی داره، نه
+  // به این‌که خودِ محتواش (ردیف‌ها) چند تا جلد دارن؛ اگه به ردیف وصل می‌شد،
+  // یه حلقه‌ی خود-وابسته می‌شد (عرض ردیف به itemsPerRow بستگی داره، ولی
+  // itemsPerRow هم از عرض همون ردیف اندازه‌گیری می‌شه) که باعث می‌شد
+  // اندازه‌گیری اولیه هیچ‌وقت واقعاً به‌روز نشه.
+  const shelfWidthRef = useRef(null)
+  // هاورکردن یه جلد فقط چند تا همسایه‌ی نزدیکش (نه کل ردیف) رو کمی جمع
+  // می‌کنه تا جا باز کنه؛ بقیه‌ی ردیف کاملاً ثابت می‌مونه. قبلاً همه‌ی جلدهای
+  // ردیف به‌طور یکسان کمی جمع می‌شدن، که با هر هاور کل ردیف رو محسوس تکون
+  // می‌داد (حس «رفت‌وآمد» زیاد) -- حالا فقط یه خوشه‌ی کوچیک نزدیک موس.
+  const NEAR_RADIUS = 6
+  const [hoverInfo, setHoverInfo] = useState(null) // { rowKey, itemIdx }
   useEffect(() => {
-    const el = firstRowRef.current
+    const el = shelfWidthRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
     const update = () => {
-      const w = el.clientWidth
+      // .cinema-wood-shelf خودش 28px*2 padding افقی داره (پایین‌تر تو استایل
+      // inline ست شده)؛ عرض قابل‌استفاده‌ی واقعی برای ردیف جلدها همینه.
+      const w = el.clientWidth - 56
       const itemW = 34 * shelfScale + 2
       if (w > 0) setItemsPerRow(Math.max(6, Math.floor(w / itemW)))
     }
@@ -62,7 +76,11 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [shelfScale])
+    // closetFilter/searchQuery/films هم تو dependency هستن چون تا وقتی هیچ
+    // بخشی از قفسه رندر نشده (مثلاً فیلتر رو یه کلوزتِ خالی بود)، shelfWidthRef
+    // هنوز به هیچی وصل نیست؛ با تغییر این‌ها، وقتی بالاخره محتوا ظاهر شد،
+    // این افکت دوباره تلاش می‌کنه وصل بشه.
+  }, [shelfScale, closetFilter, searchQuery, films])
   const [manageOpen, setManageOpen] = useState(false)
   const [resetCloset, setResetCloset] = useState('')
   const [resetRow, setResetRow] = useState('')
@@ -712,24 +730,34 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   data-posters={sec.films.map((f) => proxyImg(f.poster)).filter(Boolean).join('|')}
                 >
                   <div className="shelf-overhead-light" />
-                  <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
+                  <div
+                    className="cinema-wood-shelf"
+                    style={{ '--spine-scale': shelfScale }}
+                    ref={secIdx === 0 ? shelfWidthRef : undefined}
+                  >
                     <div className="shelf-inner-shadow" />
                     <div className="bluray-shelf">
-                      {rows.map((row, rowIdx) => (
-                        <div
-                          className="bluray-shelf-row"
-                          key={rowIdx}
-                          ref={secIdx === 0 && rowIdx === 0 ? firstRowRef : undefined}
-                        >
-                          {row.map(({ f, style, isCriterion, is4k, isSteelbook, copyIdx, copyCount }) => (
+                      {rows.map((row, rowIdx) => {
+                        const rowKey = `${sec.closet}-${sec.row}-${sec.shelf}-${rowIdx}`
+                        return (
+                        <div className="bluray-shelf-row" key={rowIdx}>
+                          {row.map(({ f, style, isCriterion, is4k, isSteelbook, copyIdx, copyCount }, itemIdx) => {
+                            const isNear =
+                              hoverInfo &&
+                              hoverInfo.rowKey === rowKey &&
+                              hoverInfo.itemIdx !== itemIdx &&
+                              Math.abs(hoverInfo.itemIdx - itemIdx) <= NEAR_RADIUS
+                            return (
                             <div
                               key={`${f.id}-${copyIdx}`}
-                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
+                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''} ${isNear ? 'bluray-case-near' : ''}`}
                               style={{
                                 backgroundColor: style.bg,
                                 background: style.bg,
                                 '--spine-text': style.text,
                               }}
+                              onMouseEnter={() => setHoverInfo({ rowKey, itemIdx })}
+                              onMouseLeave={() => setHoverInfo(null)}
                               onClick={() => onSelectFilm(f)}
                               title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                             >
@@ -774,9 +802,11 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                                 </div>
                               </div>
                             </div>
-                          ))}
+                            )
+                          })}
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
 
                     <div className="shelf-props-layer">
