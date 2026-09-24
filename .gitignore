@@ -9,3 +9,11 @@ backups/
 films.json
 .cache/
 films_fresh.json
+artifact-work/
+outputs/
+offline-archive/posters-merged/
+offline-archive/*.json
+dist-check/
+movies-archive-backup.json.gz
+quality-info-ui.patch
+public/series-metadata-report.html
