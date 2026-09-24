@@ -641,7 +641,13 @@ async function handleFetch(request, env, ctx) {
         const denied = requireAdmin()
         if (denied) return denied
         const confirmPassword = request.headers.get('X-Confirm-Password') || ''
-        const passOk = confirmPassword && (await verifyPassword(confirmPassword, currentUser.passwordSalt, currentUser.passwordHash))
+        // getSessionUser فقط id/username/role رو می‌خونه (عمداً، تا هش رمز
+        // بی‌دلیل تو currentUser نچرخه)، پس برای تأیید دوباره‌ی رمز اینجا
+        // باید صریحاً از دیتابیس بخونیمش — وگرنه passwordSalt/passwordHash
+        // همیشه undefined بودن و verifyPassword قبل از هر مقایسه‌ای با
+        // خطای "Cannot read properties of undefined (reading 'length')" کرش می‌کرد.
+        const authRow = await db.prepare('SELECT passwordSalt, passwordHash FROM users WHERE id = ?').bind(currentUser.id).first()
+        const passOk = confirmPassword && authRow && (await verifyPassword(confirmPassword, authRow.passwordSalt, authRow.passwordHash))
         if (!passOk) return json({ error: 'Incorrect password' }, 403, corsHeaders)
 
         const scope = url.searchParams.get('scope') || 'all'
