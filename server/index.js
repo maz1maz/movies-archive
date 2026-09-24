@@ -275,6 +275,39 @@ app.post('/api/films/bulk-set-drive', (req, res) => {
   res.json({ moved })
 })
 
+app.post('/api/films/bulk-remove-drive', (req, res) => {
+  const { ids, driveNumber } = req.body || {}
+  const idList = Array.isArray(ids) ? ids.map((x) => String(x)).filter(Boolean) : []
+  const d = String(driveNumber || '').trim()
+  if (!idList.length) return res.status(400).json({ error: 'ids are required' })
+  if (!d) return res.status(400).json({ error: 'driveNumber is required' })
+  const removeDrive = (value) => {
+    const target = d.replace(/^drive\s*/i, '').toLowerCase()
+    return String(value || '')
+      .split(',')
+      .map((part) => part.trim())
+      .filter((part) => part.replace(/^drive\s*/i, '').toLowerCase() !== target)
+      .join(', ')
+  }
+  const films = readFilms()
+  const idSet = new Set(idList)
+  let removed = 0
+  for (const f of films) {
+    if (!idSet.has(String(f.id)) || f.mediaType !== 'digital') continue
+    const before = f.driveNumber || ''
+    const seasonsBefore = JSON.stringify(f.seasonDrives || [])
+    f.driveNumber = removeDrive(f.driveNumber)
+    if (Array.isArray(f.seasonDrives)) {
+      f.seasonDrives = f.seasonDrives
+        .map((entry) => ({ ...entry, drive: removeDrive(entry.drive) }))
+        .filter((entry) => entry.drive)
+    }
+    if (f.driveNumber !== before || JSON.stringify(f.seasonDrives || []) !== seasonsBefore) removed++
+  }
+  writeFilms(films)
+  res.json({ removed })
+})
+
 app.post('/api/films/reset-locations', (req, res) => {
   const films = readFilms()
   let reset = 0

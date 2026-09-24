@@ -131,6 +131,29 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
     }
   }
 
+  const removeDriveSelected = async () => {
+    if (!drive || !driveSelectedCount || movingOut) return
+    const itemWord = driveSelectedCount === 1 ? 'item' : 'items'
+    if (!window.confirm(`Remove ${driveLabel(drive)} from ${driveSelectedCount} selected ${itemWord}? Other drive tags will stay.`)) return
+    setMovingOut(true)
+    try {
+      const res = await fetch('/api/films/bulk-remove-drive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(driveSelectedIds), driveNumber: drive }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'remove failed')
+      setDriveSelectedIds(new Set())
+      if (onFilmsChanged) onFilmsChanged()
+    } catch (e) {
+      console.error(e)
+      alert(e.message)
+    } finally {
+      setMovingOut(false)
+    }
+  }
+
   const addDrive = () => {
     const name = newDriveInput.trim()
     if (!name) return
@@ -318,6 +341,15 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                             disabled={!driveSelectedCount || !moveTarget || movingOut}
                           >
                             {movingOut ? 'Moving…' : 'Move'}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={removeDriveSelected}
+                            disabled={!driveSelectedCount || movingOut}
+                            title={`Remove ${driveLabel(drive)} from the selected items`}
+                          >
+                            {movingOut ? 'Updating…' : 'Remove from this drive'}
                           </button>
                         </div>
                       )}

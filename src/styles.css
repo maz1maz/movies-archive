@@ -3594,6 +3594,39 @@ body.light .header {
   gap: 4px;
   margin-top: 8px;
 }
+.cine-series-season-summary {
+  margin-bottom: 16px;
+}
+.cine-season-summary-row {
+  display: grid;
+  grid-template-columns: minmax(64px, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--surface-3);
+}
+.season-episode-count {
+  color: var(--text);
+  white-space: nowrap;
+}
+.cine-season-summary-row .cine-collection-order-btn {
+  justify-self: end;
+  padding: 3px 8px;
+  font-size: 11px;
+}
+@media (max-width: 520px) {
+  .cine-season-summary-row {
+    grid-template-columns: 1fr auto;
+  }
+  .cine-season-summary-row .season-drive,
+  .cine-season-summary-row .cine-collection-order-btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
 .cine-season-row {
   display: flex;
   justify-content: space-between;

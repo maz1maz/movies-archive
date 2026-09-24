@@ -18,7 +18,7 @@
     // even though fetch()-based /api/ calls from the app's own JS work fine.
     // This was why "Download Excel Export" / JSON backup downloaded the
     // app shell instead of an actual file.
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/reports/*"]
   },
   "d1_databases": [
     {

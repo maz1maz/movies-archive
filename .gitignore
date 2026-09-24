@@ -5,6 +5,7 @@ dist
 backup-before-merge-*.json
 backup-before-merge2-*.json
 .tmp-d1-*.sql
+backups/
 films.json
 .cache/
 films_fresh.json
