@@ -7090,17 +7090,13 @@ body.light .dashboard-panel {
   min-height: calc(310px * var(--spine-scale, 1));
 }
 
-/* Individual 3D Spine Case — در حالت عادی flex:1 1 با یه کف (min-width) تا
-   هیچ‌وقت (حتی وقتی همسایه‌ش پهن شده) به صفر نرسه؛ قبلاً flex:1 1 0% بدون کف
-   با تعداد خیلی زیاد باعث می‌شد عرض به صفر برسه (نامرئی/غیرقابل‌هاور).
-   با هاور، flex-basis واقعی جلد زیاد می‌شه (نه فقط یه لایه‌ی روش) — یعنی
-   جلدهای بعدیِ همون ردیف واقعاً جا باز می‌کنن (جمع می‌شن)، دقیقاً مثل قفسه‌ی
-   واقعی؛ چون هر ردیف بسته‌ست (بالا)، این جمع‌شدن به ردیف‌های دیگه سرایت
-   نمی‌کنه. */
+/* Individual 3D Spine Case — همیشه صلب (flex:0 0، بدون shrink/grow) مگه
+   این‌که JS بهش کلاس bluray-case-near بده (یعنی همسایه‌ی نزدیکِ جلد
+   هاورشده‌ست). قبلاً همه‌ی جلدهای یه ردیف یکسان کمی جمع می‌شدن که با هر
+   هاور کل ردیف رو محسوس تکون می‌داد؛ حالا فقط چند تا همسایه‌ی نزدیک (نه کل
+   ردیف) جا باز می‌کنن، بقیه‌ی ردیف کاملاً بی‌حرکت می‌مونه. */
 .bluray-case {
-  flex: 1 1 calc(34px * var(--spine-scale, 1));
-  min-width: calc(14px * var(--spine-scale, 1));
-  max-width: calc(34px * var(--spine-scale, 1));
+  flex: 0 0 calc(34px * var(--spine-scale, 1));
   height: calc(310px * var(--spine-scale, 1));
   background: var(--case-bg, #1e3a8a);
   color: var(--case-text, #fff);
@@ -7121,15 +7117,24 @@ body.light .dashboard-panel {
 
 .bluray-case:hover {
   flex: 0 0 250px;
-  max-width: 250px;
   transform: translateY(-8px);
   z-index: 50;
   box-shadow:
     0 22px 40px rgba(0, 0, 0, 0.85),
     0 0 0 2px #38bdf8,
     0 0 20px rgba(56, 189, 248, 0.35);
-  transition: flex-basis 0.2s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: flex-basis 0.2s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+/* فقط چند تا همسایه‌ی نزدیکِ جلد هاورشده (با JS مشخص می‌شه، NEAR_RADIUS تو
+   BookshelfView.jsx) اجازه‌ی جمع‌شدن دارن -- برای باز کردن جای جلد پهن‌شده. */
+.bluray-case-near {
+  /* flex-grow:0 عمداً — این‌ها فقط باید جمع بشن (shrink)، نه اینکه تو فضای
+     خالیِ احتمالیِ ته ردیف (باقی‌مونده از گرد کردن itemsPerRow) رشد کنن. */
+  flex: 0 1 calc(34px * var(--spine-scale, 1));
+  min-width: calc(10px * var(--spine-scale, 1));
+  transition: flex-basis 0.08s ease, min-width 0.08s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
 }
 
 .case-spine-view {
