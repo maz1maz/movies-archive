@@ -9,6 +9,34 @@ function sortKey(title) {
     .toLowerCase()
 }
 
+// صف پیش‌بارگذاری با هم‌زمانی محدود -- قبلاً یه بخش قفسه با هزاران عنوان
+// (مثل «Unassigned Shelf») باعث می‌شد صدها/هزاران new Image() هم‌زمان شلیک
+// بشه و شبکه (و حتی خودِ Worker پشت image-proxy) رو خفه کنه -- همون چیزی که
+// کل اپ رو یه‌مدت کند/گیر می‌نداخت. حالا حداکثر ۴ تا هم‌زمان لود می‌شه و بقیه
+// تو صف می‌مونن.
+const PREFETCH_CONCURRENCY = 4
+const prefetchQueue = []
+let prefetchActive = 0
+function runNextPrefetch() {
+  if (prefetchActive >= PREFETCH_CONCURRENCY) return
+  const url = prefetchQueue.shift()
+  if (!url) return
+  prefetchActive++
+  const img = new Image()
+  img.decoding = 'async'
+  const done = () => {
+    prefetchActive--
+    runNextPrefetch()
+  }
+  img.onload = done
+  img.onerror = done
+  img.src = url
+}
+function queuePrefetch(url) {
+  prefetchQueue.push(url)
+  runNextPrefetch()
+}
+
 export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsChanged }) {
   const [closetFilter, setClosetFilter] = useState('')
   const [shelfTheme, setShelfTheme] = useState('wood')
@@ -276,9 +304,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
           for (const url of urls) {
             if (!url || prefetched.has(url)) continue
             prefetched.add(url)
-            const img = new Image()
-            img.decoding = 'async'
-            img.src = url
+            queuePrefetch(url)
           }
           observer.unobserve(entry.target)
         }
