@@ -54,6 +54,14 @@ export function alpha2ToName(alpha2) {
   return countries.getName(alpha2, 'en', { select: 'alias' }) || countries.getName(alpha2, 'en') || alpha2
 }
 
+// یه فیلم رو ممکنه هم به‌صورت فیزیکی هم دیجیتال (یا حتی چند نسخه‌ی فیزیکی)
+// تو آرشیو داشته باشیم — هرکدوم یه ردیف/id جدا تو films هستن. برای شمارش
+// «چند تا فیلمِ متفاوت» در هر کشور، این نسخه‌های تکراری از یه عنوان رو یکی
+// حساب می‌کنیم (وگرنه همون پوستر چندبار پشت‌سرهم تو لیست کشور دیده می‌شه).
+function filmIdentityKey(film) {
+  return `${String(film.title || '').trim().toLowerCase()}::${film.year || ''}`
+}
+
 // فیلم‌های آرشیو رو بر اساس کشور (ستون country، که می‌تونه چندتایی و
 // جداشده با ویرگول باشه) گروه‌بندی می‌کنه. خروجی Map از alpha2 -> جزئیات
 // (اسم، تعداد، فیلم‌ها، رشته‌های خامی که به این کشور نگاشت شدن).
@@ -78,12 +86,16 @@ export function aggregateFilmsByCountry(films) {
           count: 0,
           films: [],
           rawVariants: new Set(),
+          seenTitles: new Set(),
         })
       }
       const entry = byAlpha2.get(alpha2)
+      entry.rawVariants.add(raw)
+      const identityKey = filmIdentityKey(film)
+      if (entry.seenTitles.has(identityKey)) continue
+      entry.seenTitles.add(identityKey)
       entry.count++
       entry.films.push(film)
-      entry.rawVariants.add(raw)
     }
   }
   return byAlpha2
