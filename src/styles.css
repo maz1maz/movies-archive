@@ -6573,6 +6573,79 @@ body.light .dashboard-panel {
 .oscars-filters {
   gap: 14px;
 }
+
+.countries-map-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: 12px;
+}
+.countries-map-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.countries-map-country {
+  fill: var(--surface-3);
+  stroke: var(--border);
+  stroke-width: 0.5;
+}
+.countries-map-country.has-films {
+  fill: var(--accent);
+  stroke: var(--border-strong);
+  cursor: pointer;
+}
+.countries-map-country.has-films.hovered {
+  stroke: var(--accent-strong);
+  stroke-width: 1.5;
+}
+.countries-map-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.countries-map-legend-bar {
+  flex: 1;
+  max-width: 220px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 18%, transparent), var(--accent));
+}
+.countries-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.countries-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+}
+.countries-list-item:hover {
+  border-color: var(--accent);
+}
+.countries-list-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.countries-list-count {
+  color: var(--muted);
+  font-weight: 700;
+  flex-shrink: 0;
+}
 .oscars-field {
   flex: 1;
   min-width: 160px;
