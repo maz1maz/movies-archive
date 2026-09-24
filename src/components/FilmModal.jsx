@@ -7,7 +7,7 @@ import { addToOrderList } from '../utils/orderList.js'
 import { parseDriveNumbers, driveLabel, driveSortValue, normalizeDriveValue } from '../utils/driveDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
 
-function CollectionOrderButton({ title, year }) {
+function CollectionOrderButton({ title, year, source = 'Collection' }) {
   const [state, setState] = useState('idle') // idle | adding | added
   const handleClick = async (e) => {
     e.preventDefault()
@@ -15,7 +15,7 @@ function CollectionOrderButton({ title, year }) {
     if (state !== 'idle') return
     setState('adding')
     try {
-      await addToOrderList({ title, releaseDate: year ? `${year}-01-01` : null, source: 'Collection' })
+      await addToOrderList({ title, releaseDate: year ? `${year}-01-01` : null, source })
       setState('added')
     } catch {
       setState('idle')
@@ -353,6 +353,21 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
   const studioName = film.studio
   const mediaFormat = film.format || (film.mediaType === 'digital' ? 'Digital' : 'Blu-ray')
+  let seasonEpisodeReport = null
+  if (film.itemType === 'series' && film.seasonsEpisodes) {
+    const seasons = [...String(film.seasonsEpisodes).matchAll(/S(\d+)\s*:\s*(\d+)\s*episodes?/gi)]
+      .map((match) => ({ number: Number(match[1]), episodeCountAired: Number(match[2]), state: 'aired' }))
+    if (seasons.length) {
+      seasonEpisodeReport = {
+        releasedSeasonCount: seasons.length,
+        seasons,
+        source: 'series metadata report',
+      }
+    }
+  }
+  const hasFileQuality = film.mediaType === 'digital' && (
+    film.resolution || film.videoFormat || film.hasSubtitle != null || film.dubbed != null
+  )
 
   const trailerSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
     (film.originalTitle || film.title) + ' official trailer'
@@ -390,6 +405,50 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   ].filter((item) => item.value)
 
   const displayedCrew = fullCrew
+
+  const SeriesSeasonDetails = () => {
+    if (film.itemType !== 'series') return null
+    const ownedMap = {}
+    for (const sd of film.seasonDrives || []) {
+      for (const value of String(sd.seasons || '').match(/\d+/g) || []) {
+        const number = Number(value)
+        if (!ownedMap[number]) ownedMap[number] = []
+        if (!ownedMap[number].includes(sd.drive)) ownedMap[number].push(sd.drive)
+      }
+    }
+    const episodeMap = Object.fromEntries((seasonEpisodeReport?.seasons || []).map((season) => [season.number, season]))
+    const knownNumbers = [...Object.keys(ownedMap), ...Object.keys(episodeMap)].map(Number)
+    const totalCount = film.totalSeasonsProduced || seasonEpisodeReport?.releasedSeasonCount || (knownNumbers.length ? Math.max(...knownNumbers) : 0)
+    // برخی سریال‌های تک‌فصل (و ورودی‌های قدیمی) فقط driveNumber کلی دارند،
+    // نه نگاشت seasonDrives. در آن حالت همان هارد کلی برای فصل‌ها معتبر است.
+    const fallbackDrives = Object.keys(ownedMap).length === 0 && film.driveNumber ? [film.driveNumber] : []
+    if (!totalCount) return null
+
+    return (
+      <div className="cine-collection-box cine-series-season-summary">
+        <div className="cine-section-label">SEASONS & EPISODES</div>
+        <div className="cine-seasons-table cine-season-summary-table">
+          {Array.from({ length: totalCount }, (_, index) => index + 1).map((number) => {
+            const season = episodeMap[number]
+            const drives = ownedMap[number] || fallbackDrives
+            const episodes = season ? (season.episodeCountAired ?? season.episodeCountCatalogued ?? 0) : '—'
+            return (
+              <div key={number} className="cine-season-summary-row">
+                <span className="season-key">Season {number}</span>
+                <span className="season-episode-count">{episodes} episodes</span>
+                {drives.length ? (
+                  <span className="season-drive">{drives.map((driveName, index) => <span key={index} className="season-drive-tag"><IconPin width={12} height={12} /> {driveName}</span>)}</span>
+                ) : (
+                  <CollectionOrderButton title={`${film.title} — Season ${number}`} year={film.year} source="Missing series season" />
+                )}
+              </div>
+            )
+          })}
+        </div>
+        {seasonEpisodeReport && <div className="cine-section-label" style={{ marginTop: 8 }}>Published episodes · {seasonEpisodeReport.source || 'metadata report'}</div>}
+      </div>
+    )
+  }
 
   const inner = (
     <div className={panel ? 'modal modal-cine cine-panel' : 'modal modal-cine'} onClick={(e) => e.stopPropagation()}>
@@ -884,6 +943,29 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
             )}
 
+            {hasFileQuality && (
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                <div>
+                  <div className="cine-section-label">FILE QUALITY</div>
+                  <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>
+                    {[film.resolution, film.videoFormat].filter(Boolean).join(' · ') || '—'}
+                  </p>
+                </div>
+                {film.hasSubtitle != null && (
+                  <div>
+                    <div className="cine-section-label">SUBTITLES</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.hasSubtitle ? 'Yes' : 'No'}</p>
+                  </div>
+                )}
+                {film.dubbed != null && (
+                  <div>
+                    <div className="cine-section-label">DUBBED</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.dubbed ? 'Yes' : 'No'}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {Array.isArray(film.productionCompanies) && film.productionCompanies.length > 0 && (
               <div className="cine-collection-box">
                 <div className="cine-section-label">PRODUCTION COMPANIES</div>
@@ -1013,6 +1095,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
           {/* CREW */}
           <div className="cine-col cine-col-crew">
+            <SeriesSeasonDetails />
             <div className="cine-col-header">
               <span className="cine-col-title">CREW</span>
             </div>
@@ -1054,8 +1137,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
           {/* TRAILER */}
           <div className="cine-col cine-col-trailer">
-            {/* SEASONS — کدوم فصل‌ها موجوده و کدوم فصل روی کدوم هارده */}
-            {film.itemType === 'series' && Array.isArray(film.seasonDrives) && film.seasonDrives.length > 0 && (
+            {/* جزئیات فصل‌ها بالای این بخش، بلافاصله زیر داستان سریال، نمایش داده می‌شود. */}
+            {false && film.itemType === 'series' && Array.isArray(film.seasonDrives) && film.seasonDrives.length > 0 && (
               <div className="cine-seasons-block">
                 <div className="cine-col-title">
                   SEASONS
@@ -1157,6 +1240,32 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       </div>
                     ))
                   })()}
+                </div>
+              </div>
+            )}
+
+            {false && film.itemType === 'series' && seasonEpisodeReport && (
+              <div className="cine-seasons-block cine-episode-counts-block">
+                <div className="cine-col-title">
+                  RELEASED EPISODES
+                  <span className="seasons-produced-badge">
+                    {seasonEpisodeReport.releasedSeasonCount ?? film.totalSeasonsProduced ?? 0} seasons aired
+                  </span>
+                </div>
+                <div className="cine-seasons-table">
+                  {seasonEpisodeReport.seasons.map((season) => (
+                    <div key={season.number} className="cine-season-row">
+                      <span className="season-key">Season {season.number}</span>
+                      <span className="season-drive">
+                        {season.episodeCountAired ?? season.episodeCountCatalogued ?? 0} episodes
+                        {season.state === 'partially_aired' ? ' · airing' : ''}
+                        {season.state === 'not_aired' ? ' · not aired' : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="cine-section-label" style={{ marginTop: 8 }}>
+                  Source: {seasonEpisodeReport.source || 'metadata report'}
                 </div>
               </div>
             )}

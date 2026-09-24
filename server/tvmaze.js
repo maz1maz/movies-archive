@@ -235,6 +235,64 @@ export async function fetchTotalSeasons(title) {
   return Math.max(...numbers)
 }
 
+// گزارش فقط‌خواندنی برای آرشیو: فصل‌های ویژه را کنار می‌گذارد و تعداد
+// اپیزودهای پخش‌شده را بر اساس airdate تا امروز می‌شمارد.
+async function findShowForReport(title, imdbId, year) {
+  if (imdbId) {
+    const byImdb = await fetchJson(`${BASE}/lookup/shows?imdb=${encodeURIComponent(imdbId)}`)
+    if (byImdb?.id) return { show: byImdb, confidence: 'high' }
+  }
+  const normalizedYear = Number.parseInt(year, 10)
+  for (const candidate of buildCandidates((title || '').trim())) {
+    const results = await fetchJson(`${BASE}/search/shows?q=${encodeURIComponent(candidate)}`)
+    if (!Array.isArray(results) || !results.length) continue
+    const shows = results.map((result) => result?.show).filter((show) => show?.id)
+    const sameTitle = shows.filter((show) => cleanSearchTitle(show.name || '') === cleanSearchTitle(candidate))
+    const yearMatch = (sameTitle.length ? sameTitle : shows).find((show) => Number.parseInt(String(show.premiered || '').slice(0, 4), 10) === normalizedYear)
+    const show = yearMatch || sameTitle[0] || shows[0] || null
+    if (show) return { show, confidence: yearMatch ? 'high' : sameTitle[0] ? 'medium' : 'low' }
+  }
+  return null
+}
+
+export async function fetchTvMazeSeriesReleaseReport(title, imdbId = null, year = null) {
+  const match = await findShowForReport(title, imdbId, year)
+  const show = match?.show
+  if (!show?.id) return null
+  const seasons = await fetchJson(`${BASE}/shows/${show.id}/seasons`)
+  if (!Array.isArray(seasons)) return null
+  const today = new Date().toISOString().slice(0, 10)
+  const numbered = seasons
+    .filter((season) => Number.isInteger(season?.number) && season.number > 0)
+    .sort((a, b) => a.number - b.number)
+  const seasonResults = await Promise.all(numbered.map(async (season) => {
+    const episodes = await fetchJson(`${BASE}/seasons/${season.id}/episodes`)
+    const list = Array.isArray(episodes) ? episodes : []
+    const aired = list.filter((episode) => episode?.airdate && episode.airdate <= today)
+    const hasFutureEpisodes = list.some((episode) => episode?.airdate && episode.airdate > today)
+    const hasAiredSeason = aired.length > 0 || Boolean(season.premiereDate && season.premiereDate <= today)
+    return {
+      number: season.number,
+      name: season.name || `Season ${season.number}`,
+      premiereDate: season.premiereDate || null,
+      episodeCountCatalogued: list.length || season.episodeOrder || 0,
+      episodeCountAired: aired.length,
+      state: hasAiredSeason ? (hasFutureEpisodes ? 'partially_aired' : 'aired') : 'not_aired',
+      hasAiredSeason,
+    }
+  }))
+  return {
+    title: show.name || title,
+    matchConfidence: match.confidence,
+    status: show.status || null,
+    firstAirDate: show.premiered || null,
+    lastAirDate: show.ended || null,
+    cataloguedSeasonCount: seasonResults.length,
+    releasedSeasonCount: seasonResults.filter((season) => season.hasAiredSeason).length,
+    seasons: seasonResults.map(({ hasAiredSeason, ...season }) => season),
+  }
+}
+
 // سریال‌های در حال پخش (یا هنوز تعیین‌نشده) یه بازیگر/عوامل — برای بخش
 // «اخبار سینما»، چون TMDB برای خیلی از سریال‌ها تاریخ اپیزود بعدی نداره ولی
 // TVMaze داره. اسم رو به شخص TVMaze تبدیل می‌کنیم، credits سریالیش رو

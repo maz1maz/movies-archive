@@ -93,6 +93,8 @@ export default function Header({
   onSyncLetterboxd,
   onFetchSeasonCounts,
   fetchingSeasonCounts,
+  onSyncUnfinishedSeries,
+  syncingUnfinishedSeries,
   view,
   setView,
   alpha,
@@ -502,6 +504,18 @@ export default function Header({
                 >
                   <IconSparkles width={15} height={15} />{' '}
                   {fetchingSeasonCounts ? 'Fetching season counts…' : 'Fetch Season Counts'}
+                </button>
+                <button
+                  type="button"
+                  onClick={guarded(() => {
+                    onSyncUnfinishedSeries()
+                    setMenuOpen(false)
+                  })}
+                  disabled={syncingUnfinishedSeries}
+                  title="Check ongoing digital series for newly aired seasons and episodes"
+                >
+                  <IconSparkles width={15} height={15} />{' '}
+                  {syncingUnfinishedSeries ? 'Syncing unfinished series…' : 'Sync Unfinished Series'}
                 </button>
               </div>
 

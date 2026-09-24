@@ -714,6 +714,7 @@ export default function App() {
   // چند فصلش رو داریم؛ همون totalSeasonsProduced که توی صفحه‌ی فیلم کنار
   // فصل‌های موجود نشون داده می‌شه). فقط سریال‌هایی که این عدد رو ندارن.
   const [fetchingSeasonCounts, setFetchingSeasonCounts] = useState(false)
+  const [syncingUnfinishedSeries, setSyncingUnfinishedSeries] = useState(false)
   const handleFetchSeasonCounts = async () => {
     setFetchingSeasonCounts(true)
     let processed = 0
@@ -734,6 +735,38 @@ export default function App() {
       showToast(e.message)
     } finally {
       setFetchingSeasonCounts(false)
+    }
+  }
+
+  // برای استفادهٔ دوره‌ای از داخل سایت: فقط سریال‌های دیجیتالِ درحال پخش
+  // (یا با وضعیت نامشخص) را بررسی می‌کند. cursor باعث می‌شود اگر در حین
+  // Sync وضعیت یکی از سریال‌ها Ended شد، باقیِ صف جا نماند.
+  const handleSyncUnfinishedSeries = async () => {
+    setSyncingUnfinishedSeries(true)
+    let checked = 0
+    let persisted = 0
+    let cursor = null
+    try {
+      for (let batch = 0; batch < 300; batch++) {
+        const params = new URLSearchParams({ unfinished: '1', persist: '1', limit: '3' })
+        if (cursor !== null) params.set('cursor', String(cursor))
+        const res = await fetch(`/api/reports/digital-series-metadata?${params}`, {
+          credentials: 'same-origin',
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'series sync failed')
+        checked += data.results?.length || 0
+        persisted += data.persisted || 0
+        if (!data.results?.length || data.nextCursor == null) break
+        cursor = data.nextCursor
+      }
+      showToast(`Unfinished series sync complete · checked ${checked}, updated ${persisted}`, 7000)
+      loadFilms()
+      loadAllFilmsUnfiltered()
+    } catch (e) {
+      showToast(`Unfinished series sync stopped after ${checked} series — ${e.message}`, 7000)
+    } finally {
+      setSyncingUnfinishedSeries(false)
     }
   }
 
@@ -1127,6 +1160,8 @@ export default function App() {
         onSyncLetterboxd={handleSyncLetterboxd}
         onFetchSeasonCounts={handleFetchSeasonCounts}
         fetchingSeasonCounts={fetchingSeasonCounts}
+        onSyncUnfinishedSeries={handleSyncUnfinishedSeries}
+        syncingUnfinishedSeries={syncingUnfinishedSeries}
         onOpenExport={() => {
           // به‌جای مودال جدای Export که تکراری بود، مستقیم می‌بره به تب
           // «Export & Backup» توی داشبورد — تنها جایی که خروجی‌ها ازونجا گرفته می‌شن.

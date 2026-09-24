@@ -2,7 +2,7 @@
 // Handles all /api/* routes using D1 for persistent storage.
 import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMetadata, countSeasonsFromText, decodeHtmlEntities } from './helpers.js'
 import { enrichFilm } from './omdb.js'
-import { fetchTotalSeasons, enrichSeriesFromTVMazeById, fetchTvMazePersonUpcoming } from './tvmaze.js'
+import { fetchTotalSeasons, enrichSeriesFromTVMazeById, fetchTvMazePersonUpcoming, fetchTvMazeSeriesReleaseReport } from './tvmaze.js'
 import * as XLSX from 'xlsx'
 import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader } from './auth.js'
 
@@ -11,6 +11,38 @@ import { hashPassword, verifyPassword, getSessionUser, createSession, destroySes
 // کند بود؛ حالا ۱۸۰ ثانیه کش می‌شه و با هر نوشتن روی films/import باطل می‌شه.
 const FILMS_CACHE_KEY = 'filmscache:all'
 const FILMS_CACHE_TTL = 180
+
+// تگ هارد یک قرارداد ذخیره‌سازی دارد: «Drive 8, Drive 12». ورودی‌های قدیمی
+// گاهی به‌صورت «Drive 12,8» ثبت شده‌اند؛ آن‌ها نباید از نتایج فیلتر حذف شوند.
+function normalizeDriveNumber(value) {
+  if (value == null || value === '') return null
+  const seen = new Set()
+  const drives = String(value)
+    .split(',')
+    .map((part) => part.trim().replace(/^drive\s*/i, '').trim())
+    .filter(Boolean)
+    .filter((part) => {
+      const key = part.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  return drives.length ? drives.map((part) => `Drive ${part}`).join(', ') : null
+}
+
+function normalizeSeasonDrives(value) {
+  if (!Array.isArray(value)) return value
+  return value.map((entry) => ({
+    ...entry,
+    drive: normalizeDriveNumber(entry?.drive) || '',
+  }))
+}
+
+// مقایسه بر اساس token است، نه LIKE ساده؛ بنابراین Drive 8 با Drive 18
+// اشتباه نمی‌شود و فاصله/پیشوند جاافتاده در داده‌های قدیمی هم نتیجه را حذف نمی‌کند.
+function driveTokenMatchSql(column) {
+  return `INSTR(',' || REPLACE(REPLACE(LOWER(COALESCE(${column}, '')), 'drive ', ''), ' ', '') || ',', ',' || LOWER(?) || ',') > 0`
+}
 
 // کش KV برای GET /api/decades — دهه‌ی فیلم‌ها تقریباً هیچ‌وقت عوض نمی‌شه،
 // ولی قبلاً هر بار یه full table scan روی films می‌زد. حالا ۱ ساعت کش
@@ -728,22 +760,13 @@ async function handleFetch(request, env, ctx) {
           // رشته‌ی JSON) تا فقط فیلد drive چک بشه، نه seasons — وگرنه یه
           // سریال با seasons «9, 10» اشتباهی جزو drive=10 حساب می‌شد.
           sql += ` AND (
-            driveNumber = ? OR driveNumber = ? OR
-            driveNumber LIKE ? OR driveNumber LIKE ? OR
-            driveNumber LIKE ? OR driveNumber LIKE ? OR
-            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            ${driveTokenMatchSql('driveNumber')} OR
             (seasonDrives IS NOT NULL AND EXISTS (
               SELECT 1 FROM json_each(seasonDrives) je WHERE
-                je.value ->> 'drive' LIKE ?
+                ${driveTokenMatchSql("je.value ->> 'drive'")}
             ))
           )`
-          params.push(
-            drive, `Drive ${drive}`,
-            `${drive},%`, `Drive ${drive},%`,
-            `%, ${drive}`, `%, Drive ${drive}`,
-            `%, ${drive},%`, `%, Drive ${drive},%`,
-            `%${drive}%`
-          )
+          params.push(drive, drive)
         }
         if (genre) { sql += ' AND genre LIKE ?'; params.push(`%"${genre}"%`) }
         const searchIn = url.searchParams.get('searchIn') // 'people' یعنی صریحاً بازیگر/کارگردان/تهیه‌کننده هم جست‌وجو بشه
@@ -1124,6 +1147,45 @@ async function handleFetch(request, env, ctx) {
         return json({ moved: ids.length }, 200, corsHeaders)
       }
 
+      // ---- POST /api/films/bulk-remove-drive (remove only one drive tag
+      // from selected digital items). This preserves any other drive copies;
+      // for series, matching seasonDrives entries are updated as well. ----
+      if (method === 'POST' && pathname === '/api/films/bulk-remove-drive') {
+        const denied = requireEditAccess()
+        if (denied) return denied
+        const body = await request.json().catch(() => ({}))
+        const ids = Array.isArray(body.ids) ? body.ids.map((x) => String(x)).filter(Boolean) : []
+        const driveNumber = normalizeDriveNumber(body.driveNumber)
+        if (!ids.length) return json({ error: 'ids are required' }, 400, corsHeaders)
+        if (!driveNumber) return json({ error: 'driveNumber is required' }, 400, corsHeaders)
+
+        const placeholders = ids.map(() => '?').join(',')
+        const result = await db.prepare(`SELECT * FROM films WHERE id IN (${placeholders})`).bind(...ids).all()
+        let removed = 0
+        for (const row of result.results || []) {
+          const film = parseFilmRow(row)
+          if (film.mediaType !== 'digital') continue
+          const driveBefore = film.driveNumber || ''
+          const seasonsBefore = JSON.stringify(film.seasonDrives || [])
+          film.driveNumber = removeDriveFromList(film.driveNumber, driveNumber)
+          if (Array.isArray(film.seasonDrives)) {
+            film.seasonDrives = film.seasonDrives
+              .map((entry) => ({ ...entry, drive: removeDriveFromList(entry.drive, driveNumber) }))
+              .filter((entry) => entry.drive)
+          }
+          if (film.driveNumber === driveBefore && JSON.stringify(film.seasonDrives || []) === seasonsBefore) continue
+          await updateFilm(db, film)
+          await logAudit({
+            filmId: film.id,
+            filmTitle: film.title,
+            action: 'remove_drive',
+            changes: { driveNumber: [driveBefore || null, film.driveNumber || null] },
+          })
+          removed++
+        }
+        return json({ removed }, 200, corsHeaders)
+      }
+
       // ---- DELETE /api/films/:id (permanently remove a film) ----
       const deleteMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
       if (method === 'DELETE' && deleteMatch) {
@@ -1141,7 +1203,7 @@ async function handleFetch(request, env, ctx) {
       // تا تو فرم ویرایش نشون داده بشه و کاربر با زدن دکمه‌ی Save صریحاً تأییدش
       // کنه. ذخیره‌ی واقعی از همون مسیر همیشگی PATCH /api/films/:id انجام می‌شه.
       const enrichOneMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
-      const RESERVED_FILM_SUBPATHS = ['enrich', 'scan-photo', 'season-counts', 'poster-color-batch', 'reset-locations', 'bulk-move', 'bulk-set-drive', 'by-person', 'counts', 'enrich-status']
+      const RESERVED_FILM_SUBPATHS = ['enrich', 'scan-photo', 'season-counts', 'poster-color-batch', 'reset-locations', 'bulk-move', 'bulk-set-drive', 'bulk-remove-drive', 'by-person', 'counts', 'enrich-status']
       if (method === 'POST' && enrichOneMatch && !RESERVED_FILM_SUBPATHS.includes(enrichOneMatch[1])) {
         const denied = requireEditAccess()
         if (denied) return denied
@@ -1246,6 +1308,70 @@ async function handleFetch(request, env, ctx) {
           .prepare("SELECT COUNT(*) as count FROM films WHERE itemType = 'series' AND totalSeasonsProduced IS NULL")
           .first()
         return json({ processed: candidates.length, updated, remaining: remaining?.count || 0 }, 200, corsHeaders)
+      }
+
+      // ---- POST /api/reports/digital-series-metadata ----
+      // Read-only, paginated metadata lookup for the archive report. It never
+      // writes the films table: TMDB is queried at request time and secrets
+      // remain inside the Worker. A small page size keeps upstream traffic and
+      // Worker wall time bounded for shows with many seasons.
+      if ((method === 'POST' || method === 'GET') && (pathname === '/api/reports/digital-series-metadata' || pathname === '/reports/digital-series-metadata')) {
+        const denied = requireEditAccess()
+        if (denied) return denied
+        const body = method === 'POST' ? await request.json().catch(() => ({})) : Object.fromEntries(url.searchParams)
+        const requestedOffset = Number.parseInt(body.offset, 10)
+        const requestedLimit = Number.parseInt(body.limit, 10)
+        const offset = Number.isFinite(requestedOffset) ? Math.max(0, requestedOffset) : 0
+        const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 3) : 1
+        const persist = body.persist === true || body.persist === '1' || body.persist === 1
+        const unfinishedOnly = body.unfinished === true || body.unfinished === '1' || body.unfinished === 1
+        const cursor = Number.parseInt(body.cursor, 10)
+        const hasCursor = Number.isFinite(cursor) && cursor > 0
+        const scopeWhere = unfinishedOnly
+          ? `mediaType = 'digital' AND itemType = 'series'
+             AND (seriesStatus IS NULL OR lower(seriesStatus) NOT IN ('ended', 'cancelled'))`
+          : `mediaType = 'digital' AND itemType = 'series'`
+        const totalRow = await db
+          .prepare(`SELECT COUNT(*) AS count FROM films WHERE ${scopeWhere}`)
+          .first()
+        const pageWhere = hasCursor ? `${scopeWhere} AND id > ?` : scopeWhere
+        const page = await db
+          .prepare(
+            `SELECT id, title, year, imdbId, seriesStatus
+             FROM films
+             WHERE ${pageWhere}
+             ORDER BY id
+             LIMIT ?${hasCursor ? '' : ' OFFSET ?'}`
+          )
+          .bind(...(hasCursor ? [cursor, limit] : [limit, offset]))
+          .all()
+        const results = await Promise.all(
+          (page.results || []).map((series) => fetchSeriesReleaseReport(series, env, bumpApiUsage))
+        )
+        let persisted = 0
+        if (persist) {
+          for (const result of results) {
+            if (result.error || !result.matchConfidence || result.matchConfidence === 'low') continue
+            const episodeData = `${result.releasedSeasonCount || 0} seasons · ${result.seasons
+              .map((season) => `S${season.number}: ${season.episodeCountAired ?? season.episodeCountCatalogued ?? 0} episodes`)
+              .join(', ')}`
+            await db
+              .prepare(
+                `UPDATE films
+                 SET totalSeasonsProduced = ?, totalSeasonsUpdatedAt = ?, seriesStatus = ?, seasonsEpisodes = ?
+                 WHERE id = ? AND mediaType = 'digital' AND itemType = 'series'`
+              )
+              .bind(result.releasedSeasonCount, new Date().toISOString(), result.status, episodeData, result.id)
+              .run()
+            persisted++
+          }
+          // این مسیر با GET هم اجرا می‌شود، بنابراین invalidation عمومیِ
+          // wrapper (که فقط mutationهای /api/films را پوشش می‌دهد) اینجا
+          // فعال نمی‌شود. بعد از Sync کش لیست اصلی را هم تازه می‌کنیم.
+          if (persisted && ctx) ctx.waitUntil(invalidateFilmsCache(env))
+        }
+        const lastId = results.length ? results[results.length - 1].id : null
+        return json({ total: totalRow?.count || 0, offset, limit, cursor: hasCursor ? cursor : null, nextCursor: lastId, unfinishedOnly, persisted, results }, 200, corsHeaders)
       }
 
       // ---- GET /api/genres ----
@@ -2697,22 +2823,13 @@ async function handleFetch(request, env, ctx) {
           // جداگونه) ثبت شده باشه، نه فیلد کلی driveNumber. از json_each
           // استفاده می‌کنیم تا فقط فیلد drive چک بشه، نه seasons.
           conditions.push(`(
-            driveNumber = ? OR driveNumber = ? OR
-            driveNumber LIKE ? OR driveNumber LIKE ? OR
-            driveNumber LIKE ? OR driveNumber LIKE ? OR
-            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            ${driveTokenMatchSql('driveNumber')} OR
             (seasonDrives IS NOT NULL AND EXISTS (
               SELECT 1 FROM json_each(seasonDrives) je WHERE
-                je.value ->> 'drive' LIKE ?
+                ${driveTokenMatchSql("je.value ->> 'drive'")}
             ))
           )`)
-          params.push(
-            driveParam, `Drive ${driveParam}`,
-            `${driveParam},%`, `Drive ${driveParam},%`,
-            `%, ${driveParam}`, `%, Drive ${driveParam}`,
-            `%, ${driveParam},%`, `%, Drive ${driveParam},%`,
-            `%${driveParam}%`
-          )
+          params.push(driveParam, driveParam)
         }
         if (letterParam) {
           // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The " ابتدای عنوان
@@ -2761,22 +2878,13 @@ async function handleFetch(request, env, ctx) {
           // جداگونه) ثبت شده باشه، نه فیلد کلی driveNumber. از json_each
           // استفاده می‌کنیم تا فقط فیلد drive چک بشه، نه seasons.
           conditions.push(`(
-            driveNumber = ? OR driveNumber = ? OR
-            driveNumber LIKE ? OR driveNumber LIKE ? OR
-            driveNumber LIKE ? OR driveNumber LIKE ? OR
-            driveNumber LIKE ? OR driveNumber LIKE ? OR
+            ${driveTokenMatchSql('driveNumber')} OR
             (seasonDrives IS NOT NULL AND EXISTS (
               SELECT 1 FROM json_each(seasonDrives) je WHERE
-                je.value ->> 'drive' LIKE ?
+                ${driveTokenMatchSql("je.value ->> 'drive'")}
             ))
           )`)
-          params.push(
-            driveParam, `Drive ${driveParam}`,
-            `${driveParam},%`, `Drive ${driveParam},%`,
-            `%, ${driveParam}`, `%, Drive ${driveParam}`,
-            `%, ${driveParam},%`, `%, Drive ${driveParam},%`,
-            `%${driveParam}%`
-          )
+          params.push(driveParam, driveParam)
         }
         if (letterParam) {
           // مرتب‌سازی/فیلتر الفبایی حرف اول عنوان، با نادیده گرفتن "The " ابتدای عنوان
@@ -4395,6 +4503,171 @@ function isEmptyArrayField(v) {
   if (Array.isArray(v)) return v.length === 0
   return !v || v === '[]'
 }
+
+function normalizeMetadataTitle(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/^(the|a|an)\s+/, '')
+    .replace(/[^a-z0-9]/g, '')
+}
+
+async function fetchTmdbJson(env, path, params = {}) {
+  const key = env.TMDB_API_KEY
+  if (!key) return null
+  const query = new URLSearchParams(params)
+  const base = `https://api.themoviedb.org/3${path}`
+  const requests = [
+    { url: `${base}?${new URLSearchParams({ ...Object.fromEntries(query), api_key: key })}`, headers: { accept: 'application/json' } },
+    { url: `${base}?${query}`, headers: { Authorization: `Bearer ${key}`, accept: 'application/json' } },
+  ]
+  for (const request of requests) {
+    try {
+      const response = await fetch(request.url, { headers: request.headers, signal: AbortSignal.timeout(8000) })
+      if (response.ok) return await response.json()
+    } catch {}
+  }
+  return null
+}
+
+function reportEpisodeCount(episodes) {
+  const today = new Date().toISOString().slice(0, 10)
+  const list = Array.isArray(episodes) ? episodes : []
+  const aired = list.filter((episode) => episode?.air_date && episode.air_date <= today)
+  return {
+    catalogued: list.length,
+    aired: aired.length,
+    hasFutureEpisodes: list.some((episode) => episode?.air_date && episode.air_date > today),
+  }
+}
+
+async function fetchSeriesReleaseReport(series, env, bumpApiUsage) {
+  const report = {
+    id: series.id,
+    archiveTitle: series.title,
+    archiveYear: series.year || null,
+    imdbId: series.imdbId || null,
+    source: null,
+    matchConfidence: null,
+    matchedTitle: null,
+    status: null,
+    firstAirDate: null,
+    lastAirDate: null,
+    releasedSeasonCount: null,
+    cataloguedSeasonCount: null,
+    seasons: [],
+    error: null,
+  }
+  let match = null
+  if (series.imdbId) {
+    const found = await fetchTmdbJson(env, `/find/${encodeURIComponent(series.imdbId)}`, { external_source: 'imdb_id' })
+    match = found?.tv_results?.[0] || null
+  }
+  if (!match) {
+    const searched = await fetchTmdbJson(env, '/search/tv', {
+      query: series.title,
+      ...(series.year ? { first_air_date_year: String(series.year) } : {}),
+    })
+    const candidates = Array.isArray(searched?.results) ? searched.results : []
+    const titleKey = normalizeMetadataTitle(series.title)
+    match = candidates.find((item) => normalizeMetadataTitle(item?.name) === titleKey || normalizeMetadataTitle(item?.original_name) === titleKey) || candidates[0] || null
+  }
+  if (!match?.id) return fetchTvMazeSeriesReleaseReportFallback(report, env, bumpApiUsage)
+  const details = await fetchTmdbJson(env, `/tv/${match.id}`, { language: 'en-US' })
+  if (!details) return fetchTvMazeSeriesReleaseReportFallback(report, env, bumpApiUsage)
+  report.source = 'TMDB'
+  report.matchConfidence = series.imdbId ? 'high' : 'medium'
+  report.matchedTitle = details.name || match.name || null
+  report.status = details.status || null
+  report.firstAirDate = details.first_air_date || null
+  report.lastAirDate = details.last_air_date || null
+  const numberedSeasons = (Array.isArray(details.seasons) ? details.seasons : [])
+    .filter((season) => Number.isInteger(season?.season_number) && season.season_number > 0)
+    .sort((a, b) => a.season_number - b.season_number)
+  report.cataloguedSeasonCount = numberedSeasons.length || null
+  let releasedSeasons = 0
+  for (const season of numberedSeasons) {
+    const seasonDetails = await fetchTmdbJson(env, `/tv/${match.id}/season/${season.season_number}`, { language: 'en-US' })
+    const episodeCounts = reportEpisodeCount(seasonDetails?.episodes)
+    const hasAiredSeason = episodeCounts.aired > 0 || Boolean(season.air_date && season.air_date <= new Date().toISOString().slice(0, 10))
+    if (hasAiredSeason) releasedSeasons++
+    report.seasons.push({
+      number: season.season_number,
+      name: season.name || `Season ${season.season_number}`,
+      premiereDate: season.air_date || seasonDetails?.air_date || null,
+      episodeCountCatalogued: episodeCounts.catalogued || season.episode_count || 0,
+      episodeCountAired: episodeCounts.aired,
+      state: hasAiredSeason ? (episodeCounts.hasFutureEpisodes ? 'partially_aired' : 'aired') : 'not_aired',
+    })
+  }
+  report.releasedSeasonCount = releasedSeasons
+  return report
+}
+
+async function fetchOmdbSeriesReleaseReport(report, env, bumpApiUsage) {
+  const key = env.OMDB_API_KEY
+  if (!key) {
+    report.error = 'TMDB unavailable and OMDB_API_KEY is not set'
+    return report
+  }
+  const request = async (params) => {
+    try {
+      const response = await fetch(`https://www.omdbapi.com/?${new URLSearchParams({ apikey: key, ...params })}`, {
+        signal: AbortSignal.timeout(8000),
+      })
+      if (bumpApiUsage) await bumpApiUsage('omdb')
+      if (!response.ok) return null
+      const data = await response.json()
+      return data?.Response === 'False' ? null : data
+    } catch {
+      return null
+    }
+  }
+  const lookup = await request(report.imdbId
+    ? { i: report.imdbId, type: 'series' }
+    : { t: report.archiveTitle, ...(report.archiveYear ? { y: String(report.archiveYear) } : {}), type: 'series' })
+  const total = Number.parseInt(lookup?.totalSeasons, 10)
+  if (!lookup || !Number.isFinite(total) || total < 1) {
+    report.error = 'TMDB match not found; OMDb fallback unavailable'
+    return report
+  }
+  report.source = 'OMDb fallback'
+  report.matchedTitle = lookup.Title || report.archiveTitle
+  report.cataloguedSeasonCount = total
+  let releasedSeasons = 0
+  for (let number = 1; number <= total; number++) {
+    const season = await request({ i: lookup.imdbID || report.imdbId || '', Season: String(number) })
+    const episodes = Array.isArray(season?.Episodes) ? season.Episodes : []
+    if (episodes.length) releasedSeasons++
+    report.seasons.push({
+      number,
+      name: `Season ${number}`,
+      premiereDate: null,
+      episodeCountCatalogued: episodes.length,
+      episodeCountAired: episodes.length,
+      state: episodes.length ? 'aired' : 'unknown',
+    })
+  }
+  report.releasedSeasonCount = releasedSeasons
+  return report
+}
+
+async function fetchTvMazeSeriesReleaseReportFallback(report, env, bumpApiUsage) {
+  const tvmaze = await fetchTvMazeSeriesReleaseReport(report.archiveTitle, report.imdbId, report.archiveYear)
+  if (tvmaze) {
+    report.source = 'TVMaze fallback'
+    report.matchConfidence = tvmaze.matchConfidence || null
+    report.matchedTitle = tvmaze.title
+    report.status = tvmaze.status
+    report.firstAirDate = tvmaze.firstAirDate
+    report.lastAirDate = tvmaze.lastAirDate
+    report.cataloguedSeasonCount = tvmaze.cataloguedSeasonCount
+    report.releasedSeasonCount = tvmaze.releasedSeasonCount
+    report.seasons = tvmaze.seasons
+    return report
+  }
+  return fetchOmdbSeriesReleaseReport(report, env, bumpApiUsage)
+}
+
 function applyTmdbExtras(film, extras) {
   if (!extras) return
   if (!film.tagline && extras.tagline) film.tagline = extras.tagline
@@ -4668,6 +4941,16 @@ async function fetchDirectorRecommendations(db, name, env) {
   } catch {
     return []
   }
+}
+
+function removeDriveFromList(value, driveToRemove) {
+  const target = String(driveToRemove || '').trim().replace(/^drive\s*/i, '').toLowerCase()
+  if (!target || !value) return value || ''
+  return String(value)
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.replace(/^drive\s*/i, '').toLowerCase() !== target)
+    .join(', ')
 }
 
 function parseFilmRow(row) {
@@ -5168,9 +5451,9 @@ async function insertFilm(db, film) {
     watched ? 1 : 0, imdbId || null, imdbVotes || null,
     metadataEnrichmentAttemptedAt || null, myRating || 0, criterion ? 1 : 0,
     criterion ? (criterionCopies || 1) : null,
-    copies || 1, mediaType || 'physical', driveNumber || null,
+    copies || 1, mediaType || 'physical', normalizeDriveNumber(driveNumber),
     itemType || 'movie', seasonsEpisodes || null, letterboxdRating || null, watchlisted ? 1 : 0,
-    seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(seasonDrives) : seasonDrives) : null,
+    seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(normalizeSeasonDrives(seasonDrives)) : seasonDrives) : null,
     originalLanguage || null, boxOffice || null, tagline || null, budget || null, revenue || null,
     metascore || null, rottenTomatoes || null, releaseDate || null,
     productionCompanies ? (Array.isArray(productionCompanies) ? JSON.stringify(productionCompanies) : productionCompanies) : null,
@@ -5276,9 +5559,9 @@ async function updateFilm(db, film) {
     watched ? 1 : 0, imdbId || null, imdbVotes || null,
     metadataEnrichmentAttemptedAt || null, myRating || 0, criterion ? 1 : 0,
     criterion ? (criterionCopies || 1) : null,
-    copies || 1, mediaType || 'physical', driveNumber || null,
+    copies || 1, mediaType || 'physical', normalizeDriveNumber(driveNumber),
     itemType || 'movie', seasonsEpisodes || null, letterboxdRating || null, letterboxdVotes || null, watchlisted ? 1 : 0,
-    seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(seasonDrives) : seasonDrives) : null,
+    seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(normalizeSeasonDrives(seasonDrives)) : seasonDrives) : null,
     personalReview || null, personalReviewUrl || null, personalReviewDate || null,
     reviews ? (Array.isArray(reviews) ? JSON.stringify(reviews) : reviews) : null,
     cinematicMovement || null,
