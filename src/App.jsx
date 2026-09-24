@@ -19,6 +19,7 @@ import { IconArchive } from './components/icons.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 import { useTheme } from './context/ThemeContext.jsx'
 import { parseDriveNumbers, driveSortValue } from './utils/driveDisplay.js'
+import { sectionToMediaItemType, enrichScopeLabel, enrichScopeParams, normNames } from './utils/filmScope.js'
 
 // Lazy: pulls in the ogl WebGL library, only needed by the rarely-visited
 // 3D gallery view — code-splitting it keeps it out of everyone else's
@@ -171,23 +172,6 @@ export default function App() {
   // ?mediaType=&itemType= برای اندپوینت‌های enrich تبدیل می‌کنه، تا دکمه‌ی
   // «Fill missing details» فقط رو همون قسمتی که کاربر بازش کرده کار کنه.
   // سکشن‌های بدون فیلم مشخص (dashboard, special-collections, ...) => کل آرشیو.
-  const enrichScopeLabel = (sec) => {
-    if (sec === 'physical') return 'physical movies'
-    if (sec === 'physical-series') return 'physical series'
-    if (sec === 'digital-movie') return 'digital movies'
-    if (sec === 'digital-series') return 'digital series'
-    return null
-  }
-
-  const enrichScopeParams = (sec) => {
-    const params = new URLSearchParams()
-    if (sec === 'physical' || sec === 'digital-movie') params.set('itemType', 'movie')
-    else if (sec === 'physical-series' || sec === 'digital-series') params.set('itemType', 'series')
-    if (sec === 'physical' || sec === 'physical-series') params.set('mediaType', 'physical')
-    else if (sec === 'digital-movie' || sec === 'digital-series') params.set('mediaType', 'digital')
-    return params.toString()
-  }
-
   const refreshEnrichRemaining = () => {
     const qs = enrichScopeParams(section)
     fetch(`/api/films/enrich-status${qs ? `?${qs}` : ''}`)
@@ -248,14 +232,6 @@ export default function App() {
   const requestIdRef = useRef(0)
 
   const [totalCount, setTotalCount] = useState(null)
-
-  const sectionToMediaItemType = (sec) => {
-    if (sec === 'physical') return { mediaType: 'physical', itemType: 'movie' }
-    if (sec === 'physical-series') return { mediaType: 'physical', itemType: 'series' }
-    if (sec === 'digital-movie') return { mediaType: 'digital', itemType: 'movie' }
-    if (sec === 'digital-series') return { mediaType: 'digital', itemType: 'series' }
-    return {}
-  }
 
   const loadFilms = () => {
     setLoading(true)
@@ -770,14 +746,6 @@ export default function App() {
     }
     return { physicalByKey, digitalByKey }
   }, [allFilmsUnfiltered])
-
-  // نام‌های کارگردان/بازیگر رو نرمال می‌کنه (کوچیک، بدون فاصله‌ی اضافه) تا
-  // مقایسه‌ی «همون شخص» بین دو رکورد قابل اعتماد باشه.
-  const normNames = (s) =>
-    String(s || '')
-      .split(',')
-      .map((x) => x.trim().toLowerCase())
-      .filter(Boolean)
 
   const findSiblingFilm = (f) => {
     if (!f) return null
