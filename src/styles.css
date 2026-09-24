@@ -6453,6 +6453,12 @@ body.light .folder-back {
   min-height: 100vh;
   padding: 24px 0 60px;
 }
+.dashboard-panel-loading {
+  padding: 60px 0;
+  text-align: center;
+  color: var(--muted, #8d8f98);
+  font-size: 14px;
+}
 body.light .dashboard-panel {
   --accent: #9c7a1f;
   --accent-strong: #83671a;
