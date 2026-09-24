@@ -946,7 +946,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             {hasFileQuality && (
               <div className="cine-collection-box" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
                 <div>
-                  <div className="cine-section-label">FILE QUALITY</div>
+                  <div className="cine-section-label">
+                    FILE QUALITY <span style={{ fontWeight: 400, opacity: 0.6, textTransform: 'none' }}>(digital copy only)</span>
+                  </div>
                   <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>
                     {[film.resolution, film.videoFormat].filter(Boolean).join(' · ') || '—'}
                   </p>
