@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
 import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
@@ -14,6 +14,25 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   const [shelfTheme, setShelfTheme] = useState('wood')
   const [shelfScale, setShelfScale] = useState(1)
   const [hoveredFilm, setHoveredFilm] = useState(null)
+  const [hoverAnchorRect, setHoverAnchorRect] = useState(null)
+  const shelfBodyRef = useRef(null)
+
+  const handleSpineEnter = (e, f) => {
+    setHoveredFilm(f)
+    setHoverAnchorRect(e.currentTarget.getBoundingClientRect())
+  }
+  // شناور هاور نباید زیر هدر + نوار جزئیاتِ چسبان بالای صفحه بره -- اون دوتا
+  // فضای بالای ناحیه‌ی اسکرول رو گرفتن، پس یه کف براش حساب می‌کنیم.
+  const minCardTop = () => {
+    const stickyBottom = shelfBodyRef.current
+      ?.querySelector('.spine-inspector-bar')
+      ?.getBoundingClientRect().bottom
+    return (stickyBottom || 0) + 10
+  }
+  const handleSpineLeave = () => {
+    setHoveredFilm(null)
+    setHoverAnchorRect(null)
+  }
   const [searchQuery, setSearchQuery] = useState('')
   const [manageOpen, setManageOpen] = useState(false)
   const [resetCloset, setResetCloset] = useState('')
@@ -260,6 +279,35 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
     }
     return Object.values(map)
   }, [filteredFilms])
+
+  // هر بخش قفسه فقط وقتی تازه داره وارد نمای صفحه می‌شه (با یه فاصله‌ی جلوتر
+  // -- rootMargin) پوسترهاش رو پیش‌بارگذاری می‌کنه؛ تا وقتی کاربر واقعاً به
+  // اون قفسه برسه و روی یه جلد هاور کنه، عکسش از قبل تو کش مرورگره و آنی
+  // نشون داده می‌شه -- به‌جای این‌که هر هاور یه دانلود تازه شروع کنه.
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return
+    const prefetched = new Set()
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          const urls = (entry.target.dataset.posters || '').split('|')
+          for (const url of urls) {
+            if (!url || prefetched.has(url)) continue
+            prefetched.add(url)
+            const img = new Image()
+            img.decoding = 'async'
+            img.src = url
+          }
+          observer.unobserve(entry.target)
+        }
+      },
+      { root: shelfBodyRef.current, rootMargin: '800px 0px' }
+    )
+    const sections = shelfBodyRef.current?.querySelectorAll('[data-shelf-section]') || []
+    sections.forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [shelfSections])
 
   const totalCopies = useMemo(
     () => filteredFilms.reduce((sum, f) => sum + (Number(f.copies) || 1), 0),
@@ -593,7 +641,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
           </div>
         </div>
 
-        <div className="location-browser-body" style={{ padding: '24px 28px 40px' }}>
+        <div className="location-browser-body" style={{ padding: '24px 28px 40px' }} ref={shelfBodyRef}>
           <div className="spine-inspector-bar">
             {hoveredFilm ? (
               <div className="spine-inspector-content">
@@ -668,7 +716,11 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   </span>
                 </div>
 
-                <div className={`cinema-wood-shelf-wrapper shelf-theme-${shelfTheme}`}>
+                <div
+                  className={`cinema-wood-shelf-wrapper shelf-theme-${shelfTheme}`}
+                  data-shelf-section
+                  data-posters={sec.films.map((f) => proxyImg(f.poster)).filter(Boolean).join('|')}
+                >
                   <div className="shelf-overhead-light" />
                   <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
                     <div className="shelf-inner-shadow" />
@@ -692,8 +744,8 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                               background: style.bg,
                               '--spine-text': style.text,
                             }}
-                            onMouseEnter={() => setHoveredFilm(f)}
-                            onMouseLeave={() => setHoveredFilm(null)}
+                            onMouseEnter={(e) => handleSpineEnter(e, f)}
+                            onMouseLeave={handleSpineLeave}
                             onClick={() => onSelectFilm(f)}
                             title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                           >
@@ -735,6 +787,39 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
             ))
           )}
         </div>
+
+        {hoveredFilm && hoverAnchorRect && (() => {
+          const safeTop = minCardTop()
+          const fitsAbove = hoverAnchorRect.top - 10 - safeTop >= 90
+          return (
+          <div
+            className={`spine-hover-card ${fitsAbove ? '' : 'spine-hover-card-below'}`}
+            style={{
+              left: Math.min(Math.max(hoverAnchorRect.left + hoverAnchorRect.width / 2, 150), window.innerWidth - 150),
+              top: fitsAbove ? hoverAnchorRect.top - 10 : Math.max(hoverAnchorRect.bottom + 10, safeTop),
+            }}
+          >
+            <div className="spine-hover-card-poster">
+              {hoveredFilm.poster ? (
+                <img src={proxyImg(hoveredFilm.poster)} alt="" decoding="async" />
+              ) : (
+                <div className="spine-inspector-poster-fallback">🎬</div>
+              )}
+            </div>
+            <div className="spine-hover-card-info">
+              <div className="spine-hover-card-title">
+                {hoveredFilm.title}
+                {hoveredFilm.year && <span className="spine-hover-card-year"> ({hoveredFilm.year})</span>}
+              </div>
+              {hoveredFilm.director && <div className="spine-hover-card-director">Dir: {hoveredFilm.director}</div>}
+              <div className="spine-hover-card-badges">
+                {hoveredFilm.rating && <span>★ {hoveredFilm.rating.toFixed(1)}</span>}
+                <span>C{hoveredFilm.closet || '–'} R{hoveredFilm.row || '–'} S{hoveredFilm.shelf || '–'}</span>
+              </div>
+            </div>
+          </div>
+          )
+        })()}
       </div>
     </div>
   )
