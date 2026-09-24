@@ -8,11 +8,6 @@ import PersonModal from './components/PersonModal.jsx'
 import FolderNav from './components/FolderNav.jsx'
 import DashboardPanel from './components/DashboardPanel.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
-import LocationBrowserModal from './components/LocationBrowserModal.jsx'
-import DriveBrowserModal from './components/DriveBrowserModal.jsx'
-import PhotoScanModal from './components/PhotoScanModal.jsx'
-import BookshelfView from './components/BookshelfView.jsx'
-import CinemaNewsPage from './components/CinemaNewsPage.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import { IconArchive } from './components/icons.jsx'
@@ -25,6 +20,16 @@ import { sectionToMediaItemType, enrichScopeLabel, enrichScopeParams, normNames 
 // 3D gallery view — code-splitting it keeps it out of everyone else's
 // initial page load.
 const GallerySphere = lazy(() => import('./components/GallerySphere.jsx'))
+
+// Lazy: these are all occasional modals/pages (location browser, drive
+// browser, photo scan, bookshelf view, cinema news), not part of the core
+// browsing flow — keeping them out of the main bundle shrinks the initial
+// load for everyone who never opens them.
+const LocationBrowserModal = lazy(() => import('./components/LocationBrowserModal.jsx'))
+const DriveBrowserModal = lazy(() => import('./components/DriveBrowserModal.jsx'))
+const PhotoScanModal = lazy(() => import('./components/PhotoScanModal.jsx'))
+const BookshelfView = lazy(() => import('./components/BookshelfView.jsx'))
+const CinemaNewsPage = lazy(() => import('./components/CinemaNewsPage.jsx'))
 
 export default function App() {
   const { isGuest, isViewer, isAdmin, openLogin } = useAuth()
@@ -953,13 +958,15 @@ export default function App() {
         </>
       ) : section === 'cinema-news' ? (
         <>
-          <CinemaNewsPage
-            onBack={() => changeSection(null)}
-            onSelectPerson={(name) => setSelectedPerson(name)}
-            theme={theme}
-            setTheme={setTheme}
-            films={allFilmsUnfiltered}
-          />
+          <Suspense fallback={<div className="dashboard-panel-loading">Loading…</div>}>
+            <CinemaNewsPage
+              onBack={() => changeSection(null)}
+              onSelectPerson={(name) => setSelectedPerson(name)}
+              theme={theme}
+              setTheme={setTheme}
+              films={allFilmsUnfiltered}
+            />
+          </Suspense>
           {selected && (
             <FilmModal
               film={selected}
@@ -1211,12 +1218,14 @@ export default function App() {
       )}
 
       {photoScanOpen && (
-        <PhotoScanModal
-          onClose={() => setPhotoScanOpen(false)}
-          onAddFilm={handleAddFilm}
-          defaultMediaType={section === 'digital-movie' || section === 'digital-series' ? 'digital' : 'physical'}
-          existingFilms={allFilmsUnfiltered}
-        />
+        <Suspense fallback={<div className="dashboard-panel-loading">Loading…</div>}>
+          <PhotoScanModal
+            onClose={() => setPhotoScanOpen(false)}
+            onAddFilm={handleAddFilm}
+            defaultMediaType={section === 'digital-movie' || section === 'digital-series' ? 'digital' : 'physical'}
+            existingFilms={allFilmsUnfiltered}
+          />
+        </Suspense>
       )}
 
       {adding && (
@@ -1250,33 +1259,38 @@ export default function App() {
       )}
 
       {showLocationBrowser && (
-        <LocationBrowserModal
-          films={allFilmsUnfiltered}
-          canEdit={!isGuest && !isViewer}
-          onSelectFilm={(film) => {
-            setForceFilmOverlay(true)
-            setShelfNavFilms(allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital'))
-            setSelected(film)
-          }}
-          onFilmsChanged={loadAllFilmsUnfiltered}
-          onClose={() => setShowLocationBrowser(false)}
-        />
+        <Suspense fallback={<div className="dashboard-panel-loading">Loading…</div>}>
+          <LocationBrowserModal
+            films={allFilmsUnfiltered}
+            canEdit={!isGuest && !isViewer}
+            onSelectFilm={(film) => {
+              setForceFilmOverlay(true)
+              setShelfNavFilms(allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital'))
+              setSelected(film)
+            }}
+            onFilmsChanged={loadAllFilmsUnfiltered}
+            onClose={() => setShowLocationBrowser(false)}
+          />
+        </Suspense>
       )}
 
       {showDriveBrowser && (
-        <DriveBrowserModal
-          films={allFilmsUnfiltered}
-          canEdit={!isGuest && !isViewer}
-          onSelectFilm={(film) => {
-            setForceFilmOverlay(true)
-            setSelected(film)
-          }}
-          onFilmsChanged={loadAllFilmsUnfiltered}
-          onClose={() => setShowDriveBrowser(false)}
-        />
+        <Suspense fallback={<div className="dashboard-panel-loading">Loading…</div>}>
+          <DriveBrowserModal
+            films={allFilmsUnfiltered}
+            canEdit={!isGuest && !isViewer}
+            onSelectFilm={(film) => {
+              setForceFilmOverlay(true)
+              setSelected(film)
+            }}
+            onFilmsChanged={loadAllFilmsUnfiltered}
+            onClose={() => setShowDriveBrowser(false)}
+          />
+        </Suspense>
       )}
 
       {showBookshelf && (
+        <Suspense fallback={<div className="dashboard-panel-loading">Loading…</div>}>
         <BookshelfView
           films={allFilmsUnfiltered}
           onSelectFilm={(film) => {
@@ -1287,6 +1301,7 @@ export default function App() {
           onClose={() => setShowBookshelf(false)}
           onFilmsChanged={loadAllFilmsUnfiltered}
         />
+        </Suspense>
       )}
     </div>
   )
