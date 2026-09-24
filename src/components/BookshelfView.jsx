@@ -38,11 +38,31 @@ function queuePrefetch(url) {
 }
 
 export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsChanged }) {
-  const [closetFilter, setClosetFilter] = useState('')
+  const [closetFilter, setClosetFilter] = useState('1')
   const [shelfTheme, setShelfTheme] = useState('wood')
   const [shelfScale, setShelfScale] = useState(1)
   const shelfBodyRef = useRef(null)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // چند تا جلد تو هر ردیف جا می‌شه — برای تقسیم قفسه به ردیف‌های ثابت (نه
+  // flex-wrap خودکار). این‌جوری وقتی یه جلد رو هاور می‌کنی و پهن می‌شه، فقط
+  // جلدهای همون ردیف جمع می‌شن که جا باز کنن؛ به ردیف بعد سرریز نمی‌شه و
+  // ردیف‌های دیگه اصلاً تکون نمی‌خورن.
+  const [itemsPerRow, setItemsPerRow] = useState(24)
+  const firstRowRef = useRef(null)
+  useEffect(() => {
+    const el = firstRowRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const update = () => {
+      const w = el.clientWidth
+      const itemW = 34 * shelfScale + 2
+      if (w > 0) setItemsPerRow(Math.max(6, Math.floor(w / itemW)))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [shelfScale])
   const [manageOpen, setManageOpen] = useState(false)
   const [resetCloset, setResetCloset] = useState('')
   const [resetRow, setResetRow] = useState('')
@@ -654,7 +674,28 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
               <p>No films found on this bookshelf.</p>
             </div>
           ) : (
-            shelfSections.map((sec) => (
+            shelfSections.map((sec, secIdx) => {
+              // همه‌ی جلدها (با احتساب کپی‌ها) رو یه‌بار مسطح می‌کنیم، بعد به
+              // ردیف‌های ثابت (itemsPerRow تایی) تقسیم‌شون می‌کنیم -- هر ردیف
+              // یه flex-container جدا و nowrap هست، تا هاورکردن یه جلد فقط
+              // همون ردیف رو جمع‌وجور کنه و به ردیف‌های دیگه سرایت نکنه.
+              const caseEntries = sec.films.flatMap((f, idx) => {
+                const style = getSpineColor(f, idx)
+                const isCriterion = f.criterion || style.type === 'criterion'
+                const is4k = style.type === '4k'
+                const isSteelbook = style.type === 'steelbook'
+                // نسخه‌های اضافه (copies > 1) واقعاً کنار هم به‌عنوان جلدهای
+                // جدا رو قفسه می‌ذاریم — نه یه جلد با بج «×N»، چون تو یه قفسه‌ی
+                // واقعی هم چند نسخه از یه فیلم واقعاً چندتا جلد جدا هستن.
+                const copyCount = Math.max(1, Number(f.copies) || 1)
+                return Array.from({ length: copyCount }, (_, copyIdx) => ({ f, style, isCriterion, is4k, isSteelbook, copyIdx, copyCount }))
+              })
+              const rows = []
+              for (let i = 0; i < caseEntries.length; i += itemsPerRow) {
+                rows.push(caseEntries.slice(i, i + itemsPerRow))
+              }
+
+              return (
               <div key={`${sec.closet}-${sec.row}-${sec.shelf}`} style={{ marginBottom: '32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>
@@ -674,71 +715,68 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
                     <div className="shelf-inner-shadow" />
                     <div className="bluray-shelf">
-                      {sec.films.flatMap((f, idx) => {
-                        const style = getSpineColor(f, idx)
-                        const isCriterion = f.criterion || style.type === 'criterion'
-                        const is4k = style.type === '4k'
-                        const isSteelbook = style.type === 'steelbook'
-                        // نسخه‌های اضافه (copies > 1) واقعاً کنار هم به‌عنوان
-                        // جلدهای جدا رو قفسه می‌ذاریم — نه یه جلد با بج «×N»،
-                        // چون تو یه قفسه‌ی واقعی هم چند نسخه از یه فیلم واقعاً
-                        // چندتا جلد جدا هستن، نه یکی با یه برچسب.
-                        const copyCount = Math.max(1, Number(f.copies) || 1)
-                        return Array.from({ length: copyCount }, (_, copyIdx) => (
-                          <div
-                            key={`${f.id}-${copyIdx}`}
-                            className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
-                            style={{
-                              backgroundColor: style.bg,
-                              background: style.bg,
-                              '--spine-text': style.text,
-                            }}
-                            onClick={() => onSelectFilm(f)}
-                            title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
-                          >
-                            <div className="case-glare" />
+                      {rows.map((row, rowIdx) => (
+                        <div
+                          className="bluray-shelf-row"
+                          key={rowIdx}
+                          ref={secIdx === 0 && rowIdx === 0 ? firstRowRef : undefined}
+                        >
+                          {row.map(({ f, style, isCriterion, is4k, isSteelbook, copyIdx, copyCount }) => (
+                            <div
+                              key={`${f.id}-${copyIdx}`}
+                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
+                              style={{
+                                backgroundColor: style.bg,
+                                background: style.bg,
+                                '--spine-text': style.text,
+                              }}
+                              onClick={() => onSelectFilm(f)}
+                              title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
+                            >
+                              <div className="case-glare" />
 
-                            <div className="case-spine-view">
-                              <div className="case-header">
-                                {isCriterion ? 'C' : is4k ? '4K UHD' : isSteelbook ? 'STEELBOOK' : 'BLU-RAY'}
+                              <div className="case-spine-view">
+                                <div className="case-header">
+                                  {isCriterion ? 'C' : is4k ? '4K UHD' : isSteelbook ? 'STEELBOOK' : 'BLU-RAY'}
+                                </div>
+
+                                <div className="case-spine">
+                                  <span className="spine-title" style={{ color: style.text || '#fff' }}>
+                                    {f.title}
+                                  </span>
+                                </div>
+
+                                <div className={`case-footer footer-${style.badge || 'dts'}`} style={{ color: style.text || '#aaa' }}>
+                                  <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
+                                </div>
                               </div>
 
-                              <div className="case-spine">
-                                <span className="spine-title" style={{ color: style.text || '#fff' }}>
-                                  {f.title}
-                                </span>
-                              </div>
-
-                              <div className={`case-footer footer-${style.badge || 'dts'}`} style={{ color: style.text || '#aaa' }}>
-                                <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
+                              <div className="case-expand-view">
+                                <div className="case-expand-poster">
+                                  {f.poster ? (
+                                    <img src={proxyImg(f.poster)} alt="" loading="lazy" decoding="async" />
+                                  ) : (
+                                    <div className="case-expand-poster-fallback">🎬</div>
+                                  )}
+                                </div>
+                                <div className="case-expand-info">
+                                  <div className="case-expand-title">
+                                    {f.title}
+                                    {f.year && <span className="case-expand-year"> ({f.year})</span>}
+                                  </div>
+                                  {f.director && <div className="case-expand-director">Dir: {f.director}</div>}
+                                  <div className="case-expand-badges">
+                                    {f.rating && <span>★ {f.rating.toFixed(1)}</span>}
+                                    <span>C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}</span>
+                                    {f.copies > 1 && <span>×{f.copies}</span>}
+                                  </div>
+                                  <div className="case-expand-cta">Click to open →</div>
+                                </div>
                               </div>
                             </div>
-
-                            <div className="case-expand-view">
-                              <div className="case-expand-poster">
-                                {f.poster ? (
-                                  <img src={proxyImg(f.poster)} alt="" loading="lazy" decoding="async" />
-                                ) : (
-                                  <div className="case-expand-poster-fallback">🎬</div>
-                                )}
-                              </div>
-                              <div className="case-expand-info">
-                                <div className="case-expand-title">
-                                  {f.title}
-                                  {f.year && <span className="case-expand-year"> ({f.year})</span>}
-                                </div>
-                                {f.director && <div className="case-expand-director">Dir: {f.director}</div>}
-                                <div className="case-expand-badges">
-                                  {f.rating && <span>★ {f.rating.toFixed(1)}</span>}
-                                  <span>C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}</span>
-                                  {f.copies > 1 && <span>×{f.copies}</span>}
-                                </div>
-                                <div className="case-expand-cta">Click to open →</div>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      })}
+                          ))}
+                        </div>
+                      ))}
                     </div>
 
                     <div className="shelf-props-layer">
@@ -756,7 +794,8 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   <div className="cinema-wood-ledge" />
                 </div>
               </div>
-            ))
+              )
+            })
           )}
         </div>
       </div>
