@@ -2518,7 +2518,6 @@ async function handleFetch(request, env, ctx) {
           rawResponse = rawResponse == null ? '' : JSON.stringify(rawResponse)
         }
         const raw = rawResponse.trim().replace(/^```json\s*|\s*```$/g, '')
-        console.log('Workers AI raw response (first 2000 chars):', raw.slice(0, 2000))
         let parsed
         try {
           parsed = JSON.parse(raw)
