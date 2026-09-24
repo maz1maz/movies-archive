@@ -7068,38 +7068,39 @@ body.light .dashboard-panel {
   z-index: 4;
 }
 
-/* همه‌ی جلدهای بلوری قفسه — با flex-wrap، وقتی یه بخش خیلی زیاد عنوان داره
-   (مثلاً «Unassigned Shelf» با هزاران فیلم)، به‌جای این‌که همه رو تو یه ردیف
-   بی‌نهایت باریک (عملاً صفر پهنا و غیرقابل‌هاور) جا بده، به ردیف بعدی
-   می‌ره. قبلاً flex:1 1 0% با flex-wrap:nowrap باعث می‌شد با تعداد بالا،
-   عرض هر جلد به صفر برسه — یعنی هم نامرئی هم غیرقابل کلیک/هاور. */
+/* قفسه به ردیف‌های ثابت (bluray-shelf-row) تقسیم می‌شه — هر ردیف یه
+   flex-container جدا با nowrap. این‌جوری وقتی یه جلد رو هاور می‌کنی، فقط
+   جلدهای همون ردیف جمع‌وجور می‌شن که جا باز کنن؛ چیزی به ردیف بعد سرریز
+   نمی‌شه و ردیف‌های دیگه اصلاً تکون نمی‌خورن. */
 .bluray-shelf {
   display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
-  column-gap: 2px;
+  flex-direction: column;
   row-gap: 26px;
-  flex-wrap: wrap;
   padding-bottom: 1px;
   position: relative;
   z-index: 10;
-  min-height: calc(310px * var(--spine-scale, 1));
   width: 100%;
 }
+.bluray-shelf-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 2px;
+  flex-wrap: nowrap;
+  min-height: calc(310px * var(--spine-scale, 1));
+}
 
-/* Individual 3D Spine Case — عرض همیشه ثابت (نه flex:1 1 0%، و نه با هاور
-   هم عوض می‌شه) تا با هر تعدادی از عنوان‌ها همیشه یه عرض قابل‌هاور و خواناش
-   بمونه، و مهم‌تر: هاورکردن یه جلد باعث جابه‌جایی جلدهای بعدی نشه. اگه
-   خودِ جلد با flex-basis پهن می‌شد، جلدهای بعدی هر بار به راست هل می‌خوردن
-   و موس موقع رد شدن به سمت راست از رو چند تا جلد، همیشه یکی-دو تا جلوتر از
-   جایی که باید می‌رفت (چون هدف زیر موس مدام فرار می‌کرد) — سمت چپ چون چیزی
-   قبل از جلد هاورشده جابه‌جا نمی‌شه، مشکلی نداشت. برای همین حالا خودِ باکس
-   تو layout عرضش عوض نمی‌شه؛ فقط لایه‌ی «باز شده» (case-expand-view) با
-   position:absolute روی جلدهای بعدی سرریز می‌کنه، بدون این‌که واقعاً کسی
-   رو جابه‌جا کنه. */
+/* Individual 3D Spine Case — در حالت عادی flex:1 1 با یه کف (min-width) تا
+   هیچ‌وقت (حتی وقتی همسایه‌ش پهن شده) به صفر نرسه؛ قبلاً flex:1 1 0% بدون کف
+   با تعداد خیلی زیاد باعث می‌شد عرض به صفر برسه (نامرئی/غیرقابل‌هاور).
+   با هاور، flex-basis واقعی جلد زیاد می‌شه (نه فقط یه لایه‌ی روش) — یعنی
+   جلدهای بعدیِ همون ردیف واقعاً جا باز می‌کنن (جمع می‌شن)، دقیقاً مثل قفسه‌ی
+   واقعی؛ چون هر ردیف بسته‌ست (بالا)، این جمع‌شدن به ردیف‌های دیگه سرایت
+   نمی‌کنه. */
 .bluray-case {
-  flex: 0 0 calc(34px * var(--spine-scale, 1));
-  width: calc(34px * var(--spine-scale, 1));
+  flex: 1 1 calc(34px * var(--spine-scale, 1));
+  min-width: calc(14px * var(--spine-scale, 1));
+  max-width: calc(34px * var(--spine-scale, 1));
   height: calc(310px * var(--spine-scale, 1));
   background: var(--case-bg, #1e3a8a);
   color: var(--case-text, #fff);
@@ -7112,19 +7113,23 @@ body.light .dashboard-panel {
     inset -2px 0 0 rgba(0, 0, 0, 0.5),
     inset 0 3px 0 rgba(255, 255, 255, 0.35),
     1px 0 4px rgba(0, 0, 0, 0.6);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  transition: flex-basis 0.08s ease, max-width 0.08s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
   transform-origin: bottom center;
-  overflow: visible;
+  overflow: hidden;
   padding: 0;
 }
 
 .bluray-case:hover {
+  flex: 0 0 250px;
+  max-width: 250px;
   transform: translateY(-8px);
   z-index: 50;
   box-shadow:
     0 22px 40px rgba(0, 0, 0, 0.85),
     0 0 0 2px #38bdf8,
     0 0 20px rgba(56, 189, 248, 0.35);
+  transition: flex-basis 0.2s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
 }
 
 .case-spine-view {
@@ -7144,19 +7149,11 @@ body.light .dashboard-panel {
   pointer-events: none;
 }
 
-/* محتوای «باز شده»‌ی جلد — پوستر واقعی + جزئیات. عرضش با transition از
-   عرض اسپاین (۳۴px) به عرض کامل (۲۵۰px) می‌ره، ولی چون position:absolute
-   هست، این عرض روی layout قفسه اثری نداره — فقط بصری روی جلدهای بعدی
-   سرریز می‌کنه، هیچ‌کدومشون واقعاً جابه‌جا نمی‌شن.
-   بسته‌شدن (وقتی موس می‌ره) عمداً خیلی سریع‌تر از بازشدنه — تا وقتی موس به
-   سمت جلد بعدی حرکت می‌کنه، این یکی فوراً از سر راه دیدش کنار بره، نه این‌که
-   کاربر معطل بمونه تا انیمیشن بسته‌شدنش تموم بشه. */
+/* محتوای «باز شده»‌ی جلد — پوستر واقعی + جزئیات، کل باکس رو پر می‌کنه چون
+   خودِ باکس دیگه واقعاً ۲۵۰px عرضشه (نه یه لایه‌ی روی جلدهای بعدی). */
 .case-expand-view {
   position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: calc(34px * var(--spine-scale, 1));
+  inset: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -7165,14 +7162,13 @@ body.light .dashboard-panel {
   overflow: hidden;
   pointer-events: none;
   border-radius: inherit;
-  transition: width 0.08s ease, opacity 0.08s ease;
+  transition: opacity 0.08s ease;
   color: #f2f2f2;
   background: #14161c;
 }
 .bluray-case:hover .case-expand-view {
-  width: 250px;
   opacity: 1;
-  transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease 0.05s;
+  transition: opacity 0.15s ease 0.05s;
 }
 .case-expand-poster {
   width: 60px;
