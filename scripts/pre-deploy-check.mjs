@@ -25,17 +25,23 @@ const fail = (msg) => {
 }
 const ok = (msg) => console.log(`✅ ${msg}`)
 
-// ---- 1) سینتکس فایل‌های سرور ----
-console.log('\n— بررسی سینتکس server/*.js —')
+// ---- 1) سینتکس فایل‌های سرور (شامل server/lib/*.js) ----
+console.log('\n— بررسی سینتکس server/**/*.js —')
 const serverDir = path.join(ROOT, 'server')
-const serverFiles = fs.readdirSync(serverDir).filter((f) => f.endsWith('.js'))
-for (const f of serverFiles) {
-  const full = path.join(serverDir, f)
+const listJsFiles = (dir) =>
+  fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const full = path.join(dir, e.name)
+    if (e.isDirectory()) return listJsFiles(full)
+    return e.name.endsWith('.js') ? [full] : []
+  })
+const serverFiles = listJsFiles(serverDir)
+for (const full of serverFiles) {
+  const rel = path.relative(ROOT, full)
   try {
     execSync(`node --check "${full}"`, { stdio: 'pipe' })
-    ok(`server/${f}`)
+    ok(rel)
   } catch (e) {
-    fail(`server/${f} — سینتکس خراب:\n${e.stderr?.toString() || e.message}`)
+    fail(`${rel} — سینتکس خراب:\n${e.stderr?.toString() || e.message}`)
   }
 }
 
@@ -48,11 +54,13 @@ try {
   fail(`vite build شکست خورد:\n${e.stdout?.toString() || e.message}`)
 }
 
-// ---- 3) تطبیق جدول‌های schema.sql با ارجاعات worker.js ----
+// ---- 3) تطبیق جدول‌های schema.sql با ارجاعات worker.js + server/lib/*.js ----
 console.log('\n— تطبیق schema.sql با worker.js —')
 try {
   const schema = fs.readFileSync(path.join(ROOT, 'schema.sql'), 'utf8')
-  const worker = fs.readFileSync(path.join(ROOT, 'server', 'worker.js'), 'utf8')
+  // منطق worker.js قبلاً تیکه‌تیکه به server/lib/*.js منتقل شده، پس db.prepare
+  // ممکنه تو هر کدوم از این فایل‌ها باشه، نه فقط worker.js.
+  const worker = serverFiles.map((f) => fs.readFileSync(f, 'utf8')).join('\n')
   const declaredTables = [...schema.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)].map((m) => m[1].toLowerCase())
 
   // فقط محتوای رشته‌های داخل db.prepare(...) رو بررسی می‌کنیم، نه کل فایل —
@@ -70,13 +78,13 @@ try {
   }
   const missing = [...referenced].filter((t) => !declaredTables.includes(t))
   if (missing.length) {
-    warn(`جدول‌هایی که تو worker.js استفاده شدن ولی تو schema.sql تعریف نشدن: ${missing.join(', ')}`)
+    warn(`جدول‌هایی که استفاده شدن ولی تو schema.sql تعریف نشدن: ${missing.join(', ')}`)
     warn('اگه اخیراً جدولی رو مستقیم تو D1 ساختی (نه از طریق schema.sql)، این طبیعیه — ولی بهتره schema.sql رو هم آپدیت کنی.')
   } else {
-    ok('همه‌ی جدول‌های ارجاع‌شده تو worker.js (داخل db.prepare)، تو schema.sql هم تعریف شدن')
+    ok('همه‌ی جدول‌های ارجاع‌شده (داخل db.prepare)، تو schema.sql هم تعریف شدن')
   }
 } catch (e) {
-  warn(`نتونستم schema.sql رو با worker.js تطبیق بدم: ${e.message}`)
+  warn(`نتونستم schema.sql رو با کد سرور تطبیق بدم: ${e.message}`)
 }
 
 // ---- 4) اگه آدرس لایو داده شده، سلامت سرویس‌های بیرونی رو چک کن ----
