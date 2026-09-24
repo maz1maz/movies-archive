@@ -24,6 +24,13 @@ export const IconBrandMark = ({ dotless, ...props }) => (
   </svg>
 )
 
+export const IconGlobe = (props) => (
+  <svg {...base} {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+  </svg>
+)
+
 export const IconSearch = (props) => (
   <svg {...base} {...props}>
     <circle cx="11" cy="11" r="7" />
