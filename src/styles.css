@@ -7087,11 +7087,16 @@ body.light .dashboard-panel {
   width: 100%;
 }
 
-/* Individual 3D Spine Case — عرض ثابت (نه flex:1 1 0%) تا با هر تعدادی از
-   عنوان‌ها همیشه یه عرض قابل‌هاور و خواناش بمونه؛ سرریز به ردیف بعدی می‌ره.
-   با هاور، خودِ جلد پهن می‌شه و روش رو نشون می‌ده (case-expand-view) — مثل
-   یه جلد واقعی که باز می‌شه، نه یه پاپ‌آپ جدا. چون قفسه wrap می‌شه، پهن‌شدن
-   یه جلد ممکنه چند تا جلد آخر همون ردیف رو به ردیف بعد هل بده؛ طبیعیه. */
+/* Individual 3D Spine Case — عرض همیشه ثابت (نه flex:1 1 0%، و نه با هاور
+   هم عوض می‌شه) تا با هر تعدادی از عنوان‌ها همیشه یه عرض قابل‌هاور و خواناش
+   بمونه، و مهم‌تر: هاورکردن یه جلد باعث جابه‌جایی جلدهای بعدی نشه. اگه
+   خودِ جلد با flex-basis پهن می‌شد، جلدهای بعدی هر بار به راست هل می‌خوردن
+   و موس موقع رد شدن به سمت راست از رو چند تا جلد، همیشه یکی-دو تا جلوتر از
+   جایی که باید می‌رفت (چون هدف زیر موس مدام فرار می‌کرد) — سمت چپ چون چیزی
+   قبل از جلد هاورشده جابه‌جا نمی‌شه، مشکلی نداشت. برای همین حالا خودِ باکس
+   تو layout عرضش عوض نمی‌شه؛ فقط لایه‌ی «باز شده» (case-expand-view) با
+   position:absolute روی جلدهای بعدی سرریز می‌کنه، بدون این‌که واقعاً کسی
+   رو جابه‌جا کنه. */
 .bluray-case {
   flex: 0 0 calc(34px * var(--spine-scale, 1));
   width: calc(34px * var(--spine-scale, 1));
@@ -7107,16 +7112,13 @@ body.light .dashboard-panel {
     inset -2px 0 0 rgba(0, 0, 0, 0.5),
     inset 0 3px 0 rgba(255, 255, 255, 0.35),
     1px 0 4px rgba(0, 0, 0, 0.6);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease,
-    flex-basis 0.2s cubic-bezier(0.16, 1, 0.3, 1), width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
   transform-origin: bottom center;
-  overflow: hidden;
+  overflow: visible;
   padding: 0;
 }
 
 .bluray-case:hover {
-  flex-basis: 250px;
-  width: 250px;
   transform: translateY(-8px);
   z-index: 50;
   box-shadow:
@@ -7133,6 +7135,8 @@ body.light .dashboard-panel {
   justify-content: space-between;
   align-items: center;
   opacity: 1;
+  border-radius: inherit;
+  overflow: hidden;
   transition: opacity 0.1s ease;
 }
 .bluray-case:hover .case-spine-view {
@@ -7140,21 +7144,30 @@ body.light .dashboard-panel {
   pointer-events: none;
 }
 
-/* محتوای «باز شده»‌ی جلد — پوستر واقعی + جزئیات، فقط وقتی جلد پهن شده دیده
-   می‌شه؛ قبلش هم توسط overflow:hidden جلد و هم opacity:0 پنهانه. */
+/* محتوای «باز شده»‌ی جلد — پوستر واقعی + جزئیات. عرضش با transition از
+   عرض اسپاین (۳۴px) به عرض کامل (۲۵۰px) می‌ره، ولی چون position:absolute
+   هست، این عرض روی layout قفسه اثری نداره — فقط بصری روی جلدهای بعدی
+   سرریز می‌کنه، هیچ‌کدومشون واقعاً جابه‌جا نمی‌شن. */
 .case-expand-view {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: calc(34px * var(--spine-scale, 1));
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px;
   opacity: 0;
-  transition: opacity 0.15s ease 0.05s;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+  transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease 0.05s;
   color: #f2f2f2;
-  background: rgba(10, 10, 14, 0.55);
+  background: #14161c;
 }
 .bluray-case:hover .case-expand-view {
+  width: 250px;
   opacity: 1;
 }
 .case-expand-poster {
