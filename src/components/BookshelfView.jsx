@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
 import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
+import { proxyImg } from '../utils/proxyImg.js'
 
 function sortKey(title) {
   return String(title || '')
@@ -598,7 +599,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
               <div className="spine-inspector-content">
                 <div className="spine-inspector-poster">
                   {hoveredFilm.poster ? (
-                    <img src={hoveredFilm.poster} alt={hoveredFilm.title} />
+                    <img src={proxyImg(hoveredFilm.poster)} alt={hoveredFilm.title} />
                   ) : (
                     <div className="spine-inspector-poster-fallback">🎬</div>
                   )}

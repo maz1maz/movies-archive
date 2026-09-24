@@ -7457,6 +7457,12 @@ body.light .spine-theme-wood .spine-shelf-board {
   display: flex;
   align-items: center;
   box-shadow: var(--shadow);
+  /* بدون sticky، این نوار با بقیه‌ی محتوا اسکرول می‌شد و وقتی کاربر پایین‌تر
+     قفسه‌ها رو هاور می‌کرد، از دید خارج می‌شد — یعنی هاور کار می‌کرد ولی
+     نتیجه‌ش دیده نمی‌شد. حالا بالای ناحیه‌ی اسکرول‌شونده چسبیده می‌مونه. */
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 .spine-inspector-content {
   display: flex;
