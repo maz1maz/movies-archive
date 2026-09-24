@@ -7147,7 +7147,10 @@ body.light .dashboard-panel {
 /* محتوای «باز شده»‌ی جلد — پوستر واقعی + جزئیات. عرضش با transition از
    عرض اسپاین (۳۴px) به عرض کامل (۲۵۰px) می‌ره، ولی چون position:absolute
    هست، این عرض روی layout قفسه اثری نداره — فقط بصری روی جلدهای بعدی
-   سرریز می‌کنه، هیچ‌کدومشون واقعاً جابه‌جا نمی‌شن. */
+   سرریز می‌کنه، هیچ‌کدومشون واقعاً جابه‌جا نمی‌شن.
+   بسته‌شدن (وقتی موس می‌ره) عمداً خیلی سریع‌تر از بازشدنه — تا وقتی موس به
+   سمت جلد بعدی حرکت می‌کنه، این یکی فوراً از سر راه دیدش کنار بره، نه این‌که
+   کاربر معطل بمونه تا انیمیشن بسته‌شدنش تموم بشه. */
 .case-expand-view {
   position: absolute;
   left: 0;
@@ -7162,13 +7165,14 @@ body.light .dashboard-panel {
   overflow: hidden;
   pointer-events: none;
   border-radius: inherit;
-  transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease 0.05s;
+  transition: width 0.08s ease, opacity 0.08s ease;
   color: #f2f2f2;
   background: #14161c;
 }
 .bluray-case:hover .case-expand-view {
   width: 250px;
   opacity: 1;
+  transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease 0.05s;
 }
 .case-expand-poster {
   width: 60px;
