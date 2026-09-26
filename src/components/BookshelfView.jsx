@@ -785,12 +785,12 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                                     {f.year && <span className="case-expand-year"> ({f.year})</span>}
                                   </div>
                                   {f.director && <div className="case-expand-director">Dir: {f.director}</div>}
-                                  <div className="case-expand-badges">
-                                    {f.rating && <span>★ {f.rating.toFixed(1)}</span>}
-                                    <span>C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}</span>
-                                    {f.copies > 1 && <span>×{f.copies}</span>}
-                                  </div>
-                                  <div className="case-expand-cta">Click to open →</div>
+                                  {(f.rating || f.copies > 1) && (
+                                    <div className="case-expand-badges">
+                                      {f.rating && <span>★ {f.rating.toFixed(1)}</span>}
+                                      {f.copies > 1 && <span>×{f.copies}</span>}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
