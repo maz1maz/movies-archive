@@ -359,6 +359,13 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
         </button>
         <h2 className="edit-title">{isNew ? 'Add Film' : 'Edit Film'}</h2>
 
+        <div className="edit-primary-actions edit-primary-actions-top">
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={save}>
+            <IconSave width={14} height={14} /> {isNew ? 'Add Film' : 'Save'}
+          </button>
+        </div>
+
         <div className="edit-form">
           <label className="edit-field full edit-link-field">
             <span><IconLink width={13} height={13} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} /> {isNew ? 'Fill from IMDb / Letterboxd / TVMaze link' : 'Update from IMDb / Letterboxd / TVMaze link'}</span>

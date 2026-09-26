@@ -1228,6 +1228,11 @@ body.light .header {
   justify-content: flex-end;
   gap: 8px;
 }
+.edit-primary-actions-top {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
 
 /* ---------- Modal Cine (Exact Match to 7.png) ---------- */
 .modal-cine {
