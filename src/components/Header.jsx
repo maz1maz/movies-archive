@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import AlphabetBar from './AlphabetBar.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import {
@@ -173,7 +174,12 @@ export default function Header({
 
   return (
     <header className={condensed ? 'header header-condensed' : 'header'}>
-      {anyBackdropPopoverOpen && <div className="menu-backdrop" onClick={closeAllPopovers} />}
+      {anyBackdropPopoverOpen &&
+        // .header داره backdrop-filter داره که یه containing block جدید برای
+        // فرزندهای position:fixed می‌سازه — بدون پورتال، این بک‌دراپ فقط باکس
+        // خودِ هدر رو می‌پوشوند (نه کل صفحه)، برای همین کلیک روی هر چیزی زیر
+        // هدر (مثلاً یه پوستر) منو رو نمی‌بست.
+        createPortal(<div className="menu-backdrop" onClick={closeAllPopovers} />, document.body)}
 
       <div className="container header-inner">
         <div className="header-brand-group">
