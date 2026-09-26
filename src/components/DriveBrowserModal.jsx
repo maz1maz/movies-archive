@@ -8,6 +8,28 @@ function sortKey(title) {
     .toLowerCase()
 }
 
+// آیا این آیتم اصلاً روی هیچ درایوی هست؟ (driveNumber خودش، یا برای سریال‌هایی
+// که فصل‌هاشون رو جدا جدا رو هاردهای مختلف گذاشتیم، seasonDrives) — قبلاً
+// جاهای مختلف این فایل فقط driveNumber رو چک می‌کردن، پس سریالی که کل درایوش
+// فقط تو seasonDrives ثبت شده بود (driveNumber خودش خالی)، همیشه به‌عنوان
+// «بدون درایو» نشون داده می‌شد حتی با این‌که واقعاً درایو داشت.
+function hasAnyDrive(f) {
+  if (f.driveNumber) return true
+  return Array.isArray(f.seasonDrives) && f.seasonDrives.some((sd) => sd.drive && sd.drive.trim())
+}
+
+// برچسب محل فعلی یه آیتم برای نمایش تو لیست‌های انتخاب — اگه driveNumber
+// نداره ولی فصل‌هاش جدا جدا رو هاردهای مختلفن (seasonDrives)، همونا رو
+// نشون می‌ده به‌جای این‌که اشتباهاً «Unassigned» بگه.
+function currentLocationLabel(f) {
+  if (f.driveNumber) return driveLabel(f.driveNumber)
+  if (Array.isArray(f.seasonDrives) && f.seasonDrives.length) {
+    const labels = [...new Set(f.seasonDrives.map((sd) => driveLabel(sd.drive)).filter(Boolean))]
+    if (labels.length) return labels.join(', ')
+  }
+  return 'Unassigned'
+}
+
 // چند فیلم روی همین درایو هستن، شامل فصل‌های سریال‌هایی که فصل‌هاشون رو
 // جداگونه رو هاردهای مختلف پخش کردیم (seasonDrives)
 function itemsOnDrive(digitalFilms, drive) {
@@ -64,7 +86,7 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
   }, [digitalFilms, extraDrives])
 
   const unassignedCount = useMemo(
-    () => digitalFilms.filter((f) => !f.driveNumber).length,
+    () => digitalFilms.filter((f) => !hasAnyDrive(f)).length,
     [digitalFilms]
   )
 
@@ -142,8 +164,8 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
   const filteredAvailable = useMemo(() => {
     const q = filmQuery.trim().toLowerCase()
     let base = digitalSorted
-    if (hideAssigned) base = base.filter((f) => !f.driveNumber)
-    if (drive) base = base.filter((f) => !parseDriveNumbers(f.driveNumber).includes(drive))
+    if (hideAssigned) base = base.filter((f) => !hasAnyDrive(f))
+    if (drive) base = base.filter((f) => !itemsOnDrive([f], drive).length)
     if (driveTypeFilter === 'movie') base = base.filter((f) => f.itemType !== 'series')
     if (driveTypeFilter === 'series') base = base.filter((f) => f.itemType === 'series')
     if (!q) return base
@@ -478,7 +500,7 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
                           <span className="film-selector-title-text">{f.title}</span>
                           {f.year && <span className="film-selector-year">{f.year}</span>}
                         </span>
-                        <span className="film-selector-loc">{f.driveNumber ? driveLabel(f.driveNumber) : 'Unassigned'}</span>
+                        <span className="film-selector-loc">{currentLocationLabel(f)}</span>
                       </label>
                     )
                   })
