@@ -7279,59 +7279,66 @@ body.light .dashboard-panel {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  flex-direction: column;
   opacity: 0;
   overflow: hidden;
   pointer-events: none;
   border-radius: inherit;
-  border-left: 3px solid #38bdf8;
   transition: opacity 0.08s ease;
   color: #f2f2f2;
-  background: linear-gradient(135deg, #1d1f27 0%, #101116 100%);
+  background: #14161c;
 }
 .bluray-case:hover .case-expand-view {
   opacity: 1;
   transition: opacity 0.15s ease 0.05s;
 }
 .case-expand-poster {
-  width: 62px;
-  height: 90px;
+  position: relative;
+  width: 100%;
+  height: 58%;
   flex-shrink: 0;
-  border-radius: 6px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.08);
   display: grid;
   place-items: center;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.55);
+}
+.case-expand-poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, #14161c 100%);
 }
 .case-expand-poster img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: top center;
   display: block;
 }
 .case-expand-poster-fallback {
-  font-size: 18px;
+  font-size: 22px;
 }
 .case-expand-info {
+  flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
+  padding: 4px 14px 12px;
 }
 .case-expand-title {
   font-family: var(--font-serif);
-  font-size: 14px;
+  font-size: 15.5px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.2;
   color: #fff;
 }
 .case-expand-year {
   font-family: var(--font-sans);
   font-weight: 500;
-  color: #c8ccd4;
+  font-size: 12px;
+  color: #9aa1ad;
 }
 .case-expand-director {
   font-size: 11.5px;
@@ -7348,6 +7355,7 @@ body.light .dashboard-panel {
   font-size: 10.5px;
   font-weight: 700;
   color: #e2e5ea;
+  margin-top: auto;
 }
 .case-expand-badges span {
   background: rgba(255, 255, 255, 0.1);
@@ -7355,17 +7363,17 @@ body.light .dashboard-panel {
   border-radius: 999px;
 }
 .case-expand-cta {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  align-self: flex-start;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #14161c;
   background: #38bdf8;
-  padding: 3px 10px;
-  border-radius: 999px;
-  margin-top: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  margin-top: 8px;
 }
 
 /* Translucent plastic case glare */
