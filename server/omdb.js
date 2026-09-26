@@ -56,6 +56,10 @@ export async function enrichFilm(baseFilm, key, onApiCall) {
 
   const res = await fetch(`${BASE}?${new URLSearchParams(query).toString()}`, {
     signal: AbortSignal.timeout(8000),
+    // بدون User-Agent، بعضی هاست‌ها/CDNهای جلوی OMDb درخواست‌های سرورهای
+    // ابری (مثل Cloudflare Workers) رو مسدود می‌کنن — حتی با کلید معتبر —
+    // چون بدون هدر User-Agent شبیه بات به نظر می‌رسه.
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' },
   })
   if (onApiCall) {
     try {
