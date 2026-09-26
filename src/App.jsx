@@ -608,6 +608,7 @@ export default function App() {
     try {
       let remaining = null
       let hitQuota = false
+      let apiError = null
       for (let batch = 0; batch < 300; batch++) {
         const data = await fetchBatchWithRetry()
         processed += data.processed
@@ -615,6 +616,13 @@ export default function App() {
         remaining = data.remaining
         if (data.quotaExceeded) {
           hitQuota = true
+          break
+        }
+        // اگه enrichBatch به خاطر یه خطای واقعی OMDb (کلید نامعتبر، مشکل سرویس)
+        // زودتر متوقف شده، بدون این چک، این حلقه تا ۳۰۰ بار پشت‌سرهم همون
+        // خطا رو می‌گرفت بدون این‌که remaining هیچ‌وقت کم بشه — انگار گیر کرده.
+        if (data.apiError) {
+          apiError = data.apiError
           break
         }
         if (data.remaining === 0 || data.processed === 0) break
@@ -625,6 +633,8 @@ export default function App() {
             `${remaining} films still need enrichment; a daily auto-retry is scheduled, or try again tomorrow.`,
           9000
         )
+      } else if (apiError) {
+        showToast(`Stopped after ${processed} films — OMDb error: ${apiError}. ${remaining} films still need enrichment.`, 9000)
       } else {
         showToast(`Metadata complete · updated ${updated} of ${processed} films`)
       }
