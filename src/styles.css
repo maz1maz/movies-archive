@@ -16,6 +16,7 @@
   --shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
   --font-sans: 'Vazirmatn', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  --font-serif: 'Playfair Display', Georgia, serif;
   font-family: var(--font-sans);
 }
 
@@ -7104,16 +7105,49 @@ body.light .dashboard-panel {
    ULTRA-REALISTIC 3D WOODEN BOOKSHELF (EXACT IMAGE.PNG)
    ========================================================= */
 .cinema-wood-shelf-wrapper {
+  /* پیش‌فرض (Wood) — هر تم دیگه (Slate/Cinema) فقط همین متغیرها رو عوض
+     می‌کنه، بقیه‌ی چیدمان/سایه‌ها مشترکه. */
+  --shelf-border: #3d2314;
+  --shelf-bg-top: #381e10;
+  --shelf-bg-bottom: #261309;
+  --shelf-inner-top: #180d06;
+  --shelf-inner-bottom: #2b180d;
+  --shelf-ledge-top: #5c3418;
+  --shelf-ledge-mid: #3a1f0d;
+  --shelf-ledge-bottom: #1e1006;
+  --shelf-ledge-border: #7c4826;
   position: relative;
-  background: linear-gradient(180deg, #381e10 0%, #261309 100%);
-  border: 14px solid #3d2314;
+  background: linear-gradient(180deg, var(--shelf-bg-top) 0%, var(--shelf-bg-bottom) 100%);
+  border: 14px solid var(--shelf-border);
   border-bottom: none;
   border-radius: 6px 6px 0 0;
-  box-shadow: 
+  box-shadow:
     0 25px 50px rgba(0, 0, 0, 0.85),
     inset 0 20px 40px rgba(0, 0, 0, 0.95);
   margin-bottom: 20px;
   overflow: hidden;
+}
+.cinema-wood-shelf-wrapper.shelf-theme-slate {
+  --shelf-border: #2f3a4a;
+  --shelf-bg-top: #2c3644;
+  --shelf-bg-bottom: #191f28;
+  --shelf-inner-top: #0e131a;
+  --shelf-inner-bottom: #212a35;
+  --shelf-ledge-top: #4a5568;
+  --shelf-ledge-mid: #2c3542;
+  --shelf-ledge-bottom: #161b22;
+  --shelf-ledge-border: #64748b;
+}
+.cinema-wood-shelf-wrapper.shelf-theme-cinema {
+  --shelf-border: #3d1016;
+  --shelf-bg-top: #3d1016;
+  --shelf-bg-bottom: #190508;
+  --shelf-inner-top: #100304;
+  --shelf-inner-bottom: #2a0a0e;
+  --shelf-ledge-top: #5c1620;
+  --shelf-ledge-mid: #380a10;
+  --shelf-ledge-bottom: #180304;
+  --shelf-ledge-border: #7c1f2a;
 }
 
 /* Left & Right dark wooden side walls of the bookshelf */
@@ -7122,9 +7156,9 @@ body.light .dashboard-panel {
   display: flex;
   flex-direction: column;
   padding: 36px 28px 0;
-  background: 
+  background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.7) 0%, transparent 4%, transparent 96%, rgba(0, 0, 0, 0.7) 100%),
-    linear-gradient(180deg, #180d06 0%, #2b180d 100%);
+    linear-gradient(180deg, var(--shelf-inner-top) 0%, var(--shelf-inner-bottom) 100%);
   min-height: calc(340px * var(--spine-scale, 1));
   overflow: hidden;
   width: 100%;
@@ -7246,29 +7280,31 @@ body.light .dashboard-panel {
   inset: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px 14px;
   opacity: 0;
   overflow: hidden;
   pointer-events: none;
   border-radius: inherit;
+  border-left: 3px solid #38bdf8;
   transition: opacity 0.08s ease;
   color: #f2f2f2;
-  background: #14161c;
+  background: linear-gradient(135deg, #1d1f27 0%, #101116 100%);
 }
 .bluray-case:hover .case-expand-view {
   opacity: 1;
   transition: opacity 0.15s ease 0.05s;
 }
 .case-expand-poster {
-  width: 60px;
-  height: 88px;
+  width: 62px;
+  height: 90px;
   flex-shrink: 0;
-  border-radius: 5px;
+  border-radius: 6px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.08);
   display: grid;
   place-items: center;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.55);
 }
 .case-expand-poster img {
   width: 100%;
@@ -7283,20 +7319,23 @@ body.light .dashboard-panel {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 .case-expand-title {
-  font-size: 13px;
+  font-family: var(--font-serif);
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.25;
   color: #fff;
 }
 .case-expand-year {
+  font-family: var(--font-sans);
   font-weight: 500;
   color: #c8ccd4;
 }
 .case-expand-director {
   font-size: 11.5px;
+  font-style: italic;
   color: #c8ccd4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -7304,17 +7343,29 @@ body.light .dashboard-panel {
 }
 .case-expand-badges {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
-  font-size: 11px;
-  font-weight: 600;
-  color: #c8ccd4;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #e2e5ea;
+}
+.case-expand-badges span {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 .case-expand-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
   font-size: 11px;
   font-weight: 700;
-  color: #38bdf8;
-  margin-top: 2px;
+  color: #14161c;
+  background: #38bdf8;
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-top: 4px;
 }
 
 /* Translucent plastic case glare */
@@ -7388,7 +7439,7 @@ body.light .dashboard-panel {
   justify-content: center;
   width: 100%;
   overflow: hidden;
-  padding: 8px 2px;
+  padding: 16px 4px;
   z-index: 3;
 }
 .spine-title {
@@ -7396,12 +7447,13 @@ body.light .dashboard-panel {
   text-orientation: mixed;
   transform: rotate(180deg);
   white-space: nowrap;
-  font-size: 13px;
+  font-family: var(--font-serif);
+  font-size: 14.5px;
   font-weight: 700;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.8px;
   color: inherit;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.85);
-  max-height: 200px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  max-height: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: flex;
@@ -7438,9 +7490,9 @@ body.light .dashboard-panel {
 /* Thick Walnut Wooden Ledge at the bottom */
 .cinema-wood-ledge {
   height: 24px;
-  background: 
-    linear-gradient(180deg, #5c3418 0%, #3a1f0d 50%, #1e1006 100%);
-  border-top: 3px solid #7c4826;
+  background:
+    linear-gradient(180deg, var(--shelf-ledge-top) 0%, var(--shelf-ledge-mid) 50%, var(--shelf-ledge-bottom) 100%);
+  border-top: 3px solid var(--shelf-ledge-border);
   border-bottom: 5px solid #140a04;
   box-shadow: 
     0 15px 35px rgba(0, 0, 0, 0.85),

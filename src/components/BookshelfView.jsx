@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
-import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
+import { getSpineColor } from '../utils/shelfDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
 
 function sortKey(title) {
@@ -764,18 +764,10 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                               <div className="case-glare" />
 
                               <div className="case-spine-view">
-                                <div className="case-header">
-                                  {isCriterion ? 'C' : is4k ? '4K UHD' : isSteelbook ? 'STEELBOOK' : 'BLU-RAY'}
-                                </div>
-
                                 <div className="case-spine">
                                   <span className="spine-title" style={{ color: style.text || '#fff' }}>
                                     {f.title}
                                   </span>
-                                </div>
-
-                                <div className={`case-footer footer-${style.badge || 'dts'}`} style={{ color: style.text || '#aaa' }}>
-                                  <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
                                 </div>
                               </div>
 
