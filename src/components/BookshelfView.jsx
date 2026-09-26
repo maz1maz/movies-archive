@@ -40,7 +40,7 @@ function queuePrefetch(url) {
 export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsChanged }) {
   const [closetFilter, setClosetFilter] = useState('1')
   const [shelfTheme, setShelfTheme] = useState('wood')
-  const [shelfScale, setShelfScale] = useState(1)
+  const [shelfScale, setShelfScale] = useState(0.85)
   const shelfBodyRef = useRef(null)
   const [searchQuery, setSearchQuery] = useState('')
 
