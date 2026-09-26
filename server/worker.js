@@ -1373,7 +1373,7 @@ async function handleFetch(request, env, ctx) {
         // به آدرس کامل letterboxd.com/film/slug/ برسیم.
         if (/boxd\.it\//i.test(link)) {
           try {
-            const shortRes = await fetch(link, { redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' } })
+            const shortRes = await fetch(link, { redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' }, signal: AbortSignal.timeout(8000) })
             if (shortRes.url) link = shortRes.url
           } catch (e) {
             return json({ error: 'Short link could not be opened' }, 502, corsHeaders)
@@ -1413,6 +1413,7 @@ async function handleFetch(request, env, ctx) {
           try {
             const pageRes = await fetch(`https://letterboxd.com/film/${letterboxdSlug}/`, {
               headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilioArchive/1.0; personal film archive app)' },
+              signal: AbortSignal.timeout(8000),
             })
             if (!pageRes.ok) return json({ error: 'Letterboxd page not found' }, 404, corsHeaders)
             const html = await pageRes.text()
@@ -1441,7 +1442,7 @@ async function handleFetch(request, env, ctx) {
           ]
           for (const attempt of attempts) {
             try {
-              const tmdbRes = await fetch(attempt.url, { headers: attempt.headers })
+              const tmdbRes = await fetch(attempt.url, { headers: attempt.headers, signal: AbortSignal.timeout(8000) })
               if (tmdbRes.ok) {
                 const tmdbData = await tmdbRes.json()
                 const movieHit = (tmdbData.movie_results || [])[0]
@@ -1500,7 +1501,7 @@ async function handleFetch(request, env, ctx) {
               })()
           for (const slug of slugCandidates) {
             try {
-              const pageRes = await fetch(`https://letterboxd.com/film/${slug}/`, { headers })
+              const pageRes = await fetch(`https://letterboxd.com/film/${slug}/`, { headers, signal: AbortSignal.timeout(8000) })
               if (!pageRes.ok) continue
               const html = await pageRes.text()
               const scraped = parseLetterboxdBasic(html)
