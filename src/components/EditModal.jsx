@@ -374,6 +374,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                 {linkLoading ? '...' : 'Fetch'}
               </button>
             </div>
+            {lookupError && <span className="edit-lookup-error">{lookupError}</span>}
           </label>
 
           {linkConflicts && linkConflicts.length > 0 && (
