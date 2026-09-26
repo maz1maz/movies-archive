@@ -24,6 +24,8 @@ export function parseFilmRow(row) {
   if (film.watched != null) film.watched = Boolean(film.watched)
   if (film.watchlisted != null) film.watchlisted = Boolean(film.watchlisted)
   if (film.criterion != null) film.criterion = Boolean(film.criterion)
+  if (film.hasSubtitle != null) film.hasSubtitle = Boolean(film.hasSubtitle)
+  if (film.dubbed != null) film.dubbed = Boolean(film.dubbed)
   if (!film.mediaType) film.mediaType = 'physical'
   if (!film.itemType) film.itemType = 'movie'
   if (!film.copies) film.copies = 1
@@ -486,16 +488,16 @@ export async function fetchAltPosters(db, env, film) {
 
 
 export async function insertFilm(db, film) {
-  const { id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives,
+  const { id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, resolution, videoFormat, hasSubtitle, dubbed, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives,
     originalLanguage, boxOffice, tagline, budget, revenue, metascore, rottenTomatoes, releaseDate,
     productionCompanies, productionCountries, homepage, spokenLanguages, status, popularity,
     network, seriesStatus, schedule } = film
   await db.prepare(
-    `INSERT INTO films (id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives,
+    `INSERT INTO films (id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, resolution, videoFormat, hasSubtitle, dubbed, itemType, seasonsEpisodes, letterboxdRating, watchlisted, seasonDrives,
       originalLanguage, boxOffice, tagline, budget, revenue, metascore, rottenTomatoes, releaseDate,
       productionCompanies, productionCountries, homepage, spokenLanguages, status, popularity,
       network, seriesStatus, schedule)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?)`
@@ -510,6 +512,7 @@ export async function insertFilm(db, film) {
     metadataEnrichmentAttemptedAt || null, myRating || 0, criterion ? 1 : 0,
     criterion ? (criterionCopies || 1) : null,
     copies || 1, mediaType || 'physical', driveNumber || null,
+    resolution || null, videoFormat || null, hasSubtitle != null ? (hasSubtitle ? 1 : 0) : null, dubbed != null ? (dubbed ? 1 : 0) : null,
     itemType || 'movie', seasonsEpisodes || null, letterboxdRating || null, watchlisted ? 1 : 0,
     seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(seasonDrives) : seasonDrives) : null,
     originalLanguage || null, boxOffice || null, tagline || null, budget || null, revenue || null,
@@ -598,13 +601,13 @@ export async function enrichBatch(db, env, limit, scopeClause = '') {
 
 
 export async function updateFilm(db, film) {
-  const { id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, itemType, seasonsEpisodes, letterboxdRating, letterboxdVotes, watchlisted, seasonDrives, personalReview, personalReviewUrl, personalReviewDate, reviews,
+  const { id, title, originalTitle, closet, shelf, row, director, producer, cast, year, genre, rating, runtime, country, synopsis, poster, studio, rated, format, borrowedTo, borrowedDate, watched, imdbId, imdbVotes, metadataEnrichmentAttemptedAt, myRating, criterion, criterionCopies, copies, mediaType, driveNumber, resolution, videoFormat, hasSubtitle, dubbed, itemType, seasonsEpisodes, letterboxdRating, letterboxdVotes, watchlisted, seasonDrives, personalReview, personalReviewUrl, personalReviewDate, reviews,
     cinematicMovement, relatedFilms, trailerWatched, trailerWatchedDate, basedOnBook, bookAuthor, screenwriter, cultClassic, shootingLocation, editionType, festivalAwards, screeningFormat, pacing, experimental, myNotes,
     originalLanguage, boxOffice, tagline, budget, revenue, metascore, rottenTomatoes, releaseDate,
     productionCompanies, productionCountries, homepage, spokenLanguages, status, popularity,
     network, seriesStatus, schedule } = film
   await db.prepare(
-    `UPDATE films SET title=?, originalTitle=?, closet=?, shelf=?, row=?, director=?, producer=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, criterionCopies=?, copies=?, mediaType=?, driveNumber=?, itemType=?, seasonsEpisodes=?, letterboxdRating=?, letterboxdVotes=?, watchlisted=?, seasonDrives=?, personalReview=?, personalReviewUrl=?, personalReviewDate=?, reviews=?,
+    `UPDATE films SET title=?, originalTitle=?, closet=?, shelf=?, row=?, director=?, producer=?, cast=?, year=?, genre=?, rating=?, runtime=?, country=?, synopsis=?, poster=?, studio=?, rated=?, format=?, borrowedTo=?, borrowedDate=?, watched=?, imdbId=?, imdbVotes=?, metadataEnrichmentAttemptedAt=?, myRating=?, criterion=?, criterionCopies=?, copies=?, mediaType=?, driveNumber=?, resolution=?, videoFormat=?, hasSubtitle=?, dubbed=?, itemType=?, seasonsEpisodes=?, letterboxdRating=?, letterboxdVotes=?, watchlisted=?, seasonDrives=?, personalReview=?, personalReviewUrl=?, personalReviewDate=?, reviews=?,
       cinematicMovement=?, relatedFilms=?, trailerWatched=?, trailerWatchedDate=?, basedOnBook=?, bookAuthor=?, screenwriter=?, cultClassic=?, shootingLocation=?, editionType=?, festivalAwards=?, screeningFormat=?, pacing=?, experimental=?, myNotes=?,
       originalLanguage=?, boxOffice=?, tagline=?, budget=?, revenue=?, metascore=?, rottenTomatoes=?, releaseDate=?,
       productionCompanies=?, productionCountries=?, homepage=?, spokenLanguages=?, status=?, popularity=?,
@@ -621,6 +624,7 @@ export async function updateFilm(db, film) {
     metadataEnrichmentAttemptedAt || null, myRating || 0, criterion ? 1 : 0,
     criterion ? (criterionCopies || 1) : null,
     copies || 1, mediaType || 'physical', driveNumber || null,
+    resolution || null, videoFormat || null, hasSubtitle != null ? (hasSubtitle ? 1 : 0) : null, dubbed != null ? (dubbed ? 1 : 0) : null,
     itemType || 'movie', seasonsEpisodes || null, letterboxdRating || null, letterboxdVotes || null, watchlisted ? 1 : 0,
     seasonDrives ? (Array.isArray(seasonDrives) ? JSON.stringify(seasonDrives) : seasonDrives) : null,
     personalReview || null, personalReviewUrl || null, personalReviewDate || null,

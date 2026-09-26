@@ -32,6 +32,10 @@ function toForm(film) {
     copies: film.copies || 1,
     mediaType: film.mediaType === 'digital' ? 'digital' : 'physical',
     driveNumber: film.driveNumber || '',
+    resolution: film.resolution || '',
+    videoFormat: film.videoFormat || '',
+    hasSubtitle: film.hasSubtitle === true,
+    dubbed: film.dubbed === true,
     itemType: film.itemType === 'series' ? 'series' : 'movie',
     seasonsEpisodes: film.seasonsEpisodes || '',
     seasonDrives:
@@ -103,7 +107,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
     letterboxdRating: 'Letterboxd Rating', poster: 'Poster', synopsis: 'Synopsis',
     imdbId: 'IMDb ID', imdbVotes: 'IMDb Votes',
   }
-  const SKIP_KEYS = ['closet', 'shelf', 'row', 'mediaType', 'driveNumber', 'itemType', 'watched', 'watchlisted', 'myRating', 'criterion', 'criterionCopies', 'copies', 'seasonsEpisodes', 'seasonDrives']
+  const SKIP_KEYS = ['closet', 'shelf', 'row', 'mediaType', 'driveNumber', 'resolution', 'videoFormat', 'hasSubtitle', 'dubbed', 'itemType', 'watched', 'watchlisted', 'myRating', 'criterion', 'criterionCopies', 'copies', 'seasonsEpisodes', 'seasonDrives']
 
   const lookupNewFilmFromImdb = async () => {
     if (!form.title.trim()) {
@@ -142,6 +146,10 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
           row: prev.row,
           mediaType: prev.mediaType,
           driveNumber: prev.driveNumber,
+          resolution: prev.resolution,
+          videoFormat: prev.videoFormat,
+          hasSubtitle: prev.hasSubtitle,
+          dubbed: prev.dubbed,
           itemType: data.itemType || prev.itemType,
         }))
 
@@ -264,6 +272,10 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       copies: form.copies ? parseInt(form.copies, 10) : 1,
       mediaType: form.mediaType,
       driveNumber: form.mediaType === 'digital' ? form.driveNumber || undefined : undefined,
+      resolution: form.mediaType === 'digital' ? form.resolution || undefined : undefined,
+      videoFormat: form.mediaType === 'digital' ? form.videoFormat || undefined : undefined,
+      hasSubtitle: form.mediaType === 'digital' ? form.hasSubtitle : undefined,
+      dubbed: form.mediaType === 'digital' ? form.dubbed : undefined,
       itemType: form.itemType,
       seasonsEpisodes: form.itemType === 'series' ? form.seasonsEpisodes || undefined : undefined,
       seasonDrives:
@@ -582,6 +594,55 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                 + Add row
               </button>
             </div>
+          )}
+
+          {form.mediaType === 'digital' && (
+            <>
+              <label className="edit-field">
+                <span>Resolution</span>
+                <select className="select" value={form.resolution} onChange={set('resolution')}>
+                  <option value="">—</option>
+                  <option value="480p">480p</option>
+                  <option value="720p">720p</option>
+                  <option value="1080p">1080p</option>
+                  <option value="4K">4K</option>
+                </select>
+              </label>
+              <label className="edit-field">
+                <span>Video Format</span>
+                <input
+                  value={form.videoFormat}
+                  onChange={set('videoFormat')}
+                  placeholder="e.g. MKV, MP4"
+                />
+              </label>
+              <label className="edit-field edit-checkbox-field">
+                <span>Subtitles</span>
+                <span className="edit-checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={form.hasSubtitle}
+                    onChange={(event) =>
+                      setForm((previous) => ({ ...previous, hasSubtitle: event.target.checked }))
+                    }
+                  />
+                  Has subtitles
+                </span>
+              </label>
+              <label className="edit-field edit-checkbox-field">
+                <span>Dubbed</span>
+                <span className="edit-checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={form.dubbed}
+                    onChange={(event) =>
+                      setForm((previous) => ({ ...previous, dubbed: event.target.checked }))
+                    }
+                  />
+                  Dubbed audio
+                </span>
+              </label>
+            </>
           )}
           <label className="edit-field">
             <span>Copies owned</span>
