@@ -359,11 +359,43 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
         </button>
         <h2 className="edit-title">{isNew ? 'Add Film' : 'Edit Film'}</h2>
 
-        <div className="edit-primary-actions edit-primary-actions-top">
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={save}>
-            <IconSave width={14} height={14} /> {isNew ? 'Add Film' : 'Save'}
-          </button>
+        <div className="edit-actions edit-actions-top">
+          <div className="edit-actions-left">
+            {isNew || onAutofill ? (
+              <button className="btn btn-ghost" onClick={autofill} disabled={autofilling}>
+                <IconSearch width={13} height={13} />{' '}
+                {autofilling
+                  ? 'Auto-filling…'
+                  : isNew
+                  ? 'Auto-fill from IMDb'
+                  : 'Auto-fill missing details'}
+              </button>
+            ) : <span />}
+            {lookupError && <span className="edit-lookup-error">{lookupError}</span>}
+            {!isNew && onDelete && (
+              confirmingDelete ? (
+                <span className="edit-delete-confirm">
+                  <span>Delete this film permanently?</span>
+                  <button className="btn btn-danger" onClick={() => onDelete(film)}>
+                    Yes, delete
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => setConfirmingDelete(false)}>
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button className="btn btn-ghost btn-danger-text" onClick={() => setConfirmingDelete(true)}>
+                  Delete film
+                </button>
+              )
+            )}
+          </div>
+          <div className="edit-primary-actions">
+            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button className="btn btn-primary" onClick={save}>
+              <IconSave width={14} height={14} /> {isNew ? 'Add Film' : 'Save'}
+            </button>
+          </div>
         </div>
 
         <div className="edit-form">
@@ -846,45 +878,6 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             <span>یادداشت شخصی (خصوصی)</span>
             <textarea rows="3" value={form.myNotes} onChange={set('myNotes')} placeholder="یادداشت خودت درباره این فیلم…" />
           </label>
-        </div>
-
-        <div className="edit-actions">
-          <div className="edit-actions-left">
-            {isNew || onAutofill ? (
-              <button className="btn btn-ghost" onClick={autofill} disabled={autofilling}>
-                <IconSearch width={13} height={13} />{' '}
-                {autofilling
-                  ? 'Auto-filling…'
-                  : isNew
-                  ? 'Auto-fill from IMDb'
-                  : 'Auto-fill missing details'}
-              </button>
-            ) : <span />}
-            {lookupError && <span className="edit-lookup-error">{lookupError}</span>}
-            {!isNew && onDelete && (
-              confirmingDelete ? (
-                <span className="edit-delete-confirm">
-                  <span>Delete this film permanently?</span>
-                  <button className="btn btn-danger" onClick={() => onDelete(film)}>
-                    Yes, delete
-                  </button>
-                  <button className="btn btn-ghost" onClick={() => setConfirmingDelete(false)}>
-                    Cancel
-                  </button>
-                </span>
-              ) : (
-                <button className="btn btn-ghost btn-danger-text" onClick={() => setConfirmingDelete(true)}>
-                  Delete film
-                </button>
-              )
-            )}
-          </div>
-          <div className="edit-primary-actions">
-            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" onClick={save}>
-              <IconSave width={14} height={14} /> {isNew ? 'Add Film' : 'Save'}
-            </button>
-          </div>
         </div>
       </div>
     </div>
