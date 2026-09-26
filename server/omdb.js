@@ -62,20 +62,32 @@ export async function enrichFilm(baseFilm, key, onApiCall) {
       await onApiCall()
     } catch {}
   }
-  if (!res.ok) return film
+  if (!res.ok) {
+    const err = new Error(`OMDb HTTP ${res.status}`)
+    err.code = 'OMDB_HTTP_ERROR'
+    throw err
+  }
 
   const data = await res.json()
   if (data.Response !== 'True') {
+    const errMsg = data.Error || ''
     // سهمیه‌ی روزانه‌ی رایگان OMDb (۱۰۰۰ درخواست) تموم شده — این یه خطای
     // موقتیه (فردا دوباره باز می‌شه)، نه اینکه این فیلم پیدا نشده باشه؛
     // برای همین جدا علامت‌گذاریش می‌کنیم تا caller بتونه ادامه‌ی دسته رو
     // متوقف کنه، به‌جای اینکه بی‌فایده برای بقیه هم درخواست بفرسته.
-    if (/request limit reached/i.test(data.Error || '')) {
+    if (/request limit reached/i.test(errMsg)) {
       const err = new Error('OMDB_QUOTA_EXCEEDED')
       err.code = 'OMDB_QUOTA_EXCEEDED'
       throw err
     }
-    return film
+    // «پیدا نشد» واقعی (فیلم/سریال توی OMDb نیست) رو از بقیه‌ی خطاها (کلید
+    // نامعتبر، سهمیه، مشکل سرویس) جدا می‌کنیم — قبلاً هر خطایی از OMDb یکسان
+    // «not found» فرض می‌شد و مشکل واقعی (مثلاً کلید منقضی‌شده) هیچ‌وقت دیده
+    // نمی‌شد، چون این تابع همیشه بی‌سروصدا film رو دست‌نخورده برمی‌گردوند.
+    if (/not found/i.test(errMsg)) return film
+    const err = new Error(errMsg || 'OMDb request failed')
+    err.code = 'OMDB_API_ERROR'
+    throw err
   }
 
   const out = { ...film }
