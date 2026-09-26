@@ -1935,11 +1935,22 @@ async function handleFetch(request, env, ctx) {
 
         try {
           const tmdbKey = env.TMDB_API_KEY
-          const res = await fetch(`https://api.themoviedb.org/3/search/person?query=Martin%20Scorsese&api_key=${encodeURIComponent(tmdbKey || '')}`, {
-            headers: { accept: 'application/json' },
-          })
-          const data = await res.json().catch(() => null)
-          out.tmdb = { httpStatus: res.status, keyPresent: !!tmdbKey, resultCount: data?.results?.length ?? null, error: data?.status_message || null }
+          // مثل tmdbFind تو /api/link-lookup، هر دو نوع کلید TMDB رو امتحان می‌کنیم —
+          // کلید کلاسیک v3 (api_key تو URL) و توکن جدید v4 Read Access (هدر Bearer).
+          // قبلاً فقط v3 تست می‌شد، برای همین یه توکن معتبر v4 اشتباهی «نامعتبر» نشون می‌داد.
+          const attempts = [
+            { url: `https://api.themoviedb.org/3/search/person?query=Martin%20Scorsese&api_key=${encodeURIComponent(tmdbKey || '')}`, headers: { accept: 'application/json' } },
+            { url: 'https://api.themoviedb.org/3/search/person?query=Martin%20Scorsese', headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
+          ]
+          let best = null
+          for (const attempt of attempts) {
+            const res = await fetch(attempt.url, { headers: attempt.headers, signal: AbortSignal.timeout(8000) })
+            const data = await res.json().catch(() => null)
+            const attemptResult = { httpStatus: res.status, resultCount: data?.results?.length ?? null, error: data?.status_message || null }
+            if (res.ok) { best = attemptResult; break }
+            if (!best) best = attemptResult
+          }
+          out.tmdb = { keyPresent: !!tmdbKey, ...best }
         } catch (e) {
           out.tmdb = { error: String(e), keyPresent: !!env.TMDB_API_KEY }
         }
