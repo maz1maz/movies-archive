@@ -1353,8 +1353,8 @@ async function handleFetch(request, env, ctx) {
           if (!gotNewData) return json({ error: 'No film with this title found on IMDb' }, 404, corsHeaders)
           return json(found, 200, corsHeaders)
         } catch (e) {
-          if (e.code === 'OMDB_API_ERROR') return json({ error: `OMDb error: ${e.message}` }, 502, corsHeaders)
-          return json({ error: 'Error connecting to OMDb' }, 502, corsHeaders)
+          if (e.code === 'OMDB_API_ERROR' || e.code === 'OMDB_HTTP_ERROR') return json({ error: `OMDb error: ${e.message}` }, 502, corsHeaders)
+          return json({ error: `Error connecting to OMDb: ${e.message || e}` }, 502, corsHeaders)
         }
       }
 
@@ -1545,8 +1545,8 @@ async function handleFetch(request, env, ctx) {
               const tmdbFallback = await tmdbAsFullFallback(base.imdbId)
               if (tmdbFallback) result = tmdbFallback
               else if (e.code === 'OMDB_QUOTA_EXCEEDED') errorResponse = json({ error: 'OMDb daily quota reached — try again tomorrow' }, 429, corsHeaders)
-              else if (e.code === 'OMDB_API_ERROR') errorResponse = json({ error: `OMDb error: ${e.message}` }, 502, corsHeaders)
-              else errorResponse = json({ error: 'Error connecting to OMDb' }, 502, corsHeaders)
+              else if (e.code === 'OMDB_API_ERROR' || e.code === 'OMDB_HTTP_ERROR') errorResponse = json({ error: `OMDb error: ${e.message}` }, 502, corsHeaders)
+              else errorResponse = json({ error: `Error connecting to OMDb: ${e.message || e}` }, 502, corsHeaders)
             }
           }
         }
