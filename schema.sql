@@ -33,6 +33,10 @@ CREATE TABLE IF NOT EXISTS films (
   copies INTEGER DEFAULT 1,               -- تعداد نسخه‌های فیزیکی این عنوان
   mediaType TEXT DEFAULT 'physical',      -- physical | digital
   driveNumber TEXT,                       -- برای آیتم‌های دیجیتال
+  resolution TEXT,                        -- کیفیت تصویر نسخه‌ی دیجیتال (مثلاً 1080p، 4K)
+  videoFormat TEXT,                       -- فرمت فایل نسخه‌ی دیجیتال (مثلاً MKV، MP4)
+  hasSubtitle INTEGER,                    -- زیرنویس داره یا نه (فقط دیجیتال)
+  dubbed INTEGER,                         -- دوبله‌شده یا نه (فقط دیجیتال)
   itemType TEXT DEFAULT 'movie',          -- movie | series
   seasonsEpisodes TEXT,                   -- برای سریال‌ها
   seasonDrives TEXT,                       -- JSON: [{seasons:"1-3", drive:"HDD-01"}, ...] فصل‌های سریال روی چه هاردی

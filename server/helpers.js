@@ -181,7 +181,7 @@ export const EDITABLE = [
   "year", "genre", "rating", "runtime", "country", "synopsis",
   "poster", "studio", "rated", "format", "borrowedTo", "borrowedDate",
   "watched", "myRating", "criterion", "criterionCopies",
-  "copies", "mediaType", "driveNumber", "itemType", "seasonsEpisodes",
+  "copies", "mediaType", "driveNumber", "resolution", "videoFormat", "hasSubtitle", "dubbed", "itemType", "seasonsEpisodes",
   "letterboxdRating", "watchlisted", "letterboxdVotes", "seasonDrives", "producer",
   "personalReview", "personalReviewUrl", "personalReviewDate", "reviews",
   "imdbId", "imdbVotes", "originalLanguage", "boxOffice", "tagline",

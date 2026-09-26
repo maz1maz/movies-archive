@@ -339,6 +339,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
   const studioName = film.studio
   const mediaFormat = film.format || (film.mediaType === 'digital' ? 'Digital' : 'Blu-ray')
+  const hasFileQuality = film.mediaType === 'digital' && (
+    film.resolution || film.videoFormat || film.hasSubtitle != null || film.dubbed != null
+  )
 
   const trailerSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
     (film.originalTitle || film.title) + ' official trailer'
@@ -868,6 +871,31 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.status}</p>
                   </div>
                 ) : null}
+              </div>
+            )}
+
+            {hasFileQuality && (
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                <div>
+                  <div className="cine-section-label">
+                    FILE QUALITY <span style={{ fontWeight: 400, opacity: 0.6, textTransform: 'none' }}>(digital copy only)</span>
+                  </div>
+                  <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>
+                    {[film.resolution, film.videoFormat].filter(Boolean).join(' · ') || '—'}
+                  </p>
+                </div>
+                {film.hasSubtitle != null && (
+                  <div>
+                    <div className="cine-section-label">SUBTITLES</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.hasSubtitle ? 'Yes' : 'No'}</p>
+                  </div>
+                )}
+                {film.dubbed != null && (
+                  <div>
+                    <div className="cine-section-label">DUBBED</div>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.dubbed ? 'Yes' : 'No'}</p>
+                  </div>
+                )}
               </div>
             )}
 
