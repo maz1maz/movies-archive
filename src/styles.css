@@ -445,12 +445,18 @@ body.light .header {
   align-items: center;
   gap: 16px;
   margin: 6px 0 4px;
-  color: var(--muted);
+  position: relative;
+  z-index: 1;
+  color: var(--text);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 3.5px;
   text-transform: uppercase;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 4px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 4px rgba(0, 0, 0, 0.85);
+}
+.grid-section-heading > span {
+  background: var(--bg);
+  padding: 2px 4px;
 }
 .grid-section-heading::before,
 .grid-section-heading::after {
