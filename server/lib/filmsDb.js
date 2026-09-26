@@ -564,6 +564,7 @@ export async function enrichBatch(db, env, limit, scopeClause = '') {
 
   let updated = 0
   let quotaExceeded = false
+  let apiError = null
   for (const film of candidates) {
     const parsed = parseFilmRow(film)
     const before = { ...parsed }
@@ -573,6 +574,13 @@ export async function enrichBatch(db, env, limit, scopeClause = '') {
     } catch (e) {
       if (e.code === 'OMDB_QUOTA_EXCEEDED') {
         quotaExceeded = true
+        break
+      }
+      // مشکل واقعیِ OMDb (کلید نامعتبر، خطای سرویس) — همه‌ی کاندیدهای بعدی
+      // هم به همین شکل fail می‌شن، برای همین به‌جای throw کردن (که کل batch/
+      // کرون شبانه رو می‌ترکونه)، همینجا متوقف می‌شیم و خطا رو تو جواب برمی‌گردونیم.
+      if (e.code === 'OMDB_API_ERROR' || e.code === 'OMDB_HTTP_ERROR') {
+        apiError = e.message
         break
       }
       throw e
@@ -596,7 +604,7 @@ export async function enrichBatch(db, env, limit, scopeClause = '') {
     )
     .first()
 
-  return { processed: candidates.length, updated, remaining: remaining?.count || 0, quotaExceeded }
+  return { processed: candidates.length, updated, remaining: remaining?.count || 0, quotaExceeded, apiError }
 }
 
 
