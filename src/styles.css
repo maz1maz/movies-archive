@@ -1228,7 +1228,8 @@ body.light .header {
   justify-content: flex-end;
   gap: 8px;
 }
-.edit-primary-actions-top {
+.edit-actions-top {
+  margin-top: 0;
   margin-bottom: 16px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border);
