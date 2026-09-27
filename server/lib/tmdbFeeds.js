@@ -295,7 +295,11 @@ export async function fetchGeneralUpcoming(db, env) {
 
     const moviesRes = await tmdbGet('/movie/upcoming', { region: 'US', page: '1' })
     const movies = (moviesRes?.results || [])
-      .filter((m) => m.title && m.release_date)
+      // TMDB's "upcoming" endpoint mixes in already-released titles (limited
+      // re-releases, region quirks) — e.g. Avengers: Endgame (2019) showing
+      // up here. Drop anything not actually still ahead of today.
+      .filter((m) => m.title && m.release_date && m.release_date >= today)
+      .sort((a, b) => a.release_date.localeCompare(b.release_date))
       .slice(0, 12)
       .map((m) => ({
         title: m.title,

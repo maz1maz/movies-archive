@@ -214,7 +214,7 @@ async function handleFetch(request, env, ctx) {
     // ---- گیت کلی: بدون لاگین هیچ‌چیزی از سایت در دسترس نیست — نه مرور،
     // نه سرچ، هیچی. فقط خود مسیرهای auth (لاگین/گوگل/خروج/وضعیت فعلی)
     // بدون لاگین قابل‌دسترسن، وگرنه هیچ‌کس نمی‌تونه اصلاً وارد بشه. ----
-    const PUBLIC_AUTH_PATHS = ['/api/auth/login', '/api/auth/logout', '/api/auth/me', '/api/films/counts']
+    const PUBLIC_AUTH_PATHS = ['/api/auth/login', '/api/auth/logout', '/api/auth/me', '/api/films/counts', '/api/image-proxy']
     if (!currentUser && pathname.startsWith('/api/') && !PUBLIC_AUTH_PATHS.includes(pathname)) {
       return json({ error: 'You need to log in to use the archive' }, 401, corsHeaders)
     }

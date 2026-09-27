@@ -71,7 +71,12 @@ export async function syncLetterboxdUserToReviews(db, username, authorLabel) {
     }
     // اگه قبلاً از همین نویسنده نقدی برای این فیلم ثبت شده، جایگزینش کن
     // (نه اضافه‌کردنِ تکراری) — تا هربار sync، ورودی‌های تکراری تلنبار نشه.
-    const withoutThisAuthor = existingReviews.filter((r) => r.author !== authorLabel)
+    // مقایسه باید case-insensitive باشه، وگرنه «alireza» (این sync خودکار)
+    // و «Alireza» (تایپ‌شده‌ی دستی تو ایمپورت CSV داشبورد) دو نفر جدا حساب
+    // می‌شن و هر دو نقد کنار هم می‌مونن به‌جای جایگزینی.
+    const withoutThisAuthor = existingReviews.filter(
+      (r) => (r.author || '').trim().toLowerCase() !== authorLabel.trim().toLowerCase()
+    )
     const mergedReviews = [...withoutThisAuthor, newEntry]
 
     await db.prepare('UPDATE films SET reviews = ? WHERE id = ?').bind(JSON.stringify(mergedReviews), row.id).run()
