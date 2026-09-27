@@ -4,7 +4,7 @@ import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { shareFilmCard } from '../utils/shareCard.js'
 import { addToOrderList } from '../utils/orderList.js'
-import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
+import { parseDriveNumbers, driveLabel, driveSortValue, normalizeDriveValue } from '../utils/driveDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
 
 function CollectionOrderButton({ title, year }) {
@@ -69,10 +69,10 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
         if (!ownedMap[key].includes(sd.drive)) ownedMap[key].push(sd.drive)
       })
     })
-    // یه فصل می‌تونه رو چند درایو باشه — با کاما جدا می‌شه (مثلاً "Drive 9, Drive 11")
+    // یه فصل می‌تونه رو چند درایو باشه — با کاما جدا می‌شه (مثلاً "9, 11")
     const newDrives = (newDriveInput || '')
       .split(',')
-      .map((d) => d.trim())
+      .map((d) => normalizeDriveValue(d))
       .filter(Boolean)
     if (newDrives.length) {
       ownedMap[seasonNum] = newDrives
@@ -331,6 +331,20 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
   const castList = Array.isArray(film.cast) ? film.cast : []
   const displayedCast = castList
+
+  // بعضی فیلم‌ها از دو مکانیزم جدای ایمپورت نقد (sync خودکار + CSV دستی)
+  // نقد یه نفر رو دوبار دارن، چون قبلاً مقایسه‌ی نویسنده حساس به بزرگی/کوچکی
+  // حروف بود («alireza» در برابر «Alireza»). آخرین ورودیِ هر نویسنده (case-
+  // insensitive) رو نگه می‌داریم تا این دیتای قدیمی هم درست نمایش داده بشه.
+  const dedupedReviews = Array.isArray(film.reviews)
+    ? Object.values(
+        film.reviews.reduce((byAuthor, r, idx) => {
+          const key = (r.author || '').trim().toLowerCase() || `__idx_${idx}`
+          byAuthor[key] = r
+          return byAuthor
+        }, {})
+      )
+    : []
 
   const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
   const genreText = Array.isArray(film.genre) ? film.genre.slice(0, 3).map(capitalize).join(', ') : capitalize(film.genre) || ''
@@ -766,8 +780,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               </div>
             )}
 
-            {Array.isArray(film.reviews) &&
-              film.reviews.map((r, idx) => (
+            {dedupedReviews.map((r, idx) => (
                 <div className="cine-my-review-box" key={idx}>
                   <div className="cine-section-label">
                     {r.author ? `${r.author.toUpperCase()}'S REVIEW` : 'LETTERBOXD REVIEW'}
@@ -779,7 +792,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
             <div className="cine-more-details">
             {bookAdaptation?.basedOnBook && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+              <div className="cine-collection-box">
                 <div className="cine-section-label">BASED ON</div>
                 <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>
                   <a
@@ -800,7 +813,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {(film.originalLanguage || film.boxOffice) && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24 }}>
                 {film.originalLanguage && (
                   <div>
                     <div className="cine-section-label">LANGUAGE</div>
@@ -817,14 +830,14 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {film.tagline && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+              <div className="cine-collection-box">
                 <div className="cine-section-label">TAGLINE</div>
                 <p style={{ margin: '4px 0 0', fontSize: 13.5, fontStyle: 'italic' }}>“{film.tagline}”</p>
               </div>
             )}
 
             {(film.budget || film.revenue) && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24 }}>
                 {film.budget ? (
                   <div>
                     <div className="cine-section-label">BUDGET</div>
@@ -841,7 +854,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {(film.metascore || film.rottenTomatoes) && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24 }}>
                 {film.metascore ? (
                   <div>
                     <div className="cine-section-label">METASCORE</div>
@@ -858,7 +871,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {(film.releaseDate || film.status) && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24 }}>
                 {film.releaseDate ? (
                   <div>
                     <div className="cine-section-label">RELEASE DATE</div>
@@ -900,21 +913,21 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {Array.isArray(film.productionCompanies) && film.productionCompanies.length > 0 && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+              <div className="cine-collection-box">
                 <div className="cine-section-label">PRODUCTION COMPANIES</div>
                 <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.productionCompanies.join(', ')}</p>
               </div>
             )}
 
             {Array.isArray(film.spokenLanguages) && film.spokenLanguages.length > 0 && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+              <div className="cine-collection-box">
                 <div className="cine-section-label">SPOKEN LANGUAGES</div>
                 <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.spokenLanguages.join(', ')}</p>
               </div>
             )}
 
             {film.homepage && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+              <div className="cine-collection-box">
                 <div className="cine-section-label">OFFICIAL SITE</div>
                 <p style={{ margin: '4px 0 0', fontSize: 13.5, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
                   <a href={film.homepage} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
@@ -925,7 +938,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
 
             {(film.network || film.seriesStatus || film.schedule) && (
-              <div className="cine-collection-box" style={{ padding: '10px 16px', display: 'flex', gap: 24 }}>
+              <div className="cine-collection-box" style={{ display: 'flex', gap: 24 }}>
                 {film.network ? (
                   <div>
                     <div className="cine-section-label">NETWORK</div>
@@ -1101,9 +1114,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       // بدون عدد کل فصل‌های تولیدشده، همون بازه‌های ثبت‌شده رو نشون بده
                       return film.seasonDrives.map((sd, idx) => (
                         <div key={idx} className="cine-season-row">
-                          <span className="season-key">{sd.seasons}</span>
+                          <span className="season-key">
+                            {/\d/.test(sd.seasons || '') ? `Season ${sd.seasons}` : sd.seasons}
+                          </span>
                           <span className="season-drive">
-                            <IconPin width={12} height={12} /> {sd.drive}
+                            <IconPin width={12} height={12} /> {driveLabel(sd.drive)}
                           </span>
                         </div>
                       ))
@@ -1118,7 +1133,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                               autoFocus
                               className="season-drive-input"
                               value={seasonDriveInput}
-                              placeholder="e.g. Drive 3"
+                              placeholder="e.g. 3"
                               onChange={(e) => setSeasonDriveInput(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') saveSeasonDrive(n, seasonDriveInput)
@@ -1159,7 +1174,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                             {ownedMap[n] && ownedMap[n].length ? (
                               ownedMap[n].map((drv, i) => (
                                 <span key={i} className="season-drive-tag">
-                                  <IconPin width={12} height={12} /> {drv}
+                                  <IconPin width={12} height={12} /> {driveLabel(drv)}
                                 </span>
                               ))
                             ) : (

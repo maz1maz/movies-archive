@@ -1,26 +1,7 @@
 import { useState } from 'react'
 import { proxyImg } from '../utils/proxyImg.js'
+import { SHOWCASE_POSTERS } from '../data/showcasePosters.js'
 import { IconGrid, IconDisc, IconBarChart, IconSearch, IconPin, IconStar } from './icons.jsx'
-
-// Real posters from the archive, used for the "poster wall" tab.
-const WALL_TAB_POSTERS = [
-  'https://m.media-amazon.com/images/M/MV5BOTA5MWFhMzAtOWU1OS00Yjk4LTlkNGItNGI3N2VkNzcyNGU2XkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BNGEwYjgwOGQtYjg5ZS00Njc1LTk2ZGEtM2QwZWQ2NjdhZTE5XkEyXkFqcGc@._V1_QL75_UY562_CR8,0,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BYzE3ZmY0NjctMmZhZS00OTI1LWI3YWEtMjNmZGU4ZDdlMTMzXkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_QL75_UX380_CR0,0,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BZjJiODRiNDUtMGMzZi00NzM1LTlhOGMtNDhiOTY4NmViM2Q2XkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BZjUwOTJkMmUtYjdmOS00OWIxLThmYzEtYzJkMGI3MmVhYjIzXkEyXkFqcGdeQXVyMDM1MzIyMQ@@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMDIxMzBlZDktZjMxNy00ZGI4LTgxNDEtYWRlNzRjMjJmOGQ1XkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BOGU4YzhhMTAtNjg1MC00NzY2LTg0NGQtOWJmNGQwNzgyOGE0XkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BYTgyZDhmMTEtZDFhNi00MTc4LTg3NjUtYWJlNGE5Mzk2NzMxXkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BZmUzZjk0NjEtOTFjMC00NDI2LTkwZmEtZWIxYjVjNDEwNWZiXkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMjMzMTIzMTUwN15BMl5BanBnXkFtZTgwNjE0NTg0MTE@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BNDYwNzVjMTItZmU5YS00YjQ5LTljYjgtMjY2NDVmYWMyNWFmXkEyXkFqcGc@._V1_QL75_UY562_CR4,0,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_QL75_UX380_CR0,0,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BZDc2YzhkODAtZmRmZS00YzcxLWJkYWEtM2ZhZjY3MmMyZmJiXkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BNjQ1MDUxYzYtMzEyZC00MGFjLWE1MDAtYTk5OGQzNGI2Zjg4XkEyXkFqcGdeQXVyMzkwMDE3Mg@@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMWM5ZjQxM2YtNDlmYi00ZDNhLWI4MWUtN2VkYjBlMTY1ZTkwXkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg',
-]
 
 // Real physical titles with their actual shelf location and rating.
 const SHELF_TITLES = [
@@ -61,7 +42,7 @@ const TABS = [
 function PosterGrid() {
   return (
     <div className="showcase-poster-grid">
-      {WALL_TAB_POSTERS.map((src, i) => (
+      {SHOWCASE_POSTERS.map((src, i) => (
         <figure className="showcase-poster" key={src}>
           <img src={proxyImg(src)} alt="" loading="lazy" decoding="async" />
         </figure>

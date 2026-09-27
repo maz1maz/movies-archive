@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { proxyImg } from '../utils/proxyImg.js'
+import { SHOWCASE_POSTERS, HERO_WALL_EXTRA_POSTERS } from '../data/showcasePosters.js'
 import LandingShowcase from './LandingShowcase.jsx'
 import {
   IconStar,
@@ -19,32 +20,7 @@ import {
 
 // Real posters from the archive, used for the ambient drifting wall behind
 // the hero and picked for a recognisable, high-rating mix.
-const WALL_POSTERS = [
-  'https://m.media-amazon.com/images/M/MV5BOTA5MWFhMzAtOWU1OS00Yjk4LTlkNGItNGI3N2VkNzcyNGU2XkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BNGEwYjgwOGQtYjg5ZS00Njc1LTk2ZGEtM2QwZWQ2NjdhZTE5XkEyXkFqcGc@._V1_QL75_UY562_CR8,0,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BYzE3ZmY0NjctMmZhZS00OTI1LWI3YWEtMjNmZGU4ZDdlMTMzXkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_QL75_UX380_CR0,0,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BZjJiODRiNDUtMGMzZi00NzM1LTlhOGMtNDhiOTY4NmViM2Q2XkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BZjUwOTJkMmUtYjdmOS00OWIxLThmYzEtYzJkMGI3MmVhYjIzXkEyXkFqcGdeQXVyMDM1MzIyMQ@@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMDIxMzBlZDktZjMxNy00ZGI4LTgxNDEtYWRlNzRjMjJmOGQ1XkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BOGU4YzhhMTAtNjg1MC00NzY2LTg0NGQtOWJmNGQwNzgyOGE0XkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BYTgyZDhmMTEtZDFhNi00MTc4LTg3NjUtYWJlNGE5Mzk2NzMxXkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BZmUzZjk0NjEtOTFjMC00NDI2LTkwZmEtZWIxYjVjNDEwNWZiXkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMjMzMTIzMTUwN15BMl5BanBnXkFtZTgwNjE0NTg0MTE@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BNDYwNzVjMTItZmU5YS00YjQ5LTljYjgtMjY2NDVmYWMyNWFmXkEyXkFqcGc@._V1_QL75_UY562_CR4,0,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_QL75_UX380_CR0,0,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BZDc2YzhkODAtZmRmZS00YzcxLWJkYWEtM2ZhZjY3MmMyZmJiXkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BNjQ1MDUxYzYtMzEyZC00MGFjLWE1MDAtYTk5OGQzNGI2Zjg4XkEyXkFqcGdeQXVyMzkwMDE3Mg@@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMWM5ZjQxM2YtNDlmYi00ZDNhLWI4MWUtN2VkYjBlMTY1ZTkwXkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMWQ2YWZlN2QtYzgyOC00ZTI1LTgwMzUtODUwOWMzZmRjNWE1XkEyXkFqcGdeQXVyNDc0MDM5MTg@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMmFiMTQzZmItNjdjMi00Yjc0LWI0YWItNmIxOWVlOGIyYWIxXkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BN2E5NzI2ZGMtY2VjNi00YTRjLWI1MDUtZGY5OWU1MWJjZjRjXkEyXkFqcGc@._V1_QL75_UX380_CR0,3,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BYzdjMDAxZGItMjI2My00ODA1LTlkNzItOWFjMDU5ZDJlYWY3XkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BN2NmN2VhMTQtMDNiOS00NDlhLTliMjgtODE2ZTY0ODQyNDRhXkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMmI3MmFiODctNzhkZi00ZWVmLWJjYTctYzMyMmIxNGE1ZGZhXkEyXkFqcGc@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BMTYyMTI3NzYxMl5BMl5BanBnXkFtZTcwMzM5ODQxNA@@._V1_SX300.jpg',
-  'https://m.media-amazon.com/images/M/MV5BOTY2Y2EzMTctYTZiMC00YzEzLWIwMDItODQyYWUyY2U2MTk4XkEyXkFqcGc@._V1_SX300.jpg',
-]
+const WALL_POSTERS = [...SHOWCASE_POSTERS, ...HERO_WALL_EXTRA_POSTERS]
 
 const FEATURES = [
   {

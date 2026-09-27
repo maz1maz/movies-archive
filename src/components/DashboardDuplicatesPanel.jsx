@@ -34,7 +34,7 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
       })
       .then((data) => setGroups(Array.isArray(data) ? data : []))
       .catch((e) => {
-        alert(e.message === 'Incorrect password' ? 'رمز اشتباهه.' : 'خطا در اسکن.')
+        alert(e.message === 'Incorrect password' ? 'رمز اشتباهه.' : `خطا در اسکن: ${e.message}`)
         setGroups([])
       })
   }

@@ -17,6 +17,25 @@ export function driveLabel(raw) {
     .join(', ')
 }
 
+// موقع ذخیره (نه فقط موقع نمایش) هرچی کاربر تایپ کرده رو یکدست می‌کنه —
+// «Drive 1»، «drive1» و «1» هر سه می‌شن «1». بدون این، یه فرم که مقدار
+// از قبل «Drive 1»‌دار رو دوباره ذخیره می‌کرد (یا کپی/پیست اشتباه)، می‌تونست
+// «Drive Drive 1» یا حتی چیزهای عجیب‌تر مثل «Drive.Drive 1» بسازه — چون
+// replace فقط یه بار «drive» رو از اول رشته برمی‌داشت، نه همه‌ی رخدادهاش.
+// اینجا با /gi همه‌ی رخدادهای کلمه‌ی drive رو (هرجا باشه) حذف می‌کنه.
+export function normalizeDriveValue(raw) {
+  return String(raw || '')
+    .split(',')
+    .map((s) =>
+      s
+        .replace(/drive/gi, '')
+        .replace(/[.\s]+/g, ' ')
+        .trim()
+    )
+    .filter(Boolean)
+    .join(', ')
+}
+
 export function driveSortValue(d) {
   // درایوهایی مثل «HDD-01» یا «9» رو عددی مرتب می‌کنه، نه رشته‌ای (که «10»
   // رو قبل از «2» می‌ذاشت)

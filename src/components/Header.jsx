@@ -129,8 +129,18 @@ export default function Header({
   // تا فضای بیشتری به محتوا بده. همچنین اگه پنل فیلتر/منو/A-Z باز بود، با
   // اسکرول بسته بشه — وگرنه رو پوسترها معلق می‌مونه و جلوی دیدشون رو می‌گیره.
   useEffect(() => {
+    let lastY = window.scrollY
     const onScroll = () => {
-      setCondensed(window.scrollY > 40)
+      const y = window.scrollY
+      // موبایل‌ها با جمع‌شدن نوار آدرس (که حتی با یه تپ ساده رو صفحه هم
+      // اتفاق می‌افته) یه اسکرول جعلی چندپیکسلی می‌فرستن — اگه بدون آستانه
+      // این رو «اسکرول واقعی» حساب کنیم، دقیقاً همون تپی که منو رو باز
+      // می‌کنه می‌تونه بلافاصله ببندتش یا با تغییر condensed (که ارتفاع
+      // هدر رو عوض می‌کنه و پنل موبایل موقعیتش به همون ارتفاع وابسته‌ست)
+      // باعث بشه پنل بپره.
+      if (Math.abs(y - lastY) < 8) return
+      lastY = y
+      setCondensed(y > 40)
       setFiltersOpen(false)
       setMenuOpen(false)
       setAzOpen(false)
@@ -138,6 +148,21 @@ export default function Header({
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // وقتی یکی از این پنل‌های موبایل (منو/فیلتر/A-Z) بازه، اسکرول صفحه‌ی
+  // پشتش رو قفل می‌کنیم. بدون این، اسکرول کردن با انگشت داخل خودِ پنل
+  // (که طولانی‌تر از صفحه‌ست و باید توش اسکرول کرد) گاهی به صفحه‌ی پشتی هم
+  // سرایت می‌کنه — همون اسکرولِ پشتی توسط useEffect بالا «اسکرول واقعی»
+  // حساب می‌شه و بلافاصله پنل رو می‌بنده یا با عوض کردن condensed
+  // (ارتفاع هدر) باعث می‌شه پنل بپره، دقیقاً وسط اسکرول کردن کاربر.
+  useEffect(() => {
+    if (!menuOpen && !filtersOpen && !azOpen) return
+    const { overflow } = document.body.style
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = overflow
+    }
+  }, [menuOpen, filtersOpen, azOpen])
 
   // کلیک بیرون از پنل فیلتر — پنل رو ببند (قبلاً فقط با اسکرول بسته می‌شد،
   // با کلیک بیرون باز می‌موند و رو صفحه معلق می‌شد).

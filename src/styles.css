@@ -367,6 +367,39 @@ body.light .header {
   border-color: var(--accent);
 }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+  margin: 40px auto;
+  padding: 40px 28px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.empty-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--muted);
+}
+.empty-hint {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.empty-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
 .pagination {
   position: relative;
   z-index: 5;
@@ -400,7 +433,7 @@ body.light .header {
 .pagination-num-active {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
-  color: #fff;
+  color: var(--accent-ink);
   font-weight: 800;
 }
 .pagination-dots {
@@ -1303,12 +1336,12 @@ body.light .header {
   transition: all 0.15s;
 }
 .cine-edit-btn:hover {
-  color: #ffffff;
+  color: var(--accent-ink);
   border-color: var(--accent);
   background: var(--accent-strong);
 }
 .cine-close:hover {
-  color: #ffffff;
+  color: var(--accent-ink);
   border-color: var(--accent);
   background: var(--accent-strong);
 }
@@ -1702,7 +1735,7 @@ body.light .header {
 }
 .shelf-stat-badge {
   background: var(--accent-strong);
-  color: #fff;
+  color: var(--accent-ink);
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 10.5px;
@@ -1801,7 +1834,7 @@ body.light .header {
 .export-letter-chip-active {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
-  color: #fff;
+  color: var(--accent-ink);
 }
 .export-letter-count {
   margin-inline-start: auto;
@@ -3212,7 +3245,7 @@ body.light .header {
   align-items: center;
   gap: 6px;
   background: var(--accent-strong);
-  color: #ffffff;
+  color: var(--accent-ink);
   padding: 5px 10px;
   border-radius: 7px;
   font-size: 11px;
@@ -3223,6 +3256,10 @@ body.light .header {
 }
 .cine-drive-badge {
   background: #3b82f6;
+  /* این بج همیشه پس‌زمینه‌ی آبیِ ثابت داره (نه رنگ accent قابل‌تغییرِ
+     تم)، پس رنگ متنش هم باید ثابت سفید باشه، نه var(--accent-ink) که
+     برای پس‌زمینه‌ی accent (طلایی/روشن) طراحی شده و رو این آبی کم‌کنتراست می‌شد. */
+  color: #fff;
 }
 
 /* Bottom Row: Studio Left & Badges Right */
@@ -3460,7 +3497,8 @@ body.light .header {
   border-color: var(--accent);
 }
 .cine-cast-item:hover .cine-actor-name {
-  color: var(--accent);
+  color: #a9bce6;
+  text-decoration: underline;
 }
 
 .cine-actor-avatar-wrap.avatar-loading {
@@ -3504,7 +3542,10 @@ body.light .header {
 .cine-actor-name {
   font-size: 10.5px;
   font-weight: 600;
-  color: var(--muted);
+  /* بازیگرها هم دقیقاً مثل کارگردان/نویسنده کلیک‌شدنی‌ان (onSelectPerson)،
+     پس باید همون رنگ طلاییِ لینک رو داشته باشن — نه خاکستری که فقط با
+     هاور طلایی می‌شه، چون رو موبایل هاور اصلاً دیده نمی‌شه. */
+  color: var(--accent);
   text-align: center;
   line-height: 1.2;
   word-break: break-word;
@@ -3953,7 +3994,7 @@ body.light .header {
 }
 .cinema-news-lang-toggle button.active {
   background: var(--accent-strong);
-  color: #fff;
+  color: var(--accent-ink);
 }
 .cinema-news-lang-toggle button:disabled {
   opacity: 0.35;
@@ -4282,7 +4323,7 @@ body.light .header {
   height: 54px;
   border-radius: 50%;
   background: var(--accent-strong);
-  color: #ffffff;
+  color: var(--accent-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4524,6 +4565,12 @@ body.light .header {
     padding: 0 0 10px;
     gap: 8px;
   }
+  /* بدون این، سرچ‌باکس (flex-basis: 260px) و دراپ‌داون Title تقریباً کل
+     عرض صفحه‌ی موبایل رو پر می‌کردن و دکمه‌ی A-Z تنها و بی‌دلیل می‌رفت خط
+     بعد. حالا سرچ خودش یه ردیف کامله، Title و A-Z با هم ردیف بعدی. */
+  .search-box {
+    flex-basis: 100%;
+  }
   .list-row {
     grid-template-columns: 44px minmax(0, 1fr) auto;
     gap: 10px;
@@ -4710,6 +4757,10 @@ body.light .header {
     width: auto;
     min-width: 0;
     max-height: calc(100vh - var(--header-h, 240px) - 24px);
+    /* dvh با جمع/بازشدن نوار آدرس موبایل هم‌زمان تنظیم می‌شه، برخلاف vh که
+       ثابت می‌مونه و باعث می‌شه فضای واقعی در دسترس برای اسکرول پنل، وسط
+       تعامل کاربر ناگهان عوض به نظر برسه. */
+    max-height: calc(100dvh - var(--header-h, 240px) - 24px);
     overflow-y: auto;
     overscroll-behavior: contain;
     touch-action: pan-y;
@@ -4780,6 +4831,14 @@ body.light .header {
     right: 12px;
     top: calc(var(--header-h, 240px) + 8px);
     width: auto;
+    /* برخلاف پنل منو، این یکی max-height/overflow نداشت — رو صفحه‌ی
+       کوتاه، فیلترهای پایینی (loan, ...) کلاً بیرون از دید می‌رفتن و
+       هیچ راهی برای اسکرول کردن بهشون نبود. */
+    max-height: calc(100vh - var(--header-h, 240px) - 24px);
+    max-height: calc(100dvh - var(--header-h, 240px) - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
 }
 @media (max-width: 480px) {
@@ -6277,7 +6336,9 @@ body.light .folder-back {
   }
   .modal-cine:not(.cine-panel) .cine-main-row {
     flex-direction: row;
-    align-items: flex-start;
+    /* stretch (نه flex-start) یعنی هم بالا هم‌تراز بمونن هم ستونِ اطلاعات
+       حداقل هم‌ارتفاعِ پوستر بشه، برای فیلم‌هایی که synopsis/اطلاعاتشون کمه */
+    align-items: stretch;
   }
   .modal-cine:not(.cine-panel) .cine-poster-wrap {
     width: 40%;
@@ -6299,6 +6360,7 @@ body.light .folder-back {
   }
   .modal-cine:not(.cine-panel) .cine-info-card {
     display: block;
+    flex: 1 1 auto;
   }
   .modal-cine:not(.cine-panel) .cine-info-card > * {
     flex: none !important;
@@ -6706,7 +6768,7 @@ body.light .dashboard-panel {
 .export-letter-bar button.active {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
-  color: #fff;
+  color: var(--accent-ink);
 }
 .oscars-ceremony {
   font-size: 12px;

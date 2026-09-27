@@ -1,6 +1,6 @@
 const CHARS = [
-  '0-9',
   ...'abcdefghijklmnopqrstuvwxyz'.split(''),
+  '0-9',
 ]
 
 export default function AlphabetBar({ alpha, setAlpha }) {
