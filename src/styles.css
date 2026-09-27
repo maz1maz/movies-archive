@@ -481,28 +481,6 @@ body.light .header {
   color: inherit;
   transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.28s ease, box-shadow 0.28s ease;
 }
-.card-reveal-pending {
-  transform: translateY(40px);
-}
-.card-reveal-pending.is-visible {
-  animation: cardRiseIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@keyframes cardRiseIn {
-  from {
-    transform: translateY(40px);
-  }
-  to {
-    transform: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .card-reveal-pending {
-    transform: none;
-  }
-  .card-reveal-pending.is-visible {
-    animation: none;
-  }
-}
 .card:hover {
   transform: translateY(-5px) scale(1.015);
   border-color: var(--border-strong);
