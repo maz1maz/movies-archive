@@ -23,7 +23,7 @@ function hashCode(str) {
   return Math.abs(h)
 }
 
-export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, hasDigital }) {
+export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, hasDigital, revealOnScroll }) {
   const [c1, c2] = PALETTE[hashCode(String(film.id)) % PALETTE.length]
   const isDigital = film.mediaType === 'digital'
 
@@ -84,6 +84,27 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
     return () => observer.disconnect()
   }, [film.id, altPosters])
 
+  // وقتی revealOnScroll فعاله (فعلاً فقط صفحه‌ی بلوری)، کارت اول محو/پایین‌تره
+  // و همین که یه‌بار وارد دیدرس شد یک‌بار برای همیشه ظاهر می‌شه (بدون scrub،
+  // فقط یه transition ساده‌ی CSS).
+  const [revealed, setRevealed] = useState(!revealOnScroll)
+  useEffect(() => {
+    if (!revealOnScroll) return
+    const el = cardRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setRevealed(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '0px 0px -10% 0px', threshold: 0.1 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [revealOnScroll])
+
   const posterList = altPosters && altPosters.length > 0 ? [film.poster, ...altPosters] : null
 
   // چرخشِ بر اساس «دیده شدن» رو موبایل امتحان شد ولی مزاحم بود (کلی کارت
@@ -131,6 +152,8 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         film.criterion && 'card-criterion',
         hasBluray && 'card-has-bluray',
         hasDigital && 'card-has-digital',
+        revealOnScroll && 'card-reveal-pending',
+        revealed && 'is-visible',
       ].filter(Boolean).join(' ')}
       data-film-id={film.id}
       onClick={(e) => {

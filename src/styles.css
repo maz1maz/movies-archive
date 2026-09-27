@@ -479,7 +479,21 @@ body.light .header {
   cursor: pointer;
   padding: 0;
   color: inherit;
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.28s ease, box-shadow 0.28s ease;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.28s ease, box-shadow 0.28s ease, opacity 0.5s ease;
+}
+.card-reveal-pending {
+  opacity: 0;
+  transform: translateY(36px) scale(0.96);
+}
+.card-reveal-pending.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-reveal-pending {
+    opacity: 1;
+    transform: none;
+  }
 }
 .card:hover {
   transform: translateY(-5px) scale(1.015);
