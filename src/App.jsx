@@ -1147,7 +1147,7 @@ export default function App() {
                   <span>{gridHeading}</span>
                 </div>
               )}
-              <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} revealOnScroll={section === 'physical' || section === 'physical-series'} />
+              <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
             </div>
             <div className="grid-split-detail">
               <FilmModal
@@ -1174,7 +1174,7 @@ export default function App() {
                 <span>{gridHeading}</span>
               </div>
             )}
-            <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} revealOnScroll={section === 'physical' || section === 'physical-series'} />
+            <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
           </>
         )}
         {pageCount > 1 && !loading && (
