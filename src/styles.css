@@ -173,9 +173,9 @@ body.light .header {
 }
 .brand-section-info {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
   flex: 0 0 auto;
 }
 .brand-sub-count {
@@ -436,7 +436,7 @@ body.light .header {
 /* ---------- Grid ---------- */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
   gap: 20px;
   padding: 26px 0 40px;
 }
