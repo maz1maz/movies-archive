@@ -7257,7 +7257,7 @@ body.light .dashboard-panel {
 }
 
 .bluray-case:hover {
-  flex: 0 0 250px;
+  flex: 0 0 200px;
   transform: translateY(-8px);
   z-index: 50;
   box-shadow:
@@ -7274,7 +7274,7 @@ body.light .dashboard-panel {
   /* flex-grow:0 عمداً — این‌ها فقط باید جمع بشن (shrink)، نه اینکه تو فضای
      خالیِ احتمالیِ ته ردیف (باقی‌مونده از گرد کردن itemsPerRow) رشد کنن. */
   flex: 0 1 calc(34px * var(--spine-scale, 1));
-  min-width: calc(10px * var(--spine-scale, 1));
+  min-width: calc(18px * var(--spine-scale, 1));
   transition: flex-basis 0.08s ease, min-width 0.08s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
 }
 
@@ -7481,7 +7481,7 @@ body.light .dashboard-panel {
   text-orientation: mixed;
   transform: rotate(180deg);
   white-space: nowrap;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 13.5px;
   font-weight: 700;
   letter-spacing: 0.3px;

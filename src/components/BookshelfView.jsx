@@ -60,7 +60,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   // می‌کنه تا جا باز کنه؛ بقیه‌ی ردیف کاملاً ثابت می‌مونه. قبلاً همه‌ی جلدهای
   // ردیف به‌طور یکسان کمی جمع می‌شدن، که با هر هاور کل ردیف رو محسوس تکون
   // می‌داد (حس «رفت‌وآمد» زیاد) -- حالا فقط یه خوشه‌ی کوچیک نزدیک موس.
-  const NEAR_RADIUS = 6
+  const NEAR_RADIUS = 9
   const [hoverInfo, setHoverInfo] = useState(null) // { rowKey, itemIdx }
   useEffect(() => {
     const el = shelfWidthRef.current
