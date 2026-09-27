@@ -3,7 +3,7 @@ import FilmCard from './FilmCard.jsx'
 export default function FilmGrid({ films, onSelect, onToggleWatch, hasBluray, hasDigital, revealOnScroll }) {
   return (
     <div className="grid">
-      {films.map((film) => (
+      {films.map((film, i) => (
         <FilmCard
           key={film.id}
           film={film}
@@ -12,6 +12,7 @@ export default function FilmGrid({ films, onSelect, onToggleWatch, hasBluray, ha
           hasBluray={hasBluray ? hasBluray(film) : false}
           hasDigital={hasDigital ? hasDigital(film) : false}
           revealOnScroll={revealOnScroll}
+          revealIndex={i}
         />
       ))}
     </div>

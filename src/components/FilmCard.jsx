@@ -23,7 +23,7 @@ function hashCode(str) {
   return Math.abs(h)
 }
 
-export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, hasDigital, revealOnScroll }) {
+export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, hasDigital, revealOnScroll, revealIndex }) {
   const [c1, c2] = PALETTE[hashCode(String(film.id)) % PALETTE.length]
   const isDigital = film.mediaType === 'digital'
 
@@ -85,24 +85,34 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
   }, [film.id, altPosters])
 
   // وقتی revealOnScroll فعاله (فعلاً فقط صفحه‌ی بلوری)، کارت اول محو/پایین‌تره
-  // و همین که یه‌بار وارد دیدرس شد یک‌بار برای همیشه ظاهر می‌شه (بدون scrub،
-  // فقط یه transition ساده‌ی CSS).
+  // و همین که یه‌بار وارد دیدرس شد یک‌بار برای همیشه ظاهر می‌شه (یه انیمیشن
+  // ساده‌ی CSS با تأخیر پلکانی بر اساس ستونش، نه scrub). بعد از تموم شدن
+  // انیمیشن کلاس‌هاش پاک می‌شن — وگرنه animation روی transform برای همیشه
+  // غالب می‌مونه و افکت هاور (بلندشدن کارت) دیگه کار نمی‌کنه.
+  const revealDelayMs = revealOnScroll ? (revealIndex % 6) * 45 : 0
   const [revealed, setRevealed] = useState(!revealOnScroll)
+  const [revealDone, setRevealDone] = useState(!revealOnScroll)
   useEffect(() => {
     if (!revealOnScroll) return
     const el = cardRef.current
     if (!el || typeof IntersectionObserver === 'undefined') return
+    let doneTimer
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
           setRevealed(true)
+          doneTimer = setTimeout(() => setRevealDone(true), revealDelayMs + 650)
           observer.disconnect()
         }
       },
       { rootMargin: '0px 0px -10% 0px', threshold: 0.1 }
     )
     observer.observe(el)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      clearTimeout(doneTimer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revealOnScroll])
 
   const posterList = altPosters && altPosters.length > 0 ? [film.poster, ...altPosters] : null
@@ -152,9 +162,10 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         film.criterion && 'card-criterion',
         hasBluray && 'card-has-bluray',
         hasDigital && 'card-has-digital',
-        revealOnScroll && 'card-reveal-pending',
-        revealed && 'is-visible',
+        revealOnScroll && !revealDone && 'card-reveal-pending',
+        revealed && !revealDone && 'is-visible',
       ].filter(Boolean).join(' ')}
+      style={revealOnScroll && !revealDone ? { animationDelay: `${revealDelayMs}ms` } : undefined}
       data-film-id={film.id}
       onClick={(e) => {
         e.stopPropagation()
