@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
 import { getSpineColor } from '../utils/shelfDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
+import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 function sortKey(title) {
   return String(title || '')
@@ -38,6 +39,7 @@ function queuePrefetch(url) {
 }
 
 export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsChanged }) {
+  const overlayHandlers = useOverlayClose(onClose)
   const [closetFilter, setClosetFilter] = useState('1')
   const [shelfTheme, setShelfTheme] = useState('wood')
   const [shelfScale, setShelfScale] = useState(0.85)
@@ -360,7 +362,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   )
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 40 }} onClick={onClose}>
+    <div className="modal-overlay" style={{ zIndex: 40 }} {...overlayHandlers}>
       <div className="location-browser" onClick={(e) => e.stopPropagation()}>
         <header className="location-browser-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>

@@ -6,6 +6,7 @@ import { shareFilmCard } from '../utils/shareCard.js'
 import { addToOrderList } from '../utils/orderList.js'
 import { parseDriveNumbers, driveLabel, driveSortValue, normalizeDriveValue } from '../utils/driveDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
+import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 function CollectionOrderButton({ title, year }) {
   const [state, setState] = useState('idle') // idle | adding | added
@@ -41,6 +42,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const [shareStatus, setShareStatus] = useState(null)
   const [editingSeason, setEditingSeason] = useState(null)
   const [seasonDriveInput, setSeasonDriveInput] = useState('')
+  const overlayHandlers = useOverlayClose(onClose)
 
   const handleShare = async () => {
     setShareStatus('working')
@@ -146,6 +148,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       // ببنده یا نادیده گرفته بشه — نباید همزمان کل مودال فیلم رو هم ببنده
       // یا فیلم رو عوض کنه در حالی که کاربر داره پوستر رو زوم می‌کنه.
       if (lightboxSrc) return
+      // اگه فوکوس داخل فرم ادیت (که روی همین مودال بازه) باشه، کلیدهای
+      // جهت‌نما/Escape باید فقط کار خودشون رو تو همون فرم بکنن (جابه‌جایی
+      // مکان‌نما تو یه فیلد، یا بستن خودِ فرم ادیت) — نه اینکه همزمان این
+      // شنونده‌ی سراسری هم فیلم زیرین رو عوض کنه یا کل مودال فیلم رو ببنده.
+      if (e.target?.closest?.('.edit-modal')) return
       if (e.key === 'Escape') onClose()
       if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && films.length && onNavigate) {
         // مهم: هر لیستی که parent بده (گاهی کل آرشیو، گاهی فقط یه بخش)،
@@ -1222,7 +1229,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
   return (
     <>
-      <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-overlay" {...overlayHandlers}>
         {inner}
       </div>
       {lightboxSrc && (

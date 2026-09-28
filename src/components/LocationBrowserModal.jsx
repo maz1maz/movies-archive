@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload, IconArchive } from './icons.jsx'
 import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
 import { escapeHtml } from '../utils/escapeHtml.js'
+import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 const CLOSET_COUNT = 8
 const ROW_COUNT = 10
@@ -34,6 +35,7 @@ function firstLetterOf(title) {
 }
 
 export default function LocationBrowserModal({ films, onSelectFilm, onClose, canEdit = false, onFilmsChanged }) {
+  const overlayHandlers = useOverlayClose(onClose)
   const [closet, setCloset] = useState('')
   const [row, setRow] = useState('')
   const [shelf, setShelf] = useState('')
@@ -372,7 +374,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...overlayHandlers}>
       <div className="location-browser" onClick={(e) => e.stopPropagation()}>
         <header className="location-browser-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>

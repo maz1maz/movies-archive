@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { IconClose, IconCamera, IconCheck } from './icons.jsx'
+import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 // حداکثر ابعاد قبل از فرستادن به Claude — عکس‌های موبایل معمولاً چند مگابایت
 // هستن؛ قبل از ارسال کوچیک‌شون می‌کنیم تا هم سریع‌تر آپلود بشه هم داخل
@@ -34,6 +35,7 @@ function fileToResizedBase64(file) {
 }
 
 export default function PhotoScanModal({ onClose, onAddFilm, defaultMediaType = 'physical', existingFilms = [] }) {
+  const overlayHandlers = useOverlayClose(onClose)
   const fileRef = useRef(null)
   const [preview, setPreview] = useState(null)
   const [pendingDataUrl, setPendingDataUrl] = useState(null)
@@ -142,7 +144,7 @@ export default function PhotoScanModal({ onClose, onAddFilm, defaultMediaType = 
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...overlayHandlers}>
       <div className="modal edit-modal photo-scan-modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Close">
           <IconClose width={15} height={15} />

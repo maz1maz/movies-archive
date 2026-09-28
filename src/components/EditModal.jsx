@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { IconClose, IconSave, IconSearch, IconLink } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import { normalizeDriveValue } from '../utils/driveDisplay.js'
+import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 // همون منطق normalizeDriveValue، برای فیلد «فصل‌ها» — «Season 3»،
 // «Seasons 1-3» و «3» رو یکدست می‌کنه («3»، «1-3») تا هم با هم هماهنگ
@@ -101,6 +102,7 @@ function normalizeTitleForMatch(t) {
 
 export default function EditModal({ film, onClose, onSave, onAutofill, onDelete, startWithLink, existingFilms, onOpenExisting }) {
   const isNew = !film.id
+  const overlayHandlers = useOverlayClose(onClose)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [form, setForm] = useState(() => toForm(film))
   const [autofilling, setAutofilling] = useState(false)
@@ -365,7 +367,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...overlayHandlers}>
       <div className="modal edit-modal" onClick={(event) => event.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Close">
           <IconClose width={15} height={15} />

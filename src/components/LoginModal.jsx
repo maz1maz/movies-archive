@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 export default function LoginModal() {
   const { loginOpen, setLoginOpen, login, loginError } = useAuth()
@@ -7,13 +8,14 @@ export default function LoginModal() {
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  if (!loginOpen) return null
-
   const close = () => {
     setLoginOpen(false)
     setUsername('')
     setPassword('')
   }
+  const overlayHandlers = useOverlayClose(close)
+
+  if (!loginOpen) return null
 
   const submit = async (e) => {
     e.preventDefault()
@@ -28,7 +30,7 @@ export default function LoginModal() {
   }
 
   return (
-    <div className="modal-overlay" onClick={close}>
+    <div className="modal-overlay" {...overlayHandlers}>
       <div className="edit-modal" style={{ width: 'min(380px, 94vw)' }} onClick={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close" onClick={close} aria-label="Close">
           ✕

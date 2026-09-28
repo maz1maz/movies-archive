@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { IconClose, IconHardDrive, IconFilm, IconBookshelf } from './icons.jsx'
 import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
+import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 function sortKey(title) {
   return String(title || '')
@@ -43,6 +44,7 @@ function itemsOnDrive(digitalFilms, drive) {
 }
 
 export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdit = false, onFilmsChanged }) {
+  const overlayHandlers = useOverlayClose(onClose)
   const [drive, setDrive] = useState('')
   const [newDriveInput, setNewDriveInput] = useState('')
   const [extraDrives, setExtraDrives] = useState([]) // درایوهای تازه‌ساخته که هنوز فیلمی روشون نیست
@@ -208,7 +210,7 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
   }
 
   return (
-    <div className="modal-overlay drive-browser-glass-overlay" onClick={onClose}>
+    <div className="modal-overlay drive-browser-glass-overlay" {...overlayHandlers}>
       <div className="location-browser drive-browser-glass" onClick={(e) => e.stopPropagation()}>
         <header
           className="location-browser-head"
