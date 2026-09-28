@@ -10,3 +10,4 @@ films.json
 films_fresh.json
 /*.mp4
 migrate-log.txt
+.wrangler/
