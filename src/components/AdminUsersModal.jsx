@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 export default function AdminUsersModal({ open, onClose }) {
   const { user: currentUser } = useAuth()
+  const overlayHandlers = useOverlayClose(onClose)
   const [users, setUsers] = useState(null)
   const [error, setError] = useState('')
   const [newUsername, setNewUsername] = useState('')
@@ -100,7 +102,7 @@ export default function AdminUsersModal({ open, onClose }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...overlayHandlers}>
       <div className="edit-modal" style={{ width: 'min(520px, 94vw)' }} onClick={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
           ✕

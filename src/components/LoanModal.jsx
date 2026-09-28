@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { IconClose, IconHandshake, IconCheck, IconSave } from './icons.jsx'
+import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 export default function LoanModal({ film, onClose, onSaveLoan }) {
+  const overlayHandlers = useOverlayClose(onClose)
   const [borrowedTo, setBorrowedTo] = useState(film.borrowedTo || '')
   const [borrowedDate, setBorrowedDate] = useState(
     film.borrowedDate || new Date().toISOString().split('T')[0]
@@ -32,7 +34,7 @@ export default function LoanModal({ film, onClose, onSaveLoan }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" {...overlayHandlers}>
       <div className="modal modal-loan" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
           <IconClose width={14} height={14} />

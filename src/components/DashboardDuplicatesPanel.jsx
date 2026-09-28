@@ -3,6 +3,7 @@ import { IconClose } from './icons.jsx'
 import FilmModal from './FilmModal.jsx'
 import EditModal from './EditModal.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 const SCOPES = [
   { key: 'all', label: 'Everything' },
@@ -20,6 +21,7 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
   const [busyId, setBusyId] = useState(null)
   const [compareGroup, setCompareGroup] = useState(null)
   const [editingFilm, setEditingFilm] = useState(null)
+  const compareOverlayHandlers = useOverlayClose(() => setCompareGroup(null))
 
   // این اسکن کل جدول رو می‌خونه، برای همین دیگه خودکار (با باز شدن تب) اجرا
   // نمی‌شه — فقط با کلیک صریح و وارد کردن دوباره‌ی رمز.
@@ -143,7 +145,7 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
       </section>
 
       {compareGroup && (
-        <div className="modal-overlay" onClick={() => setCompareGroup(null)}>
+        <div className="modal-overlay" {...compareOverlayHandlers}>
           <div
             className="modal modal-compare"
             onClick={(e) => e.stopPropagation()}

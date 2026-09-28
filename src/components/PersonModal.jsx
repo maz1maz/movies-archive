@@ -4,6 +4,7 @@ import ImageLightbox from './ImageLightbox.jsx'
 import { addToOrderList } from '../utils/orderList.js'
 import { proxyImg } from '../utils/proxyImg.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 function RecommendationOrderButton({ title, year, director }) {
   const [state, setState] = useState('idle') // idle | adding | added
@@ -28,6 +29,7 @@ function RecommendationOrderButton({ title, year, director }) {
 
 export default function PersonModal({ personName, allFilms, onSelectFilm, onSelectPerson, onClose, hasBluray }) {
   const { isGuest, openLogin } = useAuth()
+  const overlayHandlers = useOverlayClose(onClose)
   const [photo, setPhoto] = useState(null)
   const [bio, setBio] = useState(null)
   const [facts, setFacts] = useState({
@@ -335,7 +337,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
 
   return (
     <>
-      <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-overlay" {...overlayHandlers}>
       <div className="modal modal-person" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
           <IconClose width={14} height={14} />
