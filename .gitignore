@@ -9,3 +9,4 @@ films.json
 .cache/
 films_fresh.json
 /*.mp4
+migrate-log.txt
