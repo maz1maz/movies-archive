@@ -8,3 +8,4 @@ backup-before-merge2-*.json
 films.json
 .cache/
 films_fresh.json
+/*.mp4
