@@ -905,7 +905,7 @@ async function handleFetch(request, env, ctx) {
       if (method === 'GET' && pathname === '/api/films/enrich-status') {
         const remaining = await db
           .prepare(
-            `SELECT COUNT(*) as count FROM films WHERE (metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = '')${enrichScopeClause(url.searchParams)}`
+            `SELECT COUNT(*) as count FROM films WHERE metadataEnrichmentAttemptedAt IS NULL${enrichScopeClause(url.searchParams)}`
           )
           .first()
         return json({ remaining: remaining?.count || 0 }, 200, corsHeaders)

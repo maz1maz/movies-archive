@@ -545,17 +545,24 @@ export function enrichScopeClause(searchParams) {
 
 // یه دسته از فیلم‌های بی‌اطلاعات رو enrich می‌کنه — هم دکمه‌ی «Fill missing
 // details» تو اپ، هم کرون روزانه از همین استفاده می‌کنن.
-// باگ قبلی: بدون ORDER BY، هر بار همون چند فیلم اولِ بی‌پوستر (که OMDb اصلاً
+// باگ قبلی (۱): بدون ORDER BY، هر بار همون چند فیلم اولِ بی‌پوستر (که OMDb اصلاً
 // پوستری براشون نداره یا اسمشون قابل‌تشخیص نیست) انتخاب می‌شدن؛ دکمه هیچ‌وقت
-// به فیلم‌های واقعاً بررسی‌نشده نمی‌رسید. الان اول فیلم‌های بررسی‌نشده رو
-// تموم می‌کنه، بعد بی‌پوسترها رو به ترتیب قدیمی‌ترین تلاش می‌ره سراغشون.
+// به فیلم‌های واقعاً بررسی‌نشده نمی‌رسید.
+// باگ قبلی (۲، جدی‌تر): معیار «remaining»/انتخاب کاندیدها شاملِ
+// «poster IS NULL OR poster = ''» بود، نه فقط «هنوز امتحان نشده». یعنی فیلمی
+// که OMDb واقعاً پوستری براش نداره، حتی بعد از یه بار enrich کامل (که
+// metadataEnrichmentAttemptedAt رو هم ست می‌کنه) هنوز «remaining» حساب
+// می‌شد و همون فیلم‌های بی‌پوستر دوباره و دوباره انتخاب می‌شدن — یعنی
+// دکمه رو یه عدد ثابت (همون تعداد فیلم‌های بی‌پوستر) برای همیشه گیر می‌کرد.
+// الان معیار تکمیل‌شدن فقط «امتحان شده یا نه»ست؛ اگه یه‌بار enrich شد و
+// OMDb پوستری نداشت، همون‌جا تمومه، دیگه دوباره امتحان نمی‌شه.
 // scopeClause (اختیاری): خروجیِ enrichScopeClause، برای محدود کردن به یه بخش خاص.
 export async function enrichBatch(db, env, limit, scopeClause = '') {
   const all = await db
     .prepare(
       `SELECT * FROM films
-       WHERE (metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = '')${scopeClause}
-       ORDER BY (metadataEnrichmentAttemptedAt IS NULL) DESC, metadataEnrichmentAttemptedAt ASC
+       WHERE metadataEnrichmentAttemptedAt IS NULL${scopeClause}
+       ORDER BY id ASC
        LIMIT ?`
     )
     .bind(limit)
@@ -600,7 +607,7 @@ export async function enrichBatch(db, env, limit, scopeClause = '') {
 
   const remaining = await db
     .prepare(
-      `SELECT COUNT(*) as count FROM films WHERE (metadataEnrichmentAttemptedAt IS NULL OR poster IS NULL OR poster = '')${scopeClause}`
+      `SELECT COUNT(*) as count FROM films WHERE metadataEnrichmentAttemptedAt IS NULL${scopeClause}`
     )
     .first()
 
