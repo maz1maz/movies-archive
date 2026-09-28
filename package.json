@@ -28,7 +28,7 @@
     "topojson-client": "^3.1.0",
     "tweakpane": "^4.0.5",
     "world-atlas": "^2.0.2",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@rollup/pluginutils": "^5.4.0",

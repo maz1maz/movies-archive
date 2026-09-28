@@ -50,5 +50,6 @@ const ws = XLSX.utils.aoa_to_sheet([
 const wb = XLSX.utils.book_new()
 XLSX.utils.book_append_sheet(wb, ws, 'Films')
 const out = path.join(__dirname, '..', 'film-archive-template.xlsx')
+XLSX.set_fs(fs)
 XLSX.writeFile(wb, out)
 console.log('Template created:', out)
