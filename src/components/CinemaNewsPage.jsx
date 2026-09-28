@@ -189,7 +189,7 @@ function UpcomingList({ items, onSelectPerson, films }) {
                 {u.personName}
               </button>
             )}
-            {missing && (
+            {missing && Array.isArray(films) && (
               <OrderBadge
                 title={u.title}
                 releaseDate={u.releaseDate}
@@ -225,7 +225,7 @@ function PosterGrid({ items, films }) {
               <span className="cinema-news-trailer-title">{g.title}</span>
               <span className="cinema-news-trailer-date">{formatDate(g.releaseDate)}</span>
             </a>
-            {missing && (
+            {missing && Array.isArray(films) && (
               <OrderBadge title={g.title} releaseDate={g.releaseDate} source="Coming soon (everywhere)" infoUrl={g.infoUrl} />
             )}
           </div>

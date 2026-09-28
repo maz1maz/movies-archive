@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme } from '../context/ThemeContext.jsx'
 import { proxyImg } from '../utils/proxyImg.js'
 import { SHOWCASE_POSTERS, HERO_WALL_EXTRA_POSTERS } from '../data/showcasePosters.js'
 import LandingShowcase from './LandingShowcase.jsx'
+import LandingNews from './LandingNews.jsx'
+import CinemaNewsPage from './CinemaNewsPage.jsx'
 import {
   IconStar,
   IconLayers,
@@ -57,6 +60,17 @@ const FEATURES = [
 
 const ROTATING_WORDS = ['Criterion spines', '4K UHD discs', 'NAS rips', 'box sets']
 
+// همون زاویه‌های کج‌شده‌ای که تو کلاژِ صفحه‌ی پوشه‌ها (بعد از لاگین) استفاده
+// می‌شه — دیوار پوستر این‌جا هم به‌جای ردیف‌های کاملاً صاف، حسِ یه دیوار
+// پوستر واقعی و کمی شلخته رو بگیره.
+const WALL_TILT_ANGLES = [-7, 4, -3, 6, -5, 3, -8, 5, -4, 7, -6, 2, -2, 8]
+
+// یه زیرمجموعه‌ی کوچیک از پوسترهای تاییدشده، برای «قفسه»ی داخل پنل شیشه‌ای
+// هیرو — به‌جای لیست آیکون‌های ساده، پوسترهای واقعی به شکل یه ردیف قفسه‌ی
+// فیزیکی (کج، هم‌پوشان) چیده می‌شن.
+const SHELF_STRIP_POSTERS = SHOWCASE_POSTERS.slice(0, 6)
+const SHELF_TILTS = [-4, 3, -2, 4, -3, 2]
+
 function PosterWallBackground() {
   const columns = 6
   const perCol = 5
@@ -75,7 +89,11 @@ function PosterWallBackground() {
               style={{ '--dur': `${86 + col * 9}s` }}
             >
               {loop.map((src, i) => (
-                <div className="landing-wall-poster" key={`${col}-${i}`}>
+                <div
+                  className="landing-wall-poster"
+                  key={`${col}-${i}`}
+                  style={{ '--tilt': `${WALL_TILT_ANGLES[(col * perCol + i) % WALL_TILT_ANGLES.length]}deg` }}
+                >
                   <img src={proxyImg(src)} alt="" loading={col < 2 && i < 2 ? 'eager' : 'lazy'} />
                 </div>
               ))}
@@ -91,9 +109,11 @@ function PosterWallBackground() {
 
 export default function Landing() {
   const { openLogin } = useAuth()
+  const { theme, setTheme } = useTheme()
   const [counts, setCounts] = useState(null)
   const [decades, setDecades] = useState(null)
   const [wordIdx, setWordIdx] = useState(0)
+  const [newsOpen, setNewsOpen] = useState(false)
 
   useEffect(() => {
     fetch('/api/films/counts')
@@ -132,6 +152,22 @@ export default function Landing() {
     { icon: IconBarChart, label: 'Dashboard', meta: 'Info & statistics' },
   ]
 
+  // مهمون‌ها هم می‌تونن نسخه‌ی عمومیِ صفحه‌ی «اخبار سینما» رو ببینن — بخش‌های
+  // شخصی (تولدهای کالکشن، در راهِ کالکشن) چون سرور برای مهمون خالی برمی‌گردونه
+  // خودشون مخفی می‌مونن؛ films=null یعنی دکمه‌ی «Order» (که به لاگین نیاز داره)
+  // هم نشون داده نمی‌شه.
+  if (newsOpen) {
+    return (
+      <CinemaNewsPage
+        onBack={() => setNewsOpen(false)}
+        onSelectPerson={openLogin}
+        theme={theme}
+        setTheme={setTheme}
+        films={null}
+      />
+    )
+  }
+
   return (
     <div className="landing">
       <header className="landing-nav">
@@ -155,18 +191,18 @@ export default function Landing() {
           <div className="landing-hero-text">
             <span className="landing-eyebrow">
               <span className="landing-pulse-dot" />
-              Now showing · personal film archive
+              Personal film archive · refined
             </span>
 
             <h1 className="landing-h1">
-              Every film you own,
+              Your entire cinematic world,
               <br />
-              <span className="landing-gold-text landing-serif-italic">finally in one archive.</span>
+              <span className="landing-gold-text landing-serif-italic">in a dream's splendor.</span>
             </h1>
 
             <p className="landing-hero-copy">
-              A physical and digital media catalogue built to actually find things — turning a
-              wall of shelves and years of hard drives into one searchable, beautiful record.
+              No clunky spreadsheets. No lost discs. Just your pure obsession, transformed into a
+              sleek, searchable private cinema.
             </p>
 
             <div className="landing-rotating" aria-live="polite">
@@ -215,17 +251,25 @@ export default function Landing() {
                 <kbd>⌘K</kbd>
               </div>
 
-              <div className="landing-tiles">
-                {tiles.map((t) => (
-                  <div className="landing-tile" key={t.label}>
-                    <span className="landing-tile-icon">
-                      <t.icon width={17} height={17} />
-                    </span>
-                    <span className="landing-tile-text">
-                      <span className="landing-tile-label">{t.label}</span>
-                      <span className="landing-tile-meta">{t.meta}</span>
-                    </span>
+              <div className="landing-panel-shelf">
+                {SHELF_STRIP_POSTERS.map((src, i) => (
+                  <div
+                    className="landing-panel-shelf-poster"
+                    key={src}
+                    style={{ '--tilt': `${SHELF_TILTS[i % SHELF_TILTS.length]}deg` }}
+                  >
+                    <img src={proxyImg(src)} alt="" loading="lazy" />
                   </div>
+                ))}
+                <div className="landing-panel-shelf-ledge" aria-hidden="true" />
+              </div>
+
+              <div className="landing-panel-stats">
+                {tiles.map((t) => (
+                  <span className="landing-panel-stat" key={t.label}>
+                    <t.icon width={13} height={13} />
+                    {t.label}
+                  </span>
                 ))}
               </div>
             </div>
@@ -248,16 +292,16 @@ export default function Landing() {
         <div className="landing-section-head">
           <span className="landing-eyebrow landing-eyebrow-static">Inside the archive</span>
           <h2>
-            Built for a collection that
+            When a hobby turns into heritage,
             <br />
-            <span className="landing-gold-text landing-serif-italic">outgrew a spreadsheet.</span>
+            <span className="landing-gold-text landing-serif-italic">it deserves better than Excel.</span>
           </h2>
         </div>
         <div className="landing-features-grid">
           {FEATURES.map((f) => (
             <div className="landing-feature-card" key={f.title}>
               <span className="landing-feature-icon">
-                <f.icon width={18} height={18} />
+                <f.icon width={22} height={22} />
               </span>
               <h3>{f.title}</h3>
               <p>{f.body}</p>
@@ -267,6 +311,8 @@ export default function Landing() {
       </section>
 
       <LandingShowcase />
+
+      <LandingNews onSeeMore={() => setNewsOpen(true)} />
 
       <section className="landing-cta">
         <IconBookshelf width={26} height={26} className="landing-gold-icon" />
@@ -278,6 +324,9 @@ export default function Landing() {
       </section>
 
       <footer className="landing-footer">
+        <p className="landing-footer-tagline">
+          One ticket, infinite stories{counts?.minYear ? ` · ${counts.minYear}–${new Date().getFullYear()}` : ''}
+        </p>
         <p>Cinefilm Archive — personal physical-media collection of Alireza Mazlaghani</p>
       </footer>
     </div>
