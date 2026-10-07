@@ -423,7 +423,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             >
               {film.title}
             </h2>
-            {film.criterion && (
+            {(film.criterion || film.criterionViaCopy || (hasBluray && siblingFilm?.criterion)) && (
               <span className="criterion-badge criterion-badge-modal format-badge-size">
                 CRITERION{film.criterionCopies > 1 ? ` ×${film.criterionCopies}` : ''}
               </span>

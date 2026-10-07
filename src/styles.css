@@ -5056,7 +5056,7 @@ body.light .header {
 
 /* ---------- Criterion Collection edition ---------- */
 .card-criterion {
-  border: 2px solid #8e1b2e !important;
+  border: 3px solid #8e1b2e !important;
   box-shadow: 0 0 0 1px rgba(142, 27, 46, 0.35);
 }
 .criterion-badge {
@@ -5099,7 +5099,7 @@ body.light .header {
 }
 .card-criterion.card-has-digital,
 .card-criterion.card-has-bluray {
-  border-color: #8e1b2e !important;
+  border: 3px solid #8e1b2e !important;
   box-shadow: 0 0 0 1px rgba(142, 27, 46, 0.35);
 }
 .bluray-badge {
