@@ -128,7 +128,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
       type="button"
       className={[
         'card',
-        film.criterion && 'card-criterion',
+        (film.criterion || film.criterionViaCopy) && 'card-criterion',
         hasBluray && 'card-has-bluray',
         hasDigital && 'card-has-digital',
       ].filter(Boolean).join(' ')}
@@ -186,7 +186,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
             </span>
           </div>
         )}
-        {(film.criterion || hasBluray || festivalAwards.length > 0) && (
+        {(film.criterion || film.criterionViaCopy || hasBluray || festivalAwards.length > 0) && (
           <div className="poster-badge-stack poster-badge-stack-left">
             {festivalAwards
               .filter((a) => a.festival)
@@ -201,7 +201,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
                   {a.icon} {a.festival}
                 </span>
               ))}
-            {film.criterion && (
+            {(film.criterion || film.criterionViaCopy) && (
               <span className="criterion-badge">
                 CRITERION{film.criterionCopies > 1 ? ` ×${film.criterionCopies}` : ''}
               </span>

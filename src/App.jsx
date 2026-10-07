@@ -739,9 +739,29 @@ export default function App() {
   // دانلودشده) فیلتر و slice می‌شد. الان films خودش از سرور، از قبل فقط
   // مال همین بخش و همین صفحه‌ست (mediaType/itemType/limit/offset تو
   // loadFilms ست می‌شن)، پس فیلتر/slice دوباره لازم نیست.
+  // کرایتریون فقط روی رکورد فیزیکی ثبت می‌شه؛ نسخه‌ی دیجیتال همون فیلم هم
+  // باید نشونش رو بگیره (فیلد جدا، تا موقع ادیت تو رکورد دیجیتال ذخیره نشه).
+  const criterionKeys = useMemo(
+    () =>
+      new Set(
+        allFilmsUnfiltered
+          .filter((f) => f.mediaType !== 'digital' && f.criterion)
+          .map((f) => `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
+      ),
+    [allFilmsUnfiltered]
+  )
   const sectionFilms = films
   const pageCount = Math.max(1, Math.ceil((totalCount ?? films.length) / PAGE_SIZE))
-  const visibleFilms = films
+  const visibleFilms = useMemo(
+    () =>
+      films.map((f) =>
+        f.mediaType === 'digital' && !f.criterion &&
+        criterionKeys.has(`${(f.title || '').trim().toLowerCase()}::${f.year || ''}`)
+          ? { ...f, criterionViaCopy: true }
+          : f
+      ),
+    [films, criterionKeys]
+  )
 
   // کلیدهای فیلم‌هایی که نسخه‌ی فیزیکی بلوری‌شون توی آرشیو موجوده؛ برای
   // نشون‌دادن نشان «بلوری هم داره» روی کارت‌های دیجیتال همون فیلم
