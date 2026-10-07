@@ -5056,12 +5056,12 @@ body.light .header {
 
 /* ---------- Criterion Collection edition ---------- */
 .card-criterion {
-  border: 2px solid #d9a441 !important;
-  box-shadow: 0 0 0 1px rgba(217, 164, 65, 0.35);
+  border: 2px solid #8e1b2e !important;
+  box-shadow: 0 0 0 1px rgba(142, 27, 46, 0.35);
 }
 .criterion-badge {
-  background: #d9a441;
-  color: #1a1305;
+  background: #8e1b2e;
+  color: #fbe9ea;
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 0.6px;
@@ -5078,8 +5078,8 @@ body.light .header {
 }
 .criterion-badge-modal {
   position: static;
-  background: #d9a441;
-  color: #1a1305;
+  background: #8e1b2e;
+  color: #fbe9ea;
 }
 .criterion-badge-list {
   position: static;
