@@ -5097,6 +5097,11 @@ body.light .header {
   border: 2px solid #3b82f6 !important;
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
 }
+.card-criterion.card-has-digital,
+.card-criterion.card-has-bluray {
+  border-color: #8e1b2e !important;
+  box-shadow: 0 0 0 1px rgba(142, 27, 46, 0.35);
+}
 .bluray-badge {
   display: inline-flex;
   align-items: center;
