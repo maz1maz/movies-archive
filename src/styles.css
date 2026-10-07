@@ -476,6 +476,8 @@ body.light .header {
   grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
   gap: 20px;
   padding: 26px 0 40px;
+  max-width: 1510px;
+  margin: 0 auto;
 }
 
 .grid-section-heading {
@@ -508,6 +510,7 @@ body.light .header {
 }
 
 .card {
+  position: relative;
   text-align: left;
   background: var(--surface);
   border: 1px solid var(--border);
