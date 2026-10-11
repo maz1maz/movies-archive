@@ -1671,11 +1671,12 @@ async function handleFetch(request, env, ctx) {
             .prepare('SELECT awards, recommendations, fetchedAt FROM director_extras WHERE name = ?')
             .bind(cacheKey)
             .first()
-          // اگه هم awards و هم recommendations خالی باشن، احتمالاً یه fetch
-          // (مثلاً به‌خاطر quota تموم‌شده‌ی OMDb) شکست خورده — به‌جای TTL کامل
-          // ۳۰ روزه، فقط ۱ روز نگهش می‌داریم تا خودش دوباره امتحان کنه.
-          const isEmpty =
-            (JSON.parse(cached?.awards || '[]').length === 0) && (JSON.parse(cached?.recommendations || '[]').length === 0)
+          // اگه recommendations خالی باشه، احتمالاً یه fetch (مثلاً به‌خاطر
+          // quota تموم‌شده‌ی OMDb) شکست خورده — به‌جای TTL کامل ۳۰ روزه، فقط
+          // ۱ روز نگهش می‌داریم تا خودش دوباره امتحان کنه. (قبلاً فقط وقتی
+          // awards هم خالی بود؛ کارگردانی که جایزه داشت ولی پیشنهادهاش به‌خاطر
+          // کوتا خالی برگشته بود، ۳۰ روز بدون باکس پیشنهاد می‌موند.)
+          const isEmpty = JSON.parse(cached?.recommendations || '[]').length === 0
           const ttl = isEmpty ? 1 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000
           const cacheFresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < ttl
           if (cacheFresh) {
@@ -1686,10 +1687,12 @@ async function handleFetch(request, env, ctx) {
             )
           }
 
-          const [awards, recommendations] = await Promise.all([
+          const [awards, fetchedRecs] = await Promise.all([
             fetchDirectorAwards(name),
             fetchDirectorRecommendations(db, name, env),
           ])
+          // null یعنی OMDb جواب نداد — لیست قبلی (اگه بود) رو نگه می‌داریم.
+          const recommendations = fetchedRecs ?? JSON.parse(cached?.recommendations || '[]')
 
           await db
             .prepare(
