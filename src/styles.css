@@ -9895,3 +9895,39 @@ body.light .spine-theme-wood .spine-shelf-board {
     animation: none !important;
   }
 }
+
+/* ---------- Shine that sweeps across a heading ----------
+   Based on Uiverse.io by devkatyall (MIT). The text stays fully legible:
+   a thin highlight layer sits on top of the element's own fill
+   (--shine-base) and both are clipped to the glyphs. Long pause, then one
+   quick sweep, so it reads as a glint rather than a loop. */
+.text-shine {
+  --shine-base: linear-gradient(var(--text), var(--text));
+  --shine-color: rgba(255, 255, 255, 0.9);
+  background-image:
+    linear-gradient(110deg, transparent 41%, var(--shine-color) 50%, transparent 59%),
+    var(--shine-base);
+  background-size: 250% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: 100% 0, 0 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: text-shine-sweep 6s ease-in-out infinite;
+}
+.landing-gold-text.text-shine {
+  --shine-base: linear-gradient(100deg, #f8ecc9 0%, #e3b53f 42%, #f4d489 70%, #b37b18 100%);
+  --shine-color: #fffaf0;
+}
+body.light .brand-title.text-shine {
+  --shine-color: var(--accent-strong);
+}
+@keyframes text-shine-sweep {
+  0%, 70% { background-position: 100% 0, 0 0; }
+  100% { background-position: 0% 0, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .text-shine {
+    animation: none;
+  }
+}

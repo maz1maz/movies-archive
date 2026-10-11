@@ -197,7 +197,7 @@ export default function Landing() {
             <h1 className="landing-h1">
               Your entire cinematic world,
               <br />
-              <span className="landing-gold-text landing-serif-italic">in a dream's splendor.</span>
+              <span className="landing-gold-text landing-serif-italic text-shine">in a dream's splendor.</span>
             </h1>
 
             <p className="landing-hero-copy">
@@ -294,7 +294,7 @@ export default function Landing() {
           <h2>
             When a hobby turns into heritage,
             <br />
-            <span className="landing-gold-text landing-serif-italic">it deserves better than Excel.</span>
+            <span className="landing-gold-text landing-serif-italic text-shine">it deserves better than Excel.</span>
           </h2>
         </div>
         <div className="landing-features-grid">
