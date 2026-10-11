@@ -9849,3 +9849,46 @@ body.light .spine-theme-wood .spine-shelf-board {
     font-size: 11px;
   }
 }
+
+/* ---------- Glow that travels around the card rim ----------
+   Based on Uiverse.io by dylanharriscameron (MIT). Instead of a blurred
+   blob behind an inset panel, a soft radial highlight is masked to a thin
+   ring and walked through the four corners. Hover only (plus keyboard focus)
+   so a full grid never animates at once; 5★ favourites keep it on. */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: var(--card-glow-width, 2.5px);
+  border-radius: inherit;
+  background: radial-gradient(circle, var(--card-glow-color, var(--accent-strong)) 0%, transparent 32%) 0 0 / 200% 200% no-repeat;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+@media (hover: hover) {
+  .card:hover::after {
+    opacity: 1;
+    animation: card-glow-orbit 5s ease infinite;
+  }
+}
+.card:focus-visible::after,
+.card-favorite::after {
+  opacity: 1;
+  animation: card-glow-orbit 5s ease infinite;
+}
+@keyframes card-glow-orbit {
+  0%, 100% { background-position: 0 0; }
+  25% { background-position: 100% 0; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card::after {
+    animation: none !important;
+  }
+}
