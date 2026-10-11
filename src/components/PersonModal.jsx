@@ -517,7 +517,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
           const renderFilmCard = (film) => (
             <button
               key={film.id}
-              className="person-film-card"
+              className={film.mediaType === 'digital' ? 'person-film-card person-film-digital' : 'person-film-card'}
               onClick={() => {
                 onSelectFilm(film)
               }}

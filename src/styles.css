@@ -10059,3 +10059,46 @@ html:has(.modal-overlay) {
 .edit-modal {
   overscroll-behavior: contain;
 }
+
+/* ---------- Person modal: same travelling rim glow as the grid cards ----------
+   Gold for Blu-ray titles, blue for digital ones (hover border follows). */
+.person-film-card {
+  --card-glow-color: var(--accent-strong);
+  position: relative;
+}
+.person-film-digital {
+  --card-glow-color: #5aa8f5;
+}
+.person-film-digital:hover {
+  border-color: #3f8de0;
+}
+.person-film-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: var(--card-glow-width, 3px);
+  border-radius: inherit;
+  background: radial-gradient(circle, var(--card-glow-color) 0%, transparent 38%) 0 0 / 200% 200% no-repeat;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+@media (hover: hover) {
+  .person-film-card:hover::after {
+    opacity: 1;
+    animation: card-glow-orbit 3s ease infinite;
+  }
+}
+.person-film-card:focus-visible::after {
+  opacity: 1;
+  animation: card-glow-orbit 3s ease infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .person-film-card::after {
+    animation: none !important;
+  }
+}
