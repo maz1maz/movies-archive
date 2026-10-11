@@ -109,12 +109,44 @@ export async function fetchCollectionDetails(db, env, collectionId) {
 // یه فیلم رو به یه TMDB collection وصل می‌کنه (اگه قبلاً چک نشده باشه). نتیجه
 // رو مستقیم روی ردیف films ذخیره می‌کنه (collectionId='' یعنی چک‌شده و متعلق
 // به هیچ مجموعه‌ای نیست، تا دوباره هر بار fetch نشه).
+const COLLECTION_RECHECK_MS = 30 * 24 * 60 * 60 * 1000
+
+// زمان آخرین چکِ عضویت هر فیلم تو cinema_news_cache (کلید collcheck:<id>)
+// نگه داشته می‌شه تا بدون تغییر schema هر ۳۰ روز یه بار دوباره چک بشه.
+// ردیف‌های قدیمی که هنوز زمان ندارن «همین الان چک‌شده» حساب می‌شن — یعنی
+// جوابشون می‌مونه و ۳۰ روز بعد خودکار تازه می‌شن.
+async function collectionCheckIsFresh(db, filmId) {
+  const key = `collcheck:${filmId}`
+  try {
+    const row = await db.prepare('SELECT fetchedAt FROM cinema_news_cache WHERE key = ?').bind(key).first()
+    if (!row) {
+      await markCollectionChecked(db, filmId)
+      return true
+    }
+    return Date.now() - new Date(row.fetchedAt).getTime() < COLLECTION_RECHECK_MS
+  } catch {
+    return true
+  }
+}
+
+async function markCollectionChecked(db, filmId) {
+  try {
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))")
+      .bind(`collcheck:${filmId}`)
+      .run()
+  } catch {}
+}
+
 export async function resolveFilmCollection(db, env, film) {
-  if (film.collectionId != null) {
-    // قبلاً چک شده — یا عضو یه مجموعه‌ست، یا مطمئنیم که نیست
+  if (film.collectionId != null && (await collectionCheckIsFresh(db, film.id))) {
+    // تو ۳۰ روز اخیر چک شده — یا عضو یه مجموعه‌ست، یا مطمئنیم که نیست
     if (!film.collectionId) return null
     return { collectionId: film.collectionId, collectionName: film.collectionName, collectionPoster: film.collectionPoster }
   }
+  const cachedResult = film.collectionId
+    ? { collectionId: film.collectionId, collectionName: film.collectionName, collectionPoster: film.collectionPoster }
+    : null
   if (!env.TMDB_API_KEY || film.itemType === 'series') {
     return null // TMDB collections فقط برای فیلمن، نه سریال
   }
@@ -148,19 +180,20 @@ export async function resolveFilmCollection(db, env, film) {
       }
     }
     if (!tmdbMovieId) {
-      if (!lookupFailed) {
-        await db.prepare("UPDATE films SET collectionId = '' WHERE id = ?").bind(film.id).run()
-      }
+      if (lookupFailed) return cachedResult
+      await db.prepare("UPDATE films SET collectionId = '' WHERE id = ?").bind(film.id).run()
+      await markCollectionChecked(db, film.id)
       return null
     }
 
     const movieRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbMovieId}?api_key=${env.TMDB_API_KEY}`)
-    if (!movieRes.ok) return null
+    if (!movieRes.ok) return cachedResult
     const movieData = await movieRes.json()
     const collection = movieData.belongs_to_collection
 
     if (!collection) {
       await db.prepare("UPDATE films SET collectionId = '' WHERE id = ?").bind(film.id).run()
+      await markCollectionChecked(db, film.id)
       return null
     }
 
@@ -169,9 +202,10 @@ export async function resolveFilmCollection(db, env, film) {
       .prepare('UPDATE films SET collectionId = ?, collectionName = ?, collectionPoster = ? WHERE id = ?')
       .bind(String(collection.id), collection.name, collectionPoster, film.id)
       .run()
+    await markCollectionChecked(db, film.id)
     return { collectionId: String(collection.id), collectionName: collection.name, collectionPoster }
   } catch {
-    return null
+    return cachedResult
   }
 }
 
