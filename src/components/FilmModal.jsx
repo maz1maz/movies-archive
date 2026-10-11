@@ -561,7 +561,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                         type="button"
                         className={isActive ? 'cine-poster-slide cine-poster-slide-active' : 'cine-poster-slide'}
                         style={{
-                          transform: `translateX(${offset * 78}%) scale(${isActive ? 1 : 0.78})`,
+                          '--offset': offset,
+                          '--abs': abs,
                           zIndex: isActive ? 3 : 2 - abs,
                           opacity: abs > 1 ? 0 : 1,
                           pointerEvents: abs > 1 ? 'none' : 'auto',

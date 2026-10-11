@@ -3109,6 +3109,8 @@ body.light .header {
   gap: 6px;
 }
 .cine-poster-nav {
+  position: relative;
+  z-index: 5;
   flex: 0 0 auto;
   width: 28px;
   height: 28px;
@@ -3140,7 +3142,44 @@ body.light .header {
   background: var(--surface-2);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease, filter 0.55s ease;
-  filter: grayscale(1) brightness(0.5);
+  filter: grayscale(0.6) brightness(0.55);
+  /* Fanned deck (based on Uiverse.io by ilkhoeri, MIT): side posters tilt
+     outwards and sit a little lower than the front one. */
+  transform:
+    translateX(calc(var(--offset, 0) * 40%))
+    translateY(calc(var(--abs, 0) * 5%))
+    rotate(calc(var(--offset, 0) * 12deg))
+    scale(calc(1 - var(--abs, 0) * 0.2));
+}
+/* Soft accent light line under the deck. */
+.cine-poster-coverflow::after {
+  content: '';
+  position: absolute;
+  left: -30%;
+  right: -30%;
+  bottom: -16px;
+  z-index: 4;
+  height: 4px;
+  border-radius: 50%;
+  background: linear-gradient(to right, transparent, var(--accent), transparent);
+  filter: blur(4px);
+  pointer-events: none;
+}
+.cine-poster-coverflow::before {
+  content: '';
+  position: absolute;
+  left: -15%;
+  right: -15%;
+  bottom: -15px;
+  z-index: 4;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--accent-strong), transparent);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cine-poster-slide {
+    transition: none;
+  }
 }
 .cine-poster-slide img {
   width: 100%;
