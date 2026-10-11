@@ -3128,6 +3128,11 @@ body.light .header {
     rotate(calc(var(--offset, 0) * 12deg))
     scale(calc(1 - var(--abs, 0) * 0.2));
 }
+/* Digital titles: blue deck (active border + light line) instead of gold. */
+.cine-poster-coverflow-wrap.is-digital {
+  --accent: #3f8de0;
+  --accent-strong: #6fb0f0;
+}
 /* Soft accent light line under the deck. */
 .cine-poster-coverflow::after {
   content: '';
@@ -9896,6 +9901,9 @@ body.light .spine-theme-wood .spine-shelf-board {
 .card-favorite::after {
   opacity: 1;
   animation: card-glow-orbit 3s ease infinite;
+}
+.card-digital {
+  --card-glow-color: #5aa8f5;
 }
 .card-criterion {
   --card-glow-color: #e0455e;

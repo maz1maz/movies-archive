@@ -131,6 +131,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         (film.criterion || film.criterionViaCopy) && 'card-criterion',
         hasBluray && 'card-has-bluray',
         hasDigital && 'card-has-digital',
+        isDigital && 'card-digital',
         film.myRating === 5 && 'card-favorite',
       ].filter(Boolean).join(' ')}
       data-film-id={film.id}

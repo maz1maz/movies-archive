@@ -530,7 +530,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               )
             }
             return (
-              <div className="cine-poster-coverflow-wrap">
+              <div className={film.mediaType === 'digital' ? 'cine-poster-coverflow-wrap is-digital' : 'cine-poster-coverflow-wrap'}>
                 <div
                   className={
                     hasBluray
