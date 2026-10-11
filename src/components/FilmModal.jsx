@@ -531,14 +531,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             }
             return (
               <div className="cine-poster-coverflow-wrap">
-                <button
-                  type="button"
-                  className="cine-poster-nav cine-poster-nav-prev"
-                  onClick={() => goToPoster(altPosterIndex - 1, uniquePosters.length)}
-                  aria-label="Previous poster"
-                >
-                  ‹
-                </button>
                 <div
                   className={
                     hasBluray
@@ -583,14 +575,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     )
                   })}
                 </div>
-                <button
-                  type="button"
-                  className="cine-poster-nav cine-poster-nav-next"
-                  onClick={() => goToPoster(altPosterIndex + 1, uniquePosters.length)}
-                  aria-label="Next poster"
-                >
-                  ›
-                </button>
               </div>
             )
           })()}
