@@ -120,6 +120,10 @@ export async function resolveFilmCollection(db, env, film) {
   }
 
   let tmdbMovieId = null
+  // فقط وقتی همه‌ی درخواست‌های TMDB واقعاً جواب دادن «عضو هیچ مجموعه‌ای
+  // نیست» ('') ذخیره می‌شه. قبلاً یه خطای گذرا (429/شبکه) هم '' دائمی
+  // می‌نوشت و فیلمی مثل Casino Royale برای همیشه مجموعه‌ش رو گم می‌کرد.
+  let lookupFailed = false
   try {
     if (film.imdbId) {
       const findRes = await fetch(
@@ -128,6 +132,8 @@ export async function resolveFilmCollection(db, env, film) {
       if (findRes.ok) {
         const findData = await findRes.json()
         tmdbMovieId = findData?.movie_results?.[0]?.id || null
+      } else {
+        lookupFailed = true
       }
     }
     if (!tmdbMovieId && film.title) {
@@ -137,10 +143,14 @@ export async function resolveFilmCollection(db, env, film) {
       if (searchRes.ok) {
         const searchData = await searchRes.json()
         tmdbMovieId = searchData?.results?.[0]?.id || null
+      } else {
+        lookupFailed = true
       }
     }
     if (!tmdbMovieId) {
-      await db.prepare("UPDATE films SET collectionId = '' WHERE id = ?").bind(film.id).run()
+      if (!lookupFailed) {
+        await db.prepare("UPDATE films SET collectionId = '' WHERE id = ?").bind(film.id).run()
+      }
       return null
     }
 
