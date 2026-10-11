@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconShare } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
+import { formatMoney } from '../utils/formatMoney.js'
 import { shareFilmCard } from '../utils/shareCard.js'
 import { addToOrderList } from '../utils/orderList.js'
 import { parseDriveNumbers, driveLabel, driveSortValue, normalizeDriveValue } from '../utils/driveDisplay.js'
@@ -815,7 +816,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 {film.boxOffice && (
                   <div>
                     <div className="cine-section-label">BOX OFFICE</div>
-                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.boxOffice}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{formatMoney(film.boxOffice)}</p>
                   </div>
                 )}
               </div>
@@ -833,13 +834,13 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 {film.budget ? (
                   <div>
                     <div className="cine-section-label">BUDGET</div>
-                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>${film.budget.toLocaleString()}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{formatMoney(film.budget)}</p>
                   </div>
                 ) : null}
                 {film.revenue ? (
                   <div>
                     <div className="cine-section-label">REVENUE</div>
-                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>${film.revenue.toLocaleString()}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{formatMoney(film.revenue)}</p>
                   </div>
                 ) : null}
               </div>
