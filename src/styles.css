@@ -10036,3 +10036,18 @@ body.light .folder-card-digital:hover {
     transform: none;
   }
 }
+
+/* ---------- Freeze the page behind any open modal ----------
+   The wheel used to scroll the archive behind the overlay (and chain into
+   it once the modal hit its end). html is the scroller here (html/body
+   both set overflow-x), so lock it while any .modal-overlay is mounted;
+   the gutter stays reserved so the layout doesn't shift. */
+html:has(.modal-overlay) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+.modal-overlay,
+.modal-cine,
+.edit-modal {
+  overscroll-behavior: contain;
+}
