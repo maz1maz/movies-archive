@@ -9860,9 +9860,9 @@ body.light .spine-theme-wood .spine-shelf-board {
   position: absolute;
   inset: 0;
   z-index: 3;
-  padding: var(--card-glow-width, 2.5px);
+  padding: var(--card-glow-width, 3px);
   border-radius: inherit;
-  background: radial-gradient(circle, var(--card-glow-color, var(--accent-strong)) 0%, transparent 32%) 0 0 / 200% 200% no-repeat;
+  background: radial-gradient(circle, var(--card-glow-color, var(--accent-strong)) 0%, transparent 38%) 0 0 / 200% 200% no-repeat;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
@@ -9873,13 +9873,16 @@ body.light .spine-theme-wood .spine-shelf-board {
 @media (hover: hover) {
   .card:hover::after {
     opacity: 1;
-    animation: card-glow-orbit 5s ease infinite;
+    animation: card-glow-orbit 3s ease infinite;
   }
 }
 .card:focus-visible::after,
 .card-favorite::after {
   opacity: 1;
-  animation: card-glow-orbit 5s ease infinite;
+  animation: card-glow-orbit 3s ease infinite;
+}
+.card-criterion {
+  --card-glow-color: #e0455e;
 }
 @keyframes card-glow-orbit {
   0%, 100% { background-position: 0 0; }
