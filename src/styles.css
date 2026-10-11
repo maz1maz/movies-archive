@@ -10110,3 +10110,50 @@ html:has(.modal-overlay) {
     animation: none !important;
   }
 }
+
+/* ---------- Home panel: gold light orbiting the frame ----------
+   A conic highlight masked to a thin ring; --marquee-orbit is an animatable
+   angle (@property) so the light glides evenly around the whole rectangle. */
+@property --marquee-orbit {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+.marquee-band::after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: -1px;
+  z-index: 5;
+  padding: 2.5px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--marquee-orbit),
+    transparent 0deg 260deg,
+    color-mix(in srgb, var(--marquee-gold) 45%, transparent) 315deg,
+    #f6d77a 350deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+  animation: marquee-orbit 6s linear infinite;
+}
+body.light .marquee-band::after {
+  background: conic-gradient(
+    from var(--marquee-orbit),
+    transparent 0deg 260deg,
+    color-mix(in srgb, var(--marquee-gold) 45%, transparent) 315deg,
+    #c9941f 350deg,
+    transparent 360deg
+  );
+}
+@keyframes marquee-orbit {
+  to { --marquee-orbit: 360deg; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-band::after {
+    animation: none;
+  }
+}
