@@ -10022,9 +10022,36 @@ body.light .brand-title.text-shine {
 .folder-card:focus-visible {
   outline: none;
 }
+/* Keep each tile's own tint on hover instead of the generic grey glass. */
+.folder-card-physical:hover {
+  background: linear-gradient(120deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.05));
+}
+.folder-card-digital:hover {
+  background: linear-gradient(120deg, rgba(28, 61, 90, 0.42), rgba(28, 61, 90, 0.14));
+}
+body.light .folder-card-physical:hover {
+  background: linear-gradient(120deg, rgba(212, 175, 55, 0.22), rgba(255, 255, 255, 0.7));
+}
+body.light .folder-card-digital:hover {
+  background: linear-gradient(120deg, rgba(28, 61, 90, 0.2), rgba(255, 255, 255, 0.7));
+}
+.folder-icon {
+  transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.folder-card:hover .folder-icon,
+.folder-card:focus-visible .folder-icon {
+  transform: rotate(-14deg) scale(1.06);
+}
 @media (prefers-reduced-motion: reduce) {
   .folder-card::before {
     transition: opacity 0.3s ease;
+  }
+  .folder-icon {
+    transition: none;
+  }
+  .folder-card:hover .folder-icon,
+  .folder-card:focus-visible .folder-icon {
+    transform: none;
   }
   .folder-card:hover::before,
   .folder-card:focus-visible::before,
