@@ -794,6 +794,7 @@ async function handleFetch(request, env, ctx) {
           // (مثلاً "The Apartment" باید زیر A بره نه T)
           const alphaExpr = `(CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END)`
           if (alpha === '0-9') { sql += ` AND ${alphaExpr} GLOB '[0-9]*'` }
+          else if (alpha === '#') { sql += ` AND ${alphaExpr} GLOB '[^a-zA-Z0-9]*'` }
           else { sql += ` AND LOWER(${alphaExpr}) LIKE ?`; params.push(`${alpha.toLowerCase()}%`) }
         }
         if (decade) {
