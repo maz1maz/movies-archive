@@ -10065,9 +10065,17 @@ html:has(.modal-overlay) {
 .person-film-card {
   --card-glow-color: var(--accent-strong);
   position: relative;
+  /* Colour is visible at rest too, not only on hover. */
+  border-color: color-mix(in srgb, #d4af37 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #d4af37 18%, transparent);
+}
+.person-film-card:hover {
+  border-color: #d4af37;
 }
 .person-film-digital {
   --card-glow-color: #5aa8f5;
+  border-color: color-mix(in srgb, #3f8de0 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #3f8de0 20%, transparent);
 }
 .person-film-digital:hover {
   border-color: #3f8de0;
