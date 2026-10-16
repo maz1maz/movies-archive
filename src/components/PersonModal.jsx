@@ -6,6 +6,25 @@ import { proxyImg } from '../utils/proxyImg.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
+// نشانِ کوچکِ جشنواره/جایزه از روی اسم جایزه (رنگ و مخففِ هر جشنواره)
+const FESTIVALS = [
+  [/cannes|palme/i, 'CAN', '#d4af37'],
+  [/berlin|golden bear|silver bear/i, 'BER', '#e2483d'],
+  [/venice|golden lion|silver lion|volpi/i, 'VEN', '#e8a33d'],
+  [/academy award|oscar/i, 'OSC', '#c9a227'],
+  [/c[ée]sar/i, 'CÉS', '#b8b8c8'],
+  [/bafta/i, 'BAF', '#9a7b4f'],
+  [/golden globe/i, 'GG', '#f0c75e'],
+  [/european film/i, 'EFA', '#4ea1ff'],
+  [/sundance/i, 'SUN', '#f08a24'],
+  [/toronto|tiff/i, 'TIF', '#e05a8a'],
+  [/critics|national board|nbr/i, 'CRI', '#8fa3b8'],
+]
+const festivalOf = (label) => {
+  const hit = FESTIVALS.find(([re]) => re.test(label || ''))
+  return hit ? { abbr: hit[1], color: hit[2] } : null
+}
+
 function RecommendationOrderButton({ title, year, director, source = 'Director recommendations' }) {
   const [state, setState] = useState('idle') // idle | adding | added
   const handleClick = async (e) => {
@@ -485,6 +504,12 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                           <li key={`${a.label}-${a.year}-${i}`} className="person-award-row">
                             <span className="person-award-year">{a.year || '—'}</span>
                             <span className="person-award-text">
+                              {(() => {
+                                const fest = festivalOf(a.label)
+                                return fest ? (
+                                  <span className="person-award-fest" style={{ '--fest': fest.color }} aria-hidden="true">{fest.abbr}</span>
+                                ) : null
+                              })()}
                               {a.label}
                               {a.forWork && (
                                 <em className="person-award-work">

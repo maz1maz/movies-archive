@@ -10477,3 +10477,17 @@ body.light .marquee-band::after {
   font-style: normal;
   vertical-align: middle;
 }
+.person-award-fest {
+  display: inline-block;
+  min-width: 30px;
+  margin-inline-end: 7px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--fest) 18%, transparent);
+  color: var(--fest);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+  vertical-align: 1px;
+}
