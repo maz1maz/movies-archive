@@ -1,9 +1,7 @@
 import { proxyImg } from '../utils/proxyImg.js'
-import { lazy, Suspense, useMemo, useState } from 'react'
-import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconNewspaper, IconChevronRight } from './icons.jsx'
+import { useMemo, useState } from 'react'
+import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconNewspaper, IconChevronRight, IconTrophy, IconMasks } from './icons.jsx'
 import PosterCollage from './PosterCollage.jsx'
-
-const DiscoverSection = lazy(() => import('./DashboardDiscoverPanel.jsx'))
 
 function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -59,6 +57,8 @@ export default function FolderNav({
   onSelectDashboard,
   onSelectGallery,
   onSelectCinemaNews,
+  onSelectYearInFilm,
+  onSelectMovements,
   counts,
   posters,
   allFilms,
@@ -264,18 +264,29 @@ export default function FolderNav({
                 </span>
                 <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>
+              <button className="folder-card reveal-item reveal-9" onClick={onSelectYearInFilm}>
+                <span className="folder-icon">
+                  <IconTrophy width={32} height={32} />
+                </span>
+                <span className="folder-card-text">
+                  <h2>The Year in Film</h2>
+                  <p>Best of each year &amp; what to order</p>
+                </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
+              </button>
+              <button className="folder-card reveal-item reveal-9" onClick={onSelectMovements}>
+                <span className="folder-icon">
+                  <IconMasks width={32} height={32} />
+                </span>
+                <span className="folder-card-text">
+                  <h2>Movements &amp; Cult</h2>
+                  <p>New waves, cult &amp; avant-garde</p>
+                </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
+              </button>
             </div>
           )}
         </div>
-        {/* دو بخش از Discover روی صفحه‌ی اصلی */}
-        {Array.isArray(allFilms) && allFilms.length > 0 && (
-          <Suspense fallback={null}>
-            <div className="home-discover">
-              <DiscoverSection films={allFilms} onOpenFilm={onOpenFilm} only="year" title="The Year in Film" />
-              <DiscoverSection films={allFilms} onOpenFilm={onOpenFilm} only="tags" title="Movements, Cult & Avant-garde" />
-            </div>
-          </Suspense>
-        )}
       </div>
     </div>
   )

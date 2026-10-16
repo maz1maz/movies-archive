@@ -10835,21 +10835,22 @@ a.cine-related-title:hover {
   -webkit-overflow-scrolling: touch;
 }
 
-/* بخش‌های Discover روی صفحه‌ی اصلی */
-.home-discover {
-  width: 100%;
+/* صفحه‌ی جدای The Year in Film / Movements & Cult */
+.discover-page {
   max-width: 1510px;
-  margin: 40px auto 0;
-  padding: 0 16px 40px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+  min-height: 100vh;
   box-sizing: border-box;
-  text-align: left;
 }
-.discover-home + .discover-home {
-  margin-top: 36px;
+.discover-page-back {
+  margin-bottom: 18px;
 }
-.discover-home-title {
+.discover-page .oscars-panel h2.discover-home-title {
+  text-transform: none;
   margin: 0 0 6px;
-  font-size: 22px;
+  font-family: var(--font-display, inherit);
+  font-size: 28px;
   letter-spacing: 0.02em;
   color: #d4af37;
 }

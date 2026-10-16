@@ -30,6 +30,7 @@ const DriveBrowserModal = lazy(() => import('./components/DriveBrowserModal.jsx'
 const PhotoScanModal = lazy(() => import('./components/PhotoScanModal.jsx'))
 const BookshelfView = lazy(() => import('./components/BookshelfView.jsx'))
 const CinemaNewsPage = lazy(() => import('./components/CinemaNewsPage.jsx'))
+const DiscoverPanel = lazy(() => import('./components/DashboardDiscoverPanel.jsx'))
 
 export default function App() {
   const { isGuest, isViewer, isAdmin, openLogin } = useAuth()
@@ -932,6 +933,8 @@ export default function App() {
             onSelectDashboard={() => changeSection('dashboard')}
             onSelectGallery={() => changeSection('gallery')}
             onSelectCinemaNews={() => changeSection('cinema-news')}
+            onSelectYearInFilm={() => changeSection('year-in-film')}
+            onSelectMovements={() => changeSection('movements')}
           />
           {selected && (
             <FilmModal
@@ -986,6 +989,50 @@ export default function App() {
             </div>
           </div>
         </div>
+      ) : section === 'year-in-film' || section === 'movements' ? (
+        <>
+          {/* دو بخش از Discover به‌صورت صفحه‌ی جدا (مثل Gallery/Dashboard) */}
+          <div className="discover-page">
+            <button type="button" className="btn discover-page-back" onClick={() => changeSection(null)}>
+              ← Back
+            </button>
+            <Suspense fallback={<div className="status">Loading…</div>}>
+              <DiscoverPanel
+                films={allFilmsUnfiltered}
+                onOpenFilm={(film) => setSelected(film)}
+                only={section === 'year-in-film' ? 'year' : 'tags'}
+                title={section === 'year-in-film' ? 'The Year in Film' : 'Movements & Cult'}
+              />
+            </Suspense>
+          </div>
+          {selected && (
+            <FilmModal
+              film={selected}
+              films={allFilmsUnfiltered}
+              hasBluray={hasBlurayCopy(selected)}
+              siblingFilm={findSiblingFilm(selected)}
+              hasDigital={hasDigitalCopy(selected)}
+              onNavigate={(film) => setSelected(film)}
+              onSelectPerson={openPersonFromFilm}
+              onManageLoan={guardedLoan}
+              onRateFilm={guardedRate}
+              onSaveSeasonDrive={guardedSeasonDrive}
+              onEdit={guardedEdit}
+              onClose={closeFilmModal}
+            />
+          )}
+          {selectedPerson && (
+            <PersonModal
+              personName={selectedPerson}
+              allFilms={allFilmsUnfiltered}
+              hasBluray={hasBlurayCopy}
+              hasDigital={hasDigitalCopy}
+              onSelectFilm={openFilmFromPerson}
+              onSelectPerson={(name) => setSelectedPerson(name)}
+              onClose={closePersonModal}
+            />
+          )}
+        </>
       ) : section === 'gallery' ? (
         <>
           <Suspense fallback={<div className="status" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0c', color: '#eee', zIndex: 10 }}>Loading gallery…</div>}>
