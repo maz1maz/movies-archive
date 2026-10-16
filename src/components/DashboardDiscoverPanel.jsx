@@ -22,21 +22,30 @@ function dedupe(films) {
 
 const score = (f) => (f.myRating ? f.myRating * 2 : 0) + (Number(f.rating) || 0) + (Number(f.letterboxdRating) || 0) * 2
 
-function PosterGrid({ films, onOpenFilm }) {
+// mediaMap: key → Set(mediaType) — تا معلوم باشه بلوری داری، دیجیتال یا هردو
+function PosterGrid({ films, onOpenFilm, mediaMap }) {
   return (
     <div className="grid">
-      {films.map((f) => (
-        <DashboardPosterCard
-          key={f.id}
-          title={f.title}
-          subtitle={[f.year, f.director].filter(Boolean).join(' — ')}
-          poster={f.poster}
-          inArchive
-          clickable
-          showMissingBadge={false}
-          onClick={() => onOpenFilm(f)}
-        />
-      ))}
+      {films.map((f) => {
+        const types = mediaMap?.get(keyOf(f)) || new Set([f.mediaType === 'digital' ? 'digital' : 'physical'])
+        const both = types.has('digital') && types.has('physical')
+        const badge = both ? 'Blu-ray + Digital' : types.has('digital') ? 'Digital' : 'Blu-ray'
+        const variant = both ? 'both' : types.has('digital') ? 'digital' : 'bluray'
+        return (
+          <DashboardPosterCard
+            key={f.id}
+            title={f.title}
+            subtitle={[f.year, f.director].filter(Boolean).join(' — ')}
+            poster={f.poster}
+            badgeText={badge}
+            badgeVariant={variant}
+            inArchive
+            clickable
+            showMissingBadge={false}
+            onClick={() => onOpenFilm(f)}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -243,9 +252,28 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
       .map(([tag, m]) => [tag, [...m.values()].sort((a, b) => score(b) - score(a))])
       .sort((a, b) => b[1].length - a[1].length)
   }, [films, tmdbTagMap])
+  const mediaMap = useMemo(() => {
+    const m = new Map()
+    for (const f of films) {
+      const k = keyOf(f)
+      if (!m.has(k)) m.set(k, new Set())
+      m.get(k).add(f.mediaType === 'digital' ? 'digital' : 'physical')
+    }
+    return m
+  }, [films])
+  // مثل صفحه‌های اصلی: دسکتاپ ۴۹ (۷ ستون)، موبایل ۴۸
+  const [PAGE] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches ? 48 : 49
+  )
+  const [tagPage, setTagPage] = useState(1)
   const [activeTag, setActiveTag] = useState(null)
   const shownTag = activeTag || byTag[0]?.[0]
-  const shownFilms = byTag.find(([t]) => t === shownTag)?.[1] || []
+  const [tagQuery, setTagQuery] = useState('')
+  const shownFilmsAll = byTag.find(([t]) => t === shownTag)?.[1] || []
+  const tq = tagQuery.trim().toLowerCase()
+  const shownFilms = tq
+    ? shownFilmsAll.filter((f) => `${f.title || ''} ${f.originalTitle || ''} ${f.director || ''} ${f.year || ''}`.toLowerCase().includes(tq))
+    : shownFilmsAll
 
   return (
     <div className={only ? 'oscars-panel discover-panel discover-home' : 'oscars-panel discover-panel'}>
@@ -263,7 +291,7 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
           </select>
         </div>
         <p className="oscars-intro">Your archive — ranked by your own rating first, then IMDb and Letterboxd.</p>
-        {topOfYear.length ? <PosterGrid films={topOfYear} onOpenFilm={onOpenFilm} /> : <div className="empty">No films from this year in your archive.</div>}
+        {topOfYear.length ? <PosterGrid films={topOfYear} onOpenFilm={onOpenFilm} mediaMap={mediaMap} /> : <div className="empty">No films from this year in your archive.</div>}
 
         <h2 style={{ marginTop: 24 }}>Best of {activeYear} worldwide</h2>
         <p className="oscars-intro">
@@ -309,7 +337,7 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
       <section style={{ marginTop: 28 }}>
         <h2>Acclaimed, not watched yet ({acclaimedUnwatched.length})</h2>
         <p className="oscars-intro">In your archive with IMDb ≥ 7.8 or Letterboxd ≥ 3.9 — still unwatched.</p>
-        {acclaimedUnwatched.length ? <PosterGrid films={acclaimedUnwatched} onOpenFilm={onOpenFilm} /> : <div className="empty">You've seen them all.</div>}
+        {acclaimedUnwatched.length ? <PosterGrid films={acclaimedUnwatched} onOpenFilm={onOpenFilm} mediaMap={mediaMap} /> : <div className="empty">You've seen them all.</div>}
       </section>
       )}
 
@@ -319,12 +347,33 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
         <p className="oscars-intro">Tagged automatically from TMDB keywords, plus movement guesses from director, country and year. Fills in over the next few weeks.</p>
         <div className="row row-wrap" style={{ gap: 6, margin: '8px 0 14px' }}>
           {byTag.map(([tag, list]) => (
-            <button key={tag} className={`btn ${tag === shownTag ? 'btn-primary' : ''}`} onClick={() => setActiveTag(tag)}>
+            <button key={tag} className={`btn ${tag === shownTag ? 'btn-primary' : ''}`} onClick={() => { setActiveTag(tag); setTagPage(1) }}>
               {TAG_LABELS[tag] || tag} ({list.length})
             </button>
           ))}
         </div>
-        {shownFilms.length ? <PosterGrid films={shownFilms.slice(0, 48)} onOpenFilm={onOpenFilm} /> : <div className="empty">No tagged films yet.</div>}
+        <input
+          className="input discover-search"
+          placeholder={`Search in ${TAG_LABELS[shownTag] || 'this list'}… (title, director, year)`}
+          value={tagQuery}
+          onChange={(e) => { setTagQuery(e.target.value); setTagPage(1) }}
+        />
+        {shownFilms.length ? (
+          <>
+            <PosterGrid films={shownFilms.slice((tagPage - 1) * PAGE, tagPage * PAGE)} onOpenFilm={onOpenFilm} mediaMap={mediaMap} />
+            {shownFilms.length > PAGE && (
+              <div className="discover-pager">
+                <button className="btn" disabled={tagPage <= 1} onClick={() => setTagPage((p) => p - 1)}>← Prev</button>
+                <span>
+                  Page {tagPage} / {Math.ceil(shownFilms.length / PAGE)}
+                </span>
+                <button className="btn" disabled={tagPage >= Math.ceil(shownFilms.length / PAGE)} onClick={() => setTagPage((p) => p + 1)}>Next →</button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="empty">{tq ? 'No matches.' : 'No tagged films yet.'}</div>
+        )}
       </section>
       )}
 

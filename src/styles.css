@@ -10854,3 +10854,35 @@ a.cine-related-title:hover {
   letter-spacing: 0.02em;
   color: #d4af37;
 }
+.dashboard-badge-bluray,
+.dashboard-badge-digital,
+.dashboard-badge-both {
+  top: 7px;
+  left: 7px;
+}
+.dashboard-badge-bluray {
+  background: #d4af37;
+  color: #1a1305;
+}
+.dashboard-badge-digital {
+  background: #3f8de0;
+  color: #fff;
+}
+.dashboard-badge-both {
+  background: linear-gradient(90deg, #d4af37 50%, #3f8de0 50%);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.discover-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 18px 0 6px;
+  font-size: 13px;
+}
+.discover-search {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 0 12px;
+}
