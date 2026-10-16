@@ -13,7 +13,7 @@ import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailer
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { findVerifiedImdbId, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -1798,6 +1798,18 @@ async function handleFetch(request, env, ctx) {
           return json({ cast }, 200, corsHeaders)
         } catch (e) {
           return json({ cast: null, error: String(e) }, 200, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/films/:id/relations — ادامه/ریمیک/اقتباس + فرمت اکران از Wikidata ----
+      const relMatch = pathname.match(/^\/api\/films\/([^/]+)\/relations$/)
+      if (method === 'GET' && relMatch) {
+        try {
+          const row = await db.prepare('SELECT id, imdbId FROM films WHERE id = ?').bind(relMatch[1]).first()
+          if (!row) return json({ related: [], formats: [] }, 200, corsHeaders)
+          return json(await fetchFilmRelations(db, row), 200, corsHeaders)
+        } catch (e) {
+          return json({ related: [], formats: [], error: String(e) }, 200, corsHeaders)
         }
       }
 

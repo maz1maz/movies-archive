@@ -19,6 +19,11 @@ export const MOVEMENT_LABELS = {
 export const TAG_LABELS = {
   cult: 'Cult',
   experimental: 'Experimental / Avant-garde',
+  imax: 'IMAX',
+  '70mm': '70mm',
+  '35mm': '35mm',
+  '16mm': '16mm',
+  '3d': '3D',
   ...MOVEMENT_LABELS,
 }
 

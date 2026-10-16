@@ -125,7 +125,19 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       .catch(() => {})
     return () => { cancelled = true }
   }, [film?.id])
-  const autoTags = film ? filmTags(film, tmdbTags) : []
+  const [relations, setRelations] = useState({ related: [], formats: [] })
+  useEffect(() => {
+    setRelations({ related: [], formats: [] })
+    if (!film?.id || !film?.imdbId) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/relations`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setRelations({ related: d.related || [], formats: d.formats || [] }) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [film?.id, film?.imdbId])
+  const autoTags = film ? filmTags(film, [...tmdbTags, ...relations.formats.map((f) => f.toLowerCase())]) : []
+  const [orderedRelated, setOrderedRelated] = useState({})
   const [stills, setStills] = useState([])
   useEffect(() => {
     setStills([])
@@ -1366,6 +1378,50 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             )}
           </div>
         </div>
+
+        {relations.related.length > 0 && (
+          <div className="cine-related">
+            <div className="cine-col-title">RELATED FILMS</div>
+            <div className="cine-related-list">
+              {relations.related.map((r) => {
+                const owned = r.imdbId && Array.isArray(films) ? films.find((f) => f.imdbId === r.imdbId) : null
+                const key = r.imdbId || r.title
+                return (
+                  <div key={key} className={owned ? 'cine-related-item is-owned' : 'cine-related-item'}>
+                    <span className="cine-related-kind">{r.kind}</span>
+                    {owned ? (
+                      <button type="button" className="cine-related-title" onClick={() => onNavigate && onNavigate(owned)}>
+                        {r.title}{r.year ? ` (${r.year})` : ''}
+                      </button>
+                    ) : (
+                      <span className="cine-related-title">{r.title}{r.year ? ` (${r.year})` : ''}</span>
+                    )}
+                    {owned ? (
+                      <span className="cine-related-owned">In archive</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="cine-related-order"
+                        disabled={!!orderedRelated[key]}
+                        onClick={async () => {
+                          setOrderedRelated((p) => ({ ...p, [key]: 'adding' }))
+                          try {
+                            await addToOrderList({ title: r.title, releaseDate: r.year ? `${r.year}-01-01` : null, source: `Related to ${film.title}` })
+                            setOrderedRelated((p) => ({ ...p, [key]: 'added' }))
+                          } catch {
+                            setOrderedRelated((p) => ({ ...p, [key]: undefined }))
+                          }
+                        }}
+                      >
+                        {orderedRelated[key] === 'added' ? 'Added ✓' : orderedRelated[key] === 'adding' ? '…' : 'Order'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {stills.length > 0 && (
           <div className="cine-stills">

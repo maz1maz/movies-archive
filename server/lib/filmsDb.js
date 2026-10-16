@@ -1001,6 +1001,8 @@ const TAG_RULES = [
   ['new-hollywood', /\bnew hollywood\b/],
   ['dogme-95', /\bdogme\b/],
   ['slow-cinema', /\bslow cinema\b/],
+  ['imax', /\bimax\b/],
+  ['70mm', /\b70 ?mm\b/],
 ]
 
 export async function fetchFilmTags(db, env, film) {
@@ -1060,4 +1062,69 @@ export async function backfillFilmTags(db, env, limit = 20) {
     if (t.length) tagged++
   }
   return { tried: results.length, tagged }
+}
+
+// فیلم‌های مرتبط (ادامه/قبلی/ریمیک/اقتباس از فیلم) + فرمت اکران (IMAX/70mm/…)
+// از Wikidata بر اساس imdbId. کش ۱۸۰ روزه (کلید wdrel:<id>).
+export async function fetchFilmRelations(db, film) {
+  const empty = { related: [], formats: [] }
+  if (!film.imdbId) return empty
+  const key = `wdrel:${film.id}`
+  const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(key).first()
+  if (cached && Date.now() - Date.parse(cached.fetchedAt.replace(' ', 'T') + 'Z') < 180 * 86400000) {
+    try { return JSON.parse(cached.data) } catch {}
+  }
+  const imdb = String(film.imdbId).replace(/[^a-z0-9]/gi, '')
+  const sparql = `SELECT ?kind ?other ?otherLabel ?otherImdb ?otherYear ?fmtLabel WHERE {
+    ?film wdt:P345 "${imdb}".
+    {
+      { ?film wdt:P155 ?other. BIND("prequel" AS ?kind) } UNION
+      { ?film wdt:P156 ?other. BIND("sequel" AS ?kind) } UNION
+      { ?film wdt:P144 ?other. ?other wdt:P31/wdt:P279* wd:Q11424. BIND("based on" AS ?kind) } UNION
+      { ?other wdt:P144 ?film. ?other wdt:P31/wdt:P279* wd:Q11424. BIND("remake / adaptation" AS ?kind) } UNION
+      { ?film wdt:P4969 ?other. BIND("remake / adaptation" AS ?kind) }
+      OPTIONAL { ?other wdt:P345 ?otherImdb. }
+      OPTIONAL { ?other wdt:P577 ?date. BIND(YEAR(?date) AS ?otherYear) }
+    } UNION {
+      ?film wdt:P437 ?fmt. BIND("format" AS ?kind)
+    }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+  } LIMIT 60`
+  const headers = {
+    'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive; personal, single-user film archive app)',
+    accept: 'application/sparql-results+json',
+  }
+  let res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
+  if (!res.ok) return empty // موقت؛ کش نکن
+  const data = await res.json()
+  const related = new Map()
+  const formats = new Set()
+  for (const b of data?.results?.bindings || []) {
+    const kind = b.kind?.value
+    if (kind === 'format') {
+      const f = (b.fmtLabel?.value || '').toLowerCase()
+      if (/imax/.test(f)) formats.add('IMAX')
+      else if (/70 ?mm/.test(f)) formats.add('70mm')
+      else if (/35 ?mm/.test(f)) formats.add('35mm')
+      else if (/16 ?mm/.test(f)) formats.add('16mm')
+      else if (/3d/.test(f)) formats.add('3D')
+      continue
+    }
+    const label = b.otherLabel?.value
+    if (!label || /^Q\d+$/.test(label)) continue
+    const id = b.other?.value
+    const prev = related.get(id)
+    related.set(id, {
+      kind: prev?.kind || kind,
+      title: label,
+      year: prev?.year || (b.otherYear?.value ? Number(b.otherYear.value) : null),
+      imdbId: prev?.imdbId || b.otherImdb?.value || null,
+    })
+  }
+  const out = { related: [...related.values()].slice(0, 20), formats: [...formats] }
+  await db
+    .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+    .bind(key, JSON.stringify(out))
+    .run()
+  return out
 }
