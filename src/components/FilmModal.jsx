@@ -1249,7 +1249,16 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               className="cine-trailer-card"
             >
               <div className="cine-trailer-media">
-                <img src={film.poster} alt="Trailer" className="cine-trailer-bg" />
+                <img
+                  src={proxyImg([film.poster, ...altPosters].find((src) => src && !brokenPosters.has(src)) || film.poster)}
+                  alt="Trailer"
+                  className="cine-trailer-bg"
+                  onError={(e) => {
+                    const bad = e.currentTarget.dataset.src || film.poster
+                    setBrokenPosters((prev) => (prev.has(bad) ? prev : new Set(prev).add(bad)))
+                  }}
+                  data-src={[film.poster, ...altPosters].find((src) => src && !brokenPosters.has(src)) || film.poster}
+                />
                 <div className="cine-play-circle">
                   <span className="play-triangle">▶</span>
                 </div>
