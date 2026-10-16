@@ -1855,6 +1855,42 @@ async function handleFetch(request, env, ctx) {
         return json({ year: found }, 200, corsHeaders)
       }
 
+      // ---- GET /api/person-credits?name= — فیلم‌شناسی کامل بازیگر از TMDB (کش ۳۰ روزه)
+      // تا «چند فیلمِ آرشیو» دقیق حساب بشه، نه فقط از روی ۳ بازیگرِ ذخیره‌شده‌ی هر فیلم. ----
+      if (method === 'GET' && pathname === '/api/person-credits') {
+        const name = (url.searchParams.get('name') || '').trim()
+        if (!name) return json({ credits: [] }, 200, corsHeaders)
+        const cacheKey = `pcredits:${name.toLowerCase()}`
+        const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(cacheKey).first()
+        if (cached && Date.now() - Date.parse(cached.fetchedAt.replace(' ', 'T') + 'Z') < 30 * 86400000) {
+          return json({ credits: JSON.parse(cached.data) }, 200, { ...corsHeaders, 'Cache-Control': 'public, max-age=3600' })
+        }
+        if (!env.TMDB_API_KEY) return json({ credits: [] }, 200, corsHeaders)
+        const sr = await tmdbFetch(`https://api.themoviedb.org/3/search/person?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(name)}`, env)
+        if (!sr.ok) return json({ credits: [] }, 200, corsHeaders)
+        const person = ((await sr.json()).results || [])[0]
+        let credits = []
+        if (person?.id) {
+          const cr = await tmdbFetch(`https://api.themoviedb.org/3/person/${person.id}/combined_credits?api_key=${env.TMDB_API_KEY}`, env)
+          if (!cr.ok) return json({ credits: [] }, 200, corsHeaders)
+          const cd = await cr.json()
+          const seen = new Set()
+          for (const c of [...(cd.cast || []), ...(cd.crew || [])]) {
+            const t = c.title || c.name
+            const y = Number(String(c.release_date || c.first_air_date || '').slice(0, 4)) || null
+            const k = `${t}|${y}`
+            if (!t || seen.has(k)) continue
+            seen.add(k)
+            credits.push({ t, o: c.original_title || c.original_name || null, y })
+          }
+        }
+        await db
+          .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+          .bind(cacheKey, JSON.stringify(credits))
+          .run()
+        return json({ credits }, 200, corsHeaders)
+      }
+
       // ---- GET /api/top-of-year?year= — بهترین فیلم‌های هر سال از TMDB (کش ۳۰ روزه) ----
       if (method === 'GET' && pathname === '/api/top-of-year') {
         const year = Number(url.searchParams.get('year'))

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconShare } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
@@ -420,6 +420,35 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     }
   }, [film?.id, film?.letterboxdRating, film?.itemType])
 
+  const normT = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+  const archiveIndex = useMemo(() => {
+    const m = new Map()
+    for (const f of Array.isArray(films) ? films : []) {
+      const y = Number(f.year)
+      const key = `${normT(f.title)}::${f.year || ''}`
+      for (const t of [f.title, f.originalTitle]) {
+        const n = normT(t)
+        if (n) for (const yy of [y - 1, y, y + 1]) m.set(`${n}::${yy}`, key)
+      }
+    }
+    return m
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [films])
+  const [personCredits, setPersonCredits] = useState({})
+  useEffect(() => {
+    const list = fullCast || (Array.isArray(film?.cast) ? film.cast : [])
+    const actor = list[activeCast]
+    const name = typeof actor === 'object' ? actor?.name : actor
+    if (!name || personCredits[name]) return
+    let cancelled = false
+    fetch(`/api/person-credits?name=${encodeURIComponent(name)}`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setPersonCredits((p) => ({ ...p, [name]: Array.isArray(d.credits) ? d.credits : [] })) })
+      .catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCast, fullCast, film?.id])
+
   if (!film) return null
 
   const formatRuntime = (min) => {
@@ -493,7 +522,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     return null
   }
 
-  // هر بازیگر تو چند فیلمِ آرشیو هست (بلوری+دیجیتالِ یه فیلم یکی حساب می‌شه)
+  // هر بازیگر تو چند فیلمِ آرشیو هست (بلوری+دیجیتالِ یه فیلم یکی حساب می‌شه).
+  // اول از روی cast ذخیره‌شده؛ برای بازیگری که باز می‌شه، فیلم‌شناسی کاملش از
+  // TMDB هم با آرشیو تطبیق داده می‌شه (چون بیشتر فیلم‌ها فقط ۳ بازیگر ذخیره دارن).
   const archiveCountFor = (name) => {
     const target = (name || '').toLowerCase()
     if (!target || !Array.isArray(films)) return 0
@@ -501,8 +532,12 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     for (const f of films) {
       if (!Array.isArray(f.cast)) continue
       if (f.cast.some((a) => ((typeof a === 'object' ? a?.name : a) || '').toLowerCase() === target)) {
-        seen.add(`${(f.title || '').toLowerCase()}::${f.year || ''}`)
+        seen.add(`${normT(f.title)}::${f.year || ''}`)
       }
+    }
+    for (const c of personCredits[name] || []) {
+      const hit = archiveIndex.get(`${normT(c.t)}::${c.y}`) || archiveIndex.get(`${normT(c.o)}::${c.y}`)
+      if (hit) seen.add(hit)
     }
     return seen.size
   }
