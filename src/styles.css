@@ -10789,13 +10789,13 @@ a.cine-related-title:hover {
   justify-content: center;
   gap: 6px;
   width: 100%;
-  margin-top: 16px;
+  margin-top: 26px;
   position: relative;
   z-index: 2;
 }
 .cine-poster-thumb {
-  width: 34px;
-  height: 50px;
+  width: 44px;
+  height: 64px;
   padding: 0;
   border: 1.5px solid transparent;
   border-radius: 5px;
