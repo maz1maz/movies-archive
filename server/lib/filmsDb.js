@@ -915,3 +915,23 @@ export async function fetchTmdbPersonPhoto(db, env, name) {
     return null
   }
 }
+
+// بک‌فیلِ پس‌زمینه‌ی بازیگرها: فیلم‌هایی که ≤۳ بازیگر دارن و هنوز امتحان نشدن.
+export async function backfillFullCast(db, env, limit = 18) {
+  if (!env.TMDB_API_KEY) return { skipped: 'no key' }
+  const { results } = await db
+    .prepare(
+      `SELECT id, title, year, imdbId, itemType, cast FROM films
+       WHERE (cast IS NULL OR cast = '' OR json_valid(cast) = 0 OR json_array_length(cast) <= 3)
+         AND NOT EXISTS (SELECT 1 FROM cinema_news_cache c WHERE c.key = 'castfill:' || films.id)
+       LIMIT ?`
+    )
+    .bind(limit)
+    .all()
+  let filled = 0
+  for (const row of results) {
+    const got = await fetchFullCast(db, env, parseFilmRow(row)).catch(() => null)
+    if (got) filled++
+  }
+  return { tried: results.length, filled }
+}

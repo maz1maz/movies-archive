@@ -6,14 +6,14 @@ import { fetchTotalSeasons, enrichSeriesFromTVMazeById, fetchTvMazePersonUpcomin
 import * as XLSX from 'xlsx'
 import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader } from './auth.js'
 
-import { notifyServerError, runDailyBackup, gunzipToText, gzipText, buildFullExport, uploadBackupToDrive } from './lib/backup.js'
+import { notifyServerError, runDailyBackup, gunzipToText, gzipText, fullExportGzipStream, fullExportGzipBytes, uploadBackupToDrive } from './lib/backup.js'
 import { resolveLetterboxdPersonUrl, syncLetterboxdUserToReviews, parseLetterboxdRss, parseLetterboxdBasic, titleToLetterboxdSlug, fetchLetterboxdRating } from './lib/letterboxd.js'
 import { fetchCinemaHeadlines, fetchCinemaHeadlinesFa } from './lib/cinemaNews.js'
 import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailers, fetchGeneralUpcoming, fetchTrendingAndBoxOffice, fetchTrendingPeople, fetchBornTodayGeneral, fetchFestivalCalendar, ageFromBirthDate } from './lib/tmdbFeeds.js'
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { findVerifiedImdbId, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, fetchFullCast, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -102,6 +102,12 @@ export default {
 
     if (event.cron === '*/10 * * * *') {
       // ۲۰ فیلم × حداکثر ۲ درخواست TMDB — زیر سقف subrequest هر invocation
+      // نوبتی: یه دور IMDb id، یه دور بازیگر کامل (هر دو با هم از سقف ۵۰ subrequest رد می‌شن)
+      if (Math.floor(new Date().getUTCMinutes() / 10) % 2 === 1) {
+        const r = await backfillFullCast(env.DB, env, 18).catch((e) => ({ error: e.message }))
+        console.log('Cast backfill:', JSON.stringify(r))
+        return
+      }
       const r = await backfillImdbIds(env.DB, env, 20).catch((e) => ({ error: e.message }))
       console.log('IMDb id backfill:', JSON.stringify(r))
       return
@@ -2756,8 +2762,7 @@ async function handleFetch(request, env, ctx) {
       if (method === 'GET' && pathname === '/api/export/full') {
         const denied = requireAdmin()
         if (denied) return denied
-        const out = await buildFullExport(db)
-        const gz = await gzipText(JSON.stringify(out))
+        const gz = fullExportGzipStream(db)
         const day = new Date().toISOString().slice(0, 10)
         return new Response(gz, {
           status: 200,
@@ -2774,7 +2779,7 @@ async function handleFetch(request, env, ctx) {
         const denied = requireAdmin()
         if (denied) return denied
         try {
-          const gz = await gzipText(JSON.stringify(await buildFullExport(db)))
+          const gz = await fullExportGzipBytes(db)
           const day = new Date().toISOString().slice(0, 10)
           const ok = await uploadBackupToDrive(env, gz, `movies-archive-full-${day}.json.gz`)
           return json(ok ? { ok: true } : { ok: false, error: 'Google Drive secrets are not set' }, ok ? 200 : 400, corsHeaders)

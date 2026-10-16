@@ -69,7 +69,7 @@ export async function runDailyBackup(env) {
   // هفته‌ای یه‌بار (جمعه) خروجیِ کامل (همه‌ی جدول‌ها) به Google Drive
   if (new Date().getUTCDay() === 5 || env.FORCE_DRIVE_BACKUP) {
     try {
-      const full = await gzipText(JSON.stringify(await buildFullExport(db)))
+      const full = await fullExportGzipBytes(db)
       await uploadBackupToDrive(env, full, `movies-archive-full-${dateKey}.json.gz`)
     } catch (e) {
       await notifyServerError(env, `Google Drive weekly backup failed: ${e.message}`).catch(() => {})
@@ -77,21 +77,49 @@ export async function runDailyBackup(env) {
   }
 }
 
-// کل دیتابیس (همه‌ی جدول‌ها) برای مهاجرت/بکاپ کامل. سشن‌ها و کش‌ها حذف می‌شن؛
-// هشِ رمز کاربرها هم بیرون نمی‌ره.
-export async function buildFullExport(db) {
-  const SKIP = new Set(['sessions', 'cinema_news_cache', 'api_usage_daily'])
-  const { results: tables } = await db
-    .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'd1_%'")
-    .all()
-  const out = { exportedAt: new Date().toISOString(), schema: {}, tables: {} }
-  for (const t of tables) {
-    if (SKIP.has(t.name)) continue
-    out.schema[t.name] = t.sql
-    const { results } = await db.prepare(`SELECT * FROM "${t.name.replace(/"/g, '')}"`).all()
-    out.tables[t.name] = t.name === 'users' ? results.map(({ passwordHash, passwordSalt, ...u }) => u) : results
-  }
-  return out
+// کل دیتابیس (همه‌ی جدول‌ها) برای مهاجرت/بکاپ کامل، به‌صورت gzip‌ِ استریمی:
+// ردیف‌ها ۵۰۰تا‌۵۰۰تا خونده و مستقیم فشرده می‌شن، تا کل JSON هیچ‌وقت یه‌جا
+// تو حافظه نباشه (۱۸ هزار فیلم از سقف ۱۲۸ مگ حافظه‌ی Worker رد می‌شد).
+// سشن‌ها و کش‌ها حذف می‌شن؛ هشِ رمز کاربرها هم بیرون نمی‌ره.
+export function fullExportGzipStream(db) {
+  const gzip = new CompressionStream('gzip')
+  const writer = gzip.writable.getWriter()
+  const enc = new TextEncoder()
+  const write = (str) => writer.write(enc.encode(str))
+  ;(async () => {
+    try {
+      const SKIP = new Set(['sessions', 'cinema_news_cache', 'api_usage_daily'])
+      const { results: tables } = await db
+        .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'd1_%'")
+        .all()
+      const keep = tables.filter((t) => !SKIP.has(t.name))
+      const schema = Object.fromEntries(keep.map((t) => [t.name, t.sql]))
+      await write(`{"exportedAt":${JSON.stringify(new Date().toISOString())},"schema":${JSON.stringify(schema)},"tables":{`)
+      for (let ti = 0; ti < keep.length; ti++) {
+        const name = keep[ti].name.replace(/"/g, '')
+        await write(`${ti ? ',' : ''}${JSON.stringify(name)}:[`)
+        let first = true
+        for (let offset = 0; ; offset += 500) {
+          const { results } = await db.prepare(`SELECT * FROM "${name}" LIMIT 500 OFFSET ?`).bind(offset).all()
+          if (!results.length) break
+          const rows = name === 'users' ? results.map(({ passwordHash, passwordSalt, ...u }) => u) : results
+          await write((first ? '' : ',') + rows.map((r) => JSON.stringify(r)).join(','))
+          first = false
+          if (results.length < 500) break
+        }
+        await write(']')
+      }
+      await write('}}')
+      await writer.close()
+    } catch (e) {
+      await writer.abort(e)
+    }
+  })()
+  return gzip.readable
+}
+
+export async function fullExportGzipBytes(db) {
+  return new Uint8Array(await new Response(fullExportGzipStream(db)).arrayBuffer())
 }
 
 // آپلود به Google Drive با OAuth refresh token (سه secret:
