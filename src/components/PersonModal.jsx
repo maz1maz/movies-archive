@@ -6,7 +6,7 @@ import { proxyImg } from '../utils/proxyImg.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
-function RecommendationOrderButton({ title, year, director }) {
+function RecommendationOrderButton({ title, year, director, source = 'Director recommendations' }) {
   const [state, setState] = useState('idle') // idle | adding | added
   const handleClick = async (e) => {
     e.preventDefault()
@@ -14,7 +14,7 @@ function RecommendationOrderButton({ title, year, director }) {
     if (state !== 'idle') return
     setState('adding')
     try {
-      await addToOrderList({ title, releaseDate: year ? `${year}-01-01` : null, source: 'Director recommendations', director })
+      await addToOrderList({ title, releaseDate: year ? `${year}-01-01` : null, source, director })
       setState('added')
     } catch {
       setState('idle')
@@ -476,6 +476,9 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                     <ul className="person-awards-rows">
                       {directorExtras.awards.map((a, i) => {
                         const copies = archiveCopiesForAward(a)
+                        // دکمه‌ی Order فقط روی اولین جایزه‌ی هر فیلمِ ناموجود
+                        const firstForWork =
+                          a.forWork && directorExtras.awards.findIndex((b) => normT(b.forWork) === normT(a.forWork)) === i
                         const physical = copies.find((f) => f.mediaType !== 'digital')
                         const digital = copies.find((f) => f.mediaType === 'digital')
                         return (
@@ -495,6 +498,9 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                                     <button type="button" className="person-award-own is-digital" title="Digital copy in your archive" onClick={() => onSelectFilm(digital)}>
                                       <IconHardDrive width={11} height={11} /> Digital
                                     </button>
+                                  )}
+                                  {copies.length === 0 && firstForWork && (
+                                    <RecommendationOrderButton title={a.forWork} director={personName} source="Director awards" />
                                   )}
                                 </em>
                               )}

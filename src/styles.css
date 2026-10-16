@@ -10472,3 +10472,8 @@ body.light .marquee-band::after {
 .person-award-own:hover {
   background: color-mix(in srgb, currentColor 15%, transparent);
 }
+.person-award-work .person-recommendation-order {
+  margin-inline-start: 8px;
+  font-style: normal;
+  vertical-align: middle;
+}
