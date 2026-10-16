@@ -85,6 +85,12 @@ export default {
     }
 
     if (event.cron === '0 4 * * *') {
+      // پوسترهای TMDB دیگه تو KV نگه داشته نمی‌شن؛ روزی ۷۰۰ تا از قدیمی‌ها پاک
+      // می‌شه (زیر سقف ۱۰۰۰ حذف روزانه) تا جا برای بکاپ‌ها آزاد بشه
+      try {
+        const old = await env.BACKUPS.list({ prefix: 'poster:https://image.tmdb.org/', limit: 700 })
+        for (const k of old.keys) await env.BACKUPS.delete(k.name)
+      } catch {}
       try {
         await runDailyBackup(env)
       } catch (e) {
@@ -394,15 +400,22 @@ async function handleFetch(request, env, ctx) {
           // Cache API واقعاً دائمیه (Cloudflare می‌تونه هر از گاهی edge
           // cache رو خودش خالی کنه، ولی KV تا وقتی حذف نشه می‌مونه).
           const kvKey = 'poster:' + targetUrl.toString()
+          const imgHeaders = (ct) => ({ ...corsHeaders, 'Content-Type': ct, 'Cache-Control': 'public, max-age=604800, immutable' })
+          // TMDB سی‌دی‌ان پایداره: فقط edge cache (رایگان و بی‌سقف). KV فقط برای
+          // IMDb/ویکی‌مدیا که روی بعضی شبکه‌ها باز نمی‌شن — سقف ۱ گیگ KV رو
+          // نگه می‌داریم برای بکاپ‌ها.
+          const useKv = env.BACKUPS && targetUrl.hostname !== 'image.tmdb.org'
+          const edgeCache = caches.default
+          const edgeKey = new Request(`https://img-cache.local/${encodeURIComponent(targetUrl.toString())}`)
+          const edgeHit = await edgeCache.match(edgeKey)
+          if (edgeHit) return new Response(edgeHit.body, { status: 200, headers: imgHeaders(edgeHit.headers.get('Content-Type') || 'image/jpeg') })
           if (env.BACKUPS) {
             try {
+              // ردیف‌های قدیمی (base64 داخل JSON) هنوز خونده می‌شن
               const cachedRecord = await env.BACKUPS.get(kvKey, 'json')
               if (cachedRecord) {
                 const bytes = Uint8Array.from(atob(cachedRecord.data), (c) => c.charCodeAt(0))
-                return new Response(bytes, {
-                  status: 200,
-                  headers: { ...corsHeaders, 'Content-Type': cachedRecord.contentType, 'Cache-Control': 'public, max-age=604800, immutable' },
-                })
+                return new Response(bytes, { status: 200, headers: imgHeaders(cachedRecord.contentType) })
               }
             } catch {}
           }
@@ -414,7 +427,8 @@ async function handleFetch(request, env, ctx) {
           const contentType = upstream.headers.get('content-type') || 'image/jpeg'
           const bodyBuffer = await upstream.arrayBuffer()
 
-          if (env.BACKUPS) {
+          ctx.waitUntil(edgeCache.put(edgeKey, new Response(bodyBuffer.slice(0), { headers: imgHeaders(contentType) })))
+          if (useKv && bodyBuffer.byteLength < 1_000_000) {
             try {
               const bytes = new Uint8Array(bodyBuffer)
               let binary = ''
@@ -422,12 +436,10 @@ async function handleFetch(request, env, ctx) {
               for (let i = 0; i < bytes.length; i += CHUNK) {
                 binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
               }
-              const b64 = btoa(binary)
-              // فقط عکس‌های معقول (زیر ۱ مگابایت) رو KV سیو کن، تا سهمیه‌ی
-              // نوشتن روزانه‌ی KV هدر نره
-              if (b64.length < 1_400_000) {
-                ctx.waitUntil(env.BACKUPS.put(kvKey, JSON.stringify({ data: b64, contentType })))
-              }
+              // ۱۸۰ روزه منقضی می‌شه تا KV دوباره پر نشه
+              ctx.waitUntil(
+                env.BACKUPS.put(kvKey, JSON.stringify({ data: btoa(binary), contentType }), { expirationTtl: 180 * 86400 })
+              )
             } catch {}
           }
 

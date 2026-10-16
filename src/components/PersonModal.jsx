@@ -452,15 +452,18 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                 {directorExtras?.awards?.length > 0 && (
                   <div className="person-awards">
                     <h4 className="person-extras-title">Awards ({directorExtras.awards.length})</h4>
-                    <div className="person-awards-list" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {/* لیست ساده: سال | جایزه + فیلم — بدون باکس دور هر ردیف */}
+                    <ul className="person-awards-rows">
                       {directorExtras.awards.map((a, i) => (
-                        <span key={`${a.label}-${a.year}-${i}`} className="person-fact-chip person-award-chip" style={{ display: 'block' }}>
-                          {a.label}
-                          {a.year ? ` — ${a.year}` : ''}
-                          {a.forWork ? ` (${a.forWork})` : ''}
-                        </span>
+                        <li key={`${a.label}-${a.year}-${i}`} className="person-award-row">
+                          <span className="person-award-year">{a.year || '—'}</span>
+                          <span className="person-award-text">
+                            {a.label}
+                            {a.forWork && <em className="person-award-work">{a.forWork}</em>}
+                          </span>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
                 )}
 

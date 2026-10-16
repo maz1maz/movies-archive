@@ -10414,3 +10414,36 @@ body.light .marquee-band::after {
 .cine-cast-expand .cine-cast-item.is-active .cine-cast-vlabel {
   opacity: 0;
 }
+
+/* جوایز کارگردان: ردیف‌های ساده با خط جداکننده، سال طلایی سمت چپ */
+.person-awards-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.person-award-row {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.person-award-row:last-child {
+  border-bottom: 0;
+}
+.person-award-year {
+  color: #d4af37;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.person-award-text {
+  color: var(--text);
+}
+.person-award-work {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
