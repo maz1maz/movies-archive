@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { IconDocument, IconPrinter, IconBarChart, IconDownload, IconSave } from './icons.jsx'
+import { IconDocument, IconPrinter, IconBarChart, IconDownload, IconSave, IconArchive } from './icons.jsx'
 import { escapeHtml } from '../utils/escapeHtml.js'
+import { useAuth } from '../context/AuthContext.jsx'
 import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
 
 // نمایش درایو برای یه فیلم/سریال تو خروجی‌ها — برای سریال‌هایی که فصل‌هاشون
@@ -54,6 +55,7 @@ function filterByScope(films, scope) {
 }
 
 export default function DashboardExportPanel({ films }) {
+  const { isAdmin } = useAuth()
   const [scopeKey, setScopeKey] = useState('all')
   const [letter, setLetter] = useState(null)
   const [drive, setDrive] = useState('')
@@ -300,6 +302,19 @@ export default function DashboardExportPanel({ films }) {
               <IconSave width={14} height={14} /> Download JSON Backup
             </a>
           </div>
+
+          {isAdmin && (
+            <div className="export-card">
+              <span className="export-icon">
+                <IconArchive width={22} height={22} />
+              </span>
+              <h3>Full Archive (all data)</h3>
+              <p>Every table: films, people, followed, order list, reviews, watchlists and users (no passwords). Use it to move to another host.</p>
+              <a href="/api/export/full" download className="btn btn-primary">
+                <IconDownload width={14} height={14} /> Download Full Archive (.json.gz)
+              </a>
+            </div>
+          )}
         </div>
       </section>
     </div>

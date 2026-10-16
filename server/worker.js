@@ -6,7 +6,7 @@ import { fetchTotalSeasons, enrichSeriesFromTVMazeById, fetchTvMazePersonUpcomin
 import * as XLSX from 'xlsx'
 import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader } from './auth.js'
 
-import { notifyServerError, runDailyBackup, gunzipToText } from './lib/backup.js'
+import { notifyServerError, runDailyBackup, gunzipToText, gzipText } from './lib/backup.js'
 import { resolveLetterboxdPersonUrl, syncLetterboxdUserToReviews, parseLetterboxdRss, parseLetterboxdBasic, titleToLetterboxdSlug, fetchLetterboxdRating } from './lib/letterboxd.js'
 import { fetchCinemaHeadlines, fetchCinemaHeadlinesFa } from './lib/cinemaNews.js'
 import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailers, fetchGeneralUpcoming, fetchTrendingAndBoxOffice, fetchTrendingPeople, fetchBornTodayGeneral, fetchFestivalCalendar, ageFromBirthDate } from './lib/tmdbFeeds.js'
@@ -2749,6 +2749,35 @@ async function handleFetch(request, env, ctx) {
         }
 
         return json({ count: imported.length, added, updated, enriched }, 200, corsHeaders)
+      }
+
+      // ---- GET /api/export/full (admin) — کل دیتابیس (همه‌ی جدول‌ها) برای مهاجرت.
+      // سشن‌ها و کش‌ها حذف می‌شن؛ هشِ رمز کاربرها هم بیرون نمی‌ره. gzip‌شده. ----
+      if (method === 'GET' && pathname === '/api/export/full') {
+        const denied = requireAdmin()
+        if (denied) return denied
+        const SKIP = new Set(['sessions', 'cinema_news_cache', 'api_usage_daily'])
+        const { results: tables } = await db
+          .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'd1_%'")
+          .all()
+        const out = { exportedAt: new Date().toISOString(), schema: {}, tables: {} }
+        for (const t of tables) {
+          if (SKIP.has(t.name)) continue
+          out.schema[t.name] = t.sql
+          const { results } = await db.prepare(`SELECT * FROM "${t.name.replace(/"/g, '')}"`).all()
+          out.tables[t.name] =
+            t.name === 'users' ? results.map(({ passwordHash, passwordSalt, ...u }) => u) : results
+        }
+        const gz = await gzipText(JSON.stringify(out))
+        const day = new Date().toISOString().slice(0, 10)
+        return new Response(gz, {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/gzip',
+            'Content-Disposition': `attachment; filename="movies-archive-full-${day}.json.gz"`,
+          },
+        })
       }
 
       // ---- GET /api/export/json (optional ?mediaType=&itemType= to scope the backup) ----
