@@ -10823,3 +10823,8 @@ a.cine-related-title:hover {
   font-size: 11px;
   font-weight: 700;
 }
+/* آیتم‌های grid پیش‌فرض min-width:auto دارن؛ نوار ۱۲ بازیگر کل ردیف رو پهن
+   می‌کرد و تو موبایل Crew/Trailer از صفحه بیرون می‌زد. حالا نوار خودش اسکرول می‌خوره. */
+.cine-bottom-row > * {
+  min-width: 0;
+}
