@@ -10642,3 +10642,9 @@ body.light .marquee-band::after {
   border-color: #3fc6b8;
   color: #6fe0d4;
 }
+.dashboard-badge-owned {
+  top: 7px;
+  left: 7px;
+  background: #2f9e5b;
+  color: #fff;
+}

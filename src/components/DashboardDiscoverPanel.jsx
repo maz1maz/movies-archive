@@ -44,12 +44,47 @@ function PosterGrid({ films, onOpenFilm }) {
 export default function DashboardDiscoverPanel({ films = [], onOpenFilm }) {
   const unique = useMemo(() => dedupe(films.filter((f) => f.itemType !== 'series')), [films])
 
-  const years = useMemo(
-    () => [...new Set(unique.map((f) => Number(f.year)).filter(Boolean))].sort((a, b) => b - a),
-    [unique]
-  )
+  // همه‌ی سال‌ها از امسال تا قدیمی‌ترین فیلمِ آرشیو (نه فقط سال‌هایی که فیلم داری)
+  const years = useMemo(() => {
+    const now = new Date().getFullYear()
+    const min = Math.min(now, ...unique.map((f) => Number(f.year)).filter((y) => y > 1880))
+    return Array.from({ length: now - min + 1 }, (_, i) => now - i)
+  }, [unique])
   const [year, setYear] = useState(null)
-  const activeYear = year ?? years[0]
+  const activeYear = year ?? new Date().getFullYear() - 1
+
+  // بهترین‌های جهانیِ همون سال از TMDB؛ اونایی که داری قابل کلیکن، بقیه Order دارن
+  const [worldTop, setWorldTop] = useState(null)
+  useEffect(() => {
+    if (!activeYear) return
+    setWorldTop(null)
+    let cancelled = false
+    fetch(`/api/top-of-year?year=${activeYear}`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setWorldTop(Array.isArray(d.films) ? d.films : []) })
+      .catch(() => { if (!cancelled) setWorldTop([]) })
+    return () => { cancelled = true }
+  }, [activeYear])
+  const archiveIndex = useMemo(() => {
+    const m = new Map()
+    for (const f of unique) {
+      const y = Number(f.year)
+      for (const t of [f.title, f.originalTitle]) {
+        const n = normTitle(t)
+        if (!n) continue
+        for (const yy of [y - 1, y, y + 1]) if (!m.has(`${n}::${yy}`)) m.set(`${n}::${yy}`, f)
+      }
+    }
+    return m
+  }, [unique])
+  const worldWithArchive = useMemo(
+    () =>
+      (worldTop || []).map((w) => ({
+        ...w,
+        owned: archiveIndex.get(`${normTitle(w.title)}::${w.year}`) || archiveIndex.get(`${normTitle(w.originalTitle)}::${w.year}`) || null,
+      })),
+    [worldTop, archiveIndex]
+  )
   const topOfYear = useMemo(
     () => unique.filter((f) => Number(f.year) === activeYear).sort((a, b) => score(b) - score(a)).slice(0, 10),
     [unique, activeYear]
@@ -148,8 +183,46 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm }) {
             ))}
           </select>
         </div>
-        <p className="oscars-intro">Ranked by your own rating first, then IMDb and Letterboxd.</p>
-        {topOfYear.length ? <PosterGrid films={topOfYear} onOpenFilm={onOpenFilm} /> : <div className="empty">No films from this year.</div>}
+        <p className="oscars-intro">Your archive — ranked by your own rating first, then IMDb and Letterboxd.</p>
+        {topOfYear.length ? <PosterGrid films={topOfYear} onOpenFilm={onOpenFilm} /> : <div className="empty">No films from this year in your archive.</div>}
+
+        <h2 style={{ marginTop: 24 }}>Best of {activeYear} worldwide</h2>
+        <p className="oscars-intro">
+          Highest rated on TMDB.{' '}
+          {worldTop && `You own ${worldWithArchive.filter((w) => w.owned).length} of ${worldWithArchive.length}.`}
+        </p>
+        {worldTop === null ? (
+          <div className="empty">Loading…</div>
+        ) : worldWithArchive.length ? (
+          <div className="grid">
+            {worldWithArchive.map((w) =>
+              w.owned ? (
+                <DashboardPosterCard
+                  key={w.title}
+                  title={w.owned.title}
+                  subtitle={[w.owned.year, w.owned.director].filter(Boolean).join(' — ')}
+                  poster={w.owned.poster || w.poster}
+                  badgeText="In archive"
+                  badgeVariant="owned"
+                  inArchive
+                  clickable
+                  showMissingBadge={false}
+                  onClick={() => onOpenFilm(w.owned)}
+                />
+              ) : (
+                <DashboardPosterCard
+                  key={w.title}
+                  title={w.title}
+                  subtitle={[w.year, w.rating ? `★ ${w.rating}` : null].filter(Boolean).join(' — ')}
+                  poster={w.poster}
+                  inArchive={false}
+                />
+              )
+            )}
+          </div>
+        ) : (
+          <div className="empty">No data for this year.</div>
+        )}
       </section>
 
       <section style={{ marginTop: 28 }}>

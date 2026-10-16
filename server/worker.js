@@ -1813,6 +1813,38 @@ async function handleFetch(request, env, ctx) {
         }
       }
 
+      // ---- GET /api/top-of-year?year= — بهترین فیلم‌های هر سال از TMDB (کش ۳۰ روزه) ----
+      if (method === 'GET' && pathname === '/api/top-of-year') {
+        const year = Number(url.searchParams.get('year'))
+        if (!year || year < 1890 || year > 2100) return json({ films: [] }, 200, corsHeaders)
+        const cacheKey = `topyear:${year}`
+        const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(cacheKey).first()
+        if (cached && Date.now() - Date.parse(cached.fetchedAt.replace(' ', 'T') + 'Z') < 30 * 86400000) {
+          return json({ films: JSON.parse(cached.data) }, 200, corsHeaders)
+        }
+        if (!env.TMDB_API_KEY) return json({ films: [] }, 200, corsHeaders)
+        // سال‌های قدیمی رأی کمتری دارن؛ حداقلِ رأی رو با سال پایین میاریم
+        const minVotes = year >= 2000 ? 1500 : year >= 1980 ? 600 : year >= 1960 ? 300 : 120
+        const r = await tmdbFetch(
+          `https://api.themoviedb.org/3/discover/movie?api_key=${env.TMDB_API_KEY}&primary_release_year=${year}&sort_by=vote_average.desc&vote_count.gte=${minVotes}&without_genres=99,10770&page=1`,
+          env
+        )
+        if (!r.ok) return json({ films: [] }, 200, corsHeaders)
+        const d = await r.json()
+        const films = (d.results || []).slice(0, 15).map((m) => ({
+          title: m.title,
+          originalTitle: m.original_title,
+          year,
+          rating: m.vote_average ? Math.round(m.vote_average * 10) / 10 : null,
+          poster: m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : null,
+        }))
+        await db
+          .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+          .bind(cacheKey, JSON.stringify(films))
+          .run()
+        return json({ films }, 200, corsHeaders)
+      }
+
       // ---- GET /api/tags — همه‌ی برچسب‌ها: { tag: [filmId, ...] } ----
       if (method === 'GET' && pathname === '/api/tags') {
         const { results } = await db
