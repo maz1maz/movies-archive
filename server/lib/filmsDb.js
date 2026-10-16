@@ -1,6 +1,7 @@
 import { ENRICHABLE_FIELDS, isEmptyMetadata } from '../helpers.js'
 import { enrichFilm } from '../omdb.js'
 import { isCacheFresh } from './cache.js'
+import { tmdbFetch } from './tmdb.js'
 import { applyTmdbExtras, fetchTmdbExtras } from './tmdbEnrich.js'
 
 
@@ -78,7 +79,7 @@ export async function fetchCollectionDetails(db, env, collectionId) {
 
   if (!env.TMDB_API_KEY) return null
   try {
-    const res = await fetch(`https://api.themoviedb.org/3/collection/${collectionId}?api_key=${env.TMDB_API_KEY}`)
+    const res = await tmdbFetch(`https://api.themoviedb.org/3/collection/${collectionId}?api_key=${env.TMDB_API_KEY}`, env)
     if (!res.ok) return null
     const data = await res.json()
     const result = {
@@ -158,9 +159,7 @@ export async function resolveFilmCollection(db, env, film) {
   let lookupFailed = false
   try {
     if (film.imdbId) {
-      const findRes = await fetch(
-        `https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`
-      )
+      const findRes = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`, env)
       if (findRes.ok) {
         const findData = await findRes.json()
         tmdbMovieId = findData?.movie_results?.[0]?.id || null
@@ -171,7 +170,7 @@ export async function resolveFilmCollection(db, env, film) {
     if (!tmdbMovieId && film.title) {
       const q = encodeURIComponent(film.title)
       const yearParam = film.year ? `&year=${film.year}` : ''
-      const searchRes = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${env.TMDB_API_KEY}&query=${q}${yearParam}`)
+      const searchRes = await tmdbFetch(`https://api.themoviedb.org/3/search/movie?api_key=${env.TMDB_API_KEY}&query=${q}${yearParam}`, env)
       if (searchRes.ok) {
         const searchData = await searchRes.json()
         tmdbMovieId = searchData?.results?.[0]?.id || null
@@ -186,7 +185,7 @@ export async function resolveFilmCollection(db, env, film) {
       return null
     }
 
-    const movieRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbMovieId}?api_key=${env.TMDB_API_KEY}`)
+    const movieRes = await tmdbFetch(`https://api.themoviedb.org/3/movie/${tmdbMovieId}?api_key=${env.TMDB_API_KEY}`, env)
     if (!movieRes.ok) return cachedResult
     const movieData = await movieRes.json()
     const collection = movieData.belongs_to_collection
@@ -483,9 +482,7 @@ export async function fetchAltPosters(db, env, film) {
     const mediaType = film.itemType === 'series' ? 'tv' : 'movie'
     let tmdbId = null
     if (film.imdbId) {
-      const findRes = await fetch(
-        `https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`
-      )
+      const findRes = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`, env)
       if (!findRes.ok) return []
       const findData = await findRes.json()
       tmdbId = findData?.[`${mediaType}_results`]?.[0]?.id || null
@@ -495,16 +492,14 @@ export async function fetchAltPosters(db, env, film) {
     if (!tmdbId && film.title) {
       const yearKey = mediaType === 'tv' ? 'first_air_date_year' : 'year'
       const yearParam = film.year ? `&${yearKey}=${film.year}` : ''
-      const searchRes = await fetch(
-        `https://api.themoviedb.org/3/search/${mediaType}?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))}${yearParam}`
-      )
+      const searchRes = await tmdbFetch(`https://api.themoviedb.org/3/search/${mediaType}?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))}${yearParam}`, env)
       if (!searchRes.ok) return []
       const searchData = await searchRes.json()
       tmdbId = searchData?.results?.[0]?.id || null
     }
     if (!tmdbId) return []
 
-    const imgRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/images?api_key=${env.TMDB_API_KEY}`)
+    const imgRes = await tmdbFetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/images?api_key=${env.TMDB_API_KEY}`, env)
     if (!imgRes.ok) return []
     const imgData = await imgRes.json()
     const candidates = (imgData.posters || [])
@@ -798,7 +793,7 @@ export async function backfillImdbIds(db, env, limit = 20) {
     const isTv = film.itemType === 'series'
     const kind = isTv ? 'tv' : 'movie'
     const query = encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))
-    const searchRes = await fetch(`https://api.themoviedb.org/3/search/${kind}?api_key=${env.TMDB_API_KEY}&query=${query}`)
+    const searchRes = await tmdbFetch(`https://api.themoviedb.org/3/search/${kind}?api_key=${env.TMDB_API_KEY}&query=${query}`, env)
     if (!searchRes.ok) break // TMDB در دسترس نیست / rate limit — دفعه‌ی بعد ادامه
     const searchData = await searchRes.json()
     const want = normForMatch(film.title)
@@ -811,7 +806,7 @@ export async function backfillImdbIds(db, env, limit = 20) {
     })
     let imdbId = null
     if (hit) {
-      const extRes = await fetch(`https://api.themoviedb.org/3/${kind}/${hit.id}/external_ids?api_key=${env.TMDB_API_KEY}`)
+      const extRes = await tmdbFetch(`https://api.themoviedb.org/3/${kind}/${hit.id}/external_ids?api_key=${env.TMDB_API_KEY}`, env)
       if (!extRes.ok) break
       const ext = await extRes.json()
       if (/^tt\d+$/.test(ext?.imdb_id || '')) imdbId = ext.imdb_id

@@ -12,6 +12,7 @@ import { fetchCinemaHeadlines, fetchCinemaHeadlinesFa } from './lib/cinemaNews.j
 import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailers, fetchGeneralUpcoming, fetchTrendingAndBoxOffice, fetchTrendingPeople, fetchBornTodayGeneral, fetchFestivalCalendar, ageFromBirthDate } from './lib/tmdbFeeds.js'
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { findVerifiedImdbId, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
+import { tmdbFetch } from './lib/tmdb.js'
 import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
@@ -2116,7 +2117,7 @@ async function handleFetch(request, env, ctx) {
           const existingKeys = new Set((existingRows.results || []).map((r) => `${r.t}::${r.year || ''}`))
           const acclaimed = []
           for (let page = 1; page <= 2 && acclaimed.length < 20; page++) {
-            const res = await fetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${tmdbKey}&page=${page}`)
+            const res = await tmdbFetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${tmdbKey}&page=${page}`, env)
             if (!res.ok) break
             const data = await res.json()
             for (const m of data.results || []) {
@@ -2153,12 +2154,12 @@ async function handleFetch(request, env, ctx) {
           const type = url.searchParams.get('type') === 'series' || url.searchParams.get('type') === 'tv' ? 'tv' : 'movie'
           if (!title) return json({ backdrops: [] }, 200, corsHeaders)
           const searchUrl = `https://api.themoviedb.org/3/search/${type}?api_key=${tmdbKey}&query=${encodeURIComponent(title)}${year ? `&year=${year}` : ''}`
-          const searchRes = await fetch(searchUrl)
+          const searchRes = await tmdbFetch(searchUrl, env)
           if (!searchRes.ok) return json({ backdrops: [] }, 200, corsHeaders)
           const searchData = await searchRes.json()
           const hit = (searchData.results || [])[0]
           if (!hit) return json({ backdrops: [] }, 200, corsHeaders)
-          const res = await fetch(`https://api.themoviedb.org/3/${type}/${hit.id}/images?api_key=${tmdbKey}`)
+          const res = await tmdbFetch(`https://api.themoviedb.org/3/${type}/${hit.id}/images?api_key=${tmdbKey}`, env)
           if (!res.ok) return json({ backdrops: [] }, 200, corsHeaders)
           const data = await res.json()
           const backdrops = (data.backdrops || [])
