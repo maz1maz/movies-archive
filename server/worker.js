@@ -1807,7 +1807,7 @@ async function handleFetch(request, env, ctx) {
         try {
           const row = await db.prepare('SELECT id, imdbId FROM films WHERE id = ?').bind(relMatch[1]).first()
           if (!row) return json({ related: [], formats: [] }, 200, corsHeaders)
-          return json(await fetchFilmRelations(db, row), 200, corsHeaders)
+          return json(await fetchFilmRelations(db, row, env), 200, corsHeaders)
         } catch (e) {
           return json({ related: [], formats: [], error: String(e) }, 200, corsHeaders)
         }

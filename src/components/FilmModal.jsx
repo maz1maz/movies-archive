@@ -707,6 +707,20 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     )
                   })}
                 </div>
+                {/* نوار ریزعکس پوسترها؛ کلیک = همون پوستر میاد جلو */}
+                <div className="cine-poster-thumbs">
+                  {uniquePosters.map((src, i) => (
+                    <button
+                      key={src}
+                      type="button"
+                      className={i === altPosterIndex % uniquePosters.length ? 'cine-poster-thumb is-active' : 'cine-poster-thumb'}
+                      onClick={() => goToPoster(i, uniquePosters.length)}
+                      aria-label={`Poster ${i + 1}`}
+                    >
+                      <img src={proxyImg(src)} alt="" loading="lazy" draggable={false} />
+                    </button>
+                  ))}
+                </div>
               </div>
             )
           })()}
@@ -1380,12 +1394,14 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
           </div>
         </div>
 
-        {relations.related.length > 0 && (
+        {relations.related.some((r) => (r.rating >= 6.5 && r.votes >= 50) || (r.imdbId && films?.some?.((f) => f.imdbId === r.imdbId))) && (
           <div className="cine-related">
             <div className="cine-col-title">RELATED FILMS</div>
             <div className="cine-related-list">
               {relations.related.map((r) => {
                 const owned = r.imdbId && Array.isArray(films) ? films.find((f) => f.imdbId === r.imdbId) : null
+                // فقط خوش‌امتیازها (TMDB ≥ 6.5 با حداقل ۵۰ رأی) یا اونایی که تو آرشیو داری
+                if (!owned && !(r.rating >= 6.5 && r.votes >= 50)) return null
                 const key = r.imdbId || r.title
                 return (
                   <div key={key} className={owned ? 'cine-related-item is-owned' : 'cine-related-item'}>
@@ -1401,6 +1417,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     ) : (
                       <span className="cine-related-title">{r.title}{r.year ? ` (${r.year})` : ''}</span>
                     )}
+                    {r.rating ? <span className="cine-related-rating">★ {r.rating}</span> : null}
                     {owned && r.imdbId && (
                       <a className="cine-related-imdb" href={`https://www.imdb.com/title/${r.imdbId}/`} target="_blank" rel="noopener noreferrer" title="Open on IMDb">
                         IMDb

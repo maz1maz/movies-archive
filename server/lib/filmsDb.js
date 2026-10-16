@@ -1066,7 +1066,7 @@ export async function backfillFilmTags(db, env, limit = 20) {
 
 // فیلم‌های مرتبط (ادامه/قبلی/ریمیک/اقتباس از فیلم) + فرمت اکران (IMAX/70mm/…)
 // از Wikidata بر اساس imdbId. کش ۱۸۰ روزه (کلید wdrel:<id>).
-export async function fetchFilmRelations(db, film) {
+export async function fetchFilmRelations(db, film, env) {
   const empty = { related: [], formats: [] }
   if (!film.imdbId) return empty
   const key = `wdrel:${film.id}`
@@ -1075,7 +1075,12 @@ export async function fetchFilmRelations(db, film) {
   const ADULT = /\bxxx\b|porn|\bparody\b|erotic/i
   const clean = (o) => ({ ...o, related: (o.related || []).filter((r) => !ADULT.test(r.title || '')) })
   if (cached && Date.now() - Date.parse(cached.fetchedAt.replace(' ', 'T') + 'Z') < 180 * 86400000) {
-    try { return clean(JSON.parse(cached.data)) } catch {}
+    try {
+      const parsed = JSON.parse(cached.data)
+      // کش‌های قدیمی امتیاز نداشتن — دوباره بگیر
+      const lacksRatings = (parsed.related || []).some((r) => r.imdbId && r.rating === undefined)
+      if (!lacksRatings) return clean(parsed)
+    } catch {}
   }
   const imdb = String(film.imdbId).replace(/[^a-z0-9]/gi, '')
   const sparql = `SELECT ?kind ?other ?otherLabel ?otherImdb ?otherYear ?fmtLabel WHERE {
@@ -1124,7 +1129,28 @@ export async function fetchFilmRelations(db, film) {
       imdbId: prev?.imdbId || b.otherImdb?.value || null,
     })
   }
-  const out = { related: [...related.values()].slice(0, 20), formats: [...formats] }
+  const relatedList = [...related.values()].slice(0, 20)
+  // امتیاز TMDB برای هر فیلم مرتبط (کلاینت فقط خوش‌امتیازها یا موجودها رو نشون می‌ده)
+  if (env?.TMDB_API_KEY) {
+    await Promise.all(
+      relatedList.slice(0, 12).map(async (r) => {
+        r.rating = null
+        r.votes = 0
+        if (!r.imdbId) return
+        try {
+          const fr = await tmdbFetch(`https://api.themoviedb.org/3/find/${r.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`, env)
+          if (!fr.ok) return
+          const fd = await fr.json()
+          const m = fd.movie_results?.[0] || fd.tv_results?.[0]
+          if (m) {
+            r.rating = m.vote_average ? Math.round(m.vote_average * 10) / 10 : null
+            r.votes = m.vote_count || 0
+          }
+        } catch {}
+      })
+    )
+  }
+  const out = { related: relatedList, formats: [...formats] }
   await db
     .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
     .bind(key, JSON.stringify(out))
