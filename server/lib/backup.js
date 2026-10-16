@@ -65,6 +65,71 @@ export async function runDailyBackup(env) {
   } catch (e) {
     console.log(`GitHub backup skipped/failed: ${e.message}`)
   }
+
+  // هفته‌ای یه‌بار (جمعه) خروجیِ کامل (همه‌ی جدول‌ها) به Google Drive
+  if (new Date().getUTCDay() === 5 || env.FORCE_DRIVE_BACKUP) {
+    try {
+      const full = await gzipText(JSON.stringify(await buildFullExport(db)))
+      await uploadBackupToDrive(env, full, `movies-archive-full-${dateKey}.json.gz`)
+    } catch (e) {
+      await notifyServerError(env, `Google Drive weekly backup failed: ${e.message}`).catch(() => {})
+    }
+  }
+}
+
+// کل دیتابیس (همه‌ی جدول‌ها) برای مهاجرت/بکاپ کامل. سشن‌ها و کش‌ها حذف می‌شن؛
+// هشِ رمز کاربرها هم بیرون نمی‌ره.
+export async function buildFullExport(db) {
+  const SKIP = new Set(['sessions', 'cinema_news_cache', 'api_usage_daily'])
+  const { results: tables } = await db
+    .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'd1_%'")
+    .all()
+  const out = { exportedAt: new Date().toISOString(), schema: {}, tables: {} }
+  for (const t of tables) {
+    if (SKIP.has(t.name)) continue
+    out.schema[t.name] = t.sql
+    const { results } = await db.prepare(`SELECT * FROM "${t.name.replace(/"/g, '')}"`).all()
+    out.tables[t.name] = t.name === 'users' ? results.map(({ passwordHash, passwordSalt, ...u }) => u) : results
+  }
+  return out
+}
+
+// آپلود به Google Drive با OAuth refresh token (سه secret:
+// GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REFRESH_TOKEN، و اختیاری
+// GOOGLE_DRIVE_FOLDER_ID). اگه ست نشده باشن، بی‌سروصدا رد می‌شه.
+export async function uploadBackupToDrive(env, bytes, filename) {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.GOOGLE_REFRESH_TOKEN) return false
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: env.GOOGLE_CLIENT_ID,
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      refresh_token: env.GOOGLE_REFRESH_TOKEN,
+      grant_type: 'refresh_token',
+    }),
+  })
+  if (!tokenRes.ok) throw new Error(`Google token ${tokenRes.status}`)
+  const { access_token } = await tokenRes.json()
+
+  const meta = { name: filename, mimeType: 'application/gzip' }
+  if (env.GOOGLE_DRIVE_FOLDER_ID) meta.parents = [env.GOOGLE_DRIVE_FOLDER_ID]
+  const boundary = 'cinefilm' + Date.now()
+  const head = new TextEncoder().encode(
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/gzip\r\n\r\n`
+  )
+  const tail = new TextEncoder().encode(`\r\n--${boundary}--`)
+  const body = new Uint8Array(head.length + bytes.length + tail.length)
+  body.set(head, 0)
+  body.set(bytes, head.length)
+  body.set(tail, head.length + bytes.length)
+  const up = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body,
+  })
+  if (!up.ok) throw new Error(`Drive upload ${up.status}: ${(await up.text()).slice(0, 200)}`)
+  return true
 }
 
 
