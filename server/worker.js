@@ -1813,6 +1813,36 @@ async function handleFetch(request, env, ctx) {
         }
       }
 
+      // ---- GET /api/release-year?title=&years=1964,1967&type=movie — کدوم سال درسته؟
+      // از TMDB: بین سال‌های کاندید، اونی که با سالِ اکران یه نتیجه‌ی هم‌نام می‌خونه. کش ۹۰ روزه. ----
+      if (method === 'GET' && pathname === '/api/release-year') {
+        const title = (url.searchParams.get('title') || '').trim()
+        const years = (url.searchParams.get('years') || '').split(',').map(Number).filter(Boolean)
+        const isTv = url.searchParams.get('type') === 'series'
+        if (!title || !years.length) return json({ year: null }, 200, corsHeaders)
+        const norm = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\([^)]*\)/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+        const cacheKey = `relyear:${isTv ? 'tv' : 'movie'}:${norm(title)}:${years.sort().join(',')}`
+        const cached = await db.prepare('SELECT data FROM cinema_news_cache WHERE key = ?').bind(cacheKey).first()
+        if (cached) return json({ year: cached.data === 'null' ? null : Number(cached.data) }, 200, corsHeaders)
+        if (!env.TMDB_API_KEY) return json({ year: null }, 200, corsHeaders)
+        const kind = isTv ? 'tv' : 'movie'
+        const r = await tmdbFetch(`https://api.themoviedb.org/3/search/${kind}?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(title.replace(/\s*\([^)]*\)\s*$/, ''))}`, env)
+        if (!r.ok) return json({ year: null }, 200, corsHeaders)
+        const d = await r.json()
+        const want = norm(title)
+        let found = null
+        for (const m of d.results || []) {
+          if (norm(m.title || m.name) !== want && norm(m.original_title || m.original_name) !== want) continue
+          const y = Number(String(m.release_date || m.first_air_date || '').slice(0, 4))
+          if (years.includes(y)) { found = y; break }
+        }
+        await db
+          .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+          .bind(cacheKey, String(found))
+          .run()
+        return json({ year: found }, 200, corsHeaders)
+      }
+
       // ---- GET /api/top-of-year?year= — بهترین فیلم‌های هر سال از TMDB (کش ۳۰ روزه) ----
       if (method === 'GET' && pathname === '/api/top-of-year') {
         const year = Number(url.searchParams.get('year'))

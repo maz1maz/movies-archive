@@ -10648,3 +10648,15 @@ body.light .marquee-band::after {
   background: #2f9e5b;
   color: #fff;
 }
+.discover-mismatch-item.is-right {
+  border-color: #2f9e5b;
+  background: color-mix(in srgb, #2f9e5b 16%, transparent);
+  color: #7fe0a6;
+}
+.discover-mismatch-item.is-wrong {
+  border-color: #d9534f;
+  background: color-mix(in srgb, #d9534f 14%, transparent);
+  color: #f19a97;
+}
+.year-ok-text { color: #7fe0a6; font-weight: 700; }
+.year-bad-text { color: #f19a97; font-weight: 700; }

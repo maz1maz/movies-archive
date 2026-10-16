@@ -142,6 +142,56 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm }) {
     return out.sort((a, b) => (a[0].title || '').localeCompare(b[0].title || ''))
   }, [films, scanOn])
 
+  // سالِ درست هر گروه از TMDB (۴تا هم‌زمان، نتیجه سمت سرور کش می‌شه)
+  const [rightYears, setRightYears] = useState({})
+  useEffect(() => {
+    if (!yearMismatches.length) return
+    let cancelled = false
+    const queue = [...yearMismatches]
+    const worker = async () => {
+      while (queue.length && !cancelled) {
+        const g = queue.shift()
+        const years = [...new Set(g.map((f) => Number(f.year)).filter(Boolean))].join(',')
+        try {
+          const r = await fetch(`/api/release-year?title=${encodeURIComponent(g[0].title)}&years=${years}&type=${g[0].itemType || 'movie'}`)
+          const d = await r.json()
+          if (!cancelled) setRightYears((prev) => ({ ...prev, [g[0].id]: d.year ?? 'unknown' }))
+        } catch {
+          if (!cancelled) setRightYears((prev) => ({ ...prev, [g[0].id]: 'unknown' }))
+        }
+      }
+    }
+    Promise.all([worker(), worker(), worker(), worker()])
+    return () => { cancelled = true }
+  }, [yearMismatches])
+
+  const exportYearCheck = async () => {
+    const XLSX = await import('xlsx')
+    const rows = []
+    for (const g of yearMismatches) {
+      const right = rightYears[g[0].id]
+      for (const f of g) {
+        rows.push({
+          Title: f.title,
+          Director: f.director || '',
+          'Entry year': f.year || '',
+          'Correct year (TMDB)': typeof right === 'number' ? right : '',
+          Status: typeof right !== 'number' ? 'Unknown' : Number(f.year) === right ? 'OK' : 'WRONG',
+          Media: f.mediaType === 'digital' ? 'Digital' : 'Blu-ray',
+          Location: f.mediaType === 'digital' ? f.driveNumber || '' : [f.closet, f.row, f.shelf].filter(Boolean).join(' / '),
+          'IMDb id': f.imdbId || '',
+          'Film id': f.id,
+        })
+      }
+    }
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 36 }, { wch: 28 }, { wch: 10 }, { wch: 18 }, { wch: 9 }, { wch: 9 }, { wch: 14 }, { wch: 12 }, { wch: 38 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Year check')
+    XLSX.writeFile(wb, `year-check-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+  const resolvedCount = yearMismatches.filter((g) => rightYears[g[0].id] !== undefined).length
+
   const maxDecadeTotal = Math.max(1, ...decades.map((d) => d.total))
 
   // برچسب‌های TMDB (کالت/تجربی/…) + حدسِ جنبش از کارگردان/کشور/سال
@@ -265,14 +315,30 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm }) {
           <button className="btn btn-primary" onClick={() => setScanOn(true)}>
             Scan for wrong years
           </button>
+          {yearMismatches.length > 0 && (
+            <button className="btn" onClick={exportYearCheck}>
+              Download Excel
+            </button>
+          )}
         </div>
-        <p className="oscars-intro">Same title and director, different year — usually one entry has a wrong year.</p>
+        <p className="oscars-intro">
+          Same title and director, different year. <span className="year-ok-text">Green</span> = correct year (from TMDB),{' '}
+          <span className="year-bad-text">red</span> = wrong.
+          {yearMismatches.length > 0 && ` Checked ${resolvedCount} of ${yearMismatches.length}.`}
+        </p>
         {scanOn && yearMismatches.length === 0 && <div className="empty">No mismatches found.</div>}
         {yearMismatches.map((group) => (
           <div key={group[0].id} className="discover-mismatch">
             <strong>{group[0].title}</strong>
             {group.map((f) => (
-              <button key={f.id} type="button" className="discover-mismatch-item" onClick={() => onOpenFilm(f)}>
+              <button
+                key={f.id}
+                type="button"
+                className={`discover-mismatch-item${
+                  typeof rightYears[group[0].id] === 'number' ? (Number(f.year) === rightYears[group[0].id] ? ' is-right' : ' is-wrong') : ''
+                }`}
+                onClick={() => onOpenFilm(f)}
+              >
                 {f.year || '—'} · {f.mediaType === 'digital' ? 'Digital' : 'Blu-ray'}
                 {f.director ? ` · ${f.director}` : ''}
               </button>
