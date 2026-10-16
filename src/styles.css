@@ -10828,3 +10828,9 @@ a.cine-related-title:hover {
 .cine-bottom-row > * {
   min-width: 0;
 }
+/* نوار بازیگرها تو موبایل با انگشت افقی کشیده بشه (والد مودال pan-y داره) */
+.cine-col-cast .cine-cast-grid.cine-cast-expand {
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}

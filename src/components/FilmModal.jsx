@@ -1183,8 +1183,10 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                       role="button"
                       tabIndex={0}
                       aria-expanded={idx === activeCast}
-                      onMouseEnter={() => setActiveCast(idx)}
-                      onFocus={() => setActiveCast(idx)}
+                      // فقط موس واقعی؛ تو موبایل mouseenter قبل از click میاد و ضربه‌ی اول مستقیم صفحه‌ی بازیگر رو باز می‌کرد
+                      onPointerEnter={(e) => { if (e.pointerType === 'mouse') setActiveCast(idx) }}
+                      // فقط فوکوس کیبورد (Tab)؛ فوکوسِ ضربه‌ی انگشت نباید بازش کنه وگرنه click همون لحظه صفحه‌ی بازیگر رو باز می‌کنه
+                      onFocus={(e) => { try { if (e.currentTarget.matches(':focus-visible')) setActiveCast(idx) } catch { /* old browsers */ } }}
                       // ضربهٔ اول (موبایل) فقط بازش می‌کنه؛ روی بازیگرِ باز، صفحه‌ش رو باز می‌کنه
                       onClick={() => {
                         if (idx !== activeCast) setActiveCast(idx)
