@@ -829,3 +829,63 @@ export async function backfillImdbIds(db, env, limit = 20) {
   }
   return { processed, matched }
 }
+
+
+// ---------- بازیگران کامل از TMDB (یه‌بار، ذخیره تو خود ردیف فیلم) ----------
+// OMDb فقط ۳ بازیگر اصلی می‌ده (بدون نقش/عکس). اولین بار که فیلمی با ۳ یا
+// کمتر بازیگر باز می‌شه، تا ۱۲ بازیگر با نقش و عکس از TMDB گرفته و مستقیم
+// تو ستون cast ذخیره می‌شه — دفعه‌های بعد از همون دیتابیس میاد. هر فیلم فقط
+// یه‌بار امتحان می‌شه (castfill:<id>)، مگه TMDB جواب نده که بعداً دوباره.
+export async function fetchFullCast(db, env, film) {
+  if (!env.TMDB_API_KEY || !film) return null
+  const flagKey = `castfill:${film.id}`
+  const tried = await db.prepare('SELECT 1 FROM cinema_news_cache WHERE key = ?').bind(flagKey).first()
+  if (tried) return null
+  const markTried = () =>
+    db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))")
+      .bind(flagKey)
+      .run()
+  const isTv = film.itemType === 'series'
+  const kind = isTv ? 'tv' : 'movie'
+  const key = env.TMDB_API_KEY
+  let tmdbId = null
+  if (film.imdbId) {
+    const r = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${key}&external_source=imdb_id`, env)
+    if (!r.ok) return null
+    const d = await r.json()
+    tmdbId = d?.[`${kind}_results`]?.[0]?.id || null
+  }
+  if (!tmdbId && film.title) {
+    const yearKey = isTv ? 'first_air_date_year' : 'year'
+    const yearParam = film.year ? `&${yearKey}=${film.year}` : ''
+    const r = await tmdbFetch(
+      `https://api.themoviedb.org/3/search/${kind}?api_key=${key}&query=${encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))}${yearParam}`,
+      env
+    )
+    if (!r.ok) return null
+    const d = await r.json()
+    tmdbId = d?.results?.[0]?.id || null
+  }
+  if (!tmdbId) {
+    await markTried()
+    return null
+  }
+  const creditsPath = isTv ? `tv/${tmdbId}/aggregate_credits` : `movie/${tmdbId}/credits`
+  const r = await tmdbFetch(`https://api.themoviedb.org/3/${creditsPath}?api_key=${key}`, env)
+  if (!r.ok) return null
+  const credits = await r.json()
+  const cast = (credits?.cast || [])
+    .filter((c) => c?.name)
+    .slice(0, 12)
+    .map((c) => ({
+      name: c.name,
+      character: (isTv ? c.roles?.[0]?.character : c.character) || null,
+      photo: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
+    }))
+  await markTried()
+  const current = Array.isArray(film.cast) ? film.cast : []
+  if (cast.length <= current.length) return null
+  await db.prepare('UPDATE films SET cast = ? WHERE id = ?').bind(JSON.stringify(cast), film.id).run()
+  return cast
+}

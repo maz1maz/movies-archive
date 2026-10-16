@@ -13,7 +13,7 @@ import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailer
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { findVerifiedImdbId, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, fetchFullCast, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -1753,6 +1753,20 @@ async function handleFetch(request, env, ctx) {
           return json({ collection: { ...details, parts } }, 200, corsHeaders)
         } catch (e) {
           return json({ collection: null, error: String(e) }, 200, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/films/:id/full-cast — بازیگران کامل (TMDB) یه‌بار، ذخیره تو cast ----
+      const fullCastMatch = pathname.match(/^\/api\/films\/([^/]+)\/full-cast$/)
+      if (method === 'GET' && fullCastMatch) {
+        try {
+          const row = await db.prepare('SELECT id, title, year, imdbId, itemType, cast FROM films WHERE id = ?').bind(fullCastMatch[1]).first()
+          if (!row) return json({ cast: null }, 200, corsHeaders)
+          const film = parseFilmRow(row)
+          const cast = await fetchFullCast(db, env, film)
+          return json({ cast }, 200, corsHeaders)
+        } catch (e) {
+          return json({ cast: null, error: String(e) }, 200, corsHeaders)
         }
       }
 

@@ -110,6 +110,24 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const [brokenPosters, setBrokenPosters] = useState(() => new Set())
   // بازیگرِ بازشده تو نوار بازیگران (Skiper UI HoverExpand_001)
   const [activeCast, setActiveCast] = useState(0)
+  // اگه فیلم فقط ۳ بازیگر OMDb داره، یه‌بار لیست کامل از TMDB گرفته و تو
+  // دیتابیس ذخیره می‌شه (/api/films/:id/full-cast)؛ اینجا فقط نمایشش می‌دیم.
+  const [fullCast, setFullCast] = useState(null)
+  useEffect(() => {
+    setFullCast(null)
+    const current = Array.isArray(film?.cast) ? film.cast : []
+    if (!film?.id || current.length > 3) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/full-cast`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && Array.isArray(d.cast) && d.cast.length > current.length) setFullCast(d.cast)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [film?.id])
   const posterManualAtRef = useRef(0)
 
   // پوسترهای جایگزین: کنار پوستر اصلی نشون داده می‌شن و خودکار می‌چرخن —
@@ -387,7 +405,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     return String(num)
   }
 
-  const castList = Array.isArray(film.cast) ? film.cast : []
+  const castList = fullCast || (Array.isArray(film.cast) ? film.cast : [])
   const displayedCast = castList
 
   // بعضی فیلم‌ها از دو مکانیزم جدای ایمپورت نقد (sync خودکار + CSV دستی)
@@ -1085,7 +1103,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                         }
                       >
                         <img
-                          src={photoUrl}
+                          src={proxyImg(photoUrl)}
                           alt={name}
                           className="cine-actor-img"
                           onError={(e) => {
