@@ -105,6 +105,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const [festivalAwards, setFestivalAwards] = useState(Array.isArray(film?.festivalAwards) ? film.festivalAwards : [])
   const [altPosters, setAltPosters] = useState([])
   const [altPosterIndex, setAltPosterIndex] = useState(0)
+  // پوسترهایی که لود نشدن (لینک خراب/بلاک) از دستهٔ کارت حذف می‌شن تا کارت
+  // خالی با فقط اسم فیلم جلو نیاد.
+  const [brokenPosters, setBrokenPosters] = useState(() => new Set())
   const posterManualAtRef = useRef(0)
 
   // پوسترهای جایگزین: کنار پوستر اصلی نشون داده می‌شن و خودکار می‌چرخن —
@@ -112,6 +115,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   useEffect(() => {
     setAltPosters([])
     setAltPosterIndex(0)
+    setBrokenPosters(new Set())
     if (!film?.id) return
     fetch(`/api/films/${film.id}/alt-posters`)
       .then((r) => r.json())
@@ -546,7 +550,10 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
           })()}
           {(() => {
             const posters = [film.poster, ...altPosters].filter(Boolean)
-            const uniquePosters = [...new Set(posters)]
+            const allUnique = [...new Set(posters)]
+            const working = allUnique.filter((src) => !brokenPosters.has(src))
+            // اگه همه خراب بودن، همون اولی (با fallback اسم فیلم) بمونه
+            const uniquePosters = working.length ? working : allUnique.slice(0, 1)
             if (uniquePosters.length <= 1) {
               return (
                 <div
@@ -557,11 +564,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       ? 'cine-poster-box clickable-poster cine-poster-has-digital'
                       : 'cine-poster-box clickable-poster'
                   }
-                  onClick={() => film.poster && setLightboxSrc(film.poster)}
+                  onClick={() => uniquePosters[0] && setLightboxSrc(uniquePosters[0])}
                   title="Click to view full poster"
                 >
                   <img
-                    src={film.poster}
+                    src={proxyImg(uniquePosters[0])}
                     alt={film.title}
                     className="cine-poster-img"
                     decoding="async"
@@ -587,7 +594,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                   onPointerDown={(e) => startDeckDrag(e, uniquePosters.length)}
                 >
                   {uniquePosters.map((src, i) => {
-                    let offset = i - altPosterIndex
+                    let offset = i - (altPosterIndex % uniquePosters.length)
                     const half = uniquePosters.length / 2
                     if (offset > half) offset -= uniquePosters.length
                     if (offset < -half) offset += uniquePosters.length
@@ -620,6 +627,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                         decoding="async"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none'
+                          setBrokenPosters((prev) => (prev.has(src) ? prev : new Set(prev).add(src)))
                         }}
                       />
                       <div className="cine-poster-fallback">{film.title}</div>

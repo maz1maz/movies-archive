@@ -384,7 +384,7 @@ async function handleFetch(request, env, ctx) {
         // شناخته‌شده‌ی عکس (TMDB/Wikimedia) رو می‌ده — قبلاً هیچ allowlist
         // نداشت و هرکسی می‌تونست از سرور به‌عنوان proxy باز برای هر URL
         // دلخواه استفاده کنه.
-        const allowedHosts = ['image.tmdb.org', 'upload.wikimedia.org', 'upload.wikimedia.beta.wmflabs.org']
+        const allowedHosts = ['image.tmdb.org', 'upload.wikimedia.org', 'upload.wikimedia.beta.wmflabs.org', 'm.media-amazon.com']
         if (!allowedHosts.includes(targetUrl.hostname)) {
           return new Response('Host not allowed', { status: 403, headers: corsHeaders })
         }
