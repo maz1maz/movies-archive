@@ -10619,3 +10619,26 @@ body.light .marquee-band::after {
     grid-column: 1 / -1;
   }
 }
+.cine-auto-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.cine-auto-tag {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #d4af37 55%, transparent);
+  color: #d4af37;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.cine-auto-tag.tag-cult {
+  border-color: #c04de0;
+  color: #d98bf0;
+}
+.cine-auto-tag.tag-experimental {
+  border-color: #3fc6b8;
+  color: #6fe0d4;
+}

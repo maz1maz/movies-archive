@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { guessMovements, TAG_LABELS } from '../utils/movements.js'
 import DashboardPosterCard from './DashboardPosterCard.jsx'
 
 // تب «Discover» — همه‌چیز خودکار از دیتای موجود، بدون ورود دستی:
@@ -108,6 +109,32 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm }) {
 
   const maxDecadeTotal = Math.max(1, ...decades.map((d) => d.total))
 
+  // برچسب‌های TMDB (کالت/تجربی/…) + حدسِ جنبش از کارگردان/کشور/سال
+  const [tmdbTagMap, setTmdbTagMap] = useState({})
+  useEffect(() => {
+    fetch('/api/tags')
+      .then((r) => r.json())
+      .then((d) => setTmdbTagMap(d.tags || {}))
+      .catch(() => {})
+  }, [])
+  const byTag = useMemo(() => {
+    const idToFilm = new Map(films.map((f) => [String(f.id), f]))
+    const map = new Map()
+    const add = (tag, f) => {
+      if (!f) return
+      if (!map.has(tag)) map.set(tag, new Map())
+      map.get(tag).set(keyOf(f), f)
+    }
+    for (const [tag, ids] of Object.entries(tmdbTagMap)) ids.forEach((id) => add(tag, idToFilm.get(String(id))))
+    for (const f of films) guessMovements(f).forEach((t) => add(t, f))
+    return [...map.entries()]
+      .map(([tag, m]) => [tag, [...m.values()].sort((a, b) => score(b) - score(a))])
+      .sort((a, b) => b[1].length - a[1].length)
+  }, [films, tmdbTagMap])
+  const [activeTag, setActiveTag] = useState(null)
+  const shownTag = activeTag || byTag[0]?.[0]
+  const shownFilms = byTag.find(([t]) => t === shownTag)?.[1] || []
+
   return (
     <div className="oscars-panel discover-panel">
       <section>
@@ -129,6 +156,19 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm }) {
         <h2>Acclaimed, not watched yet ({acclaimedUnwatched.length})</h2>
         <p className="oscars-intro">In your archive with IMDb ≥ 7.8 or Letterboxd ≥ 3.9 — still unwatched.</p>
         {acclaimedUnwatched.length ? <PosterGrid films={acclaimedUnwatched} onOpenFilm={onOpenFilm} /> : <div className="empty">You've seen them all.</div>}
+      </section>
+
+      <section style={{ marginTop: 28 }}>
+        <h2>Cult, experimental &amp; movements</h2>
+        <p className="oscars-intro">Tagged automatically from TMDB keywords, plus movement guesses from director, country and year. Fills in over the next few weeks.</p>
+        <div className="row row-wrap" style={{ gap: 6, margin: '8px 0 14px' }}>
+          {byTag.map(([tag, list]) => (
+            <button key={tag} className={`btn ${tag === shownTag ? 'btn-primary' : ''}`} onClick={() => setActiveTag(tag)}>
+              {TAG_LABELS[tag] || tag} ({list.length})
+            </button>
+          ))}
+        </div>
+        {shownFilms.length ? <PosterGrid films={shownFilms.slice(0, 48)} onOpenFilm={onOpenFilm} /> : <div className="empty">No tagged films yet.</div>}
       </section>
 
       <section style={{ marginTop: 28 }}>

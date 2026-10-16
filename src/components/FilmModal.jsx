@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconShare } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
+import { filmTags, TAG_LABELS } from '../utils/movements.js'
 import { formatMoney } from '../utils/formatMoney.js'
 import { shareFilmCard } from '../utils/shareCard.js'
 import { addToOrderList } from '../utils/orderList.js'
@@ -113,6 +114,18 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   // اگه فیلم فقط ۳ بازیگر OMDb داره، یه‌بار لیست کامل از TMDB گرفته و تو
   // دیتابیس ذخیره می‌شه (/api/films/:id/full-cast)؛ اینجا فقط نمایشش می‌دیم.
   const [fullCast, setFullCast] = useState(null)
+  const [tmdbTags, setTmdbTags] = useState([])
+  useEffect(() => {
+    setTmdbTags([])
+    if (!film?.id) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/tags`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setTmdbTags(Array.isArray(d.tags) ? d.tags : []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [film?.id])
+  const autoTags = film ? filmTags(film, tmdbTags) : []
   const [stills, setStills] = useState([])
   useEffect(() => {
     setStills([])
@@ -798,6 +811,13 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
             <div className="cine-info-card">
             <div className="cine-synopsis-box cine-synopsis-plain">
+              {autoTags.length > 0 && (
+                <div className="cine-auto-tags">
+                  {autoTags.map((t) => (
+                    <span key={t} className={`cine-auto-tag tag-${t}`}>{TAG_LABELS[t] || t}</span>
+                  ))}
+                </div>
+              )}
               <div className="cine-section-label">SYNOPSIS</div>
               <p className="cine-synopsis-text">
                 {film.synopsis ||

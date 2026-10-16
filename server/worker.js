@@ -13,7 +13,7 @@ import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailer
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { findVerifiedImdbId, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -102,8 +102,14 @@ export default {
 
     if (event.cron === '*/10 * * * *') {
       // ۲۰ فیلم × حداکثر ۲ درخواست TMDB — زیر سقف subrequest هر invocation
-      // نوبتی: یه دور IMDb id، یه دور بازیگر کامل (هر دو با هم از سقف ۵۰ subrequest رد می‌شن)
-      if (Math.floor(new Date().getUTCMinutes() / 10) % 2 === 1) {
+      // نوبتی: IMDb id / بازیگر کامل / برچسب‌ها (با هم از سقف ۵۰ subrequest رد می‌شن)
+      const slot = Math.floor((Date.now() / 600000)) % 3
+      if (slot === 2) {
+        const r = await backfillFilmTags(env.DB, env, 20).catch((e) => ({ error: e.message }))
+        console.log('Tags backfill:', JSON.stringify(r))
+        return
+      }
+      if (slot === 1) {
         const r = await backfillFullCast(env.DB, env, 18).catch((e) => ({ error: e.message }))
         console.log('Cast backfill:', JSON.stringify(r))
         return
@@ -1793,6 +1799,32 @@ async function handleFetch(request, env, ctx) {
         } catch (e) {
           return json({ cast: null, error: String(e) }, 200, corsHeaders)
         }
+      }
+
+      // ---- GET /api/films/:id/tags — برچسب‌های خودکار (کالت/تجربی/جنبش) ----
+      const tagsMatch = pathname.match(/^\/api\/films\/([^/]+)\/tags$/)
+      if (method === 'GET' && tagsMatch) {
+        try {
+          const row = await db.prepare('SELECT id, title, year, imdbId, itemType FROM films WHERE id = ?').bind(tagsMatch[1]).first()
+          if (!row) return json({ tags: [] }, 200, corsHeaders)
+          return json({ tags: await fetchFilmTags(db, env, row) }, 200, corsHeaders)
+        } catch (e) {
+          return json({ tags: [], error: String(e) }, 200, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/tags — همه‌ی برچسب‌ها: { tag: [filmId, ...] } ----
+      if (method === 'GET' && pathname === '/api/tags') {
+        const { results } = await db
+          .prepare("SELECT key, data FROM cinema_news_cache WHERE key LIKE 'tags:%' AND data != '[]'")
+          .all()
+        const byTag = {}
+        for (const r of results) {
+          let tags = []
+          try { tags = JSON.parse(r.data) } catch {}
+          for (const t of tags) (byTag[t] ||= []).push(r.key.slice(5))
+        }
+        return json({ tags: byTag }, 200, { ...corsHeaders, 'Cache-Control': 'public, max-age=600' })
       }
 
       // ---- GET /api/films/:id/stills — عکس‌های صحنه از TMDB (کش ۹۰ روزه) ----

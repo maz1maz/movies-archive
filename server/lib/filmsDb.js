@@ -987,3 +987,77 @@ export async function fetchFilmStills(db, env, film) {
     .run()
   return stills
 }
+
+// برچسب‌های خودکار از keywordهای TMDB (کالت/تجربی/جنبش‌ها). بدون تغییر schema:
+// تو cinema_news_cache با کلید tags:<id> (آرایه‌ی خالی یعنی «چک شد، چیزی نداشت»).
+const TAG_RULES = [
+  ['cult', /\bcult (film|classic|movie)\b/],
+  ['experimental', /\b(experimental|avant[- ]garde|surreal|art film)\b/],
+  ['noir', /\bfilm noir\b/],
+  ['neo-noir', /\bneo[- ]noir\b/],
+  ['french-new-wave', /\bfrench new wave|nouvelle vague\b/],
+  ['neorealism', /\bneorealis/],
+  ['german-expressionism', /\bgerman expressionism|expressionism\b/],
+  ['new-hollywood', /\bnew hollywood\b/],
+  ['dogme-95', /\bdogme\b/],
+  ['slow-cinema', /\bslow cinema\b/],
+]
+
+export async function fetchFilmTags(db, env, film) {
+  const key = `tags:${film.id}`
+  const cached = await db.prepare('SELECT data FROM cinema_news_cache WHERE key = ?').bind(key).first()
+  if (cached) {
+    try { return JSON.parse(cached.data) } catch { return [] }
+  }
+  if (!env.TMDB_API_KEY) return []
+  const isTv = film.itemType === 'series'
+  const kind = isTv ? 'tv' : 'movie'
+  const apiKey = env.TMDB_API_KEY
+  let tmdbId = null
+  if (film.imdbId) {
+    const r = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${apiKey}&external_source=imdb_id`, env)
+    if (!r.ok) return []
+    tmdbId = (await r.json())?.[`${kind}_results`]?.[0]?.id || null
+  }
+  if (!tmdbId && film.title) {
+    const yearKey = isTv ? 'first_air_date_year' : 'year'
+    const yearParam = film.year ? `&${yearKey}=${film.year}` : ''
+    const r = await tmdbFetch(
+      `https://api.themoviedb.org/3/search/${kind}?api_key=${apiKey}&query=${encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))}${yearParam}`,
+      env
+    )
+    if (!r.ok) return []
+    tmdbId = (await r.json())?.results?.[0]?.id || null
+  }
+  let tags = []
+  if (tmdbId) {
+    const r = await tmdbFetch(`https://api.themoviedb.org/3/${kind}/${tmdbId}/keywords?api_key=${apiKey}`, env)
+    if (!r.ok) return [] // خطای موقت؛ کش نکن
+    const d = await r.json()
+    const names = (d.keywords || d.results || []).map((k) => (k.name || '').toLowerCase())
+    tags = TAG_RULES.filter(([, re]) => names.some((n) => re.test(n))).map(([t]) => t)
+  }
+  await db
+    .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+    .bind(key, JSON.stringify(tags))
+    .run()
+  return tags
+}
+
+export async function backfillFilmTags(db, env, limit = 20) {
+  if (!env.TMDB_API_KEY) return { skipped: 'no key' }
+  const { results } = await db
+    .prepare(
+      `SELECT id, title, year, imdbId, itemType FROM films
+       WHERE NOT EXISTS (SELECT 1 FROM cinema_news_cache c WHERE c.key = 'tags:' || films.id)
+       LIMIT ?`
+    )
+    .bind(limit)
+    .all()
+  let tagged = 0
+  for (const row of results) {
+    const t = await fetchFilmTags(db, env, row).catch(() => [])
+    if (t.length) tagged++
+  }
+  return { tried: results.length, tagged }
+}
