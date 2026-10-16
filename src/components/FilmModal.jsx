@@ -113,6 +113,17 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   // اگه فیلم فقط ۳ بازیگر OMDb داره، یه‌بار لیست کامل از TMDB گرفته و تو
   // دیتابیس ذخیره می‌شه (/api/films/:id/full-cast)؛ اینجا فقط نمایشش می‌دیم.
   const [fullCast, setFullCast] = useState(null)
+  const [stills, setStills] = useState([])
+  useEffect(() => {
+    setStills([])
+    if (!film?.id) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/stills`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setStills(Array.isArray(d.stills) ? d.stills : []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [film?.id])
   useEffect(() => {
     setFullCast(null)
     const current = Array.isArray(film?.cast) ? film.cast : []
@@ -1323,9 +1334,31 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 <div className="cine-hd-tag">F HD</div>
               </div>
             </a>
+            {film.director && (
+              <a
+                className="cine-interview-link"
+                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${String(film.director).split(',')[0].trim()} interview ${film.title}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                🎙️ Director interviews
+              </a>
+            )}
           </div>
         </div>
 
+        {stills.length > 0 && (
+          <div className="cine-stills">
+            <div className="cine-col-title">STILLS</div>
+            <div className="cine-stills-strip">
+              {stills.map((src) => (
+                <button key={src} type="button" className="cine-still" onClick={() => setLightboxSrc(proxyImg(src))}>
+                  <img src={proxyImg(src.replace('/w780/', '/w300/'))} alt="" loading="lazy" onError={(e) => { e.currentTarget.parentElement.style.display = 'none' }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
   )
 

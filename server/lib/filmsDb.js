@@ -942,3 +942,48 @@ export async function backfillFullCast(db, env, limit = 18) {
   }
   return { tried: results.length, filled }
 }
+
+// عکس‌های صحنه/پشت‌صحنه (backdrops) از TMDB، کش ۹۰ روزه تو cinema_news_cache
+// (کلید stills:<id>). فقط لینک ذخیره می‌شه، نه خودِ عکس.
+export async function fetchFilmStills(db, env, film) {
+  const key = `stills:${film.id}`
+  const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(key).first()
+  if (cached && Date.now() - Date.parse(cached.fetchedAt.replace(' ', 'T') + 'Z') < 90 * 86400000) {
+    try { return JSON.parse(cached.data) } catch {}
+  }
+  if (!env.TMDB_API_KEY) return []
+  const isTv = film.itemType === 'series'
+  const kind = isTv ? 'tv' : 'movie'
+  const apiKey = env.TMDB_API_KEY
+  let tmdbId = null
+  if (film.imdbId) {
+    const r = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${apiKey}&external_source=imdb_id`, env)
+    if (!r.ok) return []
+    tmdbId = (await r.json())?.[`${kind}_results`]?.[0]?.id || null
+  }
+  if (!tmdbId && film.title) {
+    const yearKey = isTv ? 'first_air_date_year' : 'year'
+    const yearParam = film.year ? `&${yearKey}=${film.year}` : ''
+    const r = await tmdbFetch(
+      `https://api.themoviedb.org/3/search/${kind}?api_key=${apiKey}&query=${encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))}${yearParam}`,
+      env
+    )
+    if (!r.ok) return []
+    tmdbId = (await r.json())?.results?.[0]?.id || null
+  }
+  let stills = []
+  if (tmdbId) {
+    const r = await tmdbFetch(`https://api.themoviedb.org/3/${kind}/${tmdbId}/images?api_key=${apiKey}`, env)
+    if (!r.ok) return []
+    const d = await r.json()
+    stills = (d.backdrops || [])
+      .sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+      .slice(0, 12)
+      .map((b) => `https://image.tmdb.org/t/p/w780${b.file_path}`)
+  }
+  await db
+    .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+    .bind(key, JSON.stringify(stills))
+    .run()
+  return stills
+}

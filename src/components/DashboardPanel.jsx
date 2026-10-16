@@ -23,6 +23,7 @@ const DashboardApiUsagePanel = lazy(() => import('./DashboardApiUsagePanel.jsx')
 const DashboardFollowedPanel = lazy(() => import('./DashboardFollowedPanel.jsx'))
 const DashboardCollectionsPanel = lazy(() => import('./DashboardCollectionsPanel.jsx'))
 const DashboardWrappedPanel = lazy(() => import('./DashboardWrappedPanel.jsx'))
+const DashboardDiscoverPanel = lazy(() => import('./DashboardDiscoverPanel.jsx'))
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: IconBarChart },
@@ -41,6 +42,7 @@ const TABS = [
   { key: 'loaned', label: 'Loaned Out', icon: IconHandshake },
   { key: 'orderlist', label: 'Order List', icon: IconSave },
   { key: 'recommend', label: 'Tonight', icon: IconDice },
+  { key: 'discover', label: 'Discover', icon: IconSparkles },
   { key: 'export', label: 'Export & Backup', icon: IconSave },
   { key: 'roadmap', label: 'Roadmap', icon: IconSparkles },
 ]
@@ -109,6 +111,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
           {tab === 'loaned' && <DashboardLoanedPanel films={films} onOpenFilm={onOpenFilm} />}
           {tab === 'orderlist' && <DashboardOrderListPanel />}
           {tab === 'recommend' && <DashboardRecommendPanel films={films} onOpenFilm={onOpenFilm} />}
+          {tab === 'discover' && <DashboardDiscoverPanel films={films} onOpenFilm={onOpenFilm} />}
           {tab === 'export' && <DashboardExportPanel films={films} />}
           {tab === 'roadmap' && <DashboardRoadmapPanel />}
         </Suspense>
