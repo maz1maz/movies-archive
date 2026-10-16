@@ -10447,3 +10447,28 @@ body.light .marquee-band::after {
   color: var(--muted);
   font-size: 12px;
 }
+.person-award-own {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  font: inherit;
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 700;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.person-award-own.is-bluray {
+  color: #d4af37;
+}
+.person-award-own.is-digital {
+  color: #4ea1ff;
+}
+.person-award-own:hover {
+  background: color-mix(in srgb, currentColor 15%, transparent);
+}

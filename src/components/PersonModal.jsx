@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { IconClose, IconUser, IconPin, IconDisc } from './icons.jsx'
+import { IconClose, IconUser, IconPin, IconDisc, IconHardDrive } from './icons.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { addToOrderList } from '../utils/orderList.js'
 import { proxyImg } from '../utils/proxyImg.js'
@@ -157,6 +157,26 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
     }
   }
   const dedupedFilms = Array.from(seenKeys.values())
+
+  // فیلمِ هر جایزه تو آرشیو: اول با عنوان (title/originalTitle)، وگرنه اگه
+  // دقیقاً یه فیلمِ این شخص در همون سال یا سال قبل باشه (عنوان انگلیسیِ جایزه
+  // معمولاً با عنوان اصلیِ فیلم فرق داره، مثل The Bait / L'Appât)
+  const normT = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+  const archiveCopiesForAward = (a) => {
+    if (!a.forWork) return []
+    const want = normT(a.forWork)
+    let hits = matchingFilmsRaw.filter((f) => normT(f.title) === want || normT(f.originalTitle) === want)
+    if (hits.length === 0 && a.year) {
+      const y = Number(a.year)
+      const near = matchingFilmsRaw.filter((f) => {
+        const fy = Number(f.year)
+        return fy === y || fy === y - 1
+      })
+      const keys = new Set(near.map((f) => `${normT(f.title)}::${f.year}`))
+      if (keys.size === 1) hits = near
+    }
+    return hits
+  }
 
   const isDirector = dedupedFilms.some((f) => (f.director || '').toLowerCase().includes(target))
   const isWriter = dedupedFilms.some((f) => (f.screenwriter || '').toLowerCase().includes(target))
@@ -454,15 +474,34 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                     <h4 className="person-extras-title">Awards ({directorExtras.awards.length})</h4>
                     {/* لیست ساده: سال | جایزه + فیلم — بدون باکس دور هر ردیف */}
                     <ul className="person-awards-rows">
-                      {directorExtras.awards.map((a, i) => (
-                        <li key={`${a.label}-${a.year}-${i}`} className="person-award-row">
-                          <span className="person-award-year">{a.year || '—'}</span>
-                          <span className="person-award-text">
-                            {a.label}
-                            {a.forWork && <em className="person-award-work">{a.forWork}</em>}
-                          </span>
-                        </li>
-                      ))}
+                      {directorExtras.awards.map((a, i) => {
+                        const copies = archiveCopiesForAward(a)
+                        const physical = copies.find((f) => f.mediaType !== 'digital')
+                        const digital = copies.find((f) => f.mediaType === 'digital')
+                        return (
+                          <li key={`${a.label}-${a.year}-${i}`} className="person-award-row">
+                            <span className="person-award-year">{a.year || '—'}</span>
+                            <span className="person-award-text">
+                              {a.label}
+                              {a.forWork && (
+                                <em className="person-award-work">
+                                  {a.forWork}
+                                  {physical && (
+                                    <button type="button" className="person-award-own is-bluray" title="Blu-ray in your archive" onClick={() => onSelectFilm(physical)}>
+                                      <IconDisc width={11} height={11} /> Blu-ray
+                                    </button>
+                                  )}
+                                  {digital && (
+                                    <button type="button" className="person-award-own is-digital" title="Digital copy in your archive" onClick={() => onSelectFilm(digital)}>
+                                      <IconHardDrive width={11} height={11} /> Digital
+                                    </button>
+                                  )}
+                                </em>
+                              )}
+                            </span>
+                          </li>
+                        )
+                      })}
                     </ul>
                   </div>
                 )}
