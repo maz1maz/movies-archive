@@ -3105,6 +3105,7 @@ body.light .header {
 }
 .cine-poster-coverflow-wrap {
   display: flex;
+  flex-direction: column; /* نوار ریزعکس‌ها زیر دسته‌کارت، نه کنارش */
   align-items: center;
   justify-content: center;
 }
@@ -10787,7 +10788,10 @@ a.cine-related-title:hover {
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
-  margin-top: 12px;
+  width: 100%;
+  margin-top: 16px;
+  position: relative;
+  z-index: 2;
 }
 .cine-poster-thumb {
   width: 34px;
