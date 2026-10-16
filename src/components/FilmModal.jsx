@@ -143,6 +143,52 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     setAltPosterIndex(((index % total) + total) % total)
   }
 
+  // دسته‌کارت پوسترها (Skiper UI «Carousel_002» / افکت cards سوایپر، بدون
+  // خود کتابخونه): کارت جلویی با موس/انگشت کشیده می‌شه و اگه از آستانه رد
+  // بشه بعدی/قبلی میاد جلو. کلیک بعد از کشیدن نادیده گرفته می‌شه.
+  const [deckDrag, setDeckDrag] = useState(0)
+  const [deckDragging, setDeckDragging] = useState(false)
+  const deckDragRef = useRef({ startX: 0, startY: 0, dx: 0, active: false, moved: false })
+  const startDeckDrag = (e, total) => {
+    if (e.button != null && e.button !== 0) return
+    const d = deckDragRef.current
+    Object.assign(d, { startX: e.clientX, startY: e.clientY, dx: 0, active: true, moved: false })
+    const onMove = (ev) => {
+      const dx = ev.clientX - d.startX
+      const dy = ev.clientY - d.startY
+      if (!d.moved && Math.abs(dx) < 6) return
+      if (!d.moved && Math.abs(dy) > Math.abs(dx)) {
+        end()
+        return
+      }
+      d.moved = true
+      d.dx = dx
+      setDeckDragging(true)
+      setDeckDrag(dx)
+    }
+    const end = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      if (d.moved && Math.abs(d.dx) > 50) {
+        setAltPosterIndex((i) => {
+          posterManualAtRef.current = Date.now()
+          return (((i + (d.dx < 0 ? 1 : -1)) % total) + total) % total
+        })
+      }
+      d.active = false
+      // click بلافاصله بعد از pointerup میاد؛ بعدش دوباره کلیک مجازه
+      setTimeout(() => {
+        d.moved = false
+      }, 0)
+      setDeckDragging(false)
+      setDeckDrag(0)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+  }
+
   useEffect(() => {
     const onKey = (e) => {
       // اگه لایت‌باکس بازه، Escape/جهت‌نماها فقط باید خودِ لایت‌باکس رو
@@ -540,6 +586,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       ? 'cine-poster-box cine-poster-coverflow cine-poster-has-digital'
                       : 'cine-poster-box cine-poster-coverflow'
                   }
+                  data-dragging={deckDragging || undefined}
+                  onPointerDown={(e) => startDeckDrag(e, uniquePosters.length)}
                 >
                   {uniquePosters.map((src, i) => {
                     let offset = i - altPosterIndex
@@ -556,16 +604,22 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                         style={{
                           '--offset': offset,
                           '--abs': abs,
-                          zIndex: isActive ? 3 : 2 - abs,
-                          opacity: abs > 1 ? 0 : 1,
-                          pointerEvents: abs > 1 ? 'none' : 'auto',
+                          '--drag': isActive ? deckDrag : 0,
+                          zIndex: 10 - abs,
+                          opacity: abs > 2 ? 0 : 1,
+                          pointerEvents: abs > 2 ? 'none' : 'auto',
                         }}
-                        onClick={() => (isActive ? setLightboxSrc(src) : goToPoster(i, uniquePosters.length))}
+                        onClick={() => {
+                          if (deckDragRef.current.moved) return
+                          if (isActive) setLightboxSrc(src)
+                          else goToPoster(i, uniquePosters.length)
+                        }}
                         title={isActive ? 'Click to view full poster' : 'Show this poster'}
                       >
                         <img
                         src={proxyImg(src)}
                         alt={film.title}
+                        draggable={false}
                         decoding="async"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none'

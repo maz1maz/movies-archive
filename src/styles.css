@@ -3120,13 +3120,25 @@ body.light .header {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease, filter 0.55s ease;
   filter: grayscale(1) brightness(0.6);
-  /* Fanned deck (based on Uiverse.io by ilkhoeri, MIT): side posters tilt
-     outwards and sit a little lower than the front one. */
+  /* Swipeable card stack (based on Skiper UI Carousel_002 / Swiper's cards
+     effect): the posters behind peek out to the sides with a slight tilt,
+     and the front one follows the pointer while it's dragged (--drag, px). */
   transform:
-    translateX(calc(var(--offset, 0) * 40%))
-    translateY(calc(var(--abs, 0) * 5%))
-    rotate(calc(var(--offset, 0) * 12deg))
-    scale(calc(1 - var(--abs, 0) * 0.2));
+    translateX(calc(var(--offset, 0) * 9% + var(--drag, 0) * 1px))
+    translateY(calc(var(--abs, 0) * 2%))
+    rotate(calc(var(--offset, 0) * 3deg + var(--drag, 0) * 0.04deg))
+    scale(calc(1 - var(--abs, 0) * 0.07));
+}
+.cine-poster-coverflow {
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+}
+.cine-poster-coverflow[data-dragging] {
+  cursor: grabbing;
+}
+.cine-poster-coverflow[data-dragging] .cine-poster-slide-active {
+  transition: opacity 0.55s ease, filter 0.55s ease;
 }
 /* Digital titles: blue deck (active border + light line) instead of gold. */
 .cine-poster-coverflow-wrap.is-digital {
