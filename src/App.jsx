@@ -97,9 +97,11 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [page])
-  // باید مضرب ۷ باشه (تعداد ستون‌های گرید)، وگرنه ردیف آخر هر صفحه همیشه
-  // ناقص می‌مونه
-  const PAGE_SIZE = 49
+  // باید مضرب تعداد ستون‌های گرید باشه، وگرنه ردیف آخر هر صفحه همیشه ناقص
+  // می‌مونه: دسکتاپ ۷ ستون → ۴۹؛ موبایل ۲ یا ۳ ستون → ۴۸ (بر ۲، ۳ و ۴ بخش‌پذیر)
+  const [PAGE_SIZE] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches ? 48 : 49
+  )
   // فعلاً دکمه‌ی تعویض نما (Thumbnails/List) از هدر برداشته شده و فقط
   // Thumbnails نشون داده می‌شه؛ مقدار قبلی توی localStorage هم نادیده
   // گرفته می‌شه تا اگه قبلاً روی List بوده، حالا گرید بیاد.
