@@ -10169,3 +10169,84 @@ body.light .marquee-band::after {
     animation: none;
   }
 }
+
+/* ---------- Shelf hover-expand: full-bleed poster ----------
+   Based on Skiper UI HoverExpand_001 (attribution: Skiper UI). Instead of the
+   framed cream card, the opened case shows the poster edge to edge at its own
+   2:3 ratio, with a soft dark gradient from the bottom carrying the title,
+   and opens/closes with one smooth 0.3s ease. */
+.bluray-case,
+.bluray-case-near {
+  transition:
+    flex-basis 0.3s ease-in-out,
+    min-width 0.3s ease-in-out,
+    border-radius 0.3s ease-in-out,
+    transform 0.3s ease-in-out,
+    box-shadow 0.3s ease;
+}
+.bluray-case:hover {
+  flex: 0 0 calc(207px * var(--spine-scale, 1));
+  border-radius: 14px;
+  transition:
+    flex-basis 0.3s ease-in-out,
+    border-radius 0.3s ease-in-out,
+    transform 0.3s ease-in-out,
+    box-shadow 0.3s ease;
+}
+.case-expand-view {
+  background: #000;
+  border: 0;
+  box-shadow: none;
+  color: #fff;
+  transition: opacity 0.3s ease;
+}
+.bluray-case:hover .case-expand-view {
+  transition: opacity 0.3s ease 0.08s;
+}
+.case-expand-poster {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+.case-expand-poster img {
+  object-fit: cover;
+}
+.case-expand-info {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  flex: none;
+  padding: 48px 12px 10px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.4) 55%, transparent);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.bluray-case:hover .case-expand-info {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.15s;
+}
+.case-expand-title {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.case-expand-year,
+.case-expand-director {
+  color: rgba(255, 255, 255, 0.6);
+}
+.case-expand-badges {
+  color: #f2c75c;
+}
+.bluray-case:hover .case-glare {
+  opacity: 0.35;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bluray-case,
+  .bluray-case-near,
+  .bluray-case:hover,
+  .case-expand-info {
+    transition: none;
+  }
+}
