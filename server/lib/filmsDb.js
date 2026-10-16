@@ -478,15 +478,30 @@ export async function fetchAltPosters(db, env, film) {
     }
   } catch {}
 
-  if (!env.TMDB_API_KEY || !film.imdbId) return []
+  if (!env.TMDB_API_KEY) return []
   try {
     const mediaType = film.itemType === 'series' ? 'tv' : 'movie'
-    const findRes = await fetch(
-      `https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`
-    )
-    if (!findRes.ok) return []
-    const findData = await findRes.json()
-    const tmdbId = findData?.[`${mediaType}_results`]?.[0]?.id
+    let tmdbId = null
+    if (film.imdbId) {
+      const findRes = await fetch(
+        `https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`
+      )
+      if (!findRes.ok) return []
+      const findData = await findRes.json()
+      tmdbId = findData?.[`${mediaType}_results`]?.[0]?.id || null
+    }
+    // حدود ۲۰٪ آرشیو imdbId نداره و قبلاً همیشه فقط یه پوستر می‌گرفت —
+    // حالا با عنوان+سال تو TMDB جست‌وجو می‌کنیم (مثل resolveFilmCollection).
+    if (!tmdbId && film.title) {
+      const yearKey = mediaType === 'tv' ? 'first_air_date_year' : 'year'
+      const yearParam = film.year ? `&${yearKey}=${film.year}` : ''
+      const searchRes = await fetch(
+        `https://api.themoviedb.org/3/search/${mediaType}?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))}${yearParam}`
+      )
+      if (!searchRes.ok) return []
+      const searchData = await searchRes.json()
+      tmdbId = searchData?.results?.[0]?.id || null
+    }
     if (!tmdbId) return []
 
     const imgRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/images?api_key=${env.TMDB_API_KEY}`)

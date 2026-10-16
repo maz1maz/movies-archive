@@ -1752,7 +1752,7 @@ async function handleFetch(request, env, ctx) {
       const altPostersMatch = pathname.match(/^\/api\/films\/([^/]+)\/alt-posters$/)
       if (method === 'GET' && altPostersMatch) {
         try {
-          const film = await db.prepare('SELECT id, imdbId, itemType FROM films WHERE id = ?').bind(altPostersMatch[1]).first()
+          const film = await db.prepare('SELECT id, imdbId, itemType, title, year FROM films WHERE id = ?').bind(altPostersMatch[1]).first()
           if (!film) return json({ posters: [] }, 200, corsHeaders)
           const posters = await fetchAltPosters(db, env, film)
           return json({ posters }, 200, corsHeaders)
