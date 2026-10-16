@@ -120,12 +120,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   }, [film?.id])
 
   useEffect(() => {
-    // چرخش خودکار رو موبایل مزاحم بود — فقط رو دستگاه‌هایی که هاور واقعی
-    // دارن (دسکتاپ) خودکار می‌چرخه؛ رو موبایل فقط با دکمه‌های ‹ › دستی عوض
-    // می‌شه.
-    const supportsHover =
-      typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover)').matches
-    if (!supportsHover) return
+    // حالا رو موبایل هم (مثل دسکتاپ) خودکار می‌چرخه — دستهٔ کارت کشیدنیه و
+    // فلش‌های ‹ › حذف شدن؛ وسط کشیدن یا تا ۳.۲ ثانیه بعد از عوض‌کردن دستی رد می‌شه.
     const total = altPosters.length + 1
     if (total < 2) return
     const timer = setInterval(() => {
@@ -133,6 +129,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       // چرخش خودکار رو یه دور رد می‌کنیم تا فوراً پوستری که انتخاب کرده رو
       // عوض نکنه.
       if (Date.now() - posterManualAtRef.current < 3200) return
+      if (deckDragRef.current.active) return
       setAltPosterIndex((i) => (i + 1) % total)
     }, 3200)
     return () => clearInterval(timer)
