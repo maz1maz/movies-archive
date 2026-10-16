@@ -1110,7 +1110,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
         </div>
 
         {/* Bottom 3 Columns: CAST | CREW | TRAILER */}
-        <div className="cine-bottom-row">
+        {/* بیش از ۵ بازیگر: ستون بازیگرها تمام‌عرض می‌شه تا همه بدون اسکرول جا بشن */}
+        <div className={displayedCast.length > 5 ? 'cine-bottom-row has-many-cast' : 'cine-bottom-row'}>
           {/* CAST */}
           <div className="cine-col cine-col-cast">
             <div className="cine-col-header">

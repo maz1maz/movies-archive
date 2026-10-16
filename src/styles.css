@@ -10754,3 +10754,30 @@ a.cine-related-title:hover {
   font-weight: 800;
   text-decoration: none;
 }
+
+/* فیلم‌های پربازیگر (تا ۱۲): ردیف بازیگرها تمام‌عرض، Crew و Trailer زیرش */
+.cine-bottom-row.has-many-cast {
+  grid-template-columns: 1fr 160px;
+}
+.cine-bottom-row.has-many-cast .cine-col-cast {
+  grid-column: 1 / -1;
+}
+/* نوارهای بسته کوچیک می‌شن تا همه تو عرض جا بشن؛ اسکرول افقی فقط اگه واقعاً لازم باشه، بدون نوار */
+.cine-col-cast .cine-cast-grid.cine-cast-expand {
+  scrollbar-width: none;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand::-webkit-scrollbar {
+  display: none;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item {
+  flex: 0 1 76px;
+  min-width: 40px;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item.is-active {
+  flex: 0 0 160px;
+}
+@container cine-modal (max-width: 560px) {
+  .cine-bottom-row.has-many-cast {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1071,8 +1071,11 @@ export async function fetchFilmRelations(db, film) {
   if (!film.imdbId) return empty
   const key = `wdrel:${film.id}`
   const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(key).first()
+  // پارودی‌های بزرگسال (مثل «American Hustle XXX») تو Wikidata «اقتباس» ثبت شدن — حذفشون کن
+  const ADULT = /\bxxx\b|porn|\bparody\b|erotic/i
+  const clean = (o) => ({ ...o, related: (o.related || []).filter((r) => !ADULT.test(r.title || '')) })
   if (cached && Date.now() - Date.parse(cached.fetchedAt.replace(' ', 'T') + 'Z') < 180 * 86400000) {
-    try { return JSON.parse(cached.data) } catch {}
+    try { return clean(JSON.parse(cached.data)) } catch {}
   }
   const imdb = String(film.imdbId).replace(/[^a-z0-9]/gi, '')
   const sparql = `SELECT ?kind ?other ?otherLabel ?otherImdb ?otherYear ?fmtLabel WHERE {
@@ -1111,7 +1114,7 @@ export async function fetchFilmRelations(db, film) {
       continue
     }
     const label = b.otherLabel?.value
-    if (!label || /^Q\d+$/.test(label)) continue
+    if (!label || /^Q\d+$/.test(label) || ADULT.test(label)) continue
     const id = b.other?.value
     const prev = related.get(id)
     related.set(id, {
