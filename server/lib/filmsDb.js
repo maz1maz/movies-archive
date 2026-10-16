@@ -764,3 +764,73 @@ export async function syncSharedMetadataToSibling(db, film) {
   }
   if (changed) await updateFilm(db, siblingParsed)
 }
+
+
+// ---------- پر کردن imdbId گمشده از TMDB ----------
+// حدود ۲۰٪ آرشیو imdbId نداره (اسم/سال برای OMDb قابل‌تشخیص نبوده)، پس نه
+// پوستر جایگزین داره نه امتیاز IMDb. هر بار کرون یه دسته‌ی کوچیک رو با
+// جست‌وجوی TMDB پیدا می‌کنه — فقط وقتی عنوان (یا عنوان اصلی) دقیقاً یکی و
+// سال حداکثر ۱ سال فرق داره ذخیره می‌کنه، تا فیلم هم‌نام اشتباه ثبت نشه.
+// هر فیلم فقط یه‌بار امتحان می‌شه (کلید imdbfill:<id> تو cinema_news_cache).
+const normForMatch = (t) =>
+  (t || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/^(the|a|an)\s+/, '')
+    .replace(/[^a-z0-9Ѐ-ӿ؀-ۿ぀-ヿ一-鿿]+/g, '')
+
+export async function backfillImdbIds(db, env, limit = 20) {
+  if (!env.TMDB_API_KEY) return { processed: 0, matched: 0 }
+  const rows = await db
+    .prepare(
+      `SELECT id, title, year, itemType FROM films
+       WHERE (imdbId IS NULL OR imdbId = '') AND year IS NOT NULL AND title IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM cinema_news_cache c WHERE c.key = 'imdbfill:' || films.id)
+       LIMIT ?`
+    )
+    .bind(limit)
+    .all()
+  let processed = 0
+  let matched = 0
+  for (const film of rows.results || []) {
+    const isTv = film.itemType === 'series'
+    const kind = isTv ? 'tv' : 'movie'
+    const query = encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))
+    const searchRes = await fetch(`https://api.themoviedb.org/3/search/${kind}?api_key=${env.TMDB_API_KEY}&query=${query}`)
+    if (!searchRes.ok) break // TMDB در دسترس نیست / rate limit — دفعه‌ی بعد ادامه
+    const searchData = await searchRes.json()
+    const want = normForMatch(film.title)
+    const year = Number(film.year)
+    const hit = (searchData.results || []).find((r) => {
+      const y = parseInt(((isTv ? r.first_air_date : r.release_date) || '').slice(0, 4), 10)
+      if (!y || Math.abs(y - year) > 1) return false
+      const names = isTv ? [r.name, r.original_name] : [r.title, r.original_title]
+      return names.some((n) => n && normForMatch(n) === want)
+    })
+    let imdbId = null
+    if (hit) {
+      const extRes = await fetch(`https://api.themoviedb.org/3/${kind}/${hit.id}/external_ids?api_key=${env.TMDB_API_KEY}`)
+      if (!extRes.ok) break
+      const ext = await extRes.json()
+      if (/^tt\d+$/.test(ext?.imdb_id || '')) imdbId = ext.imdb_id
+    }
+    if (imdbId) {
+      // metadataEnrichmentAttemptedAt خالی می‌شه تا enrich روزانه با همین
+      // imdbId امتیاز/اطلاعات IMDb رو پر کنه؛ کش پوسترها هم پاک می‌شه.
+      await db
+        .prepare("UPDATE films SET imdbId = ?, metadataEnrichmentAttemptedAt = NULL WHERE id = ? AND (imdbId IS NULL OR imdbId = '')")
+        .bind(imdbId, film.id)
+        .run()
+      await db.prepare('DELETE FROM cinema_news_cache WHERE key = ?').bind(`posters:${film.id}`).run()
+      matched++
+    }
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind(`imdbfill:${film.id}`, imdbId || '')
+      .run()
+    processed++
+  }
+  return { processed, matched }
+}

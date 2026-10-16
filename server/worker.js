@@ -12,7 +12,7 @@ import { fetchCinemaHeadlines, fetchCinemaHeadlinesFa } from './lib/cinemaNews.j
 import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailers, fetchGeneralUpcoming, fetchTrendingAndBoxOffice, fetchTrendingPeople, fetchBornTodayGeneral, fetchFestivalCalendar, ageFromBirthDate } from './lib/tmdbFeeds.js'
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { findVerifiedImdbId, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -90,6 +90,13 @@ export default {
         await notifyServerError(env, `Daily backup (cron 0 4 * * *) failed: ${e.message}`).catch(() => {})
         throw e
       }
+      return
+    }
+
+    if (event.cron === '*/10 * * * *') {
+      // ۲۰ فیلم × حداکثر ۲ درخواست TMDB — زیر سقف subrequest هر invocation
+      const r = await backfillImdbIds(env.DB, env, 20).catch((e) => ({ error: e.message }))
+      console.log('IMDb id backfill:', JSON.stringify(r))
       return
     }
 
