@@ -41,7 +41,9 @@ function PosterGrid({ films, onOpenFilm }) {
   )
 }
 
-export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilmsChanged }) {
+// only: 'year' | 'tags' — فقط همون بخش رو نشون بده (برای صفحه‌ی اصلی)؛ بدونش کل تب Discover
+export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilmsChanged, only = null, title = null }) {
+  const show = (k) => !only || only === k
   const unique = useMemo(() => dedupe(films.filter((f) => f.itemType !== 'series')), [films])
 
   // همه‌ی سال‌ها از امسال تا قدیمی‌ترین فیلمِ آرشیو (نه فقط سال‌هایی که فیلم داری)
@@ -56,7 +58,7 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
   // بهترین‌های جهانیِ همون سال از TMDB؛ اونایی که داری قابل کلیکن، بقیه Order دارن
   const [worldTop, setWorldTop] = useState(null)
   useEffect(() => {
-    if (!activeYear) return
+    if (!activeYear || !show('year')) return
     setWorldTop(null)
     let cancelled = false
     fetch(`/api/top-of-year?year=${activeYear}`)
@@ -221,6 +223,7 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
   // برچسب‌های TMDB (کالت/تجربی/…) + حدسِ جنبش از کارگردان/کشور/سال
   const [tmdbTagMap, setTmdbTagMap] = useState({})
   useEffect(() => {
+    if (!show('tags')) return
     fetch('/api/tags')
       .then((r) => r.json())
       .then((d) => setTmdbTagMap(d.tags || {}))
@@ -245,7 +248,9 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
   const shownFilms = byTag.find(([t]) => t === shownTag)?.[1] || []
 
   return (
-    <div className="oscars-panel discover-panel">
+    <div className={only ? 'oscars-panel discover-panel discover-home' : 'oscars-panel discover-panel'}>
+      {title && <h2 className="discover-home-title">{title}</h2>}
+      {show('year') && (
       <section>
         <div className="discover-head">
           <h2>Top 10 of {activeYear || '—'}</h2>
@@ -298,13 +303,17 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
           <div className="empty">No data for this year.</div>
         )}
       </section>
+      )}
 
+      {!only && (
       <section style={{ marginTop: 28 }}>
         <h2>Acclaimed, not watched yet ({acclaimedUnwatched.length})</h2>
         <p className="oscars-intro">In your archive with IMDb ≥ 7.8 or Letterboxd ≥ 3.9 — still unwatched.</p>
         {acclaimedUnwatched.length ? <PosterGrid films={acclaimedUnwatched} onOpenFilm={onOpenFilm} /> : <div className="empty">You've seen them all.</div>}
       </section>
+      )}
 
+      {show('tags') && (
       <section style={{ marginTop: 28 }}>
         <h2>Cult, experimental &amp; movements</h2>
         <p className="oscars-intro">Tagged automatically from TMDB keywords, plus movement guesses from director, country and year. Fills in over the next few weeks.</p>
@@ -317,7 +326,9 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
         </div>
         {shownFilms.length ? <PosterGrid films={shownFilms.slice(0, 48)} onOpenFilm={onOpenFilm} /> : <div className="empty">No tagged films yet.</div>}
       </section>
+      )}
 
+      {!only && (
       <section style={{ marginTop: 28 }}>
         <h2>Genres by decade</h2>
         <div className="discover-decades">
@@ -332,7 +343,9 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
           ))}
         </div>
       </section>
+      )}
 
+      {!only && (
       <section style={{ marginTop: 28 }}>
         <div className="discover-head">
           <h2>Year check</h2>
@@ -375,6 +388,7 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
           </div>
         ))}
       </section>
+      )}
     </div>
   )
 }

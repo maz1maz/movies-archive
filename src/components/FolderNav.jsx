@@ -1,7 +1,9 @@
 import { proxyImg } from '../utils/proxyImg.js'
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconNewspaper, IconChevronRight } from './icons.jsx'
 import PosterCollage from './PosterCollage.jsx'
+
+const DiscoverSection = lazy(() => import('./DashboardDiscoverPanel.jsx'))
 
 function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -265,6 +267,15 @@ export default function FolderNav({
             </div>
           )}
         </div>
+        {/* دو بخش از Discover روی صفحه‌ی اصلی */}
+        {Array.isArray(allFilms) && allFilms.length > 0 && (
+          <Suspense fallback={null}>
+            <div className="home-discover">
+              <DiscoverSection films={allFilms} onOpenFilm={onOpenFilm} only="year" title="The Year in Film" />
+              <DiscoverSection films={allFilms} onOpenFilm={onOpenFilm} only="tags" title="Movements, Cult & Avant-garde" />
+            </div>
+          </Suspense>
+        )}
       </div>
     </div>
   )
