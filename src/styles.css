@@ -10307,7 +10307,10 @@ body.light .marquee-band::after {
   filter: none;
 }
 .cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-fallback {
-  font-size: 14px;
+  /* آیکن بالا، تا با اسم عمودی پایین تداخل نکند */
+  align-items: flex-start;
+  padding-top: 18px;
+  box-sizing: border-box;
 }
 .cine-cast-expand .cine-cast-caption {
   position: absolute;

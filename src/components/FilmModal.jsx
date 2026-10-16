@@ -1066,13 +1066,6 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                   const name = typeof actor === 'object' ? actor.name : actor
                   const photoUrl = getActorPhoto(actor, name)
                   const character = typeof actor === 'object' ? actor.character : null
-                  const initials = name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .substring(0, 2)
-                    .toUpperCase()
-
                   return (
                     <div
                       key={idx}
@@ -1112,8 +1105,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                             if (fallback) fallback.style.display = 'flex'
                           }}
                         />
-                        <div className="cine-actor-fallback" style={{ display: 'none' }}>
-                          {initials}
+                        {/* بدون عکس: فقط آیکن کم‌رنگ، تا اسم عمودی خوانا بماند */}
+                        <div className="cine-actor-fallback" style={{ display: 'none' }} aria-hidden="true">
+                          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" opacity="0.35">
+                            <path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5Z" />
+                          </svg>
                         </div>
                       </div>
                       <span className="cine-cast-vlabel" aria-hidden="true">{name}</span>
