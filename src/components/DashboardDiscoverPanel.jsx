@@ -41,7 +41,7 @@ function PosterGrid({ films, onOpenFilm }) {
   )
 }
 
-export default function DashboardDiscoverPanel({ films = [], onOpenFilm }) {
+export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilmsChanged }) {
   const unique = useMemo(() => dedupe(films.filter((f) => f.itemType !== 'series')), [films])
 
   // همه‌ی سال‌ها از امسال تا قدیمی‌ترین فیلمِ آرشیو (نه فقط سال‌هایی که فیلم داری)
@@ -190,6 +190,30 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm }) {
     XLSX.utils.book_append_sheet(wb, ws, 'Year check')
     XLSX.writeFile(wb, `year-check-${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
+  // اصلاحِ سال با یه کلیک (PATCH)؛ تا رفرش لیست، سالِ جدید همین‌جا نشون داده می‌شه
+  const [fixedYears, setFixedYears] = useState({})
+  const [fixing, setFixing] = useState(null)
+  const fixYear = async (f, year) => {
+    const gap = Math.abs(Number(f.year) - year)
+    const msg = gap > 2
+      ? `${f.title}: ${f.year} → ${year}?\n\nThe gap is ${gap} years — this might be a different film (remake). Change anyway?`
+      : `${f.title}: ${f.year} → ${year}?`
+    if (!window.confirm(msg)) return
+    setFixing(f.id)
+    try {
+      const res = await fetch(`/api/films/${f.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year }),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.status)
+      setFixedYears((prev) => ({ ...prev, [f.id]: year }))
+      if (onFilmsChanged) onFilmsChanged()
+    } catch (e) {
+      alert(`Failed: ${e.message}`)
+    }
+    setFixing(null)
+  }
   const resolvedCount = yearMismatches.filter((g) => rightYears[g[0].id] !== undefined).length
 
   const maxDecadeTotal = Math.max(1, ...decades.map((d) => d.total))
@@ -330,19 +354,24 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm }) {
         {yearMismatches.map((group) => (
           <div key={group[0].id} className="discover-mismatch">
             <strong>{group[0].title}</strong>
-            {group.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className={`discover-mismatch-item${
-                  typeof rightYears[group[0].id] === 'number' ? (Number(f.year) === rightYears[group[0].id] ? ' is-right' : ' is-wrong') : ''
-                }`}
-                onClick={() => onOpenFilm(f)}
-              >
-                {f.year || '—'} · {f.mediaType === 'digital' ? 'Digital' : 'Blu-ray'}
-                {f.director ? ` · ${f.director}` : ''}
-              </button>
-            ))}
+            {group.map((f) => {
+              const right = rightYears[group[0].id]
+              const shownYear = fixedYears[f.id] ?? f.year
+              const state = typeof right === 'number' ? (Number(shownYear) === right ? ' is-right' : ' is-wrong') : ''
+              return (
+                <span key={f.id} className="discover-mismatch-cell">
+                  <button type="button" className={`discover-mismatch-item${state}`} onClick={() => onOpenFilm(f)}>
+                    {shownYear || '—'} · {f.mediaType === 'digital' ? 'Digital' : 'Blu-ray'}
+                    {f.director ? ` · ${f.director}` : ''}
+                  </button>
+                  {state === ' is-wrong' && (
+                    <button type="button" className="discover-fix-btn" disabled={fixing === f.id} onClick={() => fixYear(f, right)}>
+                      {fixing === f.id ? '…' : `Fix → ${right}`}
+                    </button>
+                  )}
+                </span>
+              )
+            })}
           </div>
         ))}
       </section>

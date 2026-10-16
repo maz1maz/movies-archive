@@ -10660,3 +10660,23 @@ body.light .marquee-band::after {
 }
 .year-ok-text { color: #7fe0a6; font-weight: 700; }
 .year-bad-text { color: #f19a97; font-weight: 700; }
+.discover-mismatch-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.discover-fix-btn {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 0;
+  background: #2f9e5b;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.discover-fix-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

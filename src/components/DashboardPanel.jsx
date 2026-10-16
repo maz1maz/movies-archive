@@ -111,7 +111,7 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
           {tab === 'loaned' && <DashboardLoanedPanel films={films} onOpenFilm={onOpenFilm} />}
           {tab === 'orderlist' && <DashboardOrderListPanel />}
           {tab === 'recommend' && <DashboardRecommendPanel films={films} onOpenFilm={onOpenFilm} />}
-          {tab === 'discover' && <DashboardDiscoverPanel films={films} onOpenFilm={onOpenFilm} />}
+          {tab === 'discover' && <DashboardDiscoverPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
           {tab === 'export' && <DashboardExportPanel films={films} />}
           {tab === 'roadmap' && <DashboardRoadmapPanel />}
         </Suspense>
