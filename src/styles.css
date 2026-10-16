@@ -10520,16 +10520,14 @@ body.light .marquee-band::after {
 .cine-stills {
   margin-top: 22px;
 }
+/* شبکه‌ی چندردیفه، بدون اسکرول افقی */
 .cine-stills-strip {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-  scroll-snap-type: x mandatory;
 }
 .cine-still {
-  flex: 0 0 auto;
-  width: 220px;
+  width: 100%;
   aspect-ratio: 16 / 9;
   padding: 0;
   border: 0;
@@ -10537,7 +10535,6 @@ body.light .marquee-band::after {
   overflow: hidden;
   background: var(--border-strong);
   cursor: zoom-in;
-  scroll-snap-align: start;
 }
 .cine-still img {
   width: 100%;
@@ -10549,8 +10546,8 @@ body.light .marquee-band::after {
   transform: scale(1.06);
 }
 @media (max-width: 640px) {
-  .cine-still {
-    width: 70vw;
+  .cine-stills-strip {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -10738,4 +10735,22 @@ button.cine-related-title {
 .cine-related-order:disabled {
   opacity: 0.7;
   cursor: default;
+}
+
+a.cine-related-title {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, #f5c518 60%, transparent);
+}
+a.cine-related-title:hover {
+  color: #f5c518;
+}
+.cine-related-imdb {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #f5c518;
+  color: #000;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-decoration: none;
 }

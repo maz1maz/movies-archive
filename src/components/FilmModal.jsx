@@ -1393,8 +1393,17 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       <button type="button" className="cine-related-title" onClick={() => onNavigate && onNavigate(owned)}>
                         {r.title}{r.year ? ` (${r.year})` : ''}
                       </button>
+                    ) : r.imdbId ? (
+                      <a className="cine-related-title" href={`https://www.imdb.com/title/${r.imdbId}/`} target="_blank" rel="noopener noreferrer">
+                        {r.title}{r.year ? ` (${r.year})` : ''}
+                      </a>
                     ) : (
                       <span className="cine-related-title">{r.title}{r.year ? ` (${r.year})` : ''}</span>
+                    )}
+                    {owned && r.imdbId && (
+                      <a className="cine-related-imdb" href={`https://www.imdb.com/title/${r.imdbId}/`} target="_blank" rel="noopener noreferrer" title="Open on IMDb">
+                        IMDb
+                      </a>
                     )}
                     {owned ? (
                       <span className="cine-related-owned">In archive</span>
