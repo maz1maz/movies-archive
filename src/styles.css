@@ -10357,3 +10357,57 @@ body.light .marquee-band::after {
     transition: none;
   }
 }
+
+/* Closed strips: wider so faces read, photo anchored on the face, and the
+   actor's name printed vertically so you can tell who's who without hovering. */
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item {
+  flex-basis: 76px;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item.is-active {
+  flex-basis: 160px;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-img {
+  object-position: 50% 22%;
+  filter: brightness(0.85) saturate(0.85);
+}
+.cine-cast-vlabel {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  z-index: 2;
+  max-height: 72%;
+  writing-mode: vertical-rl;
+  transform: translateX(-50%) rotate(180deg);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+/* dark bottom gradient under the vertical name (closed strips) */
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 70%;
+  z-index: 1;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item.is-active::after {
+  opacity: 0;
+}
+.cine-cast-expand .cine-cast-caption {
+  z-index: 2;
+}
+.cine-cast-expand .cine-cast-item.is-active .cine-cast-vlabel {
+  opacity: 0;
+}

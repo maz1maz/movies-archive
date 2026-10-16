@@ -1098,6 +1098,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                           {initials}
                         </div>
                       </div>
+                      <span className="cine-cast-vlabel" aria-hidden="true">{name}</span>
                       <div className="cine-cast-caption">
                         <span className="cine-actor-name">{name}</span>
                         {character && (
