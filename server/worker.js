@@ -85,10 +85,10 @@ export default {
     }
 
     if (event.cron === '0 4 * * *') {
-      // پوسترهای TMDB دیگه تو KV نگه داشته نمی‌شن؛ روزی ۷۰۰ تا از قدیمی‌ها پاک
+      // عکس‌ها دیگه تو KV نگه داشته نمی‌شن؛ روزی ۷۰۰ تا از قدیمی‌ها پاک
       // می‌شه (زیر سقف ۱۰۰۰ حذف روزانه) تا جا برای بکاپ‌ها آزاد بشه
       try {
-        const old = await env.BACKUPS.list({ prefix: 'poster:https://image.tmdb.org/', limit: 700 })
+        const old = await env.BACKUPS.list({ prefix: 'poster:', limit: 700 })
         for (const k of old.keys) await env.BACKUPS.delete(k.name)
       } catch {}
       try {
@@ -407,10 +407,8 @@ async function handleFetch(request, env, ctx) {
           // cache رو خودش خالی کنه، ولی KV تا وقتی حذف نشه می‌مونه).
           const kvKey = 'poster:' + targetUrl.toString()
           const imgHeaders = (ct) => ({ ...corsHeaders, 'Content-Type': ct, 'Cache-Control': 'public, max-age=604800, immutable' })
-          // TMDB سی‌دی‌ان پایداره: فقط edge cache (رایگان و بی‌سقف). KV فقط برای
-          // IMDb/ویکی‌مدیا که روی بعضی شبکه‌ها باز نمی‌شن — سقف ۱ گیگ KV رو
-          // نگه می‌داریم برای بکاپ‌ها.
-          const useKv = env.BACKUPS && targetUrl.hostname !== 'image.tmdb.org'
+          // همه‌ی عکس‌ها فقط تو edge cache (رایگان و بی‌سقف) نگه داشته می‌شن.
+          const useKv = false // فقط edge cache؛ KV دیگه برای عکس پر نمی‌شه (سقف ۱ گیگ برای بکاپ‌هاست)
           const edgeCache = caches.default
           const edgeKey = new Request(`https://img-cache.local/${encodeURIComponent(targetUrl.toString())}`)
           const edgeHit = await edgeCache.match(edgeKey)

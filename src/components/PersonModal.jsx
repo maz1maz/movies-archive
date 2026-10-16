@@ -597,7 +597,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
             >
               <div className="person-film-poster">
                 <img
-                  src={film.poster}
+                  src={proxyImg(film.poster)}
                   alt={film.title}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none'

@@ -1,3 +1,4 @@
+import { proxyImg } from '../utils/proxyImg.js'
 import { IconHandshake } from './icons.jsx'
 
 // تب مستقلِ «Loaned Out» توی داشبورد — قبلاً بخشی از Overview بود، حالا
@@ -28,7 +29,7 @@ export default function DashboardLoanedPanel({ films, onOpenFilm }) {
               return (
                 <button key={f.id} type="button" className="loaned-card-item" onClick={() => openFilm(f)}>
                   <div className="loaned-card-poster">
-                    {f.poster ? <img src={f.poster} alt={f.title} /> : <span className="loaned-card-poster-empty">🎬</span>}
+                    {f.poster ? <img src={proxyImg(f.poster)} alt={f.title} /> : <span className="loaned-card-poster-empty">🎬</span>}
                   </div>
                   <div className="loaned-card-info">
                     <div className="loaned-card-title">

@@ -1,3 +1,4 @@
+import { proxyImg } from '../utils/proxyImg.js'
 import { IconFilm, IconPin, IconStar, IconEdit, IconDisc, IconClapper } from './icons.jsx'
 import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
 
@@ -27,7 +28,7 @@ export default function FilmList({ films, onSelect, onEdit, hasBluray, hasDigita
           <div className="list-thumb">
             {f.poster ? (
               <img
-                src={f.poster}
+                src={proxyImg(f.poster)}
                 alt=""
                 loading="lazy"
                 onError={(e) => {

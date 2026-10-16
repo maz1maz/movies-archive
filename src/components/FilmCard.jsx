@@ -93,14 +93,33 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
   const supportsHover =
     typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover)').matches
   const [isHovering, setIsHovering] = useState(false)
+  // موبایل: فقط ردیفی که وسط صفحه‌ست می‌چرخه (نوار باریک وسطِ viewport)
+  const [isCentered, setIsCentered] = useState(false)
   useEffect(() => {
-    if (!supportsHover || !isHovering || !posterList || posterList.length < 2) return
+    if (supportsHover) return
+    const el = cardRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const on = !!entries[0]?.isIntersecting
+        setIsCentered(on)
+        if (!on) setPosterIndex(0)
+      },
+      { rootMargin: '-45% 0px -45% 0px' }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [film.id])
+  const isActive = supportsHover ? isHovering : isCentered
+  useEffect(() => {
+    if (!isActive || !posterList || posterList.length < 2) return
     const id = setInterval(() => {
       setPosterIndex((i) => (i + 1) % posterList.length)
     }, 2500)
     return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHovering, posterList?.length])
+  }, [isActive, posterList?.length])
 
   const displayedPoster = posterList ? posterList[posterIndex] : film.poster
 

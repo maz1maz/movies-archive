@@ -1,3 +1,4 @@
+import { proxyImg } from '../utils/proxyImg.js'
 import { useMemo, useState } from 'react'
 import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconNewspaper, IconChevronRight } from './icons.jsx'
 import PosterCollage from './PosterCollage.jsx'
@@ -162,7 +163,7 @@ export default function FolderNav({
                   results.map((f) => (
                     <button key={f.id} type="button" className="folder-nav-search-row" onClick={() => onOpenFilm(f)}>
                       {f.poster ? (
-                        <img src={f.poster} alt="" className="folder-nav-search-poster" />
+                        <img src={proxyImg(f.poster)} alt="" className="folder-nav-search-poster" />
                       ) : (
                         <span className="folder-nav-search-poster folder-nav-search-poster-empty" />
                       )}

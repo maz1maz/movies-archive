@@ -1,3 +1,4 @@
+import { proxyImg } from '../utils/proxyImg.js'
 import {
   IconBarChart,
   IconClock,
@@ -281,7 +282,7 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isA
             {upNext.map((f) => (
               <button key={f.id} type="button" className="spotlight-item" onClick={() => openFilm(f)}>
                 <div className="spotlight-poster">
-                  {f.poster ? <img src={f.poster} alt="" /> : <span className="spotlight-poster-empty" />}
+                  {f.poster ? <img src={proxyImg(f.poster)} alt="" /> : <span className="spotlight-poster-empty" />}
                   <span className="spotlight-rating"><IconStar width={10} height={10} /> {f.rating.toFixed(1)}</span>
                 </div>
                 <span className="spotlight-title">{f.title}</span>

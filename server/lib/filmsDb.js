@@ -116,15 +116,22 @@ const COLLECTION_RECHECK_MS = 30 * 24 * 60 * 60 * 1000
 // نگه داشته می‌شه تا بدون تغییر schema هر ۳۰ روز یه بار دوباره چک بشه.
 // ردیف‌های قدیمی که هنوز زمان ندارن «همین الان چک‌شده» حساب می‌شن — یعنی
 // جوابشون می‌مونه و ۳۰ روز بعد خودکار تازه می‌شن.
-async function collectionCheckIsFresh(db, filmId) {
+// کلید TMDB از ۲۱ سپتامبر تا این لحظه خراب بود؛ «عضو هیچ مجموعه‌ای نیست»‌هایی
+// که قبل از این زمان ثبت شدن قابل اعتماد نیستن و یه‌بار دوباره چک می‌شن.
+const TMDB_KEY_FIXED_AT = Date.parse('2026-10-16T19:30:00Z')
+
+async function collectionCheckIsFresh(db, filmId, isEmpty = false) {
   const key = `collcheck:${filmId}`
   try {
     const row = await db.prepare('SELECT fetchedAt FROM cinema_news_cache WHERE key = ?').bind(key).first()
     if (!row) {
+      if (isEmpty) return false
       await markCollectionChecked(db, filmId)
       return true
     }
-    return Date.now() - new Date(row.fetchedAt).getTime() < COLLECTION_RECHECK_MS
+    const checkedAt = new Date(row.fetchedAt.replace(' ', 'T') + (row.fetchedAt.endsWith('Z') ? '' : 'Z')).getTime()
+    if (isEmpty && checkedAt < TMDB_KEY_FIXED_AT) return false
+    return Date.now() - checkedAt < COLLECTION_RECHECK_MS
   } catch {
     return true
   }
@@ -140,7 +147,7 @@ async function markCollectionChecked(db, filmId) {
 }
 
 export async function resolveFilmCollection(db, env, film) {
-  if (film.collectionId != null && (await collectionCheckIsFresh(db, film.id))) {
+  if (film.collectionId != null && (await collectionCheckIsFresh(db, film.id, film.collectionId === ''))) {
     // تو ۳۰ روز اخیر چک شده — یا عضو یه مجموعه‌ست، یا مطمئنیم که نیست
     if (!film.collectionId) return null
     return { collectionId: film.collectionId, collectionName: film.collectionName, collectionPoster: film.collectionPoster }

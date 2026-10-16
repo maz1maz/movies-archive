@@ -10491,3 +10491,18 @@ body.light .marquee-band::after {
   text-align: center;
   vertical-align: 1px;
 }
+.crew-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-inline-end: 7px;
+  vertical-align: middle;
+  border: 1px solid color-mix(in srgb, #d4af37 60%, transparent);
+}
+.cine-actor-count {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #d4af37;
+}

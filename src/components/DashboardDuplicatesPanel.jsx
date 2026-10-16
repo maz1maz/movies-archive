@@ -1,3 +1,4 @@
+import { proxyImg } from '../utils/proxyImg.js'
 import { useEffect, useState } from 'react'
 import { IconClose } from './icons.jsx'
 import FilmModal from './FilmModal.jsx'
@@ -115,7 +116,7 @@ export default function DashboardDuplicatesPanel({ films = [], onOpenFilm, onFil
                       }}
                     >
                       <div style={{ width: 32, height: 46, flexShrink: 0, borderRadius: 4, overflow: 'hidden', background: 'var(--surface-2)' }}>
-                        {f.poster && <img src={f.poster} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                        {f.poster && <img src={proxyImg(f.poster)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                       </div>
                       <div style={{ flex: 1, fontSize: 12.5, color: 'var(--muted)' }}>
                         {f.mediaType === 'digital'

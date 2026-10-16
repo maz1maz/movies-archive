@@ -334,9 +334,12 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   // عکس واقعی بازیگرها رو از ویکی‌پدیا می‌گیریم (کلید API لازم نداره).
   // نتیجه سمت سرور هم کش می‌شه، پس دفعات بعد سریع برمی‌گرده.
   useEffect(() => {
-    const names = Array.isArray(film?.cast)
+    const castNames = Array.isArray(film?.cast)
       ? film.cast.map((a) => (typeof a === 'object' ? a.name : a)).filter(Boolean)
       : []
+    // کارگردان هم عکس می‌گیره (برای بخش Crew)
+    const directorNames = String(film?.director || '').split(',').map((n) => n.trim()).filter(Boolean)
+    const names = [...directorNames, ...castNames]
     const toFetch = names.filter((n) => !(n in actorPhotos))
     if (toFetch.length === 0) return
     let cancelled = false
@@ -452,6 +455,20 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     if (typeof actorObj === 'object' && actorObj?.photo) return actorObj.photo
     if (actorPhotos[name]) return actorPhotos[name]
     return null
+  }
+
+  // هر بازیگر تو چند فیلمِ آرشیو هست (بلوری+دیجیتالِ یه فیلم یکی حساب می‌شه)
+  const archiveCountFor = (name) => {
+    const target = (name || '').toLowerCase()
+    if (!target || !Array.isArray(films)) return 0
+    const seen = new Set()
+    for (const f of films) {
+      if (!Array.isArray(f.cast)) continue
+      if (f.cast.some((a) => ((typeof a === 'object' ? a?.name : a) || '').toLowerCase() === target)) {
+        seen.add(`${(f.title || '').toLowerCase()}::${f.year || ''}`)
+      }
+    }
+    return seen.size
   }
 
   const fullCrew = [
@@ -1118,6 +1135,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                         {character && (
                           <span className="cine-actor-character">{character}</span>
                         )}
+                        {idx === activeCast && archiveCountFor(name) > 1 && (
+                          <span className="cine-actor-count">{archiveCountFor(name)} films in archive</span>
+                        )}
                       </div>
                     </div>
                   )
@@ -1147,6 +1167,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       <span className="crew-val">
                         {names.map((name, ni) => (
                           <span key={ni}>
+                            {item.label === 'Director' && actorPhotos[name] && (
+                              <img className="crew-avatar" src={proxyImg(actorPhotos[name])} alt="" aria-hidden="true" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                            )}
                             <span
                               className="clickable-person-text"
                               onClick={() => onSelectPerson && onSelectPerson(name)}
