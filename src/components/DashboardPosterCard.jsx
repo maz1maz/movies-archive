@@ -43,7 +43,7 @@ function OrderBadge({ title }) {
   )
 }
 
-export default function DashboardPosterCard({ title, subtitle, poster, badgeText, badgeVariant, inArchive, clickable, showMissingBadge, onClick }) {
+export default function DashboardPosterCard({ title, subtitle, poster, badgeText, badgeVariant, inArchive, clickable, showMissingBadge, onClick, media = null }) {
   const isClickable = clickable !== undefined ? clickable : inArchive
   const showMissing = showMissingBadge !== undefined ? showMissingBadge : !inArchive
   const [c1, c2] = PALETTE[hashCode(String(title)) % PALETTE.length]
@@ -69,6 +69,9 @@ export default function DashboardPosterCard({ title, subtitle, poster, badgeText
           <span className={`dashboard-badge dashboard-badge-${badgeVariant || 'default'}`}>{badgeText}</span>
         )}
         {showMissing && <OrderBadge title={title} />}
+        {/* نسخه‌ها: بلوری پایین‌چپ، دیجیتال پایین‌راست */}
+        {media?.bluray && <span className="dashboard-badge dashboard-media-bluray">Blu-ray</span>}
+        {media?.digital && <span className="dashboard-badge dashboard-media-digital">Digital</span>}
       </div>
       <div className="card-body">
         <h3 className="card-title">{title}</h3>

@@ -28,17 +28,13 @@ function PosterGrid({ films, onOpenFilm, mediaMap }) {
     <div className="grid">
       {films.map((f) => {
         const types = mediaMap?.get(keyOf(f)) || new Set([f.mediaType === 'digital' ? 'digital' : 'physical'])
-        const both = types.has('digital') && types.has('physical')
-        const badge = both ? 'Blu-ray + Digital' : types.has('digital') ? 'Digital' : 'Blu-ray'
-        const variant = both ? 'both' : types.has('digital') ? 'digital' : 'bluray'
         return (
           <DashboardPosterCard
             key={f.id}
             title={f.title}
             subtitle={[f.year, f.director].filter(Boolean).join(' — ')}
             poster={f.poster}
-            badgeText={badge}
-            badgeVariant={variant}
+            media={{ bluray: types.has('physical'), digital: types.has('digital') }}
             inArchive
             clickable
             showMissingBadge={false}
@@ -311,6 +307,10 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
                   poster={w.owned.poster || w.poster}
                   badgeText="In archive"
                   badgeVariant="owned"
+                  media={(() => {
+                    const t = mediaMap.get(keyOf(w.owned)) || new Set()
+                    return { bluray: t.has('physical'), digital: t.has('digital') }
+                  })()}
                   inArchive
                   clickable
                   showMissingBadge={false}
