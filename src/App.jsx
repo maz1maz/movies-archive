@@ -1208,6 +1208,7 @@ export default function App() {
                 panel
                 film={selected}
                 films={sectionFilms}
+                archiveFilms={allFilmsUnfiltered}
                 hasBluray={hasBlurayCopy(selected)}
               siblingFilm={findSiblingFilm(selected)}
                 hasDigital={hasDigitalCopy(selected)}
@@ -1248,6 +1249,7 @@ export default function App() {
         <FilmModal
           film={selected}
           films={shelfNavFilms || sectionFilms}
+          archiveFilms={allFilmsUnfiltered}
           hasBluray={hasBlurayCopy(selected)}
               siblingFilm={findSiblingFilm(selected)}
           hasDigital={hasDigitalCopy(selected)}

@@ -36,7 +36,9 @@ function CollectionOrderButton({ title, year }) {
   )
 }
 
-export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false, siblingFilm = null, onSaveSeasonDrive }) {
+export default function FilmModal({ film, films = [], archiveFilms = null, onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false, siblingFilm = null, onSaveSeasonDrive }) {
+  // films = لیست ناوبری (صفحه/بخش فعلی)؛ allFilms = کل آرشیو برای شمارش/تطبیق
+  const allFilms = Array.isArray(archiveFilms) && archiveFilms.length ? archiveFilms : films
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
   const [actorPhotos, setActorPhotos] = useState({})
@@ -423,7 +425,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const normT = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
   const archiveIndex = useMemo(() => {
     const m = new Map()
-    for (const f of Array.isArray(films) ? films : []) {
+    for (const f of Array.isArray(allFilms) ? allFilms : []) {
       const y = Number(f.year)
       const key = `${normT(f.title)}::${f.year || ''}`
       for (const t of [f.title, f.originalTitle]) {
@@ -433,7 +435,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     }
     return m
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [films])
+  }, [allFilms])
   const [personCredits, setPersonCredits] = useState({})
   useEffect(() => {
     const list = fullCast || (Array.isArray(film?.cast) ? film.cast : [])
@@ -527,9 +529,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   // TMDB هم با آرشیو تطبیق داده می‌شه (چون بیشتر فیلم‌ها فقط ۳ بازیگر ذخیره دارن).
   const archiveCountFor = (name) => {
     const target = (name || '').toLowerCase()
-    if (!target || !Array.isArray(films)) return 0
+    if (!target || !Array.isArray(allFilms)) return 0
     const seen = new Set()
-    for (const f of films) {
+    for (const f of allFilms) {
       if (!Array.isArray(f.cast)) continue
       if (f.cast.some((a) => ((typeof a === 'object' ? a?.name : a) || '').toLowerCase() === target)) {
         seen.add(`${normT(f.title)}::${f.year || ''}`)
@@ -1429,12 +1431,12 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
           </div>
         </div>
 
-        {relations.related.some((r) => (r.rating >= 6.5 && r.votes >= 50) || (r.imdbId && films?.some?.((f) => f.imdbId === r.imdbId))) && (
+        {relations.related.some((r) => (r.rating >= 6.5 && r.votes >= 50) || (r.imdbId && allFilms?.some?.((f) => f.imdbId === r.imdbId))) && (
           <div className="cine-related">
             <div className="cine-col-title">RELATED FILMS</div>
             <div className="cine-related-list">
               {relations.related.map((r) => {
-                const owned = r.imdbId && Array.isArray(films) ? films.find((f) => f.imdbId === r.imdbId) : null
+                const owned = r.imdbId && Array.isArray(allFilms) ? allFilms.find((f) => f.imdbId === r.imdbId) : null
                 // فقط خوش‌امتیازها (TMDB ≥ 6.5 با حداقل ۵۰ رأی) یا اونایی که تو آرشیو داری
                 if (!owned && !(r.rating >= 6.5 && r.votes >= 50)) return null
                 const key = r.imdbId || r.title
