@@ -13,7 +13,7 @@ import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailer
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { findVerifiedImdbId, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, fetchFullCast, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, fetchFullCast, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -1585,6 +1585,14 @@ async function handleFetch(request, env, ctx) {
           // وگرنه این آدم برای همیشه بدون عکس/بیو می‌مونه.
           const cacheHasData = cached && (cached.photo || cached.bio || cached.birthDate)
           if (cacheHasData) {
+            // ویکی‌پدیا بیو داشت ولی عکس نه: یه‌بار از TMDB امتحان کن و ذخیره کن
+            if (!cached.photo) {
+              const tmdbPhoto = await fetchTmdbPersonPhoto(db, env, name)
+              if (tmdbPhoto) {
+                cached.photo = tmdbPhoto
+                await db.prepare('UPDATE people_photos SET photo = ? WHERE name = ?').bind(tmdbPhoto, cacheKey).run()
+              }
+            }
             return json(
               { ...cached, age: cached.deathDate ? null : ageFromBirthDate(cached.birthDate) },
               200,
@@ -1627,6 +1635,7 @@ async function handleFetch(request, env, ctx) {
             return json(emptyPersonInfo(), 200, corsHeaders)
           }
 
+          if (!info.photo) info.photo = await fetchTmdbPersonPhoto(db, env, name)
           info.letterboxdUrl = await resolveLetterboxdPersonUrl(name)
 
           // اگه ویکی‌پدیا هیچی برنگردوند (نه عکس نه بیو نه تاریخ تولد) احتمالاً

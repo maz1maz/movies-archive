@@ -451,9 +451,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const getActorPhoto = (actorObj, name) => {
     if (typeof actorObj === 'object' && actorObj?.photo) return actorObj.photo
     if (actorPhotos[name]) return actorPhotos[name]
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      name
-    )}&background=334155&color=ffffff&bold=true&rounded=true`
+    return null
   }
 
   const fullCrew = [
@@ -1095,6 +1093,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                             : 'cine-actor-avatar-wrap avatar-loading'
                         }
                       >
+                        {photoUrl && (
                         <img
                           src={proxyImg(photoUrl)}
                           alt={name}
@@ -1105,8 +1104,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                             if (fallback) fallback.style.display = 'flex'
                           }}
                         />
+                        )}
                         {/* بدون عکس: فقط آیکن کم‌رنگ، تا اسم عمودی خوانا بماند */}
-                        <div className="cine-actor-fallback" style={{ display: 'none' }} aria-hidden="true">
+                        <div className="cine-actor-fallback" style={{ display: photoUrl ? 'none' : 'flex' }} aria-hidden="true">
                           <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" opacity="0.35">
                             <path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5Z" />
                           </svg>

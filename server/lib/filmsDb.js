@@ -889,3 +889,29 @@ export async function fetchFullCast(db, env, film) {
   await db.prepare('UPDATE films SET cast = ? WHERE id = ?').bind(JSON.stringify(cast), film.id).run()
   return cast
 }
+
+// عکس بازیگر از TMDB، وقتی ویکی‌پدیا عکس نداره. هر اسم فقط یه‌بار امتحان می‌شه
+// (کلید tmdbphoto:<name>)، تا برای بی‌عکس‌ها هر بار درخواست الکی نزنیم.
+export async function fetchTmdbPersonPhoto(db, env, name) {
+  if (!env?.TMDB_API_KEY || !name) return null
+  const key = `tmdbphoto:${name.toLowerCase()}`
+  try {
+    const tried = await db.prepare('SELECT 1 FROM cinema_news_cache WHERE key = ?').bind(key).first()
+    if (tried) return null
+    const res = await tmdbFetch(
+      `https://api.themoviedb.org/3/search/person?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(name)}`,
+      env
+    )
+    if (!res.ok) return null // خطای موقت؛ علامت نزن تا دفعه‌ی بعد دوباره امتحان بشه
+    const data = await res.json()
+    const target = normForMatch(name)
+    const hit = (data.results || []).find((p) => p.profile_path && normForMatch(p.name) === target)
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))")
+      .bind(key)
+      .run()
+    return hit ? `https://image.tmdb.org/t/p/w185${hit.profile_path}` : null
+  } catch {
+    return null
+  }
+}
