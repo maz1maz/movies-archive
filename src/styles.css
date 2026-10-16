@@ -10250,3 +10250,110 @@ body.light .marquee-band::after {
     transition: none;
   }
 }
+
+/* ---------- Cast: hover-expand strip ----------
+   Based on Skiper UI HoverExpand_001 (attribution: Skiper UI). Actor photos
+   sit side by side as tall slim strips; the active one widens and shows the
+   name and character over a dark bottom gradient. Hover/focus opens one on
+   desktop; on touch the first tap opens it and a second tap (or click on
+   the open one) goes to the person page. Scrolls sideways when the cast is
+   long. Selectors carry .cine-col-cast / .cine-cast-grid so they win over the
+   older small-avatar rules for the wide modal. */
+.cine-col-cast .cine-cast-grid.cine-cast-expand {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  max-width: none;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item {
+  position: relative;
+  flex: 0 0 46px;
+  width: auto;
+  height: 210px;
+  gap: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  transform: none;
+  background: var(--surface-2);
+  transition: flex-basis 0.3s ease-in-out, box-shadow 0.3s ease;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item.is-active {
+  flex-basis: 156px;
+  box-shadow: 0 0 0 1.5px var(--accent), 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-avatar-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+  box-shadow: none;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-img {
+  filter: brightness(0.7) saturate(0.8);
+  transition: filter 0.3s ease;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item.is-active .cine-actor-img {
+  filter: none;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-fallback {
+  font-size: 14px;
+}
+.cine-cast-expand .cine-cast-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 40px 10px 10px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.35) 60%, transparent);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+.cine-cast-expand .cine-cast-item.is-active .cine-cast-caption {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.12s;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-name {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-character {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item,
+  .cine-cast-expand .cine-cast-caption {
+    transition: none;
+  }
+}

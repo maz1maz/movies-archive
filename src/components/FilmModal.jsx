@@ -108,6 +108,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   // پوسترهایی که لود نشدن (لینک خراب/بلاک) از دستهٔ کارت حذف می‌شن تا کارت
   // خالی با فقط اسم فیلم جلو نیاد.
   const [brokenPosters, setBrokenPosters] = useState(() => new Set())
+  // بازیگرِ بازشده تو نوار بازیگران (Skiper UI HoverExpand_001)
+  const [activeCast, setActiveCast] = useState(0)
   const posterManualAtRef = useRef(0)
 
   // پوسترهای جایگزین: کنار پوستر اصلی نشون داده می‌شن و خودکار می‌چرخن —
@@ -116,6 +118,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     setAltPosters([])
     setAltPosterIndex(0)
     setBrokenPosters(new Set())
+    setActiveCast(0)
     if (!film?.id) return
     fetch(`/api/films/${film.id}/alt-posters`)
       .then((r) => r.json())
@@ -1037,7 +1040,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
             <div className="cine-col-header">
               <span className="cine-col-title">CAST</span>
             </div>
-            <div className="cine-cast-grid expanded">
+            <div className="cine-cast-grid cine-cast-expand expanded">
               {castList.length === 0 ? (
                 <div className="cine-empty">No cast listed</div>
               ) : (
@@ -1055,8 +1058,23 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                   return (
                     <div
                       key={idx}
-                      className="cine-cast-item clickable-person"
-                      onClick={() => onSelectPerson && onSelectPerson(name)}
+                      className={idx === activeCast ? 'cine-cast-item clickable-person is-active' : 'cine-cast-item clickable-person'}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={idx === activeCast}
+                      onMouseEnter={() => setActiveCast(idx)}
+                      onFocus={() => setActiveCast(idx)}
+                      // ضربهٔ اول (موبایل) فقط بازش می‌کنه؛ روی بازیگرِ باز، صفحه‌ش رو باز می‌کنه
+                      onClick={() => {
+                        if (idx !== activeCast) setActiveCast(idx)
+                        else if (onSelectPerson) onSelectPerson(name)
+                      }}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ' ') && onSelectPerson) {
+                          e.preventDefault()
+                          onSelectPerson(name)
+                        }
+                      }}
                       title={`See all films featuring ${name}`}
                     >
                       <div
@@ -1080,10 +1098,12 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                           {initials}
                         </div>
                       </div>
-                      <span className="cine-actor-name">{name}</span>
-                      {character && (
-                        <span className="cine-actor-character">{character}</span>
-                      )}
+                      <div className="cine-cast-caption">
+                        <span className="cine-actor-name">{name}</span>
+                        {character && (
+                          <span className="cine-actor-character">{character}</span>
+                        )}
+                      </div>
                     </div>
                   )
                 })
