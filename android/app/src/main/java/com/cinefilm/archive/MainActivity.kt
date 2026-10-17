@@ -89,19 +89,6 @@ class MainActivity : Activity() {
                 return true
             }
 
-            // فایل‌های سایت (JS/CSS/عکس‌های ثابت) از داخل خود اپ میان، نه از اینترنت. اینترنت فقط برای API (داده) استفاده میشه.
-            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): android.webkit.WebResourceResponse? {
-                localSiteResponse(request.url)?.let { return it }
-                logRequest(request.url)
-                return null
-            }
-
-            // هر درخواست رو لاگ می‌کنیم؛ اگه یکی شروع شده ولی هیچ‌وقت «got» نیاد، همونه که گیر کرده
-            // (لاگ درخواست‌های شبکه)
-            fun logRequest(url: android.net.Uri) {
-                logDiag("req " + url.host?.take(22) + url.path?.take(30))
-            }
-
             override fun onLoadResource(view: WebView, url: String) {
                 logDiag("got " + (android.net.Uri.parse(url).path ?: url).take(40))
             }
@@ -168,27 +155,6 @@ class MainActivity : Activity() {
     @Deprecated("Use onBackPressedDispatcher")
     override fun onBackPressed() {
         if (web.canGoBack()) web.goBack() else super.onBackPressed()
-    }
-
-    // سایت بسته‌بندی‌شده داخل assets/site: برای مسیرهای سایت، فایل محلی برمی‌گردونه؛ /api و مسیرهای ناشناخته به شبکه میرن
-    private fun localSiteResponse(url: android.net.Uri): android.webkit.WebResourceResponse? {
-        if (url.host != HOME_HOST) return null
-        val path = url.path ?: "/"
-        if (path.startsWith("/api/")) return null
-        val rel = path.trimStart('/')
-        val ext = rel.substringAfterLast('.', "")
-        val target = when {
-            rel.isEmpty() -> "index.html"
-            ext.isEmpty() -> "index.html"
-            else -> rel
-        }
-        return try {
-            val mime = if (target == "index.html") "text/html" else
-                android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
-            android.webkit.WebResourceResponse(mime, "utf-8", assets.open("site/$target"))
-        } catch (e: Exception) {
-            null
-        }
     }
 
     private fun showError(reason: String) {
