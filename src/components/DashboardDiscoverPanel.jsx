@@ -111,24 +111,6 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
     [unique]
   )
 
-  const decades = useMemo(() => {
-    const map = new Map()
-    for (const f of unique) {
-      const y = Number(f.year)
-      if (!y) continue
-      const d = Math.floor(y / 10) * 10
-      if (!map.has(d)) map.set(d, new Map())
-      const g = map.get(d)
-      for (const genre of toArr(f.genre)) g.set(genre, (g.get(genre) || 0) + 1)
-    }
-    return [...map.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([d, g]) => {
-        const total = [...g.values()].reduce((s, n) => s + n, 0)
-        const top = [...g.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)
-        return { decade: d, total, top }
-      })
-  }, [unique])
 
   // هم‌نام با سال‌های خیلی متفاوت (۳+ سال) — معمولاً یکی‌شون سالش اشتباه ثبت شده
   // (ریمیک‌های واقعی هم ممکنه بیان؛ فقط برای بررسی)
@@ -226,8 +208,6 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
     setFixing(null)
   }
   const resolvedCount = yearMismatches.filter((g) => rightYears[g[0].id] !== undefined).length
-
-  const maxDecadeTotal = Math.max(1, ...decades.map((d) => d.total))
 
   // برچسب‌های TMDB (کالت/تجربی/…) + حدسِ جنبش از کارگردان/کشور/سال
   const [tmdbTagMap, setTmdbTagMap] = useState({})
@@ -390,23 +370,6 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
         ) : (
           <div className="empty">{tq ? 'No matches.' : 'No tagged films yet.'}</div>
         )}
-      </section>
-      )}
-
-      {!only && (
-      <section style={{ marginTop: 28 }}>
-        <h2>Genres by decade</h2>
-        <div className="discover-decades">
-          {decades.map((d) => (
-            <div key={d.decade} className="discover-decade-row">
-              <span className="discover-decade">{d.decade}s</span>
-              <div className="discover-decade-bar" style={{ width: `${(d.total / maxDecadeTotal) * 100}%` }} />
-              <span className="discover-decade-genres">
-                {d.top.map(([g, n]) => `${g} ${Math.round((n / d.total) * 100)}%`).join(' · ')}
-              </span>
-            </div>
-          ))}
-        </div>
       </section>
       )}
 

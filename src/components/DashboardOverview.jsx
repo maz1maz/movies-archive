@@ -16,6 +16,7 @@ import {
   IconBuilding,
 } from './icons.jsx'
 import { useRef, useState } from 'react'
+import GenresByDecade from './GenresByDecade.jsx'
 
 // Overview tab of the Dashboard — same stats as the old Stats modal, shown
 // inline as the landing view instead of jumping straight to Oscars.
@@ -663,6 +664,7 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isA
           )}
         </div>
       </div>
+      <GenresByDecade films={films} />
     </div>
   )
 }
