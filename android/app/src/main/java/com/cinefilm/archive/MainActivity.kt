@@ -20,6 +20,8 @@ private const val HOME_HOST = "movies-archive.hamidreza-mazlaghani.workers.dev"
 class MainActivity : Activity() {
 
     private lateinit var web: WebView
+    private var pageLoaded = false
+    private val watchdog = android.os.Handler(android.os.Looper.getMainLooper())
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,8 +47,10 @@ class MainActivity : Activity() {
             // پوسترها و عکس‌ها از کش WebView هم بیان؛ کنترل کش با هدرهای خود سایت
             cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
             mediaPlaybackRequiresUserGesture = false
-            useWideViewPort = true
-            loadWithOverviewMode = true
+            // viewport رو خود سایت (meta viewport) تعیین کنه؛ وگرنه روی تلویزیون صفحه بزرگ/کوچک می‌شه
+            useWideViewPort = false
+            loadWithOverviewMode = false
+            textZoom = 100
             // شناسه‌ی اپ، تا سایت بفهمه داخل اپ اجراست (اختیاری)
             userAgentString = "$userAgentString CinefilmArchiveApp/1.0"
         }
@@ -65,7 +69,18 @@ class MainActivity : Activity() {
                 if (request.isForMainFrame) showError(error.description?.toString() ?: "unknown error")
             }
 
+            override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
+                pageLoaded = false
+                // اگه تا ۲۵ ثانیه صفحه کامل نشه، پیام بده نه صفحه‌ی سیاه بی‌پایان
+                watchdog.removeCallbacksAndMessages(null)
+                watchdog.postDelayed({
+                    if (!pageLoaded) showError("صفحه خیلی طول کشید")
+                }, 25_000)
+            }
+
             override fun onPageFinished(view: WebView, url: String?) {
+                pageLoaded = true
+                watchdog.removeCallbacksAndMessages(null)
                 // کوکی‌ها رو همین‌جا ذخیره کن تا بعد از بستن اپ هم بمونن
                 cookies.flush()
             }

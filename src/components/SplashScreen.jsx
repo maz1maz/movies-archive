@@ -14,7 +14,9 @@ export default function SplashScreen() {
 
   useEffect(() => {
     if (phase !== 'checking' || authLoading) return
-    setPhase(isGuest ? 'video' : 'hold')
+    // اپ اندروید: ویدیوی سنگین رو رد کن (تلویزیون ضعیف)
+    const inApp = typeof navigator !== 'undefined' && /CinefilmArchiveApp/.test(navigator.userAgent)
+    setPhase(isGuest && !inApp ? 'video' : 'hold')
   }, [phase, authLoading, isGuest])
 
   useEffect(() => {
