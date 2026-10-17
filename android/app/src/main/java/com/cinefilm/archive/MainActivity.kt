@@ -89,6 +89,16 @@ class MainActivity : Activity() {
                 return true
             }
 
+            // هر درخواست رو لاگ می‌کنیم؛ اگه یکی شروع شده ولی هیچ‌وقت «got» نیاد، همونه که گیر کرده
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): android.webkit.WebResourceResponse? {
+                logDiag("req " + request.url.host?.take(22) + request.url.path?.take(30))
+                return null
+            }
+
+            override fun onLoadResource(view: WebView, url: String) {
+                logDiag("got " + (android.net.Uri.parse(url).path ?: url).take(40))
+            }
+
             override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: android.webkit.WebResourceResponse) {
                 logDiag("HTTP ${errorResponse.statusCode} ${request.url.path}")
             }
