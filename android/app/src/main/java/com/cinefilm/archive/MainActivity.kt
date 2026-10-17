@@ -27,7 +27,7 @@ class MainActivity : Activity() {
     private fun logDiag(msg: String) {
         runOnUiThread {
             diagLines.addLast(msg.take(160))
-            while (diagLines.size > 4) diagLines.removeFirst()
+            while (diagLines.size > 9) diagLines.removeFirst()
             if (::diag.isInitialized) diag.text = diagLines.joinToString("\n")
         }
     }
@@ -112,12 +112,16 @@ class MainActivity : Activity() {
                 // اگه تا ۲۵ ثانیه صفحه کامل نشه، پیام بده نه صفحه‌ی سیاه بی‌پایان
                 watchdog.removeCallbacksAndMessages(null)
                 watchdog.postDelayed({
-                    if (!pageLoaded) showError("صفحه خیلی طول کشید")
+                    if (!pageLoaded) { logDiag("watchdog fired"); showError("صفحه خیلی طول کشید") }
                 }, 25_000)
             }
 
             override fun onPageFinished(view: WebView, url: String?) {
                 logDiag("finished")
+                // بررسی: آیا JS اجرا شده و React صفحه رو ساخته؟
+                view.evaluateJavascript(
+                    "(function(){try{return [typeof Promise, typeof fetch, typeof AbortController, document.body ? document.body.innerHTML.length : -1, document.getElementById('root') ? document.getElementById('root').innerHTML.length : -2].join('|')}catch(e){return 'EXC '+e}})()"
+                ) { r -> logDiag("probe " + r) }
                 pageLoaded = true
                 watchdog.removeCallbacksAndMessages(null)
                 // کوکی‌ها رو همین‌جا ذخیره کن تا بعد از بستن اپ هم بمونن
