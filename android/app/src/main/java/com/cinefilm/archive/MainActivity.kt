@@ -114,6 +114,13 @@ class MainActivity : Activity() {
                 view.evaluateJavascript(
                     "(function(){try{return [typeof Promise, typeof fetch, typeof AbortController, document.body ? document.body.innerHTML.length : -1, document.getElementById('root') ? document.getElementById('root').innerHTML.length : -2].join('|')}catch(e){return 'EXC '+e}})()"
                 ) { r -> logDiag("probe " + r) }
+                // تست API از داخل صفحه + کندترین منابع: نشون می‌ده کدوم درخواست کنده
+                view.evaluateJavascript(
+                    "(function(){var t=Date.now();return fetch('/api/films/counts').then(function(r){return 'api '+r.status+' '+(Date.now()-t)+'ms'}).catch(function(e){return 'api ERR '+e})})()"
+                ) { r -> logDiag(r) }
+                view.evaluateJavascript(
+                    "(function(){try{var a=performance.getEntriesByType('resource').sort(function(x,y){return y.duration-x.duration}).slice(0,2);return a.map(function(e){return Math.round(e.duration)+'ms '+e.name.slice(0,60)}).join(' | ')}catch(e){return 'perf '+e}})()"
+                ) { r -> logDiag("slow " + r) }
                 // کوکی‌ها رو همین‌جا ذخیره کن تا بعد از بستن اپ هم بمونن
                 cookies.flush()
             }
