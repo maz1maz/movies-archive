@@ -1157,3 +1157,37 @@ export async function fetchFilmRelations(db, film, env) {
     .run()
   return out
 }
+
+// پوسترهایی که لینکشون مرده (۴۰۴) — بیشترشون لینک IMDb/media-amazon هستن که
+// IMDb پاکشون کرده. برای هر کدوم پوستر TMDB رو با imdbId پیدا و جایگزین می‌کنه.
+export async function repairDeadPosters(db, env, limit = 15) {
+  if (!env.TMDB_API_KEY) return { skipped: 'no key' }
+  const { results } = await db
+    .prepare(
+      `SELECT id, poster, imdbId, itemType FROM films
+       WHERE poster LIKE 'https://m.media-amazon.com/%' AND imdbId IS NOT NULL
+       LIMIT ?`
+    )
+    .bind(limit)
+    .all()
+  let repaired = 0
+  for (const film of results || []) {
+    try {
+      const res = await fetch(film.poster, {
+        method: 'HEAD',
+        headers: { 'User-Agent': 'CinefilmArchive/1.0 (personal film archive app; poster repair)' },
+        signal: AbortSignal.timeout(8000),
+      })
+      if (res.ok) continue
+      const mediaType = film.itemType === 'series' ? 'tv' : 'movie'
+      const findRes = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`, env)
+      if (!findRes.ok) continue
+      const findData = await findRes.json()
+      const path = findData?.[`${mediaType}_results`]?.[0]?.poster_path
+      if (!path) continue
+      await db.prepare('UPDATE films SET poster = ? WHERE id = ?').bind(`https://image.tmdb.org/t/p/w500${path}`, film.id).run()
+      repaired++
+    } catch {}
+  }
+  return { tried: (results || []).length, repaired }
+}

@@ -13,7 +13,7 @@ import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailer
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { findVerifiedImdbId, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -103,7 +103,12 @@ export default {
     if (event.cron === '*/10 * * * *') {
       // ۲۰ فیلم × حداکثر ۲ درخواست TMDB — زیر سقف subrequest هر invocation
       // نوبتی: IMDb id / بازیگر کامل / برچسب‌ها (با هم از سقف ۵۰ subrequest رد می‌شن)
-      const slot = Math.floor((Date.now() / 600000)) % 3
+      const slot = Math.floor((Date.now() / 600000)) % 4
+      if (slot === 3) {
+        const r = await repairDeadPosters(env.DB, env, 15).catch((e) => ({ error: e.message }))
+        console.log('Poster repair:', JSON.stringify(r))
+        return
+      }
       if (slot === 2) {
         const r = await backfillFilmTags(env.DB, env, 20).catch((e) => ({ error: e.message }))
         console.log('Tags backfill:', JSON.stringify(r))
