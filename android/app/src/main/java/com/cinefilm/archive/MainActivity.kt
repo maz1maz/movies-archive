@@ -39,6 +39,11 @@ class MainActivity : Activity() {
         // لاگین: کوکی سشن (cf_session، Max-Age ۳۰ روز) باید بمونه، وگرنه هر بار دوباره لاگین می‌خوای.
         val cookies = CookieManager.getInstance()
         cookies.setAcceptCookie(true)
+        // بدون لاگین: کوکی فقط‌خواندنی اپ، سرور این رو به‌عنوان کاربر «tv-app» (بدون ویرایش) قبول می‌کنه
+        if (BuildConfig.APP_READ_TOKEN.isNotEmpty()) {
+            cookies.setCookie(SITE_URL, "cf_app=${BuildConfig.APP_READ_TOKEN}; Path=/; Secure; Max-Age=31536000")
+            cookies.flush()
+        }
 
         web.settings.apply {
             javaScriptEnabled = true

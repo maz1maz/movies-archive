@@ -4,7 +4,7 @@ import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMe
 import { enrichFilm } from './omdb.js'
 import { fetchTotalSeasons, enrichSeriesFromTVMazeById, fetchTvMazePersonUpcoming } from './tvmaze.js'
 import * as XLSX from 'xlsx'
-import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader } from './auth.js'
+import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader, parseCookies } from './auth.js'
 
 import { notifyServerError, runDailyBackup, gunzipToText, gzipText, fullExportGzipStream, fullExportGzipBytes, uploadBackupToDrive } from './lib/backup.js'
 import { resolveLetterboxdPersonUrl, syncLetterboxdUserToReviews, parseLetterboxdRss, parseLetterboxdBasic, titleToLetterboxdSlug, fetchLetterboxdRating } from './lib/letterboxd.js'
@@ -180,7 +180,15 @@ async function handleFetch(request, env, ctx) {
     const db = env.DB // D1 binding
 
     // کاربر لاگین‌شده‌ی فعلی (از روی کوکی سشن) — مهمان‌ها null می‌گیرن.
-    const currentUser = await getSessionUser(db, request)
+    let currentUser = await getSessionUser(db, request)
+    // اپ تلویزیون (فقط خواندنی): کوکی cf_app با توکن سرور، بدون لاگین.
+    // توکن فقط تو secret سرور و داخل اپ هست؛ سایت معمولی هیچ‌وقت این کوکی رو نداره.
+    const appReadOnly =
+      !currentUser && !!env.APP_READ_TOKEN && parseCookies(request)['cf_app'] === env.APP_READ_TOKEN
+    if (appReadOnly) currentUser = { id: 'tv-app', username: 'tv-app', role: 'viewer', readonly: true }
+    if (appReadOnly && method !== 'GET') {
+      if (pathname !== '/api/auth/logout') return json({ error: 'The TV app is read-only' }, 403, corsHeaders)
+    }
     const requireAuth = () => (currentUser ? null : json({ error: 'You need to log in for this action' }, 401, corsHeaders))
 
     // ---- Audit Trail — ثبت اینکه کی چی رو تغییر داد، با مقدار قبل/بعد ----
