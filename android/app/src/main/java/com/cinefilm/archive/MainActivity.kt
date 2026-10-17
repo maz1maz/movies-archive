@@ -119,6 +119,11 @@ class MainActivity : Activity() {
             }
         }
         web.webChromeClient = object : WebChromeClient() {
+            override fun onProgressChanged(view: WebView, newProgress: Int) {
+                // اگه پیشرفت روی ۱۰٪ گیر کنه، درخواست اصلی (شبکه) قطعه؛ اگه بالا بره، سایت داره لود میشه
+                logDiag("progress $newProgress%")
+            }
+
             override fun onConsoleMessage(m: android.webkit.ConsoleMessage): Boolean {
                 if (m.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.ERROR) {
                     logDiag("JS: ${m.message()} @${m.lineNumber()}")
