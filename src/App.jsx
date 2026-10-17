@@ -350,7 +350,10 @@ export default function App() {
     // allFilmsUnfiltered رو پر می‌کرد؛ الان که loadFilms همیشه paginated
     // هست، این فچ جدا (کل آرشیو، برای شمارش/پوستر/تشخیص «نسخه‌ی دیگه رو هم
     // داره») باید همینجا صدا زده بشه.
-    loadAllFilmsUnfiltered()
+    // با تأخیر: روی تلویزیون (شبکه‌ی کند) این ~۶ مگابایت، اول صفحه و عکس‌های
+    // اولیه رو هم گیر می‌ندازه؛ صفحه‌ی اصلی الان با /api/films/counts پر می‌شه.
+    const allFilmsTimer = setTimeout(loadAllFilmsUnfiltered, 3000)
+    return () => clearTimeout(allFilmsTimer)
   }, [])
 
   const refreshMeta = () => {
