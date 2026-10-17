@@ -26,7 +26,7 @@ class MainActivity : Activity() {
     private fun logDiag(msg: String) {
         runOnUiThread {
             diagLines.addLast(msg.take(160))
-            while (diagLines.size > 9) diagLines.removeFirst()
+            while (diagLines.size > 14) diagLines.removeFirst()
             if (::diag.isInitialized) diag.text = diagLines.joinToString("\n")
         }
     }
@@ -87,6 +87,12 @@ class MainActivity : Activity() {
                 if (host == HOME_HOST) return false
                 startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, request.url))
                 return true
+            }
+
+            // هر درخواست رو همون لحظه‌ی شروع لاگ می‌کنیم؛ اگه «req» بی‌«got» بمونه، همونه که گیر کرده
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): android.webkit.WebResourceResponse? {
+                logDiag("req " + (request.url.path ?: "/").take(50))
+                return null
             }
 
             override fun onLoadResource(view: WebView, url: String) {
