@@ -92,10 +92,14 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
       })),
     [worldTop, archiveIndex]
   )
-  const topOfYear = useMemo(
-    () => unique.filter((f) => Number(f.year) === activeYear).sort((a, b) => score(b) - score(a)).slice(0, 10),
-    [unique, activeYear]
-  )
+  // فیلم‌های خودت از همون سال که تو لیست TMDB نیستن (برتر بر اساس امتیاز خودت)
+  const extraFilms = useMemo(() => {
+    const ownedIds = new Set(worldWithArchive.filter((w) => w.owned).map((w) => w.owned.id))
+    return unique
+      .filter((f) => Number(f.year) === activeYear && !ownedIds.has(f.id))
+      .sort((a, b) => score(b) - score(a))
+      .slice(0, 10)
+  }, [unique, activeYear, worldWithArchive])
 
   // IMDb ≥ 7.8 یا Letterboxd ≥ 3.9، و هنوز دیده نشده
   const acclaimedUnwatched = useMemo(
@@ -277,7 +281,7 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
       {show('year') && (
       <section>
         <div className="discover-head">
-          <h2>Top 10 of {activeYear || '—'}</h2>
+          <h2>Best of {activeYear || '—'}</h2>
           <select className="input discover-year" value={activeYear || ''} onChange={(e) => setYear(Number(e.target.value))}>
             {years.map((y) => (
               <option key={y} value={y}>
@@ -286,17 +290,13 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
             ))}
           </select>
         </div>
-        <p className="oscars-intro">Your archive — ranked by your own rating first, then IMDb and Letterboxd.</p>
-        {topOfYear.length ? <PosterGrid films={topOfYear} onOpenFilm={onOpenFilm} mediaMap={mediaMap} /> : <div className="empty">No films from this year in your archive.</div>}
-
-        <h2 style={{ marginTop: 24 }}>Best of {activeYear} worldwide</h2>
         <p className="oscars-intro">
-          Highest rated on TMDB.{' '}
+          Highest rated on TMDB, numbered in that order. Then your top films of the year from your own ratings.{' '}
           {worldTop && `You own ${worldWithArchive.filter((w) => w.owned).length} of ${worldWithArchive.length}.`}
         </p>
         {worldTop === null ? (
           <div className="empty">Loading…</div>
-        ) : worldWithArchive.length ? (
+        ) : worldWithArchive.length || extraFilms.length ? (
           <div className="grid">
             {worldWithArchive.map((w, i) =>
               w.owned ? (
@@ -326,6 +326,22 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
                 />
               )
             )}
+            {extraFilms.map((f, j) => (
+              <DashboardPosterCard
+                key={f.id}
+                title={`${worldWithArchive.length + j + 1}. ${f.title}`}
+                subtitle={[f.year, f.director].filter(Boolean).join(' — ')}
+                poster={f.poster}
+                media={(() => {
+                  const t = mediaMap.get(keyOf(f)) || new Set()
+                  return { bluray: t.has('physical'), digital: t.has('digital') }
+                })()}
+                inArchive
+                clickable
+                showMissingBadge={false}
+                onClick={() => onOpenFilm(f)}
+              />
+            ))}
           </div>
         ) : (
           <div className="empty">No data for this year.</div>
