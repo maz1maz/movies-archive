@@ -20,7 +20,6 @@ private const val HOME_HOST = "movies-archive.hamidreza-mazlaghani.workers.dev"
 class MainActivity : Activity() {
 
     private lateinit var web: WebView
-    private var pageLoaded = false
     private lateinit var diag: android.widget.TextView
     private val diagLines = ArrayDeque<String>()
 
@@ -31,7 +30,6 @@ class MainActivity : Activity() {
             if (::diag.isInitialized) diag.text = diagLines.joinToString("\n")
         }
     }
-    private val watchdog = android.os.Handler(android.os.Looper.getMainLooper())
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -108,6 +106,8 @@ class MainActivity : Activity() {
 
             override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
                 logDiag("start ${url?.take(60)}")
+            }
+
             override fun onPageFinished(view: WebView, url: String?) {
                 logDiag("finished")
                 // بررسی: آیا JS اجرا شده و React صفحه رو ساخته؟
