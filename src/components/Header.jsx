@@ -212,7 +212,7 @@ export default function Header({
           <img src="/logo.png" alt="Cinefilm Archive" className="brand-logo" />
           <div className="brand-text">
             <div className="brand-title-row">
-              <h1 className="brand-title">CINEFILM ARCHIVE</h1>
+              <h1 className="brand-title text-shine">CINEFILM ARCHIVE</h1>
             </div>
             <p className="brand-meta">
               <span className="brand-owner">Alireza Mazlaghani</span>

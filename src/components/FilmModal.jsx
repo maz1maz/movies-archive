@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconShare } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
+import { filmTags, TAG_LABELS } from '../utils/movements.js'
+import { formatMoney } from '../utils/formatMoney.js'
 import { shareFilmCard } from '../utils/shareCard.js'
 import { addToOrderList } from '../utils/orderList.js'
 import { parseDriveNumbers, driveLabel, driveSortValue, normalizeDriveValue } from '../utils/driveDisplay.js'
@@ -34,7 +36,9 @@ function CollectionOrderButton({ title, year }) {
   )
 }
 
-export default function FilmModal({ film, films = [], onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false, siblingFilm = null, onSaveSeasonDrive }) {
+export default function FilmModal({ film, films = [], archiveFilms = null, onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false, siblingFilm = null, onSaveSeasonDrive }) {
+  // films = لیست ناوبری (صفحه/بخش فعلی)؛ allFilms = کل آرشیو برای شمارش/تطبیق
+  const allFilms = Array.isArray(archiveFilms) && archiveFilms.length ? archiveFilms : films
   const [showAllCast, setShowAllCast] = useState(false)
   const [showAllCrew, setShowAllCrew] = useState(false)
   const [actorPhotos, setActorPhotos] = useState({})
@@ -104,6 +108,64 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const [festivalAwards, setFestivalAwards] = useState(Array.isArray(film?.festivalAwards) ? film.festivalAwards : [])
   const [altPosters, setAltPosters] = useState([])
   const [altPosterIndex, setAltPosterIndex] = useState(0)
+  // پوسترهایی که لود نشدن (لینک خراب/بلاک) از دستهٔ کارت حذف می‌شن تا کارت
+  // خالی با فقط اسم فیلم جلو نیاد.
+  const [brokenPosters, setBrokenPosters] = useState(() => new Set())
+  // بازیگرِ بازشده تو نوار بازیگران (Skiper UI HoverExpand_001)
+  const [activeCast, setActiveCast] = useState(0)
+  // اگه فیلم فقط ۳ بازیگر OMDb داره، یه‌بار لیست کامل از TMDB گرفته و تو
+  // دیتابیس ذخیره می‌شه (/api/films/:id/full-cast)؛ اینجا فقط نمایشش می‌دیم.
+  const [fullCast, setFullCast] = useState(null)
+  const [tmdbTags, setTmdbTags] = useState([])
+  useEffect(() => {
+    setTmdbTags([])
+    if (!film?.id) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/tags`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setTmdbTags(Array.isArray(d.tags) ? d.tags : []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [film?.id])
+  const [relations, setRelations] = useState({ related: [], formats: [] })
+  useEffect(() => {
+    setRelations({ related: [], formats: [] })
+    if (!film?.id || !film?.imdbId) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/relations`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setRelations({ related: d.related || [], formats: d.formats || [] }) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [film?.id, film?.imdbId])
+  const autoTags = film ? filmTags(film, [...tmdbTags, ...relations.formats.map((f) => f.toLowerCase())]) : []
+  const [orderedRelated, setOrderedRelated] = useState({})
+  const [stills, setStills] = useState([])
+  useEffect(() => {
+    setStills([])
+    if (!film?.id) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/stills`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setStills(Array.isArray(d.stills) ? d.stills : []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [film?.id])
+  useEffect(() => {
+    setFullCast(null)
+    const current = Array.isArray(film?.cast) ? film.cast : []
+    if (!film?.id || current.length > 3) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/full-cast`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && Array.isArray(d.cast) && d.cast.length > current.length) setFullCast(d.cast)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [film?.id])
   const posterManualAtRef = useRef(0)
 
   // پوسترهای جایگزین: کنار پوستر اصلی نشون داده می‌شن و خودکار می‌چرخن —
@@ -111,6 +173,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   useEffect(() => {
     setAltPosters([])
     setAltPosterIndex(0)
+    setBrokenPosters(new Set())
+    setActiveCast(0)
     if (!film?.id) return
     fetch(`/api/films/${film.id}/alt-posters`)
       .then((r) => r.json())
@@ -119,12 +183,8 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   }, [film?.id])
 
   useEffect(() => {
-    // چرخش خودکار رو موبایل مزاحم بود — فقط رو دستگاه‌هایی که هاور واقعی
-    // دارن (دسکتاپ) خودکار می‌چرخه؛ رو موبایل فقط با دکمه‌های ‹ › دستی عوض
-    // می‌شه.
-    const supportsHover =
-      typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover)').matches
-    if (!supportsHover) return
+    // حالا رو موبایل هم (مثل دسکتاپ) خودکار می‌چرخه — دستهٔ کارت کشیدنیه و
+    // فلش‌های ‹ › حذف شدن؛ وسط کشیدن یا تا ۳.۲ ثانیه بعد از عوض‌کردن دستی رد می‌شه.
     const total = altPosters.length + 1
     if (total < 2) return
     const timer = setInterval(() => {
@@ -132,6 +192,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
       // چرخش خودکار رو یه دور رد می‌کنیم تا فوراً پوستری که انتخاب کرده رو
       // عوض نکنه.
       if (Date.now() - posterManualAtRef.current < 3200) return
+      if (deckDragRef.current.active) return
       setAltPosterIndex((i) => (i + 1) % total)
     }, 3200)
     return () => clearInterval(timer)
@@ -140,6 +201,52 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const goToPoster = (index, total) => {
     posterManualAtRef.current = Date.now()
     setAltPosterIndex(((index % total) + total) % total)
+  }
+
+  // دسته‌کارت پوسترها (Skiper UI «Carousel_002» / افکت cards سوایپر، بدون
+  // خود کتابخونه): کارت جلویی با موس/انگشت کشیده می‌شه و اگه از آستانه رد
+  // بشه بعدی/قبلی میاد جلو. کلیک بعد از کشیدن نادیده گرفته می‌شه.
+  const [deckDrag, setDeckDrag] = useState(0)
+  const [deckDragging, setDeckDragging] = useState(false)
+  const deckDragRef = useRef({ startX: 0, startY: 0, dx: 0, active: false, moved: false })
+  const startDeckDrag = (e, total) => {
+    if (e.button != null && e.button !== 0) return
+    const d = deckDragRef.current
+    Object.assign(d, { startX: e.clientX, startY: e.clientY, dx: 0, active: true, moved: false })
+    const onMove = (ev) => {
+      const dx = ev.clientX - d.startX
+      const dy = ev.clientY - d.startY
+      if (!d.moved && Math.abs(dx) < 6) return
+      if (!d.moved && Math.abs(dy) > Math.abs(dx)) {
+        end()
+        return
+      }
+      d.moved = true
+      d.dx = dx
+      setDeckDragging(true)
+      setDeckDrag(dx)
+    }
+    const end = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      if (d.moved && Math.abs(d.dx) > 50) {
+        setAltPosterIndex((i) => {
+          posterManualAtRef.current = Date.now()
+          return (((i + (d.dx < 0 ? 1 : -1)) % total) + total) % total
+        })
+      }
+      d.active = false
+      // click بلافاصله بعد از pointerup میاد؛ بعدش دوباره کلیک مجازه
+      setTimeout(() => {
+        d.moved = false
+      }, 0)
+      setDeckDragging(false)
+      setDeckDrag(0)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
   }
 
   useEffect(() => {
@@ -265,9 +372,12 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   // عکس واقعی بازیگرها رو از ویکی‌پدیا می‌گیریم (کلید API لازم نداره).
   // نتیجه سمت سرور هم کش می‌شه، پس دفعات بعد سریع برمی‌گرده.
   useEffect(() => {
-    const names = Array.isArray(film?.cast)
+    const castNames = Array.isArray(film?.cast)
       ? film.cast.map((a) => (typeof a === 'object' ? a.name : a)).filter(Boolean)
       : []
+    // کارگردان هم عکس می‌گیره (برای بخش Crew)
+    const directorNames = String(film?.director || '').split(',').map((n) => n.trim()).filter(Boolean)
+    const names = [...directorNames, ...castNames]
     const toFetch = names.filter((n) => !(n in actorPhotos))
     if (toFetch.length === 0) return
     let cancelled = false
@@ -312,6 +422,35 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     }
   }, [film?.id, film?.letterboxdRating, film?.itemType])
 
+  const normT = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+  const archiveIndex = useMemo(() => {
+    const m = new Map()
+    for (const f of Array.isArray(allFilms) ? allFilms : []) {
+      const y = Number(f.year)
+      const key = `${normT(f.title)}::${f.year || ''}`
+      for (const t of [f.title, f.originalTitle]) {
+        const n = normT(t)
+        if (n) for (const yy of [y - 1, y, y + 1]) m.set(`${n}::${yy}`, key)
+      }
+    }
+    return m
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allFilms])
+  const [personCredits, setPersonCredits] = useState({})
+  useEffect(() => {
+    const list = fullCast || (Array.isArray(film?.cast) ? film.cast : [])
+    const actor = list[activeCast]
+    const name = typeof actor === 'object' ? actor?.name : actor
+    if (!name || personCredits[name]) return
+    let cancelled = false
+    fetch(`/api/person-credits?name=${encodeURIComponent(name)}`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setPersonCredits((p) => ({ ...p, [name]: Array.isArray(d.credits) ? d.credits : [] })) })
+      .catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCast, fullCast, film?.id])
+
   if (!film) return null
 
   const formatRuntime = (min) => {
@@ -336,7 +475,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
     return String(num)
   }
 
-  const castList = Array.isArray(film.cast) ? film.cast : []
+  const castList = fullCast || (Array.isArray(film.cast) ? film.cast : [])
   const displayedCast = castList
 
   // بعضی فیلم‌ها از دو مکانیزم جدای ایمپورت نقد (sync خودکار + CSV دستی)
@@ -382,9 +521,27 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
   const getActorPhoto = (actorObj, name) => {
     if (typeof actorObj === 'object' && actorObj?.photo) return actorObj.photo
     if (actorPhotos[name]) return actorPhotos[name]
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      name
-    )}&background=334155&color=ffffff&bold=true&rounded=true`
+    return null
+  }
+
+  // هر بازیگر تو چند فیلمِ آرشیو هست (بلوری+دیجیتالِ یه فیلم یکی حساب می‌شه).
+  // اول از روی cast ذخیره‌شده؛ برای بازیگری که باز می‌شه، فیلم‌شناسی کاملش از
+  // TMDB هم با آرشیو تطبیق داده می‌شه (چون بیشتر فیلم‌ها فقط ۳ بازیگر ذخیره دارن).
+  const archiveCountFor = (name) => {
+    const target = (name || '').toLowerCase()
+    if (!target || !Array.isArray(allFilms)) return 0
+    const seen = new Set()
+    for (const f of allFilms) {
+      if (!Array.isArray(f.cast)) continue
+      if (f.cast.some((a) => ((typeof a === 'object' ? a?.name : a) || '').toLowerCase() === target)) {
+        seen.add(`${normT(f.title)}::${f.year || ''}`)
+      }
+    }
+    for (const c of personCredits[name] || []) {
+      const hit = archiveIndex.get(`${normT(c.t)}::${c.y}`) || archiveIndex.get(`${normT(c.o)}::${c.y}`)
+      if (hit) seen.add(hit)
+    }
+    return seen.size
   }
 
   const fullCrew = [
@@ -502,7 +659,10 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
           })()}
           {(() => {
             const posters = [film.poster, ...altPosters].filter(Boolean)
-            const uniquePosters = [...new Set(posters)]
+            const allUnique = [...new Set(posters)]
+            const working = allUnique.filter((src) => !brokenPosters.has(src))
+            // اگه همه خراب بودن، همون اولی (با fallback اسم فیلم) بمونه
+            const uniquePosters = working.length ? working : allUnique.slice(0, 1)
             if (uniquePosters.length <= 1) {
               return (
                 <div
@@ -513,11 +673,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       ? 'cine-poster-box clickable-poster cine-poster-has-digital'
                       : 'cine-poster-box clickable-poster'
                   }
-                  onClick={() => film.poster && setLightboxSrc(film.poster)}
+                  onClick={() => uniquePosters[0] && setLightboxSrc(uniquePosters[0])}
                   title="Click to view full poster"
                 >
                   <img
-                    src={film.poster}
+                    src={proxyImg(uniquePosters[0])}
                     alt={film.title}
                     className="cine-poster-img"
                     decoding="async"
@@ -530,15 +690,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               )
             }
             return (
-              <div className="cine-poster-coverflow-wrap">
-                <button
-                  type="button"
-                  className="cine-poster-nav cine-poster-nav-prev"
-                  onClick={() => goToPoster(altPosterIndex - 1, uniquePosters.length)}
-                  aria-label="Previous poster"
-                >
-                  ‹
-                </button>
+              <div className={film.mediaType === 'digital' ? 'cine-poster-coverflow-wrap is-digital' : 'cine-poster-coverflow-wrap'}>
                 <div
                   className={
                     hasBluray
@@ -547,9 +699,11 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       ? 'cine-poster-box cine-poster-coverflow cine-poster-has-digital'
                       : 'cine-poster-box cine-poster-coverflow'
                   }
+                  data-dragging={deckDragging || undefined}
+                  onPointerDown={(e) => startDeckDrag(e, uniquePosters.length)}
                 >
                   {uniquePosters.map((src, i) => {
-                    let offset = i - altPosterIndex
+                    let offset = i - (altPosterIndex % uniquePosters.length)
                     const half = uniquePosters.length / 2
                     if (offset > half) offset -= uniquePosters.length
                     if (offset < -half) offset += uniquePosters.length
@@ -561,20 +715,28 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                         type="button"
                         className={isActive ? 'cine-poster-slide cine-poster-slide-active' : 'cine-poster-slide'}
                         style={{
-                          transform: `translateX(${offset * 78}%) scale(${isActive ? 1 : 0.78})`,
-                          zIndex: isActive ? 3 : 2 - abs,
-                          opacity: abs > 1 ? 0 : 1,
-                          pointerEvents: abs > 1 ? 'none' : 'auto',
+                          '--offset': offset,
+                          '--abs': abs,
+                          '--drag': isActive ? deckDrag : 0,
+                          zIndex: 10 - abs,
+                          opacity: abs > 2 ? 0 : 1,
+                          pointerEvents: abs > 2 ? 'none' : 'auto',
                         }}
-                        onClick={() => (isActive ? setLightboxSrc(src) : goToPoster(i, uniquePosters.length))}
+                        onClick={() => {
+                          if (deckDragRef.current.moved) return
+                          if (isActive) setLightboxSrc(src)
+                          else goToPoster(i, uniquePosters.length)
+                        }}
                         title={isActive ? 'Click to view full poster' : 'Show this poster'}
                       >
                         <img
                         src={proxyImg(src)}
                         alt={film.title}
+                        draggable={false}
                         decoding="async"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none'
+                          setBrokenPosters((prev) => (prev.has(src) ? prev : new Set(prev).add(src)))
                         }}
                       />
                       <div className="cine-poster-fallback">{film.title}</div>
@@ -582,14 +744,20 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                     )
                   })}
                 </div>
-                <button
-                  type="button"
-                  className="cine-poster-nav cine-poster-nav-next"
-                  onClick={() => goToPoster(altPosterIndex + 1, uniquePosters.length)}
-                  aria-label="Next poster"
-                >
-                  ›
-                </button>
+                {/* نوار ریزعکس پوسترها؛ کلیک = همون پوستر میاد جلو */}
+                <div className="cine-poster-thumbs">
+                  {uniquePosters.map((src, i) => (
+                    <button
+                      key={src}
+                      type="button"
+                      className={i === altPosterIndex % uniquePosters.length ? 'cine-poster-thumb is-active' : 'cine-poster-thumb'}
+                      onClick={() => goToPoster(i, uniquePosters.length)}
+                      aria-label={`Poster ${i + 1}`}
+                    >
+                      <img src={proxyImg(src)} alt="" loading="lazy" draggable={false} />
+                    </button>
+                  ))}
+                </div>
               </div>
             )
           })()}
@@ -706,6 +874,13 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
 
             <div className="cine-info-card">
             <div className="cine-synopsis-box cine-synopsis-plain">
+              {autoTags.length > 0 && (
+                <div className="cine-auto-tags">
+                  {autoTags.map((t) => (
+                    <span key={t} className={`cine-auto-tag tag-${t}`}>{TAG_LABELS[t] || t}</span>
+                  ))}
+                </div>
+              )}
               <div className="cine-section-label">SYNOPSIS</div>
               <p className="cine-synopsis-text">
                 {film.synopsis ||
@@ -830,7 +1005,7 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 {film.boxOffice && (
                   <div>
                     <div className="cine-section-label">BOX OFFICE</div>
-                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{film.boxOffice}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{formatMoney(film.boxOffice)}</p>
                   </div>
                 )}
               </div>
@@ -848,13 +1023,13 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                 {film.budget ? (
                   <div>
                     <div className="cine-section-label">BUDGET</div>
-                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>${film.budget.toLocaleString()}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{formatMoney(film.budget)}</p>
                   </div>
                 ) : null}
                 {film.revenue ? (
                   <div>
                     <div className="cine-section-label">REVENUE</div>
-                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>${film.revenue.toLocaleString()}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{formatMoney(film.revenue)}</p>
                   </div>
                 ) : null}
               </div>
@@ -986,13 +1161,14 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
         </div>
 
         {/* Bottom 3 Columns: CAST | CREW | TRAILER */}
-        <div className="cine-bottom-row">
+        {/* بیش از ۵ بازیگر: ستون بازیگرها تمام‌عرض می‌شه تا همه بدون اسکرول جا بشن */}
+        <div className={displayedCast.length > 5 ? 'cine-bottom-row has-many-cast' : 'cine-bottom-row'}>
           {/* CAST */}
           <div className="cine-col cine-col-cast">
             <div className="cine-col-header">
               <span className="cine-col-title">CAST</span>
             </div>
-            <div className="cine-cast-grid expanded">
+            <div className="cine-cast-grid cine-cast-expand expanded">
               {castList.length === 0 ? (
                 <div className="cine-empty">No cast listed</div>
               ) : (
@@ -1000,18 +1176,28 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                   const name = typeof actor === 'object' ? actor.name : actor
                   const photoUrl = getActorPhoto(actor, name)
                   const character = typeof actor === 'object' ? actor.character : null
-                  const initials = name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .substring(0, 2)
-                    .toUpperCase()
-
                   return (
                     <div
                       key={idx}
-                      className="cine-cast-item clickable-person"
-                      onClick={() => onSelectPerson && onSelectPerson(name)}
+                      className={idx === activeCast ? 'cine-cast-item clickable-person is-active' : 'cine-cast-item clickable-person'}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={idx === activeCast}
+                      // فقط موس واقعی؛ تو موبایل mouseenter قبل از click میاد و ضربه‌ی اول مستقیم صفحه‌ی بازیگر رو باز می‌کرد
+                      onPointerEnter={(e) => { if (e.pointerType === 'mouse') setActiveCast(idx) }}
+                      // فقط فوکوس کیبورد (Tab)؛ فوکوسِ ضربه‌ی انگشت نباید بازش کنه وگرنه click همون لحظه صفحه‌ی بازیگر رو باز می‌کنه
+                      onFocus={(e) => { try { if (e.currentTarget.matches(':focus-visible')) setActiveCast(idx) } catch { /* old browsers */ } }}
+                      // ضربهٔ اول (موبایل) فقط بازش می‌کنه؛ روی بازیگرِ باز، صفحه‌ش رو باز می‌کنه
+                      onClick={() => {
+                        if (idx !== activeCast) setActiveCast(idx)
+                        else if (onSelectPerson) onSelectPerson(name)
+                      }}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ' ') && onSelectPerson) {
+                          e.preventDefault()
+                          onSelectPerson(name)
+                        }
+                      }}
                       title={`See all films featuring ${name}`}
                     >
                       <div
@@ -1021,8 +1207,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                             : 'cine-actor-avatar-wrap avatar-loading'
                         }
                       >
+                        {photoUrl && (
                         <img
-                          src={photoUrl}
+                          src={proxyImg(photoUrl)}
                           alt={name}
                           className="cine-actor-img"
                           onError={(e) => {
@@ -1031,14 +1218,24 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                             if (fallback) fallback.style.display = 'flex'
                           }}
                         />
-                        <div className="cine-actor-fallback" style={{ display: 'none' }}>
-                          {initials}
+                        )}
+                        {/* بدون عکس: فقط آیکن کم‌رنگ، تا اسم عمودی خوانا بماند */}
+                        <div className="cine-actor-fallback" style={{ display: photoUrl ? 'none' : 'flex' }} aria-hidden="true">
+                          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" opacity="0.35">
+                            <path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5Z" />
+                          </svg>
                         </div>
                       </div>
-                      <span className="cine-actor-name">{name}</span>
-                      {character && (
-                        <span className="cine-actor-character">{character}</span>
-                      )}
+                      <span className="cine-cast-vlabel" aria-hidden="true">{name}</span>
+                      <div className="cine-cast-caption">
+                        <span className="cine-actor-name">{name}</span>
+                        {character && (
+                          <span className="cine-actor-character">{character}</span>
+                        )}
+                        {idx === activeCast && archiveCountFor(name) > 1 && (
+                          <span className="cine-actor-count">{archiveCountFor(name)} films in archive</span>
+                        )}
+                      </div>
                     </div>
                   )
                 })
@@ -1067,6 +1264,9 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
                       <span className="crew-val">
                         {names.map((name, ni) => (
                           <span key={ni}>
+                            {item.label === 'Director' && actorPhotos[name] && (
+                              <img className="crew-avatar" src={proxyImg(actorPhotos[name])} alt="" aria-hidden="true" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                            )}
                             <span
                               className="clickable-person-text"
                               onClick={() => onSelectPerson && onSelectPerson(name)}
@@ -1204,16 +1404,103 @@ export default function FilmModal({ film, films = [], onNavigate, onSelectPerson
               className="cine-trailer-card"
             >
               <div className="cine-trailer-media">
-                <img src={film.poster} alt="Trailer" className="cine-trailer-bg" />
+                <img
+                  src={proxyImg([film.poster, ...altPosters].find((src) => src && !brokenPosters.has(src)) || film.poster)}
+                  alt="Trailer"
+                  className="cine-trailer-bg"
+                  onError={(e) => {
+                    const bad = e.currentTarget.dataset.src || film.poster
+                    setBrokenPosters((prev) => (prev.has(bad) ? prev : new Set(prev).add(bad)))
+                  }}
+                  data-src={[film.poster, ...altPosters].find((src) => src && !brokenPosters.has(src)) || film.poster}
+                />
                 <div className="cine-play-circle">
                   <span className="play-triangle">▶</span>
                 </div>
                 <div className="cine-hd-tag">F HD</div>
               </div>
             </a>
+            {film.director && (
+              <a
+                className="cine-interview-link"
+                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${String(film.director).split(',')[0].trim()} interview ${film.title}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                🎙️ Director interviews
+              </a>
+            )}
           </div>
         </div>
 
+        {relations.related.some((r) => (r.rating >= 6.5 && r.votes >= 50) || (r.imdbId && allFilms?.some?.((f) => f.imdbId === r.imdbId))) && (
+          <div className="cine-related">
+            <div className="cine-col-title">RELATED FILMS</div>
+            <div className="cine-related-list">
+              {relations.related.map((r) => {
+                const owned = r.imdbId && Array.isArray(allFilms) ? allFilms.find((f) => f.imdbId === r.imdbId) : null
+                // فقط خوش‌امتیازها (TMDB ≥ 6.5 با حداقل ۵۰ رأی) یا اونایی که تو آرشیو داری
+                if (!owned && !(r.rating >= 6.5 && r.votes >= 50)) return null
+                const key = r.imdbId || r.title
+                return (
+                  <div key={key} className={owned ? 'cine-related-item is-owned' : 'cine-related-item'}>
+                    <span className="cine-related-kind">{r.kind}</span>
+                    {owned ? (
+                      <button type="button" className="cine-related-title" onClick={() => onNavigate && onNavigate(owned)}>
+                        {r.title}{r.year ? ` (${r.year})` : ''}
+                      </button>
+                    ) : r.imdbId ? (
+                      <a className="cine-related-title" href={`https://www.imdb.com/title/${r.imdbId}/`} target="_blank" rel="noopener noreferrer">
+                        {r.title}{r.year ? ` (${r.year})` : ''}
+                      </a>
+                    ) : (
+                      <span className="cine-related-title">{r.title}{r.year ? ` (${r.year})` : ''}</span>
+                    )}
+                    {r.rating ? <span className="cine-related-rating">★ {r.rating}</span> : null}
+                    {owned && r.imdbId && (
+                      <a className="cine-related-imdb" href={`https://www.imdb.com/title/${r.imdbId}/`} target="_blank" rel="noopener noreferrer" title="Open on IMDb">
+                        IMDb
+                      </a>
+                    )}
+                    {owned ? (
+                      <span className="cine-related-owned">In archive</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="cine-related-order"
+                        disabled={!!orderedRelated[key]}
+                        onClick={async () => {
+                          setOrderedRelated((p) => ({ ...p, [key]: 'adding' }))
+                          try {
+                            await addToOrderList({ title: r.title, releaseDate: r.year ? `${r.year}-01-01` : null, source: `Related to ${film.title}` })
+                            setOrderedRelated((p) => ({ ...p, [key]: 'added' }))
+                          } catch {
+                            setOrderedRelated((p) => ({ ...p, [key]: undefined }))
+                          }
+                        }}
+                      >
+                        {orderedRelated[key] === 'added' ? 'Added ✓' : orderedRelated[key] === 'adding' ? '…' : 'Order'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {stills.length > 0 && (
+          <div className="cine-stills">
+            <div className="cine-col-title">STILLS</div>
+            <div className="cine-stills-strip">
+              {stills.map((src) => (
+                <button key={src} type="button" className="cine-still" onClick={() => setLightboxSrc(proxyImg(src))}>
+                  <img src={proxyImg(src.replace('/w780/', '/w300/'))} alt="" loading="lazy" onError={(e) => { e.currentTarget.parentElement.style.display = 'none' }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
   )
 

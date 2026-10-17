@@ -362,7 +362,10 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   )
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 40 }} {...overlayHandlers}>
+    // zIndex بالاتر از هدر چسبان اپ (59) تا هدر/صفحه‌بندی روی نوار بالای قفسه
+    // (Manage Shelves، رنگ جلدها) نیفته؛ و پایین‌تر از overlay مودال فیلم (70)
+    // که از روی قفسه باز می‌شه.
+    <div className="modal-overlay" style={{ zIndex: 65 }} {...overlayHandlers}>
       <div className="location-browser" onClick={(e) => e.stopPropagation()}>
         <header className="location-browser-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
@@ -689,7 +692,12 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
         </div>
 
         <div className="location-browser-body" style={{ padding: '24px 28px 40px' }} ref={shelfBodyRef}>
-          {shelfSections.length === 0 ? (
+          {films.length === 0 ? (
+            // لیست کامل آرشیو هنوز داره دانلود می‌شه (چند ثانیه برای ۱۸هزار+ فیلم)
+            <div className="status empty-state" role="status">
+              <p>Loading shelves…</p>
+            </div>
+          ) : shelfSections.length === 0 ? (
             <div className="status empty-state">
               <p>No films found on this bookshelf.</p>
             </div>

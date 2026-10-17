@@ -62,16 +62,29 @@ function pick(films, mode) {
 function findSimilar(films, target, limit = 12) {
   if (!target) return []
   const toArr = (g) => (Array.isArray(g) ? g : (g || '').split(',').map((x) => x.trim()).filter(Boolean))
+  const castNames = (f) => (Array.isArray(f.cast) ? f.cast : []).map((a) => ((typeof a === 'object' ? a?.name : a) || '').toLowerCase()).filter(Boolean)
+  const keyOf = (f) => `${(f.title || '').trim().toLowerCase()}::${f.year || ''}`
   const targetGenres = new Set(toArr(target.genre))
+  const targetCast = new Set(castNames(target))
+  const targetKey = keyOf(target)
+  // بلوری+دیجیتالِ یه فیلم فقط یه‌بار نشون داده می‌شه (و نسخه‌ی دیگه‌ی خودِ فیلم هم نه)
+  const seen = new Set([targetKey])
   return films
-    .filter((f) => f.id !== target.id)
     .map((f) => {
       const shared = toArr(f.genre).filter((g) => targetGenres.has(g)).length
       const sameDirector = f.director && f.director === target.director ? 1 : 0
-      return { film: f, score: shared * 2 + sameDirector }
+      const sharedCast = castNames(f).filter((n) => targetCast.has(n)).length
+      const sameType = (f.itemType || 'movie') === (target.itemType || 'movie') ? 1 : 0
+      return { film: f, score: shared * 2 + sameDirector * 2 + sharedCast + sameType }
     })
-    .filter((x) => x.score > 0)
+    .filter((x) => x.score > 1)
     .sort((a, b) => b.score - a.score || (b.film.rating || 0) - (a.film.rating || 0))
+    .filter((x) => {
+      const k = keyOf(x.film)
+      if (seen.has(k)) return false
+      seen.add(k)
+      return true
+    })
     .slice(0, limit)
     .map((x) => x.film)
 }

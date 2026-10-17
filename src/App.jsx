@@ -30,6 +30,7 @@ const DriveBrowserModal = lazy(() => import('./components/DriveBrowserModal.jsx'
 const PhotoScanModal = lazy(() => import('./components/PhotoScanModal.jsx'))
 const BookshelfView = lazy(() => import('./components/BookshelfView.jsx'))
 const CinemaNewsPage = lazy(() => import('./components/CinemaNewsPage.jsx'))
+const DiscoverPanel = lazy(() => import('./components/DashboardDiscoverPanel.jsx'))
 
 export default function App() {
   const { isGuest, isViewer, isAdmin, openLogin } = useAuth()
@@ -97,9 +98,11 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [page])
-  // باید مضرب ۷ باشه (تعداد ستون‌های گرید)، وگرنه ردیف آخر هر صفحه همیشه
-  // ناقص می‌مونه
-  const PAGE_SIZE = 49
+  // باید مضرب تعداد ستون‌های گرید باشه، وگرنه ردیف آخر هر صفحه همیشه ناقص
+  // می‌مونه: دسکتاپ ۷ ستون → ۴۹؛ موبایل ۲ یا ۳ ستون → ۴۸ (بر ۲، ۳ و ۴ بخش‌پذیر)
+  const [PAGE_SIZE] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches ? 48 : 49
+  )
   // فعلاً دکمه‌ی تعویض نما (Thumbnails/List) از هدر برداشته شده و فقط
   // Thumbnails نشون داده می‌شه؛ مقدار قبلی توی localStorage هم نادیده
   // گرفته می‌شه تا اگه قبلاً روی List بوده، حالا گرید بیاد.
@@ -347,7 +350,10 @@ export default function App() {
     // allFilmsUnfiltered رو پر می‌کرد؛ الان که loadFilms همیشه paginated
     // هست، این فچ جدا (کل آرشیو، برای شمارش/پوستر/تشخیص «نسخه‌ی دیگه رو هم
     // داره») باید همینجا صدا زده بشه.
-    loadAllFilmsUnfiltered()
+    // با تأخیر: روی تلویزیون (شبکه‌ی کند) این ~۶ مگابایت، اول صفحه و عکس‌های
+    // اولیه رو هم گیر می‌ندازه؛ صفحه‌ی اصلی الان با /api/films/counts پر می‌شه.
+    const allFilmsTimer = setTimeout(loadAllFilmsUnfiltered, 3000)
+    return () => clearTimeout(allFilmsTimer)
   }, [])
 
   const refreshMeta = () => {
@@ -930,6 +936,8 @@ export default function App() {
             onSelectDashboard={() => changeSection('dashboard')}
             onSelectGallery={() => changeSection('gallery')}
             onSelectCinemaNews={() => changeSection('cinema-news')}
+            onSelectYearInFilm={() => changeSection('year-in-film')}
+            onSelectMovements={() => changeSection('movements')}
           />
           {selected && (
             <FilmModal
@@ -984,6 +992,50 @@ export default function App() {
             </div>
           </div>
         </div>
+      ) : section === 'year-in-film' || section === 'movements' ? (
+        <>
+          {/* دو بخش از Discover به‌صورت صفحه‌ی جدا (مثل Gallery/Dashboard) */}
+          <div className="discover-page">
+            <button type="button" className="btn discover-page-back" onClick={() => changeSection(null)}>
+              ← Back
+            </button>
+            <Suspense fallback={<div className="status">Loading…</div>}>
+              <DiscoverPanel
+                films={allFilmsUnfiltered}
+                onOpenFilm={(film) => setSelected(film)}
+                only={section === 'year-in-film' ? 'year' : 'tags'}
+                title={section === 'year-in-film' ? 'The Year in Film' : 'Movements & Cult'}
+              />
+            </Suspense>
+          </div>
+          {selected && (
+            <FilmModal
+              film={selected}
+              films={allFilmsUnfiltered}
+              hasBluray={hasBlurayCopy(selected)}
+              siblingFilm={findSiblingFilm(selected)}
+              hasDigital={hasDigitalCopy(selected)}
+              onNavigate={(film) => setSelected(film)}
+              onSelectPerson={openPersonFromFilm}
+              onManageLoan={guardedLoan}
+              onRateFilm={guardedRate}
+              onSaveSeasonDrive={guardedSeasonDrive}
+              onEdit={guardedEdit}
+              onClose={closeFilmModal}
+            />
+          )}
+          {selectedPerson && (
+            <PersonModal
+              personName={selectedPerson}
+              allFilms={allFilmsUnfiltered}
+              hasBluray={hasBlurayCopy}
+              hasDigital={hasDigitalCopy}
+              onSelectFilm={openFilmFromPerson}
+              onSelectPerson={(name) => setSelectedPerson(name)}
+              onClose={closePersonModal}
+            />
+          )}
+        </>
       ) : section === 'gallery' ? (
         <>
           <Suspense fallback={<div className="status" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0c', color: '#eee', zIndex: 10 }}>Loading gallery…</div>}>
@@ -1206,6 +1258,7 @@ export default function App() {
                 panel
                 film={selected}
                 films={sectionFilms}
+                archiveFilms={allFilmsUnfiltered}
                 hasBluray={hasBlurayCopy(selected)}
               siblingFilm={findSiblingFilm(selected)}
                 hasDigital={hasDigitalCopy(selected)}
@@ -1246,6 +1299,7 @@ export default function App() {
         <FilmModal
           film={selected}
           films={shelfNavFilms || sectionFilms}
+          archiveFilms={allFilmsUnfiltered}
           hasBluray={hasBlurayCopy(selected)}
               siblingFilm={findSiblingFilm(selected)}
           hasDigital={hasDigitalCopy(selected)}

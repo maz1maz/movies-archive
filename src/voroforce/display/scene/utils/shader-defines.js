@@ -40,7 +40,7 @@ export function setShaderDefines(shaderSource, defines = {}) {
 
 function processReplacement(value) {
   if (typeof value === 'string') {
-    return value.replaceAll('\n', '')
+    return value.split('\n').join('')
   }
   return value
 }
