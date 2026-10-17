@@ -144,6 +144,8 @@ class MainActivity : Activity() {
             override fun onConsoleMessage(m: android.webkit.ConsoleMessage): Boolean {
                 if (m.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.ERROR) {
                     logDiag("JS: ${m.message()} @${m.lineNumber()}")
+                } else if (m.message().startsWith("[boot]")) {
+                    logDiag(m.message())
                 }
                 return true
             }
