@@ -298,11 +298,11 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
           <div className="empty">Loading…</div>
         ) : worldWithArchive.length ? (
           <div className="grid">
-            {worldWithArchive.map((w) =>
+            {worldWithArchive.map((w, i) =>
               w.owned ? (
                 <DashboardPosterCard
                   key={w.title}
-                  title={w.owned.title}
+                  title={`${i + 1}. ${w.owned.title}`}
                   subtitle={[w.owned.year, w.owned.director].filter(Boolean).join(' — ')}
                   poster={w.owned.poster || w.poster}
                   badgeText="In archive"
@@ -319,7 +319,7 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
               ) : (
                 <DashboardPosterCard
                   key={w.title}
-                  title={w.title}
+                  title={`${i + 1}. ${w.title}`}
                   subtitle={[w.year, w.rating ? `★ ${w.rating}` : null].filter(Boolean).join(' — ')}
                   poster={w.poster}
                   inArchive={false}
