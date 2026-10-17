@@ -9,6 +9,8 @@
 
     <application
         android:label="Cinefilm Archive"
+        android:icon="@mipmap/ic_launcher"
+        android:banner="@drawable/banner"
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
