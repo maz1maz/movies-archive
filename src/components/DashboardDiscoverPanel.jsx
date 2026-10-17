@@ -58,7 +58,7 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
     return Array.from({ length: now - min + 1 }, (_, i) => now - i)
   }, [unique])
   const [year, setYear] = useState(null)
-  const activeYear = year ?? new Date().getFullYear() - 1
+  const activeYear = year ?? new Date().getFullYear()
 
   // بهترین‌های جهانیِ همون سال از TMDB؛ اونایی که داری قابل کلیکن، بقیه Order دارن
   const [worldTop, setWorldTop] = useState(null)
