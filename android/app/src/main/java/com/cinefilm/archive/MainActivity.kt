@@ -108,22 +108,12 @@ class MainActivity : Activity() {
 
             override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
                 logDiag("start ${url?.take(60)}")
-                pageLoaded = false
-                // اگه تا ۲۵ ثانیه صفحه کامل نشه، پیام بده نه صفحه‌ی سیاه بی‌پایان
-                watchdog.removeCallbacksAndMessages(null)
-                watchdog.postDelayed({
-                    if (!pageLoaded) { logDiag("watchdog fired"); showError("صفحه خیلی طول کشید") }
-                }, 25_000)
-            }
-
             override fun onPageFinished(view: WebView, url: String?) {
                 logDiag("finished")
                 // بررسی: آیا JS اجرا شده و React صفحه رو ساخته؟
                 view.evaluateJavascript(
                     "(function(){try{return [typeof Promise, typeof fetch, typeof AbortController, document.body ? document.body.innerHTML.length : -1, document.getElementById('root') ? document.getElementById('root').innerHTML.length : -2].join('|')}catch(e){return 'EXC '+e}})()"
                 ) { r -> logDiag("probe " + r) }
-                pageLoaded = true
-                watchdog.removeCallbacksAndMessages(null)
                 // کوکی‌ها رو همین‌جا ذخیره کن تا بعد از بستن اپ هم بمونن
                 cookies.flush()
             }
