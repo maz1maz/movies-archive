@@ -21,6 +21,16 @@ class MainActivity : Activity() {
 
     private lateinit var web: WebView
     private var pageLoaded = false
+    private lateinit var diag: android.widget.TextView
+    private val diagLines = ArrayDeque<String>()
+
+    private fun logDiag(msg: String) {
+        runOnUiThread {
+            diagLines.addLast(msg.take(160))
+            while (diagLines.size > 4) diagLines.removeFirst()
+            if (::diag.isInitialized) diag.text = diagLines.joinToString("\n")
+        }
+    }
     private val watchdog = android.os.Handler(android.os.Looper.getMainLooper())
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -33,7 +43,19 @@ class MainActivity : Activity() {
         window.decorView.setBackgroundColor(Color.BLACK)
         web = WebView(this)
         web.setBackgroundColor(Color.BLACK)
-        setContentView(web)
+        // نوار عیب‌یابی پایین صفحه: خطاهای JS و وضعیت لود رو نشون می‌ده (برای پیدا کردن علت صفحه سیاه)
+        val frame = android.widget.FrameLayout(this)
+        frame.addView(web, android.widget.FrameLayout.LayoutParams(-1, -1))
+        diag = android.widget.TextView(this).apply {
+            setBackgroundColor(0xCC000000.toInt())
+            setTextColor(0xFFFFFFFF.toInt())
+            textSize = 11f
+            setPadding(12, 6, 12, 6)
+            text = "diag: start | " + android.os.Build.VERSION.RELEASE
+        }
+        frame.addView(diag, android.widget.FrameLayout.LayoutParams(-1, -2, android.view.Gravity.BOTTOM))
+        setContentView(frame)
+        logDiag("UA webview=" + (try { android.webkit.WebView.getCurrentWebViewPackage()?.versionName } catch (e: Throwable) { "?" }))
         if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true)
 
         // لاگین: کوکی سشن (cf_session، Max-Age ۳۰ روز) باید بمونه، وگرنه هر بار دوباره لاگین می‌خوای.
@@ -69,12 +91,23 @@ class MainActivity : Activity() {
                 return true
             }
 
+            override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: android.webkit.WebResourceResponse) {
+                logDiag("HTTP ${errorResponse.statusCode} ${request.url.path}")
+            }
+
+            override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
+                logDiag("renderer gone: didCrash=${detail.didCrash()}")
+                return true
+            }
+
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+                logDiag("ERR ${error.errorCode} ${error.description} ${request.url.path}")
                 // فقط برای صفحه‌ی اصلی؛ اگه نت یا سرور قطع بود، پیام بده نه صفحه‌ی سفید
                 if (request.isForMainFrame) showError(error.description?.toString() ?: "unknown error")
             }
 
             override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
+                logDiag("start ${url?.take(60)}")
                 pageLoaded = false
                 // اگه تا ۲۵ ثانیه صفحه کامل نشه، پیام بده نه صفحه‌ی سیاه بی‌پایان
                 watchdog.removeCallbacksAndMessages(null)
@@ -84,13 +117,21 @@ class MainActivity : Activity() {
             }
 
             override fun onPageFinished(view: WebView, url: String?) {
+                logDiag("finished")
                 pageLoaded = true
                 watchdog.removeCallbacksAndMessages(null)
                 // کوکی‌ها رو همین‌جا ذخیره کن تا بعد از بستن اپ هم بمونن
                 cookies.flush()
             }
         }
-        web.webChromeClient = WebChromeClient()
+        web.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(m: android.webkit.ConsoleMessage): Boolean {
+                if (m.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.ERROR) {
+                    logDiag("JS: ${m.message()} @${m.lineNumber()}")
+                }
+                return true
+            }
+        }
 
         // فول‌اسکرین بدون نوار آدرس؛ فوکوس D-pad روی دکمه‌های صفحه کار می‌کنه
         web.isFocusable = true
