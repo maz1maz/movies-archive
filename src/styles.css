@@ -5828,6 +5828,16 @@ body.light .folder-nav-stat-value {
 .folder-card:active {
   transform: scale(0.985);
 }
+/* روی گوشی‌های آیفون، backdrop-filter کنار انیمیشن ورود کارت‌ها باعث لرزش و
+   پرش ردیف‌ها می‌شه؛ برای موبایل شیشه‌ای حذف می‌کنیم و کارت‌ها رو روی لایه‌ی خودشون نگه می‌داریم. */
+@media (max-width: 860px) {
+  .folder-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+}
 body.light .folder-card {
   background: rgba(255, 255, 255, 0.55);
 }
