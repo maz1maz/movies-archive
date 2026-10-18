@@ -292,6 +292,7 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
                   subtitle={[w.year, w.rating ? `★ ${w.rating}` : null].filter(Boolean).join(' — ')}
                   poster={w.poster}
                   inArchive={false}
+                  posterHref={`https://www.imdb.com/find/?q=${encodeURIComponent(`${w.title} ${w.year || ''}`.trim())}&s=tt`}
                 />
               )
             )}
