@@ -5815,11 +5815,18 @@ body.light .folder-nav-stat-value {
 .folder-card p {
   margin: 2px 0 0;
 }
-.folder-card:hover {
-  border-color: var(--marquee-gold, var(--accent));
-  background: rgba(255, 255, 255, 0.09);
-  transform: translateY(-4px);
-  box-shadow: 0 14px 36px rgba(126, 87, 255, 0.28);
+/* هاور فقط روی دستگاه‌های با ماوس. روی موبایل/تلویزیون، لمس باعث می‌شه
+   حالت hover «گیر» کنه و کارت پرش (translateY) داشته باشه. */
+@media (hover: hover) and (pointer: fine) {
+  .folder-card:hover {
+    border-color: var(--marquee-gold, var(--accent));
+    background: rgba(255, 255, 255, 0.09);
+    transform: translateY(-4px);
+    box-shadow: 0 14px 36px rgba(126, 87, 255, 0.28);
+  }
+}
+.folder-card:active {
+  transform: scale(0.985);
 }
 body.light .folder-card {
   background: rgba(255, 255, 255, 0.55);
