@@ -5840,6 +5840,22 @@ body.light .folder-nav-stat-value {
     padding-top: 14vh;
   }
 }
+/* موبایل: بدون هیچ انیمیشن ورود/تغییر حالت روی کارت‌ها و عنوان خانه؛
+   هر انیمیشنی وقتی ردیف‌ها باز/بسته می‌شن یا نوار آدرس جمع می‌شه، جابه‌جایی می‌سازه. */
+@media (max-width: 860px) {
+  .folder-grid-open .folder-card,
+  .folder-nav .reveal-item,
+  .folder-nav .stage-curtain {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .folder-card,
+  .folder-card:active {
+    transition: none;
+    transform: none;
+  }
+}
 @media (max-width: 860px) {
   .folder-card {
     backdrop-filter: none;
