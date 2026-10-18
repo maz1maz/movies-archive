@@ -128,10 +128,19 @@ export default function Header({
   // موقع اسکرول به پایین، هدر جمع‌وجورتر بشه (زیرعنوان‌ها مخفی، پدینگ کمتر)
   // تا فضای بیشتری به محتوا بده. همچنین اگه پنل فیلتر/منو/A-Z باز بود، با
   // اسکرول بسته بشه — وگرنه رو پوسترها معلق می‌مونه و جلوی دیدشون رو می‌گیره.
+  // وقتی منو/فیلتر/A-Z بازه، هیچ تغییری در هدر (condensed) و بستنِ پنل با
+  // اسکرول نباید بشه؛ وگرنه روی آیفون با جمع شدن نوار آدرس، پنل همون لحظه
+  // بسته یا جابه‌جا می‌شه («میپره»).
+  const popoverOpenRef = useRef(false)
+  useEffect(() => {
+    popoverOpenRef.current = menuOpen || filtersOpen || azOpen
+  }, [menuOpen, filtersOpen, azOpen])
+
   useEffect(() => {
     let lastY = window.scrollY
     const onScroll = () => {
       const y = window.scrollY
+      if (popoverOpenRef.current) return
       // موبایل‌ها با جمع‌شدن نوار آدرس (که حتی با یه تپ ساده رو صفحه هم
       // اتفاق می‌افته) یه اسکرول جعلی چندپیکسلی می‌فرستن — اگه بدون آستانه
       // این رو «اسکرول واقعی» حساب کنیم، دقیقاً همون تپی که منو رو باز
