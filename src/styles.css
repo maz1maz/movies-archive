@@ -5844,11 +5844,15 @@ body.light .folder-nav-stat-value {
    هر انیمیشنی وقتی ردیف‌ها باز/بسته می‌شن یا نوار آدرس جمع می‌شه، جابه‌جایی می‌سازه. */
 @media (max-width: 860px) {
   .folder-grid-open .folder-card,
-  .folder-nav .reveal-item,
-  .folder-nav .stage-curtain {
+  .folder-nav .reveal-item {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+  /* پرده‌ی تئاتر فقط انیمیشن ورود داره؛ بدون انیمیشن روی موبایل باید کلاً پنهان باشه،
+     وگرنه همون حالت اولیه‌ی بسته‌ش روی صفحه می‌مونه. */
+  .folder-nav .stage-curtain {
+    display: none;
   }
   .folder-card,
   .folder-card:active {
