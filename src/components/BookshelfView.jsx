@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
 import { getSpineColor } from '../utils/shelfDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
-import { useOverlayClose } from '../hooks/useOverlayClose.js'
-import { useShelfZoom, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../hooks/useShelfZoom.js'
+import { useShelfZoom, useShelfTheme, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../hooks/useShelfZoom.js'
 
 // زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
 const BASE_ZOOM = 0.8
@@ -44,10 +42,11 @@ function queuePrefetch(url) {
   runNextPrefetch()
 }
 
-export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsChanged }) {
-  const overlayHandlers = useOverlayClose(onClose)
-  const [closetFilter, setClosetFilter] = useState('1')
-  const [shelfTheme, setShelfTheme] = useState('wood')
+// نمای «Wall» داخل صفحه‌ی Shelves (LocationBrowserModal): همه‌ی بخش‌های قفسه‌دار
+// پشت سر هم، فقط برای دیدن. پر/خالی کردن بخش‌ها تو نمای Section انجام می‌شه.
+// closet خالی یعنی همه‌ی کمدها؛ کلیک روی تیتر هر بخش onPickSection رو صدا می‌زنه.
+export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, closet: closetFilter = '', onPickSection }) {
+  const [shelfTheme, setShelfTheme] = useShelfTheme()
   const [shelfScale, setShelfScale] = useShelfZoom(BASE_ZOOM)
   const [spineWidth, setSpineWidth] = useState(null)
   const shelfBodyRef = useRef(null)
@@ -94,102 +93,8 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
     // هنوز به هیچی وصل نیست؛ با تغییر این‌ها، وقتی بالاخره محتوا ظاهر شد،
     // این افکت دوباره تلاش می‌کنه وصل بشه.
   }, [shelfScale, closetFilter, searchQuery, films])
-  const [manageOpen, setManageOpen] = useState(false)
-  const [resetCloset, setResetCloset] = useState('')
-  const [resetRow, setResetRow] = useState('')
-  const [resetShelf, setResetShelf] = useState('')
-  const [fillCloset, setFillCloset] = useState('')
-  const [fillRow, setFillRow] = useState('')
-  const [fillShelf, setFillShelf] = useState('')
-  const [fillStartTitle, setFillStartTitle] = useState('')
-  const [fillCount, setFillCount] = useState('')
-  const [shelfBusy, setShelfBusy] = useState(false)
+
   const [shelfMessage, setShelfMessage] = useState(null)
-
-  // ساختار واقعیِ کتابخونه: ۸ کمد، هر کمد ۱۰ ردیف، هر ردیف ۳ سکشن — این
-  // ثابته و به دیتای فعلی فیلم‌ها بستگی نداره (چون خیلی از این جاها هنوز خالی‌ان).
-  const allClosets = ['1', '2', '3', '4', '5', '6', '7', '8']
-  const allRows = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-  const shelvesForCloset = () => ['1', '2', '3']
-
-  // برای «Start from this film» — همه‌ی فیلم‌های فیزیکی (چه قفسه‌دار چه
-  // نه)، به‌ترتیب الفبا. اونایی که قبلاً قفسه دارن هم تو لیست می‌مونن (فقط
-  // رنگ/برچسبشون فرق می‌کنه)، چون انتخاب یکی از اونا هم به‌عنوان نقطه‌ی
-  // شروع الفبایی معتبره — فقط خود اون فیلم دوباره جابه‌جا نمی‌شه.
-  const physicalFilmEntries = useMemo(() => {
-    const map = new Map()
-    for (const f of films) {
-      if (f.mediaType === 'digital' || !f.title) continue
-      if (!map.has(f.title)) {
-        const loc = f.closet ? `C${f.closet}${f.row ? `R${f.row}` : ''}${f.shelf ? `S${f.shelf}` : ''}` : ''
-        map.set(f.title, { title: f.title, assigned: !!f.closet, loc })
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
-  }, [films])
-  const [fillStartOpen, setFillStartOpen] = useState(false)
-  const fillStartMatches = useMemo(() => {
-    const q = fillStartTitle.trim().toLowerCase()
-    if (!q) return physicalFilmEntries
-    return physicalFilmEntries.filter((e) => e.title.toLowerCase().includes(q))
-  }, [fillStartTitle, physicalFilmEntries])
-
-  const runShelfAction = async (url, payload) => {
-    setShelfBusy(true)
-    setShelfMessage(null)
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Action failed')
-      if (onFilmsChanged) onFilmsChanged()
-      return data
-    } catch (e) {
-      setShelfMessage({ type: 'error', text: e.message })
-      return null
-    } finally {
-      setShelfBusy(false)
-    }
-  }
-
-  const handleReset = async () => {
-    if (!resetCloset) {
-      setShelfMessage({ type: 'error', text: 'Pick a Closet at least' })
-      return
-    }
-    const scope = resetShelf ? 'shelf' : resetRow ? 'row' : 'closet'
-    const data = await runShelfAction('/api/shelf/reset', { scope, closet: resetCloset, row: resetRow, shelf: resetShelf })
-    if (data) {
-      const label = `C${resetCloset}${resetRow ? `R${resetRow}` : ''}${resetShelf ? `S${resetShelf}` : ''}`
-      setShelfMessage({ type: 'ok', text: `Cleared ${data.cleared} film(s) from ${label}.` })
-    }
-  }
-
-  const handleFill = async () => {
-    if (!fillCloset || !fillRow || !fillShelf) {
-      setShelfMessage({ type: 'error', text: 'Pick Closet, Row, and Shelf' })
-      return
-    }
-    const data = await runShelfAction('/api/shelf/fill', {
-      closet: fillCloset,
-      row: fillRow,
-      shelf: fillShelf,
-      startTitle: fillStartTitle,
-      count: parseInt(fillCount, 10),
-    })
-    if (data) {
-      setShelfMessage({
-        type: 'ok',
-        text: `Placed ${data.assigned} title(s) (${data.slotsUsed} spine slot(s), copies included) in C${fillCloset}R${fillRow}S${fillShelf}: "${data.firstTitle}" → "${data.lastTitle}". ${data.remainingAfter} unassigned left.`,
-      })
-      setFillStartTitle('')
-      setFillCount('')
-    }
-  }
-
   const [colorAnalysisRunning, setColorAnalysisRunning] = useState(false)
   const [colorAnalysisProgress, setColorAnalysisProgress] = useState(0)
   const [colorAnalysisStop, setColorAnalysisStop] = useState(false)
@@ -272,40 +177,13 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
     return films
       .filter((f) => f.mediaType !== 'digital')
       .slice()
-      .sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
+      .sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title), undefined, { numeric: true }))
   }, [films])
-
-  // بعد از انتخاب یه فیلم به‌عنوان نقطه‌ی شروع، هدف سرچ دیدن خود فیلم
-  // نیست — می‌خوایم ببینیم پر کردن از کجا ادامه پیدا می‌کنه. برای همین چند
-  // تا فیلمِ بی‌قفسه‌ی بعدی (به‌ترتیب الفبا، از همون نقطه) رو نشون می‌دیم.
-  const fillContinuation = useMemo(() => {
-    const q = fillStartTitle.trim()
-    if (!q) return []
-    const unassigned = physicalFilms.filter((f) => !f.closet)
-    const startKey = sortKey(q)
-    const startIdx = unassigned.findIndex((f) => sortKey(f.title).localeCompare(startKey) >= 0)
-    if (startIdx === -1) return []
-    const seen = new Set()
-    const out = []
-    for (let i = startIdx; i < unassigned.length && out.length < 8; i++) {
-      if (seen.has(unassigned[i].title)) continue
-      seen.add(unassigned[i].title)
-      out.push(unassigned[i].title)
-    }
-    return out
-  }, [fillStartTitle, physicalFilms])
-
-  const closets = useMemo(() => {
-    const set = new Set()
-    for (const f of physicalFilms) {
-      if (f.closet) set.add(String(f.closet))
-    }
-    return Array.from(set).sort((a, b) => Number(a) - Number(b))
-  }, [physicalFilms])
 
   const filteredFilms = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    let base = physicalFilms
+    // فیلم‌های بی‌آدرس تو لیست موجودیِ نمای Section هستن، نه روی دیوار
+    let base = physicalFilms.filter((f) => f.closet)
     if (closetFilter) {
       base = base.filter((f) => String(f.closet || '') === closetFilter)
     }
@@ -336,7 +214,8 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
       }
       map[key].films.push(f)
     }
-    return Object.values(map)
+    const n = (v) => Number(v) || 0
+    return Object.values(map).sort((a, b) => n(a.closet) - n(b.closet) || n(a.row) - n(b.row) || n(a.shelf) - n(b.shelf))
   }, [filteredFilms])
 
   // هر بخش قفسه فقط وقتی تازه داره وارد نمای صفحه می‌شه (با یه فاصله‌ی جلوتر
@@ -359,7 +238,8 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
           observer.unobserve(entry.target)
         }
       },
-      { root: shelfBodyRef.current, rootMargin: '800px 0px' }
+      // نمای Wall داخل اسکرولِ صفحه‌ی Shelves هست، پس root همون viewport ـه
+      { root: null, rootMargin: '800px 0px' }
     )
     const sections = shelfBodyRef.current?.querySelectorAll('[data-shelf-section]') || []
     sections.forEach((el) => observer.observe(el))
@@ -372,283 +252,36 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   )
 
   return (
-    // zIndex بالاتر از هدر چسبان اپ (59) تا هدر/صفحه‌بندی روی نوار بالای قفسه
-    // (Manage Shelves، رنگ جلدها) نیفته؛ و پایین‌تر از overlay مودال فیلم (70)
-    // که از روی قفسه باز می‌شه.
-    <div className="modal-overlay" style={{ zIndex: 65 }} {...overlayHandlers}>
-      <div className="location-browser" onClick={(e) => e.stopPropagation()}>
-        <header className="location-browser-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="shelf-back-btn"
-              onClick={onClose}
-              title="Back to Posters / Library"
-              style={{ fontSize: '13px', padding: '6px 12px' }}
-            >
-              ← Back to Posters
+    <div className="shelf-wall">
+      <div className="shelf-wall-toolbar">
+        <span className="shelf-wall-count">
+          {filteredFilms.length} titles · {totalCopies} copies{closetFilter ? ` in Closet ${closetFilter}` : ' on shelves'}
+        </span>
+        {colorAnalysisRunning ? (
+          <span className="shelf-wall-colors">
+            Analyzing poster colors… {colorAnalysisProgress} done
+            <button type="button" className="shelf-back-btn" onClick={() => setColorAnalysisStop(true)}>
+              Stop
             </button>
-            <div className="location-browser-title">
-              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <IconBookshelf width={20} height={20} /> 3D Physical Bookshelf
-              </h2>
-              <p className="export-sub" style={{ margin: '4px 0 0' }}>
-                {filteredFilms.length} titles · {totalCopies} copies · Pure exhibition view without edit buttons
-              </p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              type="button"
-              className={manageOpen ? 'location-chip location-chip-active' : 'location-chip'}
-              onClick={() => setManageOpen((v) => !v)}
-              title="Manage shelves: reset or auto-fill alphabetically"
-            >
-              Manage Shelves
-            </button>
-            <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
-              <IconClose width={16} height={16} />
-            </button>
-          </div>
-        </header>
-
-        {manageOpen && (
-          <div
-            style={{
-              margin: '0 28px 16px',
-              padding: '16px',
-              background: 'var(--surface-2, #212227)',
-              border: '1px solid var(--border-strong, #3a3b42)',
-              borderRadius: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px',
-            }}
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="shelf-back-btn"
+            onClick={runColorAnalysis}
+            title="Reads each poster's average color (once per film, in this browser) so spines can use it. Safe to stop and resume."
           >
-            {shelfMessage && (
-              <div style={{ fontSize: '13px', color: shelfMessage.type === 'error' ? '#d97066' : '#4caf50' }}>
-                {shelfMessage.text}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-              <strong style={{ fontSize: '13px', minWidth: '90px' }}>Reset</strong>
-              <select
-                value={resetCloset}
-                onChange={(e) => {
-                  setResetCloset(e.target.value)
-                  setResetRow('')
-                  setResetShelf('')
-                }}
-                style={{ width: '80px', height: '34px', borderRadius: '8px' }}
-              >
-                <option value="">Closet</option>
-                {allClosets.map((c) => (
-                  <option key={c} value={c}>C{c}</option>
-                ))}
-              </select>
-              <select
-                value={resetRow}
-                onChange={(e) => {
-                  setResetRow(e.target.value)
-                  setResetShelf('')
-                }}
-                disabled={!resetCloset}
-                style={{ width: '95px', height: '34px', borderRadius: '8px' }}
-              >
-                <option value="">Row (opt.)</option>
-                {allRows.map((r) => (
-                  <option key={r} value={r}>R{r}</option>
-                ))}
-              </select>
-              <select
-                value={resetShelf}
-                onChange={(e) => setResetShelf(e.target.value)}
-                disabled={!resetCloset || !resetRow}
-                style={{ width: '100px', height: '34px', borderRadius: '8px' }}
-              >
-                <option value="">Shelf (opt.)</option>
-                {resetCloset && shelvesForCloset(resetCloset).map((s) => (
-                  <option key={s} value={s}>S{s}</option>
-                ))}
-              </select>
-              <span style={{ fontSize: '12px', opacity: 0.65 }}>Closet only = whole closet · +Row = whole row · +Shelf = one section</span>
-              <button type="button" className="location-chip" disabled={shelfBusy} onClick={handleReset}>
-                Reset
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-              <strong style={{ fontSize: '13px', minWidth: '90px' }}>Auto-fill</strong>
-              <select
-                value={fillCloset}
-                onChange={(e) => {
-                  setFillCloset(e.target.value)
-                  setFillRow('')
-                  setFillShelf('')
-                }}
-                style={{ width: '80px', height: '34px', borderRadius: '8px' }}
-              >
-                <option value="">Closet</option>
-                {allClosets.map((c) => (
-                  <option key={c} value={c}>C{c}</option>
-                ))}
-              </select>
-              <select
-                value={fillRow}
-                onChange={(e) => {
-                  setFillRow(e.target.value)
-                  setFillShelf('')
-                }}
-                disabled={!fillCloset}
-                style={{ width: '85px', height: '34px', borderRadius: '8px' }}
-              >
-                <option value="">Row</option>
-                {allRows.map((r) => (
-                  <option key={r} value={r}>R{r}</option>
-                ))}
-              </select>
-              <select
-                value={fillShelf}
-                onChange={(e) => setFillShelf(e.target.value)}
-                disabled={!fillCloset || !fillRow}
-                style={{ width: '85px', height: '34px', borderRadius: '8px' }}
-              >
-                <option value="">Shelf</option>
-                {fillCloset && shelvesForCloset(fillCloset).map((s) => (
-                  <option key={s} value={s}>S{s}</option>
-                ))}
-              </select>
-              <div style={{ position: 'relative', width: '340px' }}>
-                <input
-                  type="text"
-                  placeholder="Start from this film…"
-                  value={fillStartTitle}
-                  onChange={(e) => setFillStartTitle(e.target.value)}
-                  onFocus={() => setFillStartOpen(true)}
-                  onBlur={() => setTimeout(() => setFillStartOpen(false), 150)}
-                  style={{ width: '100%', height: '34px', borderRadius: '8px' }}
-                />
-                {fillStartOpen && fillStartMatches.length > 0 && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '38px',
-                      left: 0,
-                      right: 0,
-                      maxHeight: '260px',
-                      overflowY: 'auto',
-                      background: 'var(--surface-2, #212227)',
-                      border: '1px solid var(--border-strong, #3a3b42)',
-                      borderRadius: '8px',
-                      zIndex: 20,
-                    }}
-                  >
-                    {fillStartMatches.map((e) => (
-                      <div
-                        key={e.title}
-                        onMouseDown={() => {
-                          setFillStartTitle(e.title)
-                          setFillStartOpen(false)
-                        }}
-                        title={e.title}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          gap: '8px',
-                          padding: '6px 10px',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          color: e.assigned ? '#7a8a99' : '#e8edf2',
-                        }}
-                      >
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-                          {e.title}
-                        </span>
-                        {e.assigned && (
-                          <span style={{ fontSize: '11px', color: '#4C9BD6', flexShrink: 0 }}>{e.loc}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <input
-                type="number"
-                placeholder="Count"
-                min="1"
-                value={fillCount}
-                onChange={(e) => setFillCount(e.target.value)}
-                style={{ width: '80px', height: '34px', borderRadius: '8px' }}
-              />
-              <button type="button" className="location-chip" disabled={shelfBusy} onClick={handleFill}>
-                Fill
-              </button>
-            </div>
-            {!fillStartOpen && fillContinuation.length > 0 && (
-              <p style={{ margin: 0, fontSize: '12px', color: '#8fa0ad' }}>
-                Continues with (unassigned): {fillContinuation.join(' → ')}
-                {fillContinuation.length === 8 ? ' → …' : ''}
-              </p>
-            )}
-            <p style={{ margin: 0, fontSize: '12px', opacity: 0.65 }}>
-              8 closets, 10 rows each, 3 shelves per row.
-              Fill only touches unassigned physical films, sorted alphabetically (leading "The" ignored). Already-shelved films are shown too (greyed, with their location) so you can see where you are — pick one just to anchor the alphabetical start point. Use the returned last title as the next section's start.
-            </p>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', borderTop: '1px solid var(--border, #2b2c32)', paddingTop: '12px' }}>
-              <strong style={{ fontSize: '13px', minWidth: '90px' }}>Spine colors</strong>
-              {!colorAnalysisRunning ? (
-                <button type="button" className="location-chip" onClick={runColorAnalysis}>
-                  Analyze poster colors
-                </button>
-              ) : (
-                <>
-                  <span style={{ fontSize: '13px' }}>Processing… {colorAnalysisProgress} done</span>
-                  <button type="button" className="location-chip" onClick={() => setColorAnalysisStop(true)}>
-                    Stop
-                  </button>
-                </>
-              )}
-              <span style={{ fontSize: '12px', opacity: 0.65 }}>
-                Runs once per film (in this browser) — reads each poster's average color so spines can use it. Safe to stop and resume later; already-processed films are skipped.
-              </span>
-            </div>
-          </div>
+            Analyze poster colors
+          </button>
         )}
-
-        <div className="location-browser-selectors">
-          <div className="location-browser-selector-group" style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: '10px', width: '100%' }}>
-            <span className="location-browser-selector-label">Filter Closet</span>
-            <div className="location-chip-list" style={{ flexWrap: 'wrap', maxHeight: 'none', overflow: 'visible' }}>
-              <button
-                type="button"
-                className={!closetFilter ? 'location-chip location-chip-active' : 'location-chip'}
-                onClick={() => setClosetFilter('')}
-              >
-                All Closets ({physicalFilms.length})
-              </button>
-              {closets.map((c) => {
-                const count = physicalFilms.filter((f) => String(f.closet) === c).length
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    className={closetFilter === c ? 'location-chip location-chip-active' : 'location-chip'}
-                    onClick={() => setClosetFilter(c)}
-                  >
-                    Closet {c} ({count})
-                  </button>
-                )
-              })}
-            </div>
-
+        {shelfMessage && (
+          <span style={{ fontSize: '12.5px', color: shelfMessage.type === 'error' ? '#d97066' : '#4caf50' }}>{shelfMessage.text}</span>
+        )}
             <div style={{ marginInlineStart: 'auto', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <input
                 type="text"
                 className="film-selector-search"
-                placeholder="Search bookshelf…"
+                placeholder="Search shelves…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ minWidth: '180px', height: '34px' }}
@@ -698,10 +331,9 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+      </div>
 
-        <div className="location-browser-body" style={{ padding: '24px 28px 40px' }} ref={shelfBodyRef}>
+        <div className="shelf-wall-body" ref={shelfBodyRef}>
           {films.length === 0 ? (
             // لیست کامل آرشیو هنوز داره دانلود می‌شه (چند ثانیه برای ۱۸هزار+ فیلم)
             <div className="status empty-state" role="status">
@@ -737,7 +369,18 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
               <div key={`${sec.closet}-${sec.row}-${sec.shelf}`} style={{ marginBottom: '32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>
-                    {sec.label}
+                    {onPickSection ? (
+                      <button
+                        type="button"
+                        className="shelf-wall-section-link"
+                        onClick={() => onPickSection(sec.closet, sec.row, sec.shelf)}
+                        title="Open this section (fill, empty, move)"
+                      >
+                        {sec.label} →
+                      </button>
+                    ) : (
+                      sec.label
+                    )}
                   </h3>
                   <span style={{ fontSize: '12.5px', color: 'var(--muted)', fontWeight: 600 }}>
                     {sec.films.length} titles ({sec.films.reduce((s, f) => s + (Number(f.copies) || 1), 0)} copies)
@@ -842,7 +485,6 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
             })
           )}
         </div>
-      </div>
     </div>
   )
 }

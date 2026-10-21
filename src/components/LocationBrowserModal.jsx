@@ -4,7 +4,8 @@ import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/she
 import { proxyImg } from '../utils/proxyImg.js'
 import { escapeHtml } from '../utils/escapeHtml.js'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
-import { useShelfZoom, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../hooks/useShelfZoom.js'
+import { useShelfZoom, useShelfTheme, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../hooks/useShelfZoom.js'
+import BookshelfView from './BookshelfView.jsx'
 
 // زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
 const BASE_ZOOM = 0.8
@@ -47,7 +48,9 @@ function firstLetterOf(title) {
   return ch >= 'A' && ch <= 'Z' ? ch : '#'
 }
 
-export default function LocationBrowserModal({ films, onSelectFilm, onClose, canEdit = false, onFilmsChanged }) {
+export default function LocationBrowserModal({ films, onSelectFilm, onClose, canEdit = false, onFilmsChanged, initialView = 'section' }) {
+  // دو نمای صفحه‌ی Shelves: «section» (یه بخش + پر/خالی/جابه‌جایی) و «wall» (همه‌ی بخش‌ها پشت سر هم)
+  const [shelvesView, setShelvesView] = useState(initialView)
   const overlayHandlers = useOverlayClose(onClose)
   const [capacities, setCapacities] = useState({})
   const SECTIONS = useMemo(
@@ -114,7 +117,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     ro.observe(el)
     return () => ro.disconnect()
   }, [shelfScale, closet, row, shelf, shelfViewMode])
-  const [shelfTheme, setShelfTheme] = useState('wood')
+  const [shelfTheme, setShelfTheme] = useShelfTheme()
   const [hoveredFilm, setHoveredFilm] = useState(null)
 
   useEffect(() => {
@@ -807,9 +810,9 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
             </button>
             <div className="location-browser-title">
               <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <IconPin width={18} height={18} /> Browse by Location
+                <IconBookshelf width={18} height={18} /> Shelves
               </h2>
-              <p className="export-sub" style={{ margin: '4px 0 0' }}>Choose a closet, row and section — the shelf will appear below</p>
+              <p className="export-sub" style={{ margin: '4px 0 0' }}>Section: pick a closet, row and section to fill, empty or move it · Wall: every filled section, one after another</p>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -908,6 +911,39 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
           </div>
         </div>
 
+        <div className="shelves-view-switch">
+          <button
+            type="button"
+            className={shelvesView === 'section' ? 'active' : ''}
+            onClick={() => setShelvesView('section')}
+          >
+            Section
+          </button>
+          <button
+            type="button"
+            className={shelvesView === 'wall' ? 'active' : ''}
+            onClick={() => setShelvesView('wall')}
+          >
+            Wall{closet ? ` · C${closet}` : ' · all closets'}
+          </button>
+        </div>
+
+        {shelvesView === 'wall' ? (
+          <div className="location-browser-body">
+            <BookshelfView
+              films={films}
+              onSelectFilm={onSelectFilm}
+              onFilmsChanged={onFilmsChanged}
+              closet={closet}
+              onPickSection={(c, r, sh) => {
+                setCloset(c)
+                setRow(r)
+                setShelf(sh)
+                setShelvesView('section')
+              }}
+            />
+          </div>
+        ) : (
         <div className="location-browser-body">
           <div className="location-browser-top">
           {!closet && (
@@ -1643,6 +1679,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   )

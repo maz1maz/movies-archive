@@ -23,3 +23,23 @@ export function useShelfZoom(fallback = 0.8) {
   }, [zoom])
   return [zoom, setZoom]
 }
+
+// تم قفسه (wood / slate / cinema) هم بین دو نمای Shelves مشترکه و یادش می‌مونه
+const THEME_KEY = 'cinefilm:shelf-theme'
+const THEMES = ['wood', 'slate', 'cinema']
+
+export function useShelfTheme(fallback = 'wood') {
+  const [theme, setTheme] = useState(() => {
+    try {
+      const v = window.localStorage.getItem(THEME_KEY)
+      if (THEMES.includes(v)) return v
+    } catch {}
+    return fallback
+  })
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(THEME_KEY, theme)
+    } catch {}
+  }, [theme])
+  return [theme, setTheme]
+}

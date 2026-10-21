@@ -11427,3 +11427,63 @@ a.cine-related-title:hover {
 .shelf-spot-count {
   color: var(--muted);
 }
+
+/* صفحه‌ی Shelves: سوییچ نمای Section / Wall */
+.shelves-view-switch {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 2px;
+  margin: 12px 28px 0;
+  padding: 3px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.shelves-view-switch button {
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.shelves-view-switch button.active {
+  background: var(--accent);
+  color: #1a1206;
+}
+.shelf-wall {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.shelf-wall-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.shelf-wall-count {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.shelf-wall-colors {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.shelf-wall-section-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.shelf-wall-section-link:hover {
+  color: var(--accent);
+}

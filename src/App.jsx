@@ -30,7 +30,6 @@ const GallerySphere = lazy(() => import('./components/GallerySphere.jsx'))
 const LocationBrowserModal = lazy(() => import('./components/LocationBrowserModal.jsx'))
 const DriveBrowserModal = lazy(() => import('./components/DriveBrowserModal.jsx'))
 const PhotoScanModal = lazy(() => import('./components/PhotoScanModal.jsx'))
-const BookshelfView = lazy(() => import('./components/BookshelfView.jsx'))
 const CinemaNewsPage = lazy(() => import('./components/CinemaNewsPage.jsx'))
 const DiscoverPanel = lazy(() => import('./components/DashboardDiscoverPanel.jsx'))
 
@@ -191,7 +190,6 @@ export default function App() {
   }
   const [showLocationBrowser, setShowLocationBrowser] = useState(false)
   const [showDriveBrowser, setShowDriveBrowser] = useState(false)
-  const [showBookshelf, setShowBookshelf] = useState(false)
   const [forceFilmOverlay, setForceFilmOverlay] = useState(false)
   const [shelfNavFilms, setShelfNavFilms] = useState(null)
   const [loanFilm, setLoanFilm] = useState(null)
@@ -1017,7 +1015,7 @@ export default function App() {
             onSelectPhysicalSeries={() => changeSection('physical-series')}
             onSelectDigitalType={(type) => changeSection(type === 'series' ? 'digital-series' : 'digital-movie')}
             onSelectSpecialCollections={() => changeSection('special-collections')}
-            onOpenBookshelf={() => setShowBookshelf(true)}
+            onOpenBookshelf={() => setShowLocationBrowser('wall')}
             onOpenDriveBrowser={() => setShowDriveBrowser(true)}
             onSelectDashboard={() => changeSection('dashboard')}
             onSelectGallery={() => changeSection('gallery')}
@@ -1283,8 +1281,7 @@ export default function App() {
           } catch {}
           changeSection('dashboard')
         }}
-        onOpenLocationBrowser={() => setShowLocationBrowser(true)}
-        onOpenBookshelf={() => setShowBookshelf(true)}
+        onOpenLocationBrowser={() => setShowLocationBrowser('section')}
         onOpenDriveBrowser={() => setShowDriveBrowser(true)}
         view={view}
         setView={setView}
@@ -1496,6 +1493,7 @@ export default function App() {
       {showLocationBrowser && (
         <Suspense fallback={<div className="dashboard-panel-loading">Loading…</div>}>
           <LocationBrowserModal
+            initialView={showLocationBrowser === 'wall' ? 'wall' : 'section'}
             films={allFilmsUnfiltered}
             canEdit={!isGuest && !isViewer}
             onSelectFilm={(film) => {
@@ -1524,20 +1522,6 @@ export default function App() {
         </Suspense>
       )}
 
-      {showBookshelf && (
-        <Suspense fallback={<div className="dashboard-panel-loading">Loading…</div>}>
-        <BookshelfView
-          films={allFilmsUnfiltered}
-          onSelectFilm={(film) => {
-            setForceFilmOverlay(true)
-            setShelfNavFilms(allFilmsUnfiltered.filter((f) => f.mediaType !== 'digital'))
-            setSelected(film)
-          }}
-          onClose={() => setShowBookshelf(false)}
-          onFilmsChanged={loadAllFilmsUnfiltered}
-        />
-        </Suspense>
-      )}
     </div>
   )
 }
