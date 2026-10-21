@@ -604,8 +604,10 @@ export default function App() {
       showToast('Saved')
       setEditing(null)
       setLoanFilm(null)
+      return true
     } catch (e) {
       showToast(e.message)
+      return false
     }
   }
 
@@ -1412,6 +1414,13 @@ export default function App() {
             setAdding(false)
             setForceFilmOverlay(true)
             setSelected(existingFilm)
+          }}
+          onAddCopy={async (existingFilm) => {
+            const copies = (existingFilm.copies || 1) + 1
+            if (!(await handleSaveFilm(existingFilm.id, { copies }))) return
+            setAdding(false)
+            loadAllFilmsUnfiltered()
+            showToast(`“${existingFilm.title}” — now ${copies} copies owned`)
           }}
           onClose={() => setAdding(false)}
           onSave={handleAddFilm}

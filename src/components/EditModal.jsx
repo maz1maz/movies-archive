@@ -132,7 +132,7 @@ function filmLocation(f) {
   return parts.join(' · ') || 'Blu-ray (no location)'
 }
 
-export default function EditModal({ film, onClose, onSave, onAutofill, onDelete, startWithLink, existingFilms, onOpenExisting }) {
+export default function EditModal({ film, onClose, onSave, onAutofill, onDelete, startWithLink, existingFilms, onOpenExisting, onAddCopy }) {
   const isNew = !film.id
   const overlayHandlers = useOverlayClose(onClose)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -143,6 +143,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   const [linkLoading, setLinkLoading] = useState(false)
   const [linkConflicts, setLinkConflicts] = useState(null) // [{key, label, oldVal, newVal, checked}] | null
   const [duplicateWarning, setDuplicateWarning] = useState(null) // [archive film] | null
+  const [confirmingDuplicate, setConfirmingDuplicate] = useState(false)
   const linkInputRef = useRef(null)
   // پیشنهاد زنده‌ی عنوان (فقط برای فیلم جدید) — موقع تایپ عنوان از TMDB سرچ می‌کنیم
   const [titleSuggestions, setTitleSuggestions] = useState([])
@@ -421,7 +422,15 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
     setForm((previous) => ({ ...previous, [key]: event.target.value }))
   }
 
+  const sameFormatOf = (f) => (f.mediaType === 'digital' ? 'digital' : 'physical') === form.mediaType
+  // نسخه‌ی هم‌فرمتی که از قبل تو آرشیوه — افزودن دوباره‌ش تکراری می‌سازه
+  const sameFormatDuplicate = isNew && duplicateWarning ? duplicateWarning.find(sameFormatOf) : null
+
   const save = () => {
+    if (sameFormatDuplicate && !confirmingDuplicate) {
+      setConfirmingDuplicate(true)
+      return
+    }
     const patch = {
       title: form.title,
       originalTitle: form.originalTitle,
@@ -576,9 +585,22 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             )}
           </div>
           <div className="edit-primary-actions">
+            {confirmingDuplicate && sameFormatDuplicate && (
+              <span className="edit-duplicate-confirm">
+                ⚠️ You already own this {form.mediaType === 'digital' ? 'Digital' : 'Blu-ray'}.
+                {onAddCopy && (
+                  <button type="button" className="btn btn-ghost" onClick={() => onAddCopy(sameFormatDuplicate)}>
+                    +1 copy instead
+                  </button>
+                )}
+                <button type="button" className="btn btn-ghost" onClick={() => setConfirmingDuplicate(false)}>
+                  Back
+                </button>
+              </span>
+            )}
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button className="btn btn-primary" onClick={save}>
-              <IconSave width={14} height={14} /> {isNew ? 'Add Film' : 'Save'}
+              <IconSave width={14} height={14} /> {!isNew ? 'Save' : confirmingDuplicate && sameFormatDuplicate ? 'Add anyway' : 'Add Film'}
             </button>
           </div>
         </div>
@@ -655,6 +677,16 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                       {onOpenExisting && (
                         <button type="button" className="btn btn-ghost" onClick={() => onOpenExisting(f)}>
                           View
+                        </button>
+                      )}
+                      {sameFormat && onAddCopy && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() => onAddCopy(f)}
+                          title={`Raise copies owned from ${f.copies || 1} to ${(f.copies || 1) + 1} instead of adding a duplicate`}
+                        >
+                          Copies +1
                         </button>
                       )}
                     </div>
