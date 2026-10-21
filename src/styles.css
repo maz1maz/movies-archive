@@ -11406,3 +11406,23 @@ a.cine-related-title:hover {
 .shelf-fill-msg-error {
   color: #e05252;
 }
+
+/* جای الفبایی پیشنهادی تو فرم Add Film */
+.edit-field.shelf-spot-suggest {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px dashed var(--accent);
+  border-radius: 8px;
+}
+.edit-field.shelf-spot-suggest > span {
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.shelf-spot-count {
+  color: var(--muted);
+}

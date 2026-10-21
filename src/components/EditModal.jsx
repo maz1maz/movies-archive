@@ -100,6 +100,27 @@ function normalizeTitleForMatch(t) {
     .replace(/\s+/g, ' ')
 }
 
+// جای الفبایی پیشنهادی برای یه فیلم فیزیکی جدید: بین فیلم‌های قفسه‌دار،
+// قبلی و بعدیِ الفبایی رو پیدا می‌کنه و بخشِ فیلم قبلی (یا اگه نبود، بعدی) رو پیشنهاد می‌ده.
+const shelfSortKey = (t) => String(t || '').replace(/^the\s+/i, '').toLowerCase()
+function suggestShelfSpot(existingFilms, title) {
+  if (!title || !Array.isArray(existingFilms)) return null
+  const shelved = existingFilms
+    .filter((f) => f.mediaType !== 'digital' && f.closet)
+    .sort((a, b) => shelfSortKey(a.title).localeCompare(shelfSortKey(b.title), undefined, { numeric: true }))
+  if (!shelved.length) return null
+  const key = shelfSortKey(title)
+  const idx = shelved.findIndex((f) => shelfSortKey(f.title).localeCompare(key, undefined, { numeric: true }) > 0)
+  const prev = idx === -1 ? shelved[shelved.length - 1] : idx > 0 ? shelved[idx - 1] : null
+  const next = idx === -1 ? null : shelved[idx]
+  const anchor = prev || next
+  const loc = { closet: String(anchor.closet), row: String(anchor.row || ''), shelf: String(anchor.shelf || '') }
+  const copiesHere = existingFilms
+    .filter((f) => f.mediaType !== 'digital' && String(f.closet) === loc.closet && String(f.row || '') === loc.row && String(f.shelf || '') === loc.shelf)
+    .reduce((n, f) => n + Math.max(1, Number(f.copies) || 1), 0)
+  return { ...loc, prev: prev?.title || null, next: next?.title || null, copiesHere }
+}
+
 const itemKind = (f) => (f.itemType === 'series' ? 'series' : 'movie')
 
 // فیلم‌های هم‌خونِ آرشیو رو پیدا می‌کنه. اگه هر دو طرف شناسه‌ی IMDb دارن فقط همون
@@ -791,6 +812,30 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             </label>
           ) : form.mediaType === 'physical' ? (
             <>
+              {isNew && !form.closet && (() => {
+                const spot = suggestShelfSpot(existingFilms, form.title)
+                if (!spot) return null
+                return (
+                  <div className="edit-field full shelf-spot-suggest">
+                    <span>
+                      📍 Suggested spot: <strong>C{spot.closet} · R{spot.row} · S{spot.shelf}</strong>
+                      {spot.prev && spot.next
+                        ? ` — between “${spot.prev}” and “${spot.next}”`
+                        : spot.prev
+                        ? ` — after “${spot.prev}”`
+                        : ` — before “${spot.next}”`}
+                      <span className="shelf-spot-count"> · {spot.copiesHere} copies there now</span>
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => setForm((prev) => ({ ...prev, closet: spot.closet, row: spot.row, shelf: spot.shelf }))}
+                    >
+                      Use this spot
+                    </button>
+                  </div>
+                )
+              })()}
               <label className="edit-field">
                 <span>Closet</span>
                 <select className="select" value={form.closet} onChange={set('closet')}>

@@ -719,6 +719,67 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     printWindow.document.close()
   }
 
+  // برچسب لبه‌ی قفسه: برای هر بخش پرشده یه کارت کوچیک با «C1 · R1 · S1» و
+  // بازه‌ی الفبا (دو حرف اول اولین و آخرین عنوان، مثل «A – Ba») — برای
+  // چسبوندن جلوی هر بخش تا بعداً جای فیلم‌ها راحت پیدا بشه.
+  const handlePrintLabels = () => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+    const num = (v) => Number(v) || 0
+    const clean = (t) => String(t || '').replace(/^the\s+/i, '').replace(/^[^\p{L}\p{N}]+/u, '')
+    // دو حرف کافیه، مگه اینکه اول و آخر یکی بشن — اون‌وقت تا ۵ حرف بلندش می‌کنیم
+    const rangeOf = (a, b) => {
+      const x = clean(a)
+      const y = clean(b)
+      let n = 2
+      while (n < 5 && x.slice(0, n).toLowerCase() === y.slice(0, n).toLowerCase() && (x.length > n || y.length > n)) n++
+      const fmt = (v) => v.slice(0, n).replace(/^./, (ch) => ch.toUpperCase()) || '#'
+      return `${fmt(x)} – ${fmt(y)}`
+    }
+    const keys = Object.keys(sectionIndex)
+      .filter((k) => !closet || k.startsWith(`${closet}|`))
+      .sort((a, b) => {
+        const [ac, ar, as] = a.split('|').map(num)
+        const [bc, br, bs] = b.split('|').map(num)
+        return ac - bc || ar - br || as - bs
+      })
+    const labels = keys
+      .map((k) => {
+        const [c, r, sh] = k.split('|')
+        const films = [...sectionIndex[k]].sort(compareTitles)
+        const first = films[0]
+        const last = films[films.length - 1]
+        return `<div class="label">
+          <div class="loc">C${escapeHtml(c)} · R${escapeHtml(r)} · S${escapeHtml(sh)}</div>
+          <div class="range">${escapeHtml(rangeOf(first.title, last.title))}</div>
+          <div class="titles">${escapeHtml(first.title)} → ${escapeHtml(last.title)}</div>
+        </div>`
+      })
+      .join('')
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Shelf Labels — ${closet ? `Closet ${closet}` : 'All closets'}</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 16px; color: #111; }
+            .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .label { border: 1.5px dashed #999; border-radius: 6px; padding: 8px 10px; break-inside: avoid; }
+            .loc { font-size: 15px; font-weight: 800; letter-spacing: 0.5px; }
+            .range { font-size: 22px; font-weight: 800; color: #8a6400; margin: 2px 0; }
+            .titles { font-size: 10px; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            @media print { body { padding: 0; } button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <button onclick="window.print()" style="padding:10px 18px; margin-bottom:12px; font-weight:bold; cursor:pointer;">🖨️ Print labels</button>
+          <div class="grid">${labels || '<p>No films are shelved yet.</p>'}</div>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
   return (
     <div className="modal-overlay" {...overlayHandlers}>
       <div className="location-browser" onClick={(e) => e.stopPropagation()}>
@@ -749,6 +810,16 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                 title="Printable list of every filled section, in order, with slot numbers — for arranging the real shelves"
               >
                 <IconPrinter width={14} height={14} /> Print shelf plan{closet ? ` (C${closet})` : ''}
+              </button>
+            )}
+            {physical.length > 0 && (
+              <button
+                type="button"
+                className="shelf-back-btn"
+                onClick={handlePrintLabels}
+                title="Small cut-out labels for the front of each section: location and alphabetical range"
+              >
+                <IconPrinter width={14} height={14} /> Print shelf labels{closet ? ` (C${closet})` : ''}
               </button>
             )}
           <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
