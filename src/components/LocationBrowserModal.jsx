@@ -937,6 +937,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
               onFilmsChanged={onFilmsChanged}
               closet={closet}
               capacityFor={(sh) => SECTIONS.find((x) => x.num === String(sh))?.capacity || DEFAULT_CAPACITY}
+              onPickCloset={(c) => {
+                setCloset(c)
+                setRow('')
+                setShelf('')
+              }}
               onPickSection={(c, r, sh) => {
                 setCloset(c)
                 setRow(r)

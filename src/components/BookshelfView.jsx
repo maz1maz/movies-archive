@@ -46,7 +46,7 @@ function queuePrefetch(url) {
 // نمای «Wall» داخل صفحه‌ی Shelves (LocationBrowserModal): همه‌ی بخش‌های قفسه‌دار
 // پشت سر هم، فقط برای دیدن. پر/خالی کردن بخش‌ها تو نمای Section انجام می‌شه.
 // closet خالی یعنی همه‌ی کمدها؛ کلیک روی تیتر هر بخش onPickSection رو صدا می‌زنه.
-export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, closet: closetFilter = '', onPickSection, capacityFor }) {
+export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, closet: closetFilter = '', onPickSection, onPickCloset, capacityFor }) {
   const [shelfTheme, setShelfTheme] = useShelfTheme()
   // «spines» = قفسه‌ها با جلدها، «cards» = هر بخش یه کارت کوچیک (بازه‌ی الفبا + پر بودن)
   const [wallMode, setWallMode] = useState(() => {
@@ -268,6 +268,11 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
   return (
     <div className="shelf-wall">
       <div className="shelf-wall-toolbar">
+        {closetFilter && onPickCloset && (
+          <button type="button" className="shelf-back-btn" onClick={() => onPickCloset('')}>
+            ← All closets
+          </button>
+        )}
         <span className="shelf-wall-count">
           {filteredFilms.length} titles · {totalCopies} copies{closetFilter ? ` in Closet ${closetFilter}` : ' on shelves'}
         </span>
@@ -392,9 +397,24 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                 return (
                   <section className="shelf-card-closet" key={closetId}>
                     <h3 className="shelf-card-closet-head">
-                      <span>Closet {closetId}</span>
+                      {onPickCloset && !closetFilter ? (
+                        <button
+                          type="button"
+                          className="shelf-wall-section-link"
+                          onClick={() => onPickCloset(closetId)}
+                          title={`Show only Closet ${closetId}`}
+                        >
+                          Closet {closetId} →
+                        </button>
+                      ) : (
+                        <span>Closet {closetId}</span>
+                      )}
                       <span className="shelf-card-closet-meta">
                         {secs.length} sections · {closetCopies} / {closetCap} copies · {alphabetRange(firstFilm.title, lastFilm.title)}
+                      </span>
+                      {/* نوار پر بودن کل کمد */}
+                      <span className="shelf-card-closet-meter" title={`${Math.round((closetCopies / closetCap) * 100)}% full`}>
+                        <span className="shelf-card-fill" style={{ width: `${Math.min(100, (closetCopies / closetCap) * 100)}%` }} />
                       </span>
                     </h3>
                     <div className="shelf-card-rows">
