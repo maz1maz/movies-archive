@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getSpineColor } from '../utils/shelfDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
+import { alphabetRange } from '../utils/shelfRange.js'
 import { useShelfZoom, useShelfTheme, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../hooks/useShelfZoom.js'
 
 // زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
@@ -45,8 +46,21 @@ function queuePrefetch(url) {
 // نمای «Wall» داخل صفحه‌ی Shelves (LocationBrowserModal): همه‌ی بخش‌های قفسه‌دار
 // پشت سر هم، فقط برای دیدن. پر/خالی کردن بخش‌ها تو نمای Section انجام می‌شه.
 // closet خالی یعنی همه‌ی کمدها؛ کلیک روی تیتر هر بخش onPickSection رو صدا می‌زنه.
-export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, closet: closetFilter = '', onPickSection }) {
+export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, closet: closetFilter = '', onPickSection, capacityFor }) {
   const [shelfTheme, setShelfTheme] = useShelfTheme()
+  // «spines» = قفسه‌ها با جلدها، «cards» = هر بخش یه کارت کوچیک (بازه‌ی الفبا + پر بودن)
+  const [wallMode, setWallMode] = useState(() => {
+    try {
+      return window.localStorage.getItem('cinefilm:wall-mode') === 'cards' ? 'cards' : 'spines'
+    } catch {
+      return 'spines'
+    }
+  })
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('cinefilm:wall-mode', wallMode)
+    } catch {}
+  }, [wallMode])
   const [shelfScale, setShelfScale] = useShelfZoom(BASE_ZOOM)
   const [spineWidth, setSpineWidth] = useState(null)
   const shelfBodyRef = useRef(null)
@@ -277,6 +291,14 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
         {shelfMessage && (
           <span style={{ fontSize: '12.5px', color: shelfMessage.type === 'error' ? '#d97066' : '#4caf50' }}>{shelfMessage.text}</span>
         )}
+        <div className="shelves-view-switch shelf-wall-mode">
+          <button type="button" className={wallMode === 'cards' ? 'active' : ''} onClick={() => setWallMode('cards')}>
+            Cards
+          </button>
+          <button type="button" className={wallMode === 'spines' ? 'active' : ''} onClick={() => setWallMode('spines')}>
+            Spines
+          </button>
+        </div>
             <div style={{ marginInlineStart: 'auto', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <input
                 type="text"
@@ -287,6 +309,7 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                 style={{ minWidth: '180px', height: '34px' }}
               />
 
+              {wallMode === 'spines' && (
               <div className="shelf-zoom-control" style={{ margin: 0 }}>
                 <button
                   type="button"
@@ -307,6 +330,8 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                 </button>
               </div>
 
+              )}
+              {wallMode === 'spines' && (
               <div className="shelf-theme-picker" style={{ margin: 0 }}>
                 <button
                   type="button"
@@ -330,6 +355,7 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                   🎬 Cinema
                 </button>
               </div>
+              )}
             </div>
       </div>
 
@@ -342,6 +368,38 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
           ) : shelfSections.length === 0 ? (
             <div className="status empty-state">
               <p>No films found on this bookshelf.</p>
+            </div>
+          ) : wallMode === 'cards' ? (
+            // نمای فشرده: هر بخش یه کارت — جای فیلم‌ها رو با یه نگاه پیدا کن
+            <div className="shelf-card-grid">
+              {shelfSections.map((sec) => {
+                const copies = sec.films.reduce((n, f) => n + Math.max(1, Number(f.copies) || 1), 0)
+                const cap = capacityFor ? capacityFor(sec.shelf) : 65
+                const pct = Math.min(100, Math.round((copies / cap) * 100))
+                const first = sec.films[0]
+                const last = sec.films[sec.films.length - 1]
+                return (
+                  <button
+                    type="button"
+                    key={`${sec.closet}-${sec.row}-${sec.shelf}`}
+                    className={`shelf-card shelf-card-s${sec.shelf}`}
+                    onClick={() => onPickSection && onPickSection(sec.closet, sec.row, sec.shelf)}
+                    title={`${sec.label} — ${first.title} → ${last.title}`}
+                  >
+                    <span className="shelf-card-loc">C{sec.closet} · R{sec.row} · S{sec.shelf}</span>
+                    <span className="shelf-card-range">{alphabetRange(first.title, last.title)}</span>
+                    <span className="shelf-card-titles">
+                      {first.title} → {last.title}
+                    </span>
+                    <span className="shelf-card-meter">
+                      <span className="shelf-card-fill" style={{ width: `${pct}%` }} />
+                    </span>
+                    <span className="shelf-card-count">
+                      {copies} / {cap} copies · {sec.films.length} titles
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           ) : (
             shelfSections.map((sec, secIdx) => {
