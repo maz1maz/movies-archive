@@ -64,9 +64,12 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     () => films.filter((f) => f.mediaType !== 'digital'),
     [films]
   )
-  // فقط فیلم‌هایی که مکان دارند — برای شمارش و نقشه‌ی کمد
+  // فقط فیلم‌هایی که مکان دارند — برای شمارش و نقشه‌ی کمد. «مکان» یعنی کمد
+  // داشته باشه؛ فیلمی که فقط بخش/ردیف داره (بدون کمد) هیچ‌جای نقشه دیده
+  // نمی‌شه، پس باید بی‌آدرس حساب بشه تا تو موجودی بیاد و بشه جاش داد.
+  const isShelved = (f) => !!f.closet
   const physical = useMemo(
-    () => physicalAll.filter((f) => f.closet || f.row || f.shelf),
+    () => physicalAll.filter(isShelved),
     [physicalAll]
   )
 
@@ -76,7 +79,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   )
 
   const shelvedCount = useMemo(
-    () => physicalSorted.filter((f) => f.closet || f.row || f.shelf).length,
+    () => physicalSorted.filter(isShelved).length,
     [physicalSorted]
   )
 
@@ -92,7 +95,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     const q = filmQuery.trim().toLowerCase()
     let base = physicalSorted
     if (hideShelved) {
-      base = base.filter((f) => !f.closet && !f.row && !f.shelf)
+      base = base.filter((f) => !isShelved(f))
     } else if (closet && row && shelf) {
       base = base.filter((f) => !atTarget(f))
     }
