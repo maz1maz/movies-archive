@@ -12,7 +12,7 @@ const formatLabel = (mediaType) => (mediaType === 'digital' ? 'Digital' : 'Blu-r
 // پیش‌نمایش ایمپورت اکسل: هر ردیفی که هم‌عنوانش تو آرشیو هست، کنار پوستر
 // مشابه‌ها نشون داده می‌شه و کاربر انتخاب می‌کنه ادغام بشه، جدید اضافه بشه یا رد بشه.
 // decisions: { [rowIndex]: {action:'merge', targetId} | {action:'new'} | {action:'skip'} }
-export default function ImportReviewModal({ flagged, total, onCancel, onConfirm }) {
+export default function ImportReviewModal({ flagged, total, newCount, onCancel, onConfirm }) {
   const overlayHandlers = useOverlayClose(onCancel)
   const defaults = () =>
     Object.fromEntries(
@@ -47,6 +47,11 @@ export default function ImportReviewModal({ flagged, total, onCancel, onConfirm 
           {flagged.length} of {total} rows share a title with films already in your archive. Compare posters and
           pick what to do with each — other rows import as usual.
         </p>
+        <div className="import-review-summary">
+          <span><strong>{total}</strong> rows in file</span>
+          <span><strong>{newCount ?? total - flagged.length}</strong> new — import directly</span>
+          <span><strong>{flagged.length}</strong> to review</span>
+        </div>
         <div className="import-review-bulk">
           <button type="button" className="btn btn-ghost" onClick={() => setDecisions(defaults())}>Use suggestions</button>
           <button type="button" className="btn btn-ghost" onClick={() => setAll('new')}>All as new</button>

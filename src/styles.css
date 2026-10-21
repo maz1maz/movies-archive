@@ -10049,3 +10049,18 @@ body.light .spine-theme-wood .spine-shelf-board {
   color: var(--muted);
   font-size: 12px;
 }
+.import-review-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.import-review-summary span {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+}
+.import-review-summary strong {
+  color: var(--text);
+}

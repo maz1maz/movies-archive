@@ -1224,10 +1224,17 @@ async function handleFetch(request, env, ctx) {
         const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 6) : 4
         const after = url.searchParams.get('after') || ''
         const missingClause = "(imdbId IS NULL OR imdbId = '') AND title IS NOT NULL AND title != ''"
-        const batch = await db
-          .prepare(`SELECT id, title, year, director, itemType FROM films WHERE ${missingClause} AND id > ? ORDER BY id ASC LIMIT ?`)
-          .bind(after, limit)
-          .all()
+        // ?ids=a,b,c: فقط همین فیلم‌ها (مثلاً تازه از اکسل اومده‌ها)، نه کل آرشیو
+        const ids = (url.searchParams.get('ids') || '').split(',').map((x) => x.trim()).filter(Boolean).slice(0, limit)
+        const batch = ids.length
+          ? await db
+              .prepare(`SELECT id, title, year, director, itemType FROM films WHERE ${missingClause} AND id IN (${ids.map(() => '?').join(',')})`)
+              .bind(...ids)
+              .all()
+          : await db
+              .prepare(`SELECT id, title, year, director, itemType FROM films WHERE ${missingClause} AND id > ? ORDER BY id ASC LIMIT ?`)
+              .bind(after, limit)
+              .all()
         const candidates = batch.results || []
         let found = 0
         for (const f of candidates) {
@@ -1241,7 +1248,9 @@ async function handleFetch(request, env, ctx) {
             }
           } catch {}
         }
-        const remainingAfter = candidates.length
+        const remainingAfter = ids.length
+          ? { count: 0 }
+          : candidates.length
           ? await db
               .prepare(`SELECT COUNT(*) AS count FROM films WHERE ${missingClause} AND id > ?`)
               .bind(candidates[candidates.length - 1].id)
@@ -2787,7 +2796,7 @@ async function handleFetch(request, env, ctx) {
               })),
             })
           })
-          return json({ count: imported.length, flagged }, 200, corsHeaders)
+          return json({ count: imported.length, flagged, newCount: imported.length - flagged.length }, 200, corsHeaders)
         }
 
         // تصمیم‌های کاربر از پنجره‌ی پیش‌نمایش: { [index]: {action:'merge',targetId} | {action:'new'} | {action:'skip'} }
@@ -2879,7 +2888,7 @@ async function handleFetch(request, env, ctx) {
           }
         }
 
-        return json({ count: imported.length, added, updated, skipped, enriched }, 200, corsHeaders)
+        return json({ count: imported.length, added, updated, skipped, enriched, addedIds: newlyAddedIds }, 200, corsHeaders)
       }
 
       // ---- GET /api/export/json (optional ?mediaType=&itemType= to scope the backup) ----

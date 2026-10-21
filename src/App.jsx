@@ -441,7 +441,7 @@ export default function App() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'import failed')
       if (data.flagged?.length) {
-        setImportReview({ file, flagged: data.flagged, count: data.count })
+        setImportReview({ file, flagged: data.flagged, count: data.count, newCount: data.newCount })
         return
       }
     } catch (e) {
@@ -486,8 +486,30 @@ export default function App() {
       loadFilms()
       refreshMeta()
       loadAllFilmsUnfiltered()
+      if (data.addedIds?.length) fillImdbIdsFor(data.addedIds)
     } catch (e) {
       showToast(e.message)
+    }
+  }
+
+  // بعد از ایمپورت، شناسه‌ی IMDb فیلم‌های تازه‌اضافه‌شده رو بی‌صدا پر می‌کنیم
+  // (۴تا ۴تا، به‌خاطر سقف درخواست‌های ورکر) تا تشخیص تکراری بعدی دقیق باشه.
+  const fillImdbIdsFor = async (ids) => {
+    let found = 0
+    for (let i = 0; i < ids.length; i += 4) {
+      try {
+        const chunk = ids.slice(i, i + 4).join(',')
+        const res = await fetch(`/api/films/backfill-imdb?limit=4&ids=${encodeURIComponent(chunk)}`, { method: 'POST' })
+        if (!res.ok) return
+        const data = await res.json()
+        found += data.found || 0
+      } catch {
+        return
+      }
+    }
+    if (found) {
+      showToast(`Found IMDb IDs for ${found} newly imported film${found === 1 ? '' : 's'}`)
+      loadAllFilmsUnfiltered()
     }
   }
 
@@ -1329,6 +1351,7 @@ export default function App() {
         <ImportReviewModal
           flagged={importReview.flagged}
           total={importReview.count}
+          newCount={importReview.newCount}
           onCancel={() => setImportReview(null)}
           onConfirm={(decisions) => {
             const { file } = importReview
