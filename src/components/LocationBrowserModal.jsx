@@ -79,7 +79,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   )
 
   const shelvedCount = useMemo(
-    () => physicalSorted.filter(isShelved).length,
+    () => countCopies(physicalSorted.filter(isShelved)),
     [physicalSorted]
   )
 
@@ -223,7 +223,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const emptyLocation = async (list, label) => {
     if (emptying || !list.length) return
     const copies = list.reduce((sum, f) => sum + Math.max(1, Number(f.copies) || 1), 0)
-    if (!window.confirm(`Empty ${label}?\n\n${list.length} films (${copies} copies) will move back to unassigned inventory. Nothing is deleted.`)) return
+    if (!window.confirm(`Empty ${label}?\n\n${copies} copies (${list.length} titles) will move back to unassigned inventory. Nothing is deleted.`)) return
     setEmptying(true)
     try {
       const res = await fetch('/api/films/bulk-unassign', {
@@ -269,7 +269,8 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     const targetLabel = t.mode === 'section' ? `C${t.closet} · R${t.row} · S${t.shelf}` : `C${t.closet} · R${t.row}`
     const sourceLabel = t.mode === 'section' ? `C${closet} · R${row} · S${shelf}` : `C${closet} · R${row}`
     const total = steps.reduce((n, p) => n + p.ids.length, 0)
-    if (!window.confirm(`Move ${total} films from ${sourceLabel} to ${targetLabel}?\n\nFilms already there stay; each section holds at most 60 copies.`)) return
+    const totalCopies = steps.reduce((n, p) => n + countCopies(sectionIndex[`${closet}|${row}|${p.from}`] || []), 0)
+    if (!window.confirm(`Move ${totalCopies} copies (${total} titles) from ${sourceLabel} to ${targetLabel}?\n\nFilms already there stay; each section holds at most 60 copies.`)) return
     setRelocating(true)
     const failed = []
     for (const p of steps) {
@@ -696,7 +697,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                     onClick={() => emptyLocation(filmsInRow(closet, row), `Cabinet ${closet} · Row ${row} (all sections)`)}
                     title="Move every film in this row back to unassigned inventory"
                   >
-                    {emptying ? 'Emptying…' : `Empty row (${filmsInRow(closet, row).length})`}
+                    {emptying ? 'Emptying…' : `Empty row (${countCopies(filmsInRow(closet, row))} copies)`}
                   </button>
                 )}
                 {canEdit && filmsInRow(closet, row).length > 0 && !moveTarget && (
@@ -765,7 +766,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                           }
                           title="Move every film in this section back to unassigned inventory"
                         >
-                          {emptying ? 'Emptying…' : `Empty section (${(sectionIndex[`${closet}|${row}|${shelf}`] || []).length})`}
+                          {emptying ? 'Emptying…' : `Empty section (${countCopies(sectionIndex[`${closet}|${row}|${shelf}`] || [])} copies)`}
                         </button>
                       )}
                       {(sectionIndex[`${closet}|${row}|${shelf}`] || []).length > 0 && !moveTarget && (
@@ -1060,11 +1061,14 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
           <div className="film-selector">
             <div className="film-selector-head">
               <div className="film-selector-title">
-                <h3>Available Inventory ({filteredFilms.length})</h3>
+                <h3>
+                  Available Inventory ({countCopies(filteredFilms)} copies
+                  <span className="inventory-title-count"> · {filteredFilms.length} titles</span>)
+                </h3>
                 <span className="film-selector-sub">
                   Select unassigned films from inventory, then pick a Closet / Row / Section above to assign them.
                   {hideShelved
-                    ? ` Showing only unassigned films (${shelvedCount} already shelved hidden).`
+                    ? ` Showing only unassigned films (${shelvedCount} shelved copies hidden).`
                     : targetExcludedCount > 0
                     ? ` Films already in ${targetLabel} are hidden.`
                     : ''}
@@ -1080,7 +1084,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                       setSelectedIds(new Set())
                     }}
                   />
-                  <span>Hide already shelved ({shelvedCount})</span>
+                  <span>Hide already shelved ({shelvedCount} copies)</span>
                 </label>
                 <input
                   className="film-selector-search"
@@ -1117,7 +1121,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                 {selectedCount} selected {selectedCount > 0 && `(${selectedCopiesCount} ${selectedCopiesCount === 1 ? 'copy' : 'copies'})`}
               </span>
               <button type="button" className="btn btn-ghost btn-sm" onClick={selectAllFiltered} disabled={!filteredFilms.length}>
-                Select all ({filteredFilms.length})
+                Select all ({countCopies(filteredFilms)} copies)
               </button>
               <button type="button" className="btn btn-ghost btn-sm" onClick={clearSelection} disabled={!selectedCount}>
                 Clear

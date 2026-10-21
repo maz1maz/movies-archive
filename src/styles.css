@@ -10196,3 +10196,8 @@ body.light .spine-theme-wood .spine-shelf-board {
   background: var(--surface-2);
   color: var(--text);
 }
+.inventory-title-count {
+  color: var(--muted);
+  font-size: 0.8em;
+  font-weight: 500;
+}
