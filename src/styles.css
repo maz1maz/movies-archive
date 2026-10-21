@@ -10237,3 +10237,15 @@ body.light .spine-theme-wood .spine-shelf-board {
 .copies-badge-single {
   opacity: 0.55;
 }
+.location-browser-selector-group .location-chip-list.location-chip-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, max-content);
+}
+.capacity-input {
+  width: 56px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+}

@@ -11,10 +11,12 @@ const PREVIEW_TITLES = 3
 // هر ردیف دو بخش (shelf = بخش) داره:
 //   بخش ۱: ظرفیت ۶۰ بلوری
 //   بخش ۲: ظرفیت ۶۰ بلوری
-const SECTIONS = [
-  { num: '1', capacity: 60, label: 'Section 1' },
-  { num: '2', capacity: 60, label: 'Section 2' },
-  { num: '3', capacity: 60, label: 'Section 3' },
+// ظرفیت هر بخش از سرور (/api/settings/section-capacities) میاد؛ این فقط پیش‌فرضه
+const DEFAULT_CAPACITY = 60
+const BASE_SECTIONS = [
+  { num: '1', label: 'Section 1' },
+  { num: '2', label: 'Section 2' },
+  { num: '3', label: 'Section 3' },
 ]
 
 function countCopies(list) {
@@ -37,6 +39,37 @@ function firstLetterOf(title) {
 
 export default function LocationBrowserModal({ films, onSelectFilm, onClose, canEdit = false, onFilmsChanged }) {
   const overlayHandlers = useOverlayClose(onClose)
+  const [capacities, setCapacities] = useState({})
+  const SECTIONS = useMemo(
+    () => BASE_SECTIONS.map((sec) => ({ ...sec, capacity: Number(capacities[sec.num]) || DEFAULT_CAPACITY })),
+    [capacities]
+  )
+  useEffect(() => {
+    fetch('/api/settings/section-capacities')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data && setCapacities(data))
+      .catch(() => {})
+  }, [])
+  const [capEditor, setCapEditor] = useState(null) // {1:'60',2:'60',3:'60'} | null
+  const [capSaving, setCapSaving] = useState(false)
+  const saveCapacities = async () => {
+    setCapSaving(true)
+    try {
+      const res = await fetch('/api/settings/section-capacities', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(capEditor),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'save failed')
+      setCapacities(data)
+      setCapEditor(null)
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setCapSaving(false)
+    }
+  }
   const [closet, setCloset] = useState('')
   const [row, setRow] = useState('')
   const [shelf, setShelf] = useState('')
@@ -155,10 +188,10 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   }, [selectedIds, filteredFilms])
 
   const targetCapacity = useMemo(() => {
-    if (!shelf) return 60
+    if (!shelf) return DEFAULT_CAPACITY
     const sec = SECTIONS.find((s) => s.num === shelf)
-    return sec ? sec.capacity : 60
-  }, [shelf])
+    return sec ? sec.capacity : DEFAULT_CAPACITY
+  }, [shelf, SECTIONS])
 
   const wouldExceedCapacity = Boolean(
     hasTarget && currentTargetCopies + selectedCopiesCount > targetCapacity
@@ -271,7 +304,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     const sourceLabel = t.mode === 'section' ? `C${closet} · R${row} · S${shelf}` : `C${closet} · R${row}`
     const total = steps.reduce((n, p) => n + p.ids.length, 0)
     const totalCopies = steps.reduce((n, p) => n + countCopies(sectionIndex[`${closet}|${row}|${p.from}`] || []), 0)
-    if (!window.confirm(`Move ${totalCopies} copies (${total} titles) from ${sourceLabel} to ${targetLabel}?\n\nFilms already there stay; each section holds at most 60 copies.`)) return
+    if (!window.confirm(`Move ${totalCopies} copies (${total} titles) from ${sourceLabel} to ${targetLabel}?\n\nFilms already there stay; each section holds at most ${SECTIONS.map((sec) => `S${sec.num}: ${sec.capacity}`).join(', ')} copies.`)) return
     setRelocating(true)
     const failed = []
     for (const p of steps) {
@@ -372,7 +405,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
         total: sections.reduce((sum, s) => sum + s.count, 0),
       }
     })
-  }, [closet, rows, sectionIndex])
+  }, [closet, rows, sectionIndex, SECTIONS])
 
   // فیلم‌های قفسه‌ی (بخش) انتخاب‌شده
   const shelfFilms = useMemo(() => {
@@ -539,7 +572,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
 
           <div className="location-browser-selector-group">
             <span className="location-browser-selector-label">Row</span>
-            <div className={'location-chip-list' + (closet ? '' : ' location-chip-list-disabled')}>
+            <div className={'location-chip-list location-chip-grid-5' + (closet ? '' : ' location-chip-list-disabled')}>
               {rows.map((r) => {
                 const n = countFor(closet, r, null)
                 return (
@@ -620,9 +653,41 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
               <div className="cabinet-map-legend">
                 {SECTIONS.map((sec) => (
                   <span className="cabinet-map-legend-item" key={sec.num}>
-                    <span className={`cabinet-map-legend-swatch cabinet-map-legend-swatch-s${sec.num}`} /> {sec.label} · cap {sec.capacity}
+                    <span className={`cabinet-map-legend-swatch cabinet-map-legend-swatch-s${sec.num}`} /> {sec.label} · cap{' '}
+                    {capEditor ? (
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000"
+                        className="capacity-input"
+                        value={capEditor[sec.num]}
+                        onChange={(e) => setCapEditor({ ...capEditor, [sec.num]: e.target.value })}
+                      />
+                    ) : (
+                      sec.capacity
+                    )}
                   </span>
                 ))}
+                {canEdit &&
+                  (capEditor ? (
+                    <>
+                      <button type="button" className="shelf-back-btn" disabled={capSaving} onClick={saveCapacities}>
+                        {capSaving ? 'Saving…' : 'Save'}
+                      </button>
+                      <button type="button" className="shelf-back-btn" onClick={() => setCapEditor(null)}>
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="shelf-back-btn"
+                      onClick={() => setCapEditor(Object.fromEntries(SECTIONS.map((sec) => [sec.num, String(sec.capacity)])))}
+                      title="Change how many copies each section holds (applies to every closet and row)"
+                    >
+                      Edit capacities
+                    </button>
+                  ))}
               </div>
               <div className="cabinet-map-body">
                 {cabinetRows.map((r) => (
