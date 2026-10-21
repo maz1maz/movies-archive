@@ -1409,43 +1409,79 @@ async function handleFetch(request, env, ctx) {
       // تو فرم «Add Film» — از TMDB می‌گیریم چون سرچِ پیشوندی/فازی داره) ----
       if (method === 'GET' && pathname === '/api/title-search') {
         const q = (url.searchParams.get('q') || '').trim()
-        if (q.length < 2 || !env.TMDB_API_KEY) return json([], 200, corsHeaders)
-        const tmdbType = url.searchParams.get('type') === 'series' ? 'tv' : 'movie'
-        // کش لبه‌ی Cloudflare (یک روز) — کلید فقط به نوع و متن کوئری بستگی داره
+        if (q.length < 2) return json([], 200, corsHeaders)
+        const isSeries = url.searchParams.get('type') === 'series'
+        const tmdbType = isSeries ? 'tv' : 'movie'
+        // کش لبه‌ی Cloudflare (یک روز) — فقط نتیجه‌ی غیرخالی کش می‌شه
         const cache = typeof caches !== 'undefined' ? caches.default : null
-        const cacheKey = new Request(`https://title-search.cache/${tmdbType}?q=${encodeURIComponent(q.toLowerCase())}`)
+        const cacheKey = new Request(`https://title-search.cache/v2/${tmdbType}?q=${encodeURIComponent(q.toLowerCase())}`)
         if (cache) {
           try {
             const hit = await cache.match(cacheKey)
             if (hit) return json(await hit.json(), 200, corsHeaders)
           } catch {}
         }
-        try {
-          const res = await fetch(
-            `https://api.themoviedb.org/3/search/${tmdbType}?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(q)}&include_adult=false`,
-            { signal: AbortSignal.timeout(8000) }
-          )
-          if (!res.ok) return json([], 200, corsHeaders)
-          const data = await res.json()
-          const results = (data.results || []).slice(0, 8).map((m) => {
-            const date = m.release_date || m.first_air_date || ''
-            return {
-              tmdbId: m.id,
-              title: m.title || m.name,
-              originalTitle: m.original_title || m.original_name || null,
-              year: date ? Number(date.slice(0, 4)) : null,
-              poster: m.poster_path ? `https://image.tmdb.org/t/p/w92${m.poster_path}` : null,
-            }
-          })
-          if (cache) {
-            ctx?.waitUntil?.(
-              cache.put(cacheKey, new Response(JSON.stringify(results), { headers: { 'Cache-Control': 'max-age=86400' } })).catch(() => {})
+        const errors = []
+        let results = []
+        if (env.TMDB_API_KEY) {
+          try {
+            const res = await fetch(
+              `https://api.themoviedb.org/3/search/${tmdbType}?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(q)}&include_adult=false`,
+              { signal: AbortSignal.timeout(8000) }
             )
+            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+            const data = await res.json()
+            results = (data.results || []).slice(0, 8).map((m) => {
+              const date = m.release_date || m.first_air_date || ''
+              return {
+                key: `tmdb-${m.id}`,
+                tmdbId: m.id,
+                title: m.title || m.name,
+                originalTitle: m.original_title || m.original_name || null,
+                year: date ? Number(date.slice(0, 4)) : null,
+                poster: m.poster_path ? `https://image.tmdb.org/t/p/w92${m.poster_path}` : null,
+              }
+            })
+          } catch (e) {
+            errors.push(`TMDB: ${e.message || e}`)
           }
-          return json(results, 200, corsHeaders)
-        } catch (e) {
-          return json([], 200, corsHeaders)
+        } else {
+          errors.push('TMDB: key not set')
         }
+        // TMDB در دسترس نبود یا چیزی پیدا نکرد — از سرچ OMDb استفاده می‌کنیم که
+        // شناسه‌ی IMDb رو مستقیم می‌ده
+        if (!results.length && env.OMDB_API_KEY) {
+          try {
+            const res = await fetch(
+              `https://www.omdbapi.com/?apikey=${env.OMDB_API_KEY}&s=${encodeURIComponent(q)}&type=${isSeries ? 'series' : 'movie'}`,
+              { signal: AbortSignal.timeout(8000) }
+            )
+            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+            bumpApiUsage('omdb')
+            const data = await res.json()
+            if (data.Response === 'False' && data.Error && !/not found/i.test(data.Error)) throw new Error(data.Error)
+            results = (data.Search || []).slice(0, 8).map((m) => ({
+              key: `imdb-${m.imdbID}`,
+              imdbId: m.imdbID,
+              title: m.Title,
+              originalTitle: null,
+              year: parseInt(m.Year, 10) || null,
+              poster: m.Poster && m.Poster !== 'N/A' ? m.Poster : null,
+            }))
+          } catch (e) {
+            errors.push(`OMDb: ${e.message || e}`)
+          }
+        }
+        if (!results.length && errors.length) {
+          console.error('title-search failed', q, errors)
+          return json({ error: errors.join(' · ') }, 502, corsHeaders)
+        }
+        if (cache && results.length) {
+          ctx?.waitUntil?.(
+            cache.put(cacheKey, new Response(JSON.stringify(results), { headers: { 'Cache-Control': 'max-age=86400' } })).catch(() => {})
+          )
+        }
+        return json(results, 200, corsHeaders)
       }
 
       // ---- GET /api/title-search/imdb-id?tmdbId=X&type=movie|series (بعد از انتخاب

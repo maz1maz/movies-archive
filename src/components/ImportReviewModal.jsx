@@ -3,7 +3,7 @@ import { IconClose } from './icons.jsx'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 function matchLocation(m) {
-  if (m.mediaType === 'digital') return m.driveNumber ? `Drive ${m.driveNumber}` : 'Digital'
+  if (m.mediaType === 'digital') return m.driveNumber ? (/^drive/i.test(String(m.driveNumber)) ? String(m.driveNumber) : `Drive ${m.driveNumber}`) : 'Digital'
   return [m.closet, m.shelf, m.row].filter(Boolean).join(' · ') || 'Blu-ray'
 }
 
@@ -38,7 +38,7 @@ export default function ImportReviewModal({ flagged, total, newCount, onCancel, 
 
   return (
     <div className="modal-overlay" {...overlayHandlers}>
-      <div className="modal import-review-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal edit-modal import-review-modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onCancel} aria-label="Close">
           <IconClose width={15} height={15} />
         </button>

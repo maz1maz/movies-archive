@@ -122,7 +122,7 @@ function findArchiveMatches(existingFilms, candidate) {
 const titleSearchCache = new Map()
 
 function filmLocation(f) {
-  if (f.mediaType === 'digital') return f.driveNumber ? `Drive ${f.driveNumber}` : 'Digital'
+  if (f.mediaType === 'digital') return f.driveNumber ? (/^drive/i.test(String(f.driveNumber)) ? String(f.driveNumber) : `Drive ${f.driveNumber}`) : 'Digital'
   return [f.closet, f.shelf, f.row].filter(Boolean).join(' · ') || 'Blu-ray'
 }
 
@@ -142,6 +142,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   const [titleSuggestions, setTitleSuggestions] = useState([])
   const [suggestOpen, setSuggestOpen] = useState(false)
   const [suggestIndex, setSuggestIndex] = useState(-1)
+  const [suggestStatus, setSuggestStatus] = useState('') // '' | 'loading' | 'empty' | پیام خطا
   // کدوم فیلد (title یا originalTitle) آخرین بار دستی تایپ شده — فقط برای اون سرچ می‌کنیم
   const [suggestField, setSuggestField] = useState(null)
 
@@ -246,11 +247,13 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
     const q = (form[suggestField] || '').trim()
     if (q.length < 2) {
       setTitleSuggestions([])
+      setSuggestStatus('')
       return
     }
     const cacheKey = `${form.itemType}:${q.toLowerCase()}`
-    const show = (list) => {
+    const show = (list, status = list.length ? '' : 'empty') => {
       setTitleSuggestions(list)
+      setSuggestStatus(status)
       setSuggestIndex(-1)
       setSuggestOpen(true)
     }
@@ -259,15 +262,22 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       return
     }
     const controller = new AbortController()
+    setSuggestStatus('loading')
+    setSuggestOpen(true)
     const timer = setTimeout(async () => {
       try {
         const qs = new URLSearchParams({ q, type: form.itemType })
         const res = await fetch(`/api/title-search?${qs.toString()}`, { signal: controller.signal })
-        const data = res.ok ? await res.json() : []
-        const list = Array.isArray(data) ? data : []
-        if (res.ok) titleSearchCache.set(cacheKey, list)
-        show(list)
-      } catch {}
+        const data = await res.json().catch(() => null)
+        if (!res.ok || !Array.isArray(data)) {
+          show([], `Online search failed${data?.error ? ` — ${data.error}` : ` (HTTP ${res.status})`}`)
+          return
+        }
+        if (data.length) titleSearchCache.set(cacheKey, data)
+        show(data)
+      } catch (e) {
+        if (e.name !== 'AbortError') show([], `Online search failed — ${e.message}`)
+      }
     }, 300)
     return () => {
       clearTimeout(timer)
@@ -292,9 +302,13 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       year: s.year ?? prev.year,
     }))
     try {
-      const qs = new URLSearchParams({ tmdbId: s.tmdbId, type: form.itemType })
-      const res = await fetch(`/api/title-search/imdb-id?${qs.toString()}`)
-      const { imdbId } = res.ok ? await res.json() : {}
+      // نتیجه‌های OMDb شناسه‌ی IMDb رو مستقیم دارن؛ TMDB‌ها باید تبدیل بشن
+      let imdbId = s.imdbId || null
+      if (!imdbId && s.tmdbId) {
+        const qs = new URLSearchParams({ tmdbId: s.tmdbId, type: form.itemType })
+        const res = await fetch(`/api/title-search/imdb-id?${qs.toString()}`)
+        imdbId = res.ok ? (await res.json()).imdbId : null
+      }
       if (imdbId) {
         const imdbUrl = `https://www.imdb.com/title/${imdbId}/`
         setLinkUrl(imdbUrl)
@@ -330,11 +344,16 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   }
 
   const renderSuggestions = () =>
-    isNew && suggestOpen && suggestionsWithArchive.length > 0 && (
+    isNew && suggestOpen && (suggestionsWithArchive.length > 0 || suggestStatus) && (
       <ul className="title-suggest-list" role="listbox">
+        {suggestionsWithArchive.length === 0 && (
+          <li className="title-suggest-status" aria-disabled="true">
+            {suggestStatus === 'loading' ? 'Searching…' : suggestStatus === 'empty' ? 'No matches found online' : suggestStatus}
+          </li>
+        )}
         {suggestionsWithArchive.map((s, i) => (
           <li
-            key={s.tmdbId}
+            key={s.key || s.tmdbId}
             role="option"
             aria-selected={i === suggestIndex}
             className={i === suggestIndex ? 'active' : ''}
