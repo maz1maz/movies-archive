@@ -7468,7 +7468,8 @@ body.light .dashboard-panel {
    هاور کل ردیف رو محسوس تکون می‌داد؛ حالا فقط چند تا همسایه‌ی نزدیک (نه کل
    ردیف) جا باز می‌کنن، بقیه‌ی ردیف کاملاً بی‌حرکت می‌مونه. */
 .bluray-case {
-  flex: 0 0 calc(34px * var(--spine-scale, 1));
+  /* --spine-w از JS میاد (عرض قفسه ÷ ۶۵ در زوم ۸۰٪)؛ اگه نبود، عرض ثابت قدیمی */
+  flex: 0 0 var(--spine-w, calc(34px * var(--spine-scale, 1)));
   height: calc(310px * var(--spine-scale, 1));
   background: var(--case-bg, #1e3a8a);
   color: var(--case-text, #fff);
@@ -7526,7 +7527,7 @@ body.light .dashboard-panel {
 .bluray-case-near {
   /* flex-grow:0 عمداً — این‌ها فقط باید جمع بشن (shrink)، نه اینکه تو فضای
      خالیِ احتمالیِ ته ردیف (باقی‌مونده از گرد کردن itemsPerRow) رشد کنن. */
-  flex: 0 1 calc(34px * var(--spine-scale, 1));
+  flex: 0 1 var(--spine-w, calc(34px * var(--spine-scale, 1)));
   min-width: calc(18px * var(--spine-scale, 1));
   transition: flex-basis 0.08s ease, min-width 0.08s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
 }

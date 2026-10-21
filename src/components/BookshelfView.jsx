@@ -4,6 +4,11 @@ import { getSpineColor } from '../utils/shelfDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
+// زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
+const BASE_ZOOM = 0.8
+const SLOTS_PER_ROW_AT_BASE = 65
+const SPINE_GAP = 2
+
 function sortKey(title) {
   return String(title || '')
     .replace(/^the\s+/i, '')
@@ -42,7 +47,8 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   const overlayHandlers = useOverlayClose(onClose)
   const [closetFilter, setClosetFilter] = useState('1')
   const [shelfTheme, setShelfTheme] = useState('wood')
-  const [shelfScale, setShelfScale] = useState(0.85)
+  const [shelfScale, setShelfScale] = useState(0.8)
+  const [spineWidth, setSpineWidth] = useState(null)
   const shelfBodyRef = useRef(null)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -71,8 +77,12 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
       // .cinema-wood-shelf خودش 28px*2 padding افقی داره (پایین‌تر تو استایل
       // inline ست شده)؛ عرض قابل‌استفاده‌ی واقعی برای ردیف جلدها همینه.
       const w = el.clientWidth - 56
-      const itemW = 34 * shelfScale + 2
-      if (w > 0) setItemsPerRow(Math.max(6, Math.floor(w / itemW)))
+      if (w <= 0) return
+      // تو زوم ۸۰٪ دقیقاً ۶۵ جلد (ظرفیت یه بخش) یه ردیف کامل رو پر می‌کنن؛
+      // زوم‌های دیگه به همون نسبت پهن‌تر/باریک‌ترن
+      const spineW = (w / SLOTS_PER_ROW_AT_BASE - SPINE_GAP) * (shelfScale / BASE_ZOOM)
+      setSpineWidth(spineW)
+      setItemsPerRow(Math.max(6, Math.floor((w + 0.5) / (spineW + SPINE_GAP))))
     }
     update()
     const ro = new ResizeObserver(update)
@@ -647,7 +657,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                 <button
                   type="button"
                   className="shelf-zoom-btn"
-                  onClick={() => setShelfScale((s) => Math.max(0.7, Number((s - 0.15).toFixed(2))))}
+                  onClick={() => setShelfScale((s) => Math.max(0.5, Number((s - 0.1).toFixed(2))))}
                   title="Zoom Out shelf cases"
                 >
                   −
@@ -656,7 +666,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                 <button
                   type="button"
                   className="shelf-zoom-btn"
-                  onClick={() => setShelfScale((s) => Math.min(1.45, Number((s + 0.15).toFixed(2))))}
+                  onClick={() => setShelfScale((s) => Math.min(1.5, Number((s + 0.1).toFixed(2))))}
                   title="Zoom In shelf cases"
                 >
                   +
@@ -741,7 +751,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                   <div className="shelf-overhead-light" />
                   <div
                     className="cinema-wood-shelf"
-                    style={{ '--spine-scale': shelfScale }}
+                    style={{ '--spine-scale': shelfScale, ...(spineWidth ? { '--spine-w': `${spineWidth}px` } : {}) }}
                     ref={secIdx === 0 ? shelfWidthRef : undefined}
                   >
                     <div className="shelf-inner-shadow" />
