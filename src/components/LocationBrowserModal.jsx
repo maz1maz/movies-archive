@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload, IconArchive } from './icons.jsx'
 import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
+import { proxyImg } from '../utils/proxyImg.js'
 import { escapeHtml } from '../utils/escapeHtml.js'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
@@ -31,6 +32,7 @@ function sortKey(title) {
 // ترتیب طبیعی: «Film 2» قبل از «Film 10»
 const compareTitles = (a, b) => sortKey(a.title).localeCompare(sortKey(b.title), undefined, { numeric: true })
 
+const SPINE_NEAR_RADIUS = 9
 const AZ_LETTERS = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))]
 
 function firstLetterOf(title) {
@@ -76,6 +78,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   // ردیف‌های bluray-shelf-row تقسیم می‌شه و تعداد هر ردیف از عرض قفسه میاد
   const shelfRef = useRef(null)
   const [casesPerRow, setCasesPerRow] = useState(20)
+  const [spineHover, setSpineHover] = useState(null) // {rowIdx, itemIdx}
   const [closet, setCloset] = useState('')
   const [row, setRow] = useState('')
   const [shelf, setShelf] = useState('')
@@ -849,7 +852,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   </div>
                   {canEdit && (
                     <div className="shelf-view-hint">
-                      Use ✕ to remove a film from this section (moves it to unassigned)
+                      To remove one film, switch to List View and use ✕ (moves it to unassigned)
                       {(sectionIndex[`${closet}|${row}|${shelf}`] || []).length > 0 && (
                         <button
                           type="button"
@@ -1043,55 +1046,72 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                       <div className="bluray-shelf" id="shelf">
                         {Array.from({ length: Math.ceil(shelfCases.length / casesPerRow) }, (_, rowIdx) => (
                         <div className="bluray-shelf-row" key={rowIdx}>
-                        {shelfCases.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map(({ f, copyIdx }) => {
+                        {shelfCases.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map(({ f, copyIdx }, itemIdx) => {
                           // رنگ از جای خودِ فیلم میاد تا همه‌ی نسخه‌هاش یه رنگ باشن
                           const style = getSpineColor(f, shelfFilms.indexOf(f))
                           const isCriterion = f.criterion || style.type === 'criterion'
                           const is4k = style.type === '4k'
                           const isSteelbook = style.type === 'steelbook'
+                          const copyCount = Math.max(1, Number(f.copies) || 1)
+                          // همون رفتار BookshelfView: با هاور فقط همسایه‌های نزدیک جا باز می‌کنن
+                          const isNear =
+                            spineHover &&
+                            spineHover.rowIdx === rowIdx &&
+                            spineHover.itemIdx !== itemIdx &&
+                            Math.abs(spineHover.itemIdx - itemIdx) <= SPINE_NEAR_RADIUS
                           return (
                             <div
                               key={`${f.id}-${copyIdx}`}
-                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
+                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''} ${isNear ? 'bluray-case-near' : ''}`}
                               style={{
                                 backgroundColor: style.bg,
                                 background: style.bg,
                                 '--spine-text': style.text,
                               }}
-                              onMouseEnter={() => setHoveredFilm(f)}
-                              onMouseLeave={() => setHoveredFilm(null)}
+                              onMouseEnter={() => {
+                                setHoveredFilm(f)
+                                setSpineHover({ rowIdx, itemIdx })
+                              }}
+                              onMouseLeave={() => {
+                                setHoveredFilm(null)
+                                setSpineHover(null)
+                              }}
                               onClick={() => onSelectFilm(f)}
-                              title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'} · ${f.format || 'Blu-ray'}${f.copies > 1 ? ` ×${f.copies} copies` : ''}`}
+                              title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                             >
                               <div className="case-glare" />
 
-                              <div className="case-header">
-                                {isCriterion ? 'C' : is4k ? '4K UHD' : isSteelbook ? 'STEELBOOK' : 'BLU-RAY'}
+                              <div className="case-spine-view">
+                                <div className="case-spine">
+                                  <span className="spine-title" style={{ color: style.text || '#fff' }}>
+                                    {f.title}
+                                  </span>
+                                </div>
                               </div>
 
-                              <div className="case-spine">
-                                <span className="spine-title" style={{ color: style.text || '#fff' }}>
-                                  {f.title}
-                                  {f.copies > 1 && <span className="spine-copy-badge">{copyIdx + 1}/{f.copies}</span>}
-                                </span>
-                              </div>
-
-                              <div className={`case-footer footer-${style.badge || 'dts'}`} style={{ color: style.text || '#aaa' }}>
-                                <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
-                                {canEdit && copyIdx === 0 && (
-                                  <button
-                                    type="button"
-                                    className="spine-remove-btn"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      removeFromLocation(f)
-                                    }}
-                                    disabled={removingId === f.id}
-                                    title="Remove from this location"
-                                  >
-                                    ✕
-                                  </button>
-                                )}
+                              <div className="case-expand-view">
+                                <div className="case-expand-poster">
+                                  {f.poster ? (
+                                    <img src={proxyImg(f.poster)} alt="" loading="lazy" decoding="async" />
+                                  ) : (
+                                    <div className="case-expand-poster-fallback">🎬</div>
+                                  )}
+                                </div>
+                                <div className="case-expand-info">
+                                  <div className="case-expand-title-row">
+                                    <span className="case-expand-title">{f.title}</span>
+                                    {f.year && <span className="case-expand-year">{f.year}</span>}
+                                  </div>
+                                  <div className="case-expand-meta-row">
+                                    {f.director && <span className="case-expand-director">Dir: {f.director}</span>}
+                                    {(f.rating || copyCount > 1) && (
+                                      <span className="case-expand-badges">
+                                        {f.rating && <span>★ {Number(f.rating).toFixed(1)}</span>}
+                                        {copyCount > 1 && <span>{copyIdx + 1}/{copyCount}</span>}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           )
