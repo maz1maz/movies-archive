@@ -28,6 +28,8 @@ function sortKey(title) {
     .replace(/^the\s+/i, '')
     .toLowerCase()
 }
+// ترتیب طبیعی: «Film 2» قبل از «Film 10»
+const compareTitles = (a, b) => sortKey(a.title).localeCompare(sortKey(b.title), undefined, { numeric: true })
 
 const AZ_LETTERS = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))]
 
@@ -126,7 +128,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   )
 
   const physicalSorted = useMemo(
-    () => [...physicalAll].sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title))),
+    () => [...physicalAll].sort(compareTitles),
     [physicalAll]
   )
 
@@ -406,7 +408,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
       const sections = SECTIONS.map((sec) => {
         const list = (sectionIndex[`${closet}|${r}|${sec.num}`] || [])
           .slice()
-          .sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
+          .sort(compareTitles)
         const copiesCount = countCopies(list)
         return {
           num: sec.num,
@@ -430,8 +432,17 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     if (!closet || !row || !shelf) return []
     return (sectionIndex[`${closet}|${row}|${shelf}`] || [])
       .slice()
-      .sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
+      .sort(compareTitles)
   }, [closet, row, shelf, sectionIndex])
+
+  // هر نسخه یه جلد جدا رو قفسه‌ست (مثل BookshelfView)، نه یه جلد با «×N»
+  const shelfCases = useMemo(
+    () =>
+      shelfFilms.flatMap((f) =>
+        Array.from({ length: Math.max(1, Number(f.copies) || 1) }, (_, copyIdx) => ({ f, copyIdx }))
+      ),
+    [shelfFilms]
+  )
 
   const shelfCopiesCount = useMemo(() => countCopies(shelfFilms), [shelfFilms])
 
@@ -1030,17 +1041,17 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                     <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }} ref={shelfRef}>
                       <div className="shelf-inner-shadow" />
                       <div className="bluray-shelf" id="shelf">
-                        {Array.from({ length: Math.ceil(shelfFilms.length / casesPerRow) }, (_, rowIdx) => (
+                        {Array.from({ length: Math.ceil(shelfCases.length / casesPerRow) }, (_, rowIdx) => (
                         <div className="bluray-shelf-row" key={rowIdx}>
-                        {shelfFilms.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map((f, i) => {
-                          const idx = rowIdx * casesPerRow + i
-                          const style = getSpineColor(f, idx)
+                        {shelfCases.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map(({ f, copyIdx }) => {
+                          // رنگ از جای خودِ فیلم میاد تا همه‌ی نسخه‌هاش یه رنگ باشن
+                          const style = getSpineColor(f, shelfFilms.indexOf(f))
                           const isCriterion = f.criterion || style.type === 'criterion'
                           const is4k = style.type === '4k'
                           const isSteelbook = style.type === 'steelbook'
                           return (
                             <div
-                              key={f.id}
+                              key={`${f.id}-${copyIdx}`}
                               className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
                               style={{
                                 backgroundColor: style.bg,
@@ -1061,13 +1072,13 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                               <div className="case-spine">
                                 <span className="spine-title" style={{ color: style.text || '#fff' }}>
                                   {f.title}
-                                  {f.copies > 1 && <span className="spine-copy-badge">×{f.copies}</span>}
+                                  {f.copies > 1 && <span className="spine-copy-badge">{copyIdx + 1}/{f.copies}</span>}
                                 </span>
                               </div>
 
                               <div className={`case-footer footer-${style.badge || 'dts'}`} style={{ color: style.text || '#aaa' }}>
                                 <span>{style.badgeText || getStudioBadgeText(f.studio) || getEditionBadge(f) || 'DTS'}</span>
-                                {canEdit && (
+                                {canEdit && copyIdx === 0 && (
                                   <button
                                     type="button"
                                     className="spine-remove-btn"
