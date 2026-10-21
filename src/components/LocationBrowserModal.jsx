@@ -14,6 +14,7 @@ const PREVIEW_TITLES = 3
 const SECTIONS = [
   { num: '1', capacity: 60, label: 'Section 1' },
   { num: '2', capacity: 60, label: 'Section 2' },
+  { num: '3', capacity: 60, label: 'Section 3' },
 ]
 
 function countCopies(list) {
@@ -517,7 +518,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
         <div className={`location-browser-selectors ${closet && row && shelf ? 'location-browser-selectors-collapsed' : ''}`}>
           <div className="location-browser-selector-group">
             <span className="location-browser-selector-label">Closet</span>
-            <div className="location-chip-list">
+            <div className="location-chip-list location-chip-grid-4">
               {closets.map((c) => {
                 const n = countFor(c, null, null)
                 return (
@@ -617,12 +618,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                 <span className="cabinet-map-meta">{cabinetRows.length} rows · {countFor(closet, null, null)} copies</span>
               </div>
               <div className="cabinet-map-legend">
-                <span className="cabinet-map-legend-item">
-                  <span className="cabinet-map-legend-swatch cabinet-map-legend-swatch-s1" /> Section 1 · cap {SECTIONS[0].capacity}
-                </span>
-                <span className="cabinet-map-legend-item">
-                  <span className="cabinet-map-legend-swatch cabinet-map-legend-swatch-s2" /> Section 2 · cap {SECTIONS[1].capacity}
-                </span>
+                {SECTIONS.map((sec) => (
+                  <span className="cabinet-map-legend-item" key={sec.num}>
+                    <span className={`cabinet-map-legend-swatch cabinet-map-legend-swatch-s${sec.num}`} /> {sec.label} · cap {sec.capacity}
+                  </span>
+                ))}
               </div>
               <div className="cabinet-map-body">
                 {cabinetRows.map((r) => (
@@ -639,7 +639,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                             key={sec.num}
                             className={
                               'cabinet-section' +
-                              (sec.num === '1' ? ' cabinet-section-s1' : ' cabinet-section-s2') +
+                              ` cabinet-section-s${sec.num}` +
                               (sec.count === 0 ? ' cabinet-section-empty' : '')
                             }
                             onClick={() => pickFromMap(r.row, sec.num)}
@@ -719,7 +719,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   return (
                     <button
                       key={sec.num}
-                      className={'shelf-pick-card' + (sec.num === '2' ? ' shelf-pick-card-s2' : '')}
+                      className={'shelf-pick-card' + (sec.num !== '1' ? ` shelf-pick-card-s${sec.num}` : '')}
                       onClick={() => selectShelf(sec.num)}
                     >
                       <span className="shelf-pick-card-title">S{sec.num} · {sec.label}</span>
@@ -1133,7 +1133,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   onClick={moveSelected}
                   disabled={!selectedCount || !hasTarget || moving || wouldExceedCapacity}
                 >
-                  {moving ? 'Moving…' : `Move ${selectedCount} selected (${selectedCopiesCount} ${selectedCopiesCount === 1 ? 'copy' : 'copies'}) → ${targetLabel || '…'}`}
+                  {moving
+                    ? 'Moving…'
+                    : hasTarget && currentTargetCopies >= targetCapacity
+                    ? `${targetLabel} is full (${currentTargetCopies}/${targetCapacity})`
+                    : `Move ${selectedCount} selected (${selectedCopiesCount} ${selectedCopiesCount === 1 ? 'copy' : 'copies'}) → ${targetLabel || '…'}`}
                 </button>
               )}
               {wouldExceedCapacity && (
@@ -1172,7 +1176,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                       <span className="film-selector-title">
                         <span className="film-selector-title-text">{f.title}</span>
                         {f.year && <span className="film-selector-year">{f.year}</span>}
-                        {f.copies > 1 && <span className="copies-badge">×{f.copies}</span>}
+                        <span className={'copies-badge' + (f.copies > 1 ? '' : ' copies-badge-single')}>×{f.copies || 1}</span>
                       </span>
                       <span className="film-selector-loc">
                         C{f.closet || '–'} R{f.row || '–'} S{f.shelf || '–'}

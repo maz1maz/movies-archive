@@ -10201,3 +10201,39 @@ body.light .spine-theme-wood .spine-shelf-board {
   font-size: 0.8em;
   font-weight: 500;
 }
+
+/* بخش ۳ (هر ردیف حالا سه بخش داره) */
+.cabinet-section.cabinet-section-s1,
+.cabinet-section.cabinet-section-s2,
+.cabinet-section.cabinet-section-s3 {
+  flex: 1 1 0;
+}
+.cabinet-section-s3 {
+  border-top: 2px solid #2f9e8f;
+}
+.cabinet-section-s3 .cabinet-section-label {
+  color: #5cc4b4;
+}
+.cabinet-section-s3 .cabinet-section-fill,
+.cabinet-map-legend-swatch-s3,
+.shelf-pick-card-s3 .shelf-pick-card-fill {
+  background: #2f9e8f;
+}
+.shelf-pick-card-s3 {
+  border-top-color: #2f9e8f;
+}
+.shelf-pick-card-s3 .shelf-pick-card-title {
+  color: #5cc4b4;
+}
+.shelf-pick-sections {
+  max-width: 960px;
+}
+
+/* کمدها: دو ردیف ۴تایی */
+.location-browser-selector-group .location-chip-list.location-chip-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+}
+.copies-badge-single {
+  opacity: 0.55;
+}

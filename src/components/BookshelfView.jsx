@@ -95,12 +95,11 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   const [shelfBusy, setShelfBusy] = useState(false)
   const [shelfMessage, setShelfMessage] = useState(null)
 
-  // ساختار واقعیِ کتابخونه: ۸ کمد، هر کمد ۱۰ ردیف. کمدهای ۱ تا ۴ هر ردیف
-  // ۲ سکشن دارن، کمدهای ۵ تا ۸ هر ردیف ۳ سکشن — این ثابته و به دیتای فعلی
-  // فیلم‌ها بستگی نداره (چون خیلی از این جاها هنوز خالی‌ان).
+  // ساختار واقعیِ کتابخونه: ۸ کمد، هر کمد ۱۰ ردیف، هر ردیف ۳ سکشن — این
+  // ثابته و به دیتای فعلی فیلم‌ها بستگی نداره (چون خیلی از این جاها هنوز خالی‌ان).
   const allClosets = ['1', '2', '3', '4', '5', '6', '7', '8']
   const allRows = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-  const shelvesForCloset = (closet) => (Number(closet) <= 4 ? ['1', '2'] : ['1', '2', '3'])
+  const shelvesForCloset = () => ['1', '2', '3']
 
   // برای «Start from this film» — همه‌ی فیلم‌های فیزیکی (چه قفسه‌دار چه
   // نه)، به‌ترتیب الفبا. اونایی که قبلاً قفسه دارن هم تو لیست می‌مونن (فقط
