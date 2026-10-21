@@ -473,6 +473,96 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   }
   const selectShelf = (v) => setShelf(v)
 
+  // ---- پر کردن بخش با «حرف + تعداد»: از اولین فیلم بی‌آدرس با این حرف،
+  // به ترتیب الفبا، تا «تعداد» نسخه. بعد از هر بار پر کردن، خودش می‌ره بخش
+  // بعدی و حرفِ فیلم بعدی رو انتخاب می‌کنه تا فقط تعداد رو بدی. ----
+  const [fillLetter, setFillLetter] = useState('#')
+  const [fillCount, setFillCount] = useState('')
+  const [fillPreview, setFillPreview] = useState(null)
+  const [fillBusy, setFillBusy] = useState(false)
+  const [fillMessage, setFillMessage] = useState(null) // {type, text}
+  const [lastFill, setLastFill] = useState(null) // {ids, label}
+  const letterOf = (title) => {
+    const ch = String(title || '').replace(/^the\s+/i, '').replace(/^[^\p{L}\p{N}]+/u, '').charAt(0).toUpperCase()
+    return /[A-Z]/.test(ch) ? ch : '#'
+  }
+  const nextSection = (c, r, sh) => {
+    const s3 = Number(sh)
+    if (s3 < SECTIONS.length) return [c, r, String(s3 + 1)]
+    if (Number(r) < ROW_COUNT) return [c, String(Number(r) + 1), '1']
+    if (Number(c) < CLOSET_COUNT) return [String(Number(c) + 1), '1', '1']
+    return null
+  }
+  useEffect(() => {
+    setFillPreview(null)
+    setFillCount('')
+  }, [closet, row, shelf])
+  const runFill = async (dryRun) => {
+    const count = parseInt(fillCount, 10)
+    if (!Number.isFinite(count) || count < 1) {
+      setFillMessage({ type: 'error', text: 'Enter how many copies go in this section' })
+      return
+    }
+    setFillBusy(true)
+    setFillMessage(null)
+    try {
+      const res = await fetch('/api/shelf/fill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ closet, row, shelf, startTitle: fillLetter, count, dryRun }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'fill failed')
+      if (dryRun) {
+        setFillPreview(data)
+        return
+      }
+      const label = `C${closet} · R${row} · S${shelf}`
+      setLastFill({ ids: data.titles.map((t) => t.id), label })
+      setFillPreview(null)
+      setFillMessage({
+        type: 'ok',
+        text:
+          `${label}: placed ${data.slotsUsed} copies (${data.assigned} titles), “${data.firstTitle}” → “${data.lastTitle}”.` +
+          (data.cappedByCapacity ? ` Stopped at the section capacity (${data.capacity}).` : '') +
+          (data.nextTitle ? ` Next up: “${data.nextTitle}”.` : ' No unassigned films left.'),
+      })
+      if (onFilmsChanged) onFilmsChanged()
+      // خودکار برو بخش بعدی، با حرفِ فیلم بعدی
+      const nxt = nextSection(closet, row, shelf)
+      if (nxt && data.nextTitle) {
+        setCloset(nxt[0])
+        setRow(nxt[1])
+        setShelf(nxt[2])
+        setFillLetter(letterOf(data.nextTitle))
+      }
+    } catch (e) {
+      setFillMessage({ type: 'error', text: e.message })
+    } finally {
+      setFillBusy(false)
+    }
+  }
+  const undoLastFill = async () => {
+    if (!lastFill || fillBusy) return
+    setFillBusy(true)
+    try {
+      const res = await fetch('/api/films/bulk-unassign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: lastFill.ids }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'undo failed')
+      setFillMessage({ type: 'ok', text: `Undid the last fill of ${lastFill.label} (${lastFill.ids.length} titles back to unassigned).` })
+      setLastFill(null)
+      if (onFilmsChanged) onFilmsChanged()
+    } catch (e) {
+      setFillMessage({ type: 'error', text: e.message })
+    } finally {
+      setFillBusy(false)
+    }
+  }
+
   // کلیک روی بخش‌های نقشه‌ی کمد => همون ردیف/بخش رو انتخاب می‌کنه و قفسه رو نشون می‌ده
   const pickFromMap = (r, s) => {
     setRow(r)
@@ -969,6 +1059,79 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   </a>
                 </div>
               </div>
+
+              {canEdit && (
+                <div className="shelf-fill-panel">
+                  <div className="shelf-fill-head">
+                    <strong>Fill this section</strong>
+                    <span className="shelf-fill-sub">
+                      Pick the starting letter and how many copies fit — unassigned films go in alphabetically. After each fill it jumps to the next section.
+                    </span>
+                  </div>
+                  <div className="shelf-fill-letters">
+                    {AZ_LETTERS.map((L) => (
+                      <button
+                        type="button"
+                        key={L}
+                        className={'film-selector-az-btn' + (fillLetter === L ? ' film-selector-az-btn-active' : '')}
+                        onClick={() => {
+                          setFillLetter(L)
+                          setFillPreview(null)
+                        }}
+                      >
+                        {L}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="shelf-fill-controls">
+                    <label>
+                      Copies
+                      <input
+                        type="number"
+                        min="1"
+                        max={currentSection.capacity}
+                        value={fillCount}
+                        placeholder={String(Math.max(0, currentSection.capacity - shelfCopiesCount))}
+                        onChange={(e) => {
+                          setFillCount(e.target.value)
+                          setFillPreview(null)
+                        }}
+                        onKeyDown={(e) => e.key === 'Enter' && runFill(!fillPreview)}
+                      />
+                    </label>
+                    <span className="shelf-fill-free">{Math.max(0, currentSection.capacity - shelfCopiesCount)} free</span>
+                    <button type="button" className="shelf-back-btn" disabled={fillBusy} onClick={() => runFill(true)}>
+                      Preview
+                    </button>
+                    <button type="button" className="btn btn-primary btn-sm" disabled={fillBusy} onClick={() => runFill(false)}>
+                      {fillBusy ? 'Working…' : `Fill C${closet} · R${row} · S${shelf}`}
+                    </button>
+                    {lastFill && (
+                      <button type="button" className="shelf-back-btn" disabled={fillBusy} onClick={undoLastFill}>
+                        Undo last fill ({lastFill.label})
+                      </button>
+                    )}
+                  </div>
+                  {fillPreview && (
+                    <div className="shelf-fill-preview">
+                      <div>
+                        {fillPreview.slotsUsed} copies ({fillPreview.assigned} titles): “{fillPreview.firstTitle}” → “{fillPreview.lastTitle}”
+                        {fillPreview.cappedByCapacity && ` — capped at capacity ${fillPreview.capacity}`}
+                        {fillPreview.nextTitle && <span className="shelf-fill-next"> · next section starts with “{fillPreview.nextTitle}”</span>}
+                      </div>
+                      <ol>
+                        {fillPreview.titles.map((t) => (
+                          <li key={t.id}>
+                            {t.title}
+                            {t.copies > 1 && <span className="copies-badge">×{t.copies}</span>}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                  {fillMessage && <div className={`shelf-fill-msg shelf-fill-msg-${fillMessage.type}`}>{fillMessage.text}</div>}
+                </div>
+              )}
 
               <div className="shelf-view-meter">
                 <span className="shelf-view-meter-count">

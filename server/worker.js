@@ -50,7 +50,7 @@ export default {
         request.method !== 'GET' &&
         env.BACKUPS &&
         response.status < 400 &&
-        (pathname.startsWith('/api/films') || pathname === '/api/import')
+        (pathname.startsWith('/api/films') || pathname === '/api/import' || pathname.startsWith('/api/shelf/'))
       ) {
         ctx.waitUntil(invalidateFilmsCache(env))
       }
@@ -2770,6 +2770,11 @@ async function handleFetch(request, env, ctx) {
       // not-yet-shelved physical films — starting at/after startTitle — to a
       // given closet/row/shelf). Sorting ignores a leading "The", matching
       // the same convention used by the bookshelf display itself. ----
+      // ---- POST /api/shelf/fill {closet,row,shelf,startTitle,count,dryRun}
+      // فیلم‌های فیزیکیِ بی‌آدرس رو به ترتیب الفبا از startTitle (یه اسم، یه حرف
+      // مثل «B»، یا «#» یعنی از اول) برمی‌داره و تا count جای قفسه (هر نسخه یه
+      // جا) تو اون بخش می‌ذاره — بدون رد شدن از ظرفیت باقی‌مونده‌ی بخش. dryRun
+      // فقط پیش‌نمایش برمی‌گردونه. ----
       if (method === 'POST' && pathname === '/api/shelf/fill') {
         const denied = requireEditAccess()
         if (denied) return denied
@@ -2784,56 +2789,92 @@ async function handleFetch(request, env, ctx) {
         const shelf = (body.shelf ?? '').toString().trim()
         const startTitle = (body.startTitle ?? '').toString().trim()
         const count = parseInt(body.count, 10)
+        const dryRun = body.dryRun === true
         if (!closet || !row || !shelf) return json({ error: 'closet, row and shelf are required' }, 400, corsHeaders)
         if (!startTitle) return json({ error: 'startTitle is required' }, 400, corsHeaders)
         if (!Number.isFinite(count) || count < 1) return json({ error: 'count must be a positive number' }, 400, corsHeaders)
 
         const sortKey = (t) => (t || '').replace(/^the\s+/i, '').toLowerCase()
+        const byTitle = (a, b) => sortKey(a.title).localeCompare(sortKey(b.title), undefined, { numeric: true })
 
         const { results: unassigned } = await db
           .prepare(
             `SELECT id, title, copies FROM films
              WHERE mediaType != 'digital'
-               AND (closet IS NULL OR closet = '')
-               AND (row IS NULL OR row = '')
-               AND (shelf IS NULL OR shelf = '')`
+               AND (closet IS NULL OR closet = '')`
           )
           .all()
 
-        unassigned.sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)))
-        const startKey = sortKey(startTitle)
-        const startIdx = unassigned.findIndex((f) => sortKey(f.title).localeCompare(startKey) >= 0)
+        unassigned.sort(byTitle)
+        // «#» یعنی از اولِ لیست (عنوان‌های عددی/علامت‌دار قبل از A میان)
+        const startIdx =
+          startTitle === '#'
+            ? unassigned.length
+              ? 0
+              : -1
+            : unassigned.findIndex((f) => sortKey(f.title).localeCompare(sortKey(startTitle), undefined, { numeric: true }) >= 0)
         if (startIdx === -1) {
           return json({ error: `No unassigned film found alphabetically at or after "${startTitle}"` }, 404, corsHeaders)
         }
 
+        const copiesOf = (f) => (Number(f.copies) > 0 ? Number(f.copies) : 1)
+        const capRes = await db
+          .prepare(
+            'SELECT SUM(CASE WHEN COALESCE(copies, 1) <= 0 THEN 1 ELSE COALESCE(copies, 1) END) as total FROM films WHERE closet = ? AND row = ? AND shelf = ?'
+          )
+          .bind(closet, row, shelf)
+          .first()
+        const existingCopies = Number(capRes?.total || 0)
+        const capacity = await capacityFor(shelf)
+        const free = Math.max(0, capacity - existingCopies)
+        const slots = Math.min(count, free)
+        if (!slots) {
+          return json({ error: `C${closet} R${row} S${shelf} is full (${existingCopies}/${capacity} copies)` }, 400, corsHeaders)
+        }
+
         // count یعنی تعداد جای خالیِ فیزیکی روی قفسه (اسپاین‌ها)، نه تعداد
-        // عنوان — یه فیلم با copies=3 سه تا اسپاین اشغال می‌کنه، پس سه واحد
-        // از count رو مصرف می‌کنه، نه یکی.
+        // عنوان — یه فیلم با copies=3 سه تا اسپاین اشغال می‌کنه. یه فیلم هیچ‌وقت
+        // نصفه تو یه بخش و نصفه تو بخش بعد نمی‌ره.
         const batch = []
         let slotsUsed = 0
-        for (let i = startIdx; i < unassigned.length && slotsUsed < count; i++) {
-          const f = unassigned[i]
-          const copies = Number(f.copies) > 0 ? Number(f.copies) : 1
-          if (slotsUsed + copies > count && batch.length > 0) break
-          batch.push({ ...f, copies })
+        for (let i = startIdx; i < unassigned.length; i++) {
+          const copies = copiesOf(unassigned[i])
+          if (slotsUsed + copies > slots) break
+          batch.push({ ...unassigned[i], copies })
           slotsUsed += copies
         }
         if (!batch.length) {
-          return json({ error: 'No matching unassigned films found' }, 404, corsHeaders)
+          return json({ error: 'The next film has more copies than the space left in this section' }, 400, corsHeaders)
         }
 
-        for (const f of batch) {
-          await db.prepare('UPDATE films SET closet = ?, row = ?, shelf = ? WHERE id = ?').bind(closet, row, shelf, f.id).run()
+        if (!dryRun) {
+          // D1 حداکثر ۱۰۰ پارامتر در هر کوئری قبول می‌کنه
+          const stmts = []
+          for (let k = 0; k < batch.length; k += 90) {
+            const chunk = batch.slice(k, k + 90).map((f) => f.id)
+            stmts.push(
+              db
+                .prepare(`UPDATE films SET closet = ?, row = ?, shelf = ?, updatedAt = datetime('now') WHERE id IN (${chunk.map(() => '?').join(',')})`)
+                .bind(closet, row, shelf, ...chunk)
+            )
+          }
+          await db.batch(stmts)
         }
 
+        const next = unassigned[startIdx + batch.length] || null
         return json(
           {
             success: true,
+            dryRun,
             assigned: batch.length,
             slotsUsed,
+            capacity,
+            existingCopies,
+            cappedByCapacity: count > free,
             firstTitle: batch[0].title,
             lastTitle: batch[batch.length - 1].title,
+            titles: batch.map((f) => ({ id: f.id, title: f.title, copies: f.copies })),
+            nextTitle: next ? next.title : null,
             remainingAfter: unassigned.length - (startIdx + batch.length),
           },
           200,
