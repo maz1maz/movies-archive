@@ -1212,6 +1212,53 @@ async function handleFetch(request, env, ctx) {
         return json(result, 200, corsHeaders)
       }
 
+      // ---- POST /api/films/backfill-imdb?limit=N&after=<id> (شناسه‌ی IMDb برای
+      // فیلم‌های قدیمی که ندارن — با همون تأیید کارگردانِ findVerifiedImdbId.
+      // با cursor روی id جلو می‌ره تا فیلمی که پیدا نشد دوباره امتحان نشه) ----
+      if (method === 'POST' && pathname === '/api/films/backfill-imdb') {
+        const denied = requireEditAccess()
+        if (denied) return denied
+        if (!env.TMDB_API_KEY) return json({ error: 'TMDB_API_KEY is not set' }, 400, corsHeaders)
+        const requestedLimit = parseInt(url.searchParams.get('limit') || '4', 10)
+        // هر فیلم تا ~۷ درخواست TMDB می‌زنه؛ سقف subrequest ورکر رو رد نکنیم
+        const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 6) : 4
+        const after = url.searchParams.get('after') || ''
+        const missingClause = "(imdbId IS NULL OR imdbId = '') AND title IS NOT NULL AND title != ''"
+        const batch = await db
+          .prepare(`SELECT id, title, year, director, itemType FROM films WHERE ${missingClause} AND id > ? ORDER BY id ASC LIMIT ?`)
+          .bind(after, limit)
+          .all()
+        const candidates = batch.results || []
+        let found = 0
+        for (const f of candidates) {
+          // بدون کارگردان و سال، «بهترین نتیجه»ی TMDB زیادی حدسیه — ردش می‌کنیم
+          if (!f.director && !f.year) continue
+          try {
+            const imdbId = await findVerifiedImdbId(f.title, f.year, f.director, f.itemType, env)
+            if (imdbId) {
+              await db.prepare('UPDATE films SET imdbId = ? WHERE id = ?').bind(imdbId, f.id).run()
+              found++
+            }
+          } catch {}
+        }
+        const remainingAfter = candidates.length
+          ? await db
+              .prepare(`SELECT COUNT(*) AS count FROM films WHERE ${missingClause} AND id > ?`)
+              .bind(candidates[candidates.length - 1].id)
+              .first()
+          : { count: 0 }
+        return json(
+          {
+            processed: candidates.length,
+            found,
+            nextCursor: candidates.length ? candidates[candidates.length - 1].id : null,
+            remaining: remainingAfter?.count || 0,
+          },
+          200,
+          corsHeaders
+        )
+      }
+
       // ---- POST /api/films/season-counts (fetch "total seasons produced so
       // far" from TVMaze for series that don't have it yet) ----
       if (method === 'POST' && pathname === '/api/films/season-counts') {
@@ -2684,6 +2731,72 @@ async function handleFetch(request, env, ctx) {
 
         const imported = rows.map((r, i) => rowToFilm(r, i))
 
+        // کل آرشیو رو یه بار می‌خونیم و تطبیق رو تو JS انجام می‌دیم — این‌طوری
+        // «The» اول عنوان از هر دو طرف حذف می‌شه (قبلاً فقط از سمت اکسل حذف
+        // می‌شد و «The Godfather» تو دیتابیس با اکسل جور نمی‌شد) و برای هر
+        // ردیف یه کوئری جدا لازم نیست.
+        const archiveRows = (await db.prepare('SELECT * FROM films').all()).results || []
+        const archive = archiveRows.map((r) => ({ row: r, film: parseFilmRow(r) }))
+        const titleKeys = (f) => [f.title, f.originalTitle].map(normalizeTitle).filter(Boolean)
+        const kindOf = (f) => (f.itemType === 'series' ? 'series' : 'movie')
+        const exactMatchFor = (f) =>
+          archive.find(({ film: a }) =>
+            normalizeTitle(a.title) === normalizeTitle(f.title) &&
+            (a.year ?? null) === (f.year ?? null) &&
+            (a.mediaType || 'physical') === (f.mediaType || 'physical')
+          )
+        // تطبیق شل‌تر برای پیش‌نمایش: هم‌عنوان (یا عنوان اصلی)، هم‌نوع، هر سال/فرمتی
+        const looseMatchesFor = (f) => {
+          const keys = titleKeys(f)
+          return archive.filter(({ film: a }) => {
+            if (kindOf(a) !== kindOf(f)) return false
+            if (f.imdbId && a.imdbId) return f.imdbId === a.imdbId
+            return titleKeys(a).some((k) => keys.includes(k))
+          })
+        }
+
+        // ---- ?preview=1: هیچی ذخیره نمی‌شه؛ ردیف‌هایی که شبیه فیلمی تو آرشیو
+        // هستن با مشابه‌هاشون برمی‌گردن تا کاربر قبل از ایمپورت تصمیم بگیره ----
+        if (url.searchParams.get('preview') === '1') {
+          const flagged = []
+          imported.forEach((f, index) => {
+            const loose = looseMatchesFor(f)
+            if (!loose.length) return
+            const exact = exactMatchFor(f)
+            flagged.push({
+              index,
+              title: f.title,
+              originalTitle: f.originalTitle || null,
+              year: f.year ?? null,
+              director: f.director || null,
+              mediaType: f.mediaType || 'physical',
+              itemType: kindOf(f),
+              defaultAction: exact ? 'merge' : 'new',
+              defaultTargetId: exact ? exact.row.id : null,
+              matches: loose.map(({ film: a }) => ({
+                id: a.id,
+                title: a.title,
+                year: a.year ?? null,
+                director: a.director || null,
+                poster: a.poster || null,
+                mediaType: a.mediaType || 'physical',
+                closet: a.closet || null,
+                shelf: a.shelf || null,
+                row: a.row || null,
+                driveNumber: a.driveNumber || null,
+              })),
+            })
+          })
+          return json({ count: imported.length, flagged }, 200, corsHeaders)
+        }
+
+        // تصمیم‌های کاربر از پنجره‌ی پیش‌نمایش: { [index]: {action:'merge',targetId} | {action:'new'} | {action:'skip'} }
+        let decisions = {}
+        try {
+          const raw = form.get('decisions')
+          if (raw) decisions = JSON.parse(raw) || {}
+        } catch {}
+
         // نکته‌ی مهم (باگ قبلی): قبلاً همه‌ی ردیف‌ها اول با OMDb غنی‌سازی
         // می‌شدن (Promise.all رو کل فایل) و فقط بعدش نوبت INSERT می‌رسید. تو
         // فایل‌های بزرگ (صدها ردیف)، این فاز غنی‌سازی به سقف زمان اجرا/تعداد
@@ -2694,22 +2807,24 @@ async function handleFetch(request, env, ctx) {
         // از ذخیره‌شدن موفقِ همه‌چیز، و فقط برای فایل‌های کوچیک انجام می‌شه.
         let added = 0
         let updated = 0
+        let skipped = 0
         const newlyAddedIds = []
-        for (const f of imported) {
+        for (const [index, f] of imported.entries()) {
           // تطبیق فقط با عنوان کافی نیست: باعث می‌شد فیلم دیجیتال هم‌نامِ یه
           // فیلم فیزیکی (یا نسخه‌ی دیگه) به‌جای اضافه‌شدن، رکورد اون یکی رو
-          // overwrite کنه. سال و mediaType هم باید مچ بشن.
-          const existing = await db
-            .prepare(
-              'SELECT * FROM films WHERE LOWER(title) = ? AND (year IS ? OR year = ?) AND mediaType = ?'
-            )
-            .bind(
-              normalizeTitle(f.title),
-              f.year ?? null,
-              f.year ?? null,
-              f.mediaType || 'physical'
-            )
-            .first()
+          // overwrite کنه. سال و mediaType هم باید مچ بشن — مگه این‌که کاربر
+          // تو پیش‌نمایش خودش گفته باشه با کدوم ادغام بشه.
+          const decision = decisions[index]
+          if (decision?.action === 'skip') {
+            skipped++
+            continue
+          }
+          let existing = null
+          if (decision?.action === 'merge' && decision.targetId) {
+            existing = archive.find(({ row }) => row.id === decision.targetId)?.row || null
+          } else if (decision?.action !== 'new') {
+            existing = exactMatchFor(f)?.row || null
+          }
           if (existing) {
             // فقط فیلدهایی که توی رکورد موجود خالی هستن از اکسل پر می‌شن؛
             // چیزی که از قبل مقدار داره (مثلاً بازیگر یا زمان فیلم) دست‌نخورده
@@ -2739,6 +2854,8 @@ async function handleFetch(request, env, ctx) {
             updated++
           } else {
             await insertFilm(db, f)
+            // ردیف تکراری بعدی تو همین فایل باید با همین رکورد ادغام بشه
+            archive.push({ row: f, film: f })
             newlyAddedIds.push(f.id)
             added++
           }
@@ -2762,7 +2879,7 @@ async function handleFetch(request, env, ctx) {
           }
         }
 
-        return json({ count: imported.length, added, updated, enriched }, 200, corsHeaders)
+        return json({ count: imported.length, added, updated, skipped, enriched }, 200, corsHeaders)
       }
 
       // ---- GET /api/export/json (optional ?mediaType=&itemType= to scope the backup) ----

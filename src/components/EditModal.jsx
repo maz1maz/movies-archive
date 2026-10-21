@@ -612,6 +612,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                   <div className="duplicate-card-label">Adding</div>
                   <div className="duplicate-card-title">{form.title}</div>
                   <div className="duplicate-card-meta">{form.year || '—'}</div>
+                  {form.director && <div className="duplicate-card-meta">{form.director}</div>}
                 </div>
                 {duplicateWarning.map((f) => {
                   const sameFormat = (f.mediaType === 'digital' ? 'digital' : 'physical') === form.mediaType
@@ -623,6 +624,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                       </div>
                       <div className="duplicate-card-title">{f.title}</div>
                       <div className="duplicate-card-meta">{[f.year, filmLocation(f)].filter(Boolean).join(' · ')}</div>
+                      {f.director && <div className="duplicate-card-meta">{f.director}</div>}
                       {onOpenExisting && (
                         <button type="button" className="btn btn-ghost" onClick={() => onOpenExisting(f)}>
                           View

@@ -94,6 +94,8 @@ export default function Header({
   onSyncLetterboxd,
   onFetchSeasonCounts,
   fetchingSeasonCounts,
+  onBackfillImdbIds,
+  backfillingImdb,
   view,
   setView,
   alpha,
@@ -507,6 +509,18 @@ export default function Header({
                 >
                   <IconSparkles width={15} height={15} />{' '}
                   {fetchingSeasonCounts ? 'Fetching season counts…' : 'Fetch Season Counts'}
+                </button>
+                <button
+                  type="button"
+                  onClick={guarded(() => {
+                    onBackfillImdbIds()
+                    setMenuOpen(false)
+                  })}
+                  disabled={backfillingImdb}
+                  title="Find IMDb IDs for older archive entries (verified by director) so duplicate checks are exact"
+                >
+                  <IconSparkles width={15} height={15} />{' '}
+                  {backfillingImdb ? 'Finding IMDb IDs…' : 'Fill missing IMDb IDs'}
                 </button>
               </div>
 

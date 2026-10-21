@@ -9979,3 +9979,73 @@ body.light .spine-theme-wood .spine-shelf-board {
   font-size: 11px;
   font-weight: 700;
 }
+
+/* پیش‌نمایش تکراری‌های ایمپورت اکسل */
+.import-review-modal {
+  max-width: 760px;
+}
+.import-review-intro {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.import-review-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.import-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.import-review-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.import-review-excel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.import-review-match {
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  background: transparent;
+}
+.import-review-match.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.import-review-match.selected .duplicate-card-label {
+  color: var(--accent);
+}
+.import-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+}
+.import-review-actions label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.import-review-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
