@@ -9981,8 +9981,8 @@ body.light .spine-theme-wood .spine-shelf-board {
 }
 
 /* پیش‌نمایش تکراری‌های ایمپورت اکسل */
-.import-review-modal {
-  max-width: 760px;
+.edit-modal.import-review-modal {
+  width: min(760px, 94vw);
 }
 .import-review-intro {
   color: var(--muted);
@@ -10154,4 +10154,9 @@ body.light .spine-theme-wood .spine-shelf-board {
   line-height: 1.5;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+}
+.title-suggest-list li.title-suggest-status {
+  color: var(--muted);
+  font-size: 13px;
+  cursor: default;
 }

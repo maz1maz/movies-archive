@@ -31,7 +31,7 @@ export default function MissingImdbModal({ films, onClose, onEdit }) {
 
   return (
     <div className="modal-overlay" {...overlayHandlers}>
-      <div className="modal import-review-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal edit-modal import-review-modal" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Close">
           <IconClose width={15} height={15} />
         </button>
