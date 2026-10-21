@@ -5,6 +5,11 @@ import { proxyImg } from '../utils/proxyImg.js'
 import { escapeHtml } from '../utils/escapeHtml.js'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
+// زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
+const BASE_ZOOM = 0.8
+const SLOTS_PER_ROW_AT_BASE = 65
+const SPINE_GAP = 2
+
 const CLOSET_COUNT = 8
 const ROW_COUNT = 10
 const PREVIEW_TITLES = 3
@@ -88,15 +93,20 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [hideShelved, setHideShelved] = useState(true)
   const [azLetter, setAzLetter] = useState(null)
   const [shelfViewMode, setShelfViewMode] = useState('spine')
-  const [shelfScale, setShelfScale] = useState(0.85) // همون اندازه‌ی پیش‌فرض BookshelfView
+  const [shelfScale, setShelfScale] = useState(0.8)
+  const [spineWidth, setSpineWidth] = useState(null) // همون اندازه‌ی پیش‌فرض BookshelfView
   useEffect(() => {
     const el = shelfRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
     const update = () => {
       // .cinema-wood-shelf حدود 28px padding از هر طرف داره
       const w = el.clientWidth - 56
-      const itemW = 34 * shelfScale + 2
-      if (w > 0) setCasesPerRow(Math.max(6, Math.floor(w / itemW)))
+      if (w <= 0) return
+      // تو زوم ۸۰٪ دقیقاً ۶۵ جلد (ظرفیت یه بخش) یه ردیف کامل رو پر می‌کنن؛
+      // زوم‌های دیگه به همون نسبت پهن‌تر/باریک‌ترن
+      const spineW = (w / SLOTS_PER_ROW_AT_BASE - SPINE_GAP) * (shelfScale / BASE_ZOOM)
+      setSpineWidth(spineW)
+      setCasesPerRow(Math.max(6, Math.floor((w + 0.5) / (spineW + SPINE_GAP))))
     }
     update()
     const ro = new ResizeObserver(update)
@@ -1137,7 +1147,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                         <button
                           type="button"
                           className="shelf-zoom-btn"
-                          onClick={() => setShelfScale((s) => Math.max(0.7, Number((s - 0.15).toFixed(2))))}
+                          onClick={() => setShelfScale((s) => Math.max(0.5, Number((s - 0.1).toFixed(2))))}
                           title="Zoom Out shelf cases"
                         >
                           −
@@ -1146,7 +1156,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                         <button
                           type="button"
                           className="shelf-zoom-btn"
-                          onClick={() => setShelfScale((s) => Math.min(1.45, Number((s + 0.15).toFixed(2))))}
+                          onClick={() => setShelfScale((s) => Math.min(1.5, Number((s + 0.1).toFixed(2))))}
                           title="Zoom In shelf cases"
                         >
                           +
@@ -1362,7 +1372,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
 
                   <div className={`cinema-wood-shelf-wrapper shelf-theme-${shelfTheme}`}>
                     <div className="shelf-overhead-light" />
-                    <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }} ref={shelfRef}>
+                    <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale, ...(spineWidth ? { '--spine-w': `${spineWidth}px` } : {}) }} ref={shelfRef}>
                       <div className="shelf-inner-shadow" />
                       <div className="bluray-shelf" id="shelf">
                         {Array.from({ length: Math.ceil(shelfSlots.length / casesPerRow) }, (_, rowIdx) => (
