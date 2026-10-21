@@ -965,76 +965,82 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             <span>Synopsis</span>
             <textarea rows="3" value={form.synopsis} onChange={set('synopsis')} />
           </label>
-          <label className="edit-field">
-            <span>زبان اصلی</span>
-            <input value={form.originalLanguage} onChange={set('originalLanguage')} placeholder="مثلاً English" />
-          </label>
-          <label className="edit-field">
-            <span>فروش گیشه</span>
-            <input value={form.boxOffice} onChange={set('boxOffice')} placeholder="مثلاً $134,821,952" />
-          </label>
-          <label className="edit-field full">
-            <span>تگ‌لاین</span>
-            <input value={form.tagline} onChange={set('tagline')} placeholder="شعار تبلیغاتی فیلم…" />
-          </label>
-          <label className="edit-field">
-            <span>بودجه ($)</span>
-            <input type="number" value={form.budget} onChange={set('budget')} />
-          </label>
-          <label className="edit-field">
-            <span>فروش جهانی ($)</span>
-            <input type="number" value={form.revenue} onChange={set('revenue')} />
-          </label>
-          <label className="edit-field">
-            <span>Metascore</span>
-            <input type="number" min="0" max="100" value={form.metascore} onChange={set('metascore')} />
-          </label>
-          <label className="edit-field">
-            <span>Rotten Tomatoes</span>
-            <input value={form.rottenTomatoes} onChange={set('rottenTomatoes')} placeholder="مثلاً 87%" />
-          </label>
-          <label className="edit-field">
-            <span>تاریخ اکران دقیق</span>
-            <input value={form.releaseDate} onChange={set('releaseDate')} placeholder="مثلاً 14 Feb 2020" />
-          </label>
-          <label className="edit-field">
-            <span>وضعیت اکران</span>
-            <input value={form.status} onChange={set('status')} placeholder="Released / Post Production…" />
-          </label>
-          <label className="edit-field">
-            <span>محبوبیت TMDB</span>
-            <input type="number" step="0.1" value={form.popularity} onChange={set('popularity')} />
-          </label>
-          <label className="edit-field full">
-            <span>لینک رسمی فیلم</span>
-            <input value={form.homepage} onChange={set('homepage')} placeholder="https://…" />
-          </label>
-          <label className="edit-field full">
-            <span>شرکت‌های تولیدکننده</span>
-            <input value={form.productionCompanies} onChange={set('productionCompanies')} placeholder="با کاما جدا کن" />
-          </label>
-          <label className="edit-field">
-            <span>کشورهای تولیدکننده</span>
-            <input value={form.productionCountries} onChange={set('productionCountries')} placeholder="با کاما جدا کن" />
-          </label>
-          <label className="edit-field">
-            <span>زبان‌های فیلم</span>
-            <input value={form.spokenLanguages} onChange={set('spokenLanguages')} placeholder="با کاما جدا کن" />
-          </label>
-          {form.itemType === 'series' && (
+          {/* جزئیات تکمیلی (گیشه، بودجه، تگ‌لاین…) فقط تو ویرایش نشون داده می‌شن؛
+              موقع افزودن اگه لینک پرشون کرده باشه، تو state هست و ذخیره می‌شه. */}
+          {!isNew && (
             <>
-              <label className="edit-field">
-                <span>شبکه‌ی پخش</span>
-                <input value={form.network} onChange={set('network')} />
-              </label>
-              <label className="edit-field">
-                <span>وضعیت سریال</span>
-                <input value={form.seriesStatus} onChange={set('seriesStatus')} placeholder="Running / Ended / Cancelled" />
-              </label>
-              <label className="edit-field">
-                <span>روز/ساعت پخش</span>
-                <input value={form.schedule} onChange={set('schedule')} placeholder="مثلاً Friday 21:00" />
-              </label>
+            <label className="edit-field">
+              <span>زبان اصلی</span>
+              <input value={form.originalLanguage} onChange={set('originalLanguage')} placeholder="مثلاً English" />
+            </label>
+            <label className="edit-field">
+              <span>فروش گیشه</span>
+              <input value={form.boxOffice} onChange={set('boxOffice')} placeholder="مثلاً $134,821,952" />
+            </label>
+            <label className="edit-field full">
+              <span>تگ‌لاین</span>
+              <input value={form.tagline} onChange={set('tagline')} placeholder="شعار تبلیغاتی فیلم…" />
+            </label>
+            <label className="edit-field">
+              <span>بودجه ($)</span>
+              <input type="number" value={form.budget} onChange={set('budget')} />
+            </label>
+            <label className="edit-field">
+              <span>فروش جهانی ($)</span>
+              <input type="number" value={form.revenue} onChange={set('revenue')} />
+            </label>
+            <label className="edit-field">
+              <span>Metascore</span>
+              <input type="number" min="0" max="100" value={form.metascore} onChange={set('metascore')} />
+            </label>
+            <label className="edit-field">
+              <span>Rotten Tomatoes</span>
+              <input value={form.rottenTomatoes} onChange={set('rottenTomatoes')} placeholder="مثلاً 87%" />
+            </label>
+            <label className="edit-field">
+              <span>تاریخ اکران دقیق</span>
+              <input value={form.releaseDate} onChange={set('releaseDate')} placeholder="مثلاً 14 Feb 2020" />
+            </label>
+            <label className="edit-field">
+              <span>وضعیت اکران</span>
+              <input value={form.status} onChange={set('status')} placeholder="Released / Post Production…" />
+            </label>
+            <label className="edit-field">
+              <span>محبوبیت TMDB</span>
+              <input type="number" step="0.1" value={form.popularity} onChange={set('popularity')} />
+            </label>
+            <label className="edit-field full">
+              <span>لینک رسمی فیلم</span>
+              <input value={form.homepage} onChange={set('homepage')} placeholder="https://…" />
+            </label>
+            <label className="edit-field full">
+              <span>شرکت‌های تولیدکننده</span>
+              <input value={form.productionCompanies} onChange={set('productionCompanies')} placeholder="با کاما جدا کن" />
+            </label>
+            <label className="edit-field">
+              <span>کشورهای تولیدکننده</span>
+              <input value={form.productionCountries} onChange={set('productionCountries')} placeholder="با کاما جدا کن" />
+            </label>
+            <label className="edit-field">
+              <span>زبان‌های فیلم</span>
+              <input value={form.spokenLanguages} onChange={set('spokenLanguages')} placeholder="با کاما جدا کن" />
+            </label>
+            {form.itemType === 'series' && (
+              <>
+                <label className="edit-field">
+                  <span>شبکه‌ی پخش</span>
+                  <input value={form.network} onChange={set('network')} />
+                </label>
+                <label className="edit-field">
+                  <span>وضعیت سریال</span>
+                  <input value={form.seriesStatus} onChange={set('seriesStatus')} placeholder="Running / Ended / Cancelled" />
+                </label>
+                <label className="edit-field">
+                  <span>روز/ساعت پخش</span>
+                  <input value={form.schedule} onChange={set('schedule')} placeholder="مثلاً Friday 21:00" />
+                </label>
+              </>
+            )}
             </>
           )}
 
