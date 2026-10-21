@@ -176,6 +176,27 @@ async function handleFetch(request, env, ctx) {
       }
     }
 
+    // ---- ظرفیت بخش‌ها (S1/S2/S3)، قابل تنظیم از Browse by Location؛ تو KV
+    // نگه داشته می‌شه و پیش‌فرض هر بخش ۶۰ نسخه‌ست ----
+    const SECTION_CAPACITY_KEY = 'settings:section-capacities:v1'
+    const DEFAULT_SECTION_CAPACITY = 60
+    let sectionCapacitiesCache = null
+    const getSectionCapacities = async () => {
+      if (sectionCapacitiesCache) return sectionCapacitiesCache
+      let stored = null
+      try {
+        if (env.BACKUPS) stored = await env.BACKUPS.get(SECTION_CAPACITY_KEY, 'json')
+      } catch {}
+      const caps = { 1: DEFAULT_SECTION_CAPACITY, 2: DEFAULT_SECTION_CAPACITY, 3: DEFAULT_SECTION_CAPACITY }
+      for (const k of Object.keys(caps)) {
+        const v = Number(stored?.[k])
+        if (Number.isFinite(v) && v > 0) caps[k] = Math.floor(v)
+      }
+      sectionCapacitiesCache = caps
+      return caps
+    }
+    const capacityFor = async (shelf) => (await getSectionCapacities())[String(shelf)] || DEFAULT_SECTION_CAPACITY
+
     // ---- API usage counter (برای هشدار نزدیک شدن به quota روزانه‌ی OMDb) ----
     const bumpApiUsage = async (service) => {
       try {
@@ -958,10 +979,11 @@ async function handleFetch(request, env, ctx) {
             .first()
           const existingCopies = Number(resCap?.total || 0)
           const newCopies = Number(film.copies || 1)
-          if (existingCopies + newCopies > 60) {
+          const cap = await capacityFor(film.shelf)
+          if (existingCopies + newCopies > cap) {
             return json(
               {
-                error: `Section capacity exceeded (max 60 copies). C${film.closet} R${film.row} S${film.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
+                error: `Section capacity exceeded (max ${cap} copies). C${film.closet} R${film.row} S${film.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
               },
               400,
               corsHeaders
@@ -1015,10 +1037,11 @@ async function handleFetch(request, env, ctx) {
             .first()
           const existingCopies = Number(resCap?.total || 0)
           const newCopies = Number(updated.copies || 1)
-          if (existingCopies + newCopies > 60) {
+          const cap = await capacityFor(updated.shelf)
+          if (existingCopies + newCopies > cap) {
             return json(
               {
-                error: `Section capacity exceeded (max 60 copies). C${updated.closet} R${updated.row} S${updated.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
+                error: `Section capacity exceeded (max ${cap} copies). C${updated.closet} R${updated.row} S${updated.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
               },
               400,
               corsHeaders
@@ -1079,6 +1102,28 @@ async function handleFetch(request, env, ctx) {
         return json({ reset: updated?.meta?.changes ?? physical.length, physicalCount: physical.length, hadLocation }, 200, corsHeaders)
       }
 
+      // ---- GET/PUT /api/settings/section-capacities ({"1":60,"2":60,"3":60}) ----
+      if (pathname === '/api/settings/section-capacities') {
+        if (method === 'GET') return json(await getSectionCapacities(), 200, corsHeaders)
+        if (method === 'PUT') {
+          const denied = requireEditAccess()
+          if (denied) return denied
+          if (!env.BACKUPS) return json({ error: 'Settings storage is not configured' }, 500, corsHeaders)
+          const body = await request.json().catch(() => ({}))
+          const next = {}
+          for (const k of ['1', '2', '3']) {
+            const v = Math.floor(Number(body?.[k]))
+            if (!Number.isFinite(v) || v < 1 || v > 1000) {
+              return json({ error: `Section ${k} capacity must be a number from 1 to 1000` }, 400, corsHeaders)
+            }
+            next[k] = v
+          }
+          await env.BACKUPS.put(SECTION_CAPACITY_KEY, JSON.stringify(next))
+          sectionCapacitiesCache = next
+          return json(next, 200, corsHeaders)
+        }
+      }
+
       // ---- POST /api/films/bulk-unassign (خالی کردن یه بخش یا یه ردیف کامل —
       // مکان همه‌ی فیلم‌ها پاک می‌شه و به موجودیِ بی‌آدرس برمی‌گردن) ----
       if (method === 'POST' && pathname === '/api/films/bulk-unassign') {
@@ -1116,10 +1161,11 @@ async function handleFetch(request, env, ctx) {
           .bind(...ids)
           .first()
         const movingCopies = Number(movingRes?.total || 0)
-        if (existingCopies + movingCopies > 60) {
+        const cap = await capacityFor(shelf)
+        if (existingCopies + movingCopies > cap) {
           return json(
             {
-              error: `Section capacity exceeded (max 60 copies). C${closet} R${row} S${shelf} currently has ${existingCopies} copies; moving ${movingCopies} would exceed 60.`,
+              error: `Section capacity exceeded (max ${cap} copies). C${closet} R${row} S${shelf} currently has ${existingCopies} copies; moving ${movingCopies} would exceed ${cap}.`,
             },
             400,
             corsHeaders
