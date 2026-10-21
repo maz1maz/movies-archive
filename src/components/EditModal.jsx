@@ -100,6 +100,32 @@ function normalizeTitleForMatch(t) {
     .replace(/\s+/g, ' ')
 }
 
+const itemKind = (f) => (f.itemType === 'series' ? 'series' : 'movie')
+
+// فیلم‌های هم‌خونِ آرشیو رو پیدا می‌کنه. اگه هر دو طرف شناسه‌ی IMDb دارن فقط همون
+// ملاکه؛ وگرنه عنوان (یا عنوان اصلی) باید یکی باشه *و* سال هم (اگه هر دو سال دارن).
+// این‌طوری «Dune 1984» با «Dune 2021» تکراری حساب نمی‌شه.
+function findArchiveMatches(existingFilms, candidate) {
+  if (!Array.isArray(existingFilms) || !existingFilms.length) return []
+  const titles = [candidate.title, candidate.originalTitle].map(normalizeTitleForMatch).filter(Boolean)
+  const year = candidate.year ? Number(candidate.year) : null
+  return existingFilms.filter((f) => {
+    if (candidate.itemType && itemKind(f) !== candidate.itemType) return false
+    if (candidate.imdbId && f.imdbId) return candidate.imdbId === f.imdbId
+    const fTitles = [f.title, f.originalTitle].map(normalizeTitleForMatch).filter(Boolean)
+    if (!fTitles.some((t) => titles.includes(t))) return false
+    return !year || !f.year || Number(f.year) === year
+  })
+}
+
+// کش سمت کلاینت برای پیشنهاد عنوان — همون کوئری دوباره به سرور نمی‌ره
+const titleSearchCache = new Map()
+
+function filmLocation(f) {
+  if (f.mediaType === 'digital') return f.driveNumber ? `Drive ${f.driveNumber}` : 'Digital'
+  return [f.closet, f.shelf, f.row].filter(Boolean).join(' · ') || 'Blu-ray'
+}
+
 export default function EditModal({ film, onClose, onSave, onAutofill, onDelete, startWithLink, existingFilms, onOpenExisting }) {
   const isNew = !film.id
   const overlayHandlers = useOverlayClose(onClose)
@@ -110,13 +136,14 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   const [linkUrl, setLinkUrl] = useState('')
   const [linkLoading, setLinkLoading] = useState(false)
   const [linkConflicts, setLinkConflicts] = useState(null) // [{key, label, oldVal, newVal, checked}] | null
-  const [duplicateWarning, setDuplicateWarning] = useState(null) // {sameFormatMatch, otherFormatMatch} | null
+  const [duplicateWarning, setDuplicateWarning] = useState(null) // [archive film] | null
   const linkInputRef = useRef(null)
   // پیشنهاد زنده‌ی عنوان (فقط برای فیلم جدید) — موقع تایپ عنوان از TMDB سرچ می‌کنیم
   const [titleSuggestions, setTitleSuggestions] = useState([])
   const [suggestOpen, setSuggestOpen] = useState(false)
   const [suggestIndex, setSuggestIndex] = useState(-1)
-  const titleTypedRef = useRef(false)
+  // کدوم فیلد (title یا originalTitle) آخرین بار دستی تایپ شده — فقط برای اون سرچ می‌کنیم
+  const [suggestField, setSuggestField] = useState(null)
 
   const FIELD_LABELS = {
     title: 'Title', originalTitle: 'Original Title', year: 'Year', director: 'Director',
@@ -174,22 +201,14 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
 
         // چک تکراری: هم‌عنوان‌هایی که از قبل تو آرشیو هستن رو پیدا کن (بین
         // همون نوع - فیلم/سریال - تا با تیتر مشابه ولی نوع متفاوت قاطی نشه)
-        if (Array.isArray(existingFilms) && existingFilms.length) {
-          const wantedItemType = data.itemType || form.itemType
-          const norm = normalizeTitleForMatch(fetched.title)
-          const matches = existingFilms.filter(
-            (f) => normalizeTitleForMatch(f.title) === norm && (f.itemType === 'series' ? 'series' : 'movie') === wantedItemType
-          )
-          if (matches.length) {
-            const sameFormatMatch = matches.find((f) => (f.mediaType === 'digital' ? 'digital' : 'physical') === form.mediaType)
-            const otherFormatMatch = matches.find((f) => (f.mediaType === 'digital' ? 'digital' : 'physical') !== form.mediaType)
-            if (sameFormatMatch || otherFormatMatch) {
-              setDuplicateWarning({ sameFormatMatch, otherFormatMatch })
-            }
-          } else {
-            setDuplicateWarning(null)
-          }
-        }
+        const matches = findArchiveMatches(existingFilms, {
+          title: fetched.title,
+          originalTitle: fetched.originalTitle,
+          year: fetched.year,
+          imdbId: fetched.imdbId,
+          itemType: data.itemType || form.itemType,
+        })
+        setDuplicateWarning(matches.length ? matches : null)
         return
       }
       // فیلم موجود — دیتای لینک نسبت به دیتای قبلی ارجحیت داره، ولی هر جا با
@@ -223,10 +242,20 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   }
 
   useEffect(() => {
-    if (!isNew || !titleTypedRef.current) return
-    const q = form.title.trim()
+    if (!isNew || !suggestField) return
+    const q = (form[suggestField] || '').trim()
     if (q.length < 2) {
       setTitleSuggestions([])
+      return
+    }
+    const cacheKey = `${form.itemType}:${q.toLowerCase()}`
+    const show = (list) => {
+      setTitleSuggestions(list)
+      setSuggestIndex(-1)
+      setSuggestOpen(true)
+    }
+    if (titleSearchCache.has(cacheKey)) {
+      show(titleSearchCache.get(cacheKey))
       return
     }
     const controller = new AbortController()
@@ -235,22 +264,33 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
         const qs = new URLSearchParams({ q, type: form.itemType })
         const res = await fetch(`/api/title-search?${qs.toString()}`, { signal: controller.signal })
         const data = res.ok ? await res.json() : []
-        setTitleSuggestions(Array.isArray(data) ? data : [])
-        setSuggestIndex(-1)
-        setSuggestOpen(true)
+        const list = Array.isArray(data) ? data : []
+        if (res.ok) titleSearchCache.set(cacheKey, list)
+        show(list)
       } catch {}
     }, 300)
     return () => {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [form.title, form.itemType, isNew])
+  }, [form.title, form.originalTitle, form.itemType, suggestField, isNew])
+
+  // هر پیشنهادی که تو آرشیو هست (هم‌عنوان و هم‌سال) علامت می‌خوره
+  const suggestionsWithArchive = titleSuggestions.map((s) => ({
+    ...s,
+    inArchive: findArchiveMatches(existingFilms, { ...s, itemType: form.itemType }),
+  }))
 
   const pickSuggestion = async (s) => {
-    titleTypedRef.current = false
+    setSuggestField(null)
     setSuggestOpen(false)
     setTitleSuggestions([])
-    setForm((prev) => ({ ...prev, title: s.title, year: s.year ?? prev.year }))
+    setForm((prev) => ({
+      ...prev,
+      title: s.title,
+      originalTitle: s.originalTitle && s.originalTitle !== s.title ? s.originalTitle : prev.originalTitle,
+      year: s.year ?? prev.year,
+    }))
     try {
       const qs = new URLSearchParams({ tmdbId: s.tmdbId, type: form.itemType })
       const res = await fetch(`/api/title-search/imdb-id?${qs.toString()}`)
@@ -283,6 +323,43 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       setSuggestOpen(false)
     }
   }
+
+  const typedInto = (key) => (e) => {
+    setSuggestField(key)
+    set(key)(e)
+  }
+
+  const renderSuggestions = () =>
+    isNew && suggestOpen && suggestionsWithArchive.length > 0 && (
+      <ul className="title-suggest-list" role="listbox">
+        {suggestionsWithArchive.map((s, i) => (
+          <li
+            key={s.tmdbId}
+            role="option"
+            aria-selected={i === suggestIndex}
+            className={i === suggestIndex ? 'active' : ''}
+            onMouseDown={(e) => {
+              e.preventDefault()
+              pickSuggestion(s)
+            }}
+            onMouseEnter={() => setSuggestIndex(i)}
+          >
+            {s.poster ? <img src={s.poster} alt="" /> : <span className="title-suggest-noposter" />}
+            <span className="title-suggest-text">
+              <span className="title-suggest-name">{s.title}</span>
+              <span className="title-suggest-meta">
+                {[s.year, s.originalTitle && s.originalTitle !== s.title ? s.originalTitle : null].filter(Boolean).join(' · ')}
+              </span>
+            </span>
+            {s.inArchive.length > 0 && (
+              <span className="title-suggest-badge" title={s.inArchive.map(filmLocation).join(', ')}>
+                In archive
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    )
 
   const toggleConflict = (key) => {
     setLinkConflicts((prev) => prev.map((c) => (c.key === key ? { ...c, checked: !c.checked } : c)))
@@ -526,51 +603,37 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
 
           {duplicateWarning && (
             <div className="edit-field full duplicate-warning-panel">
-              {duplicateWarning.sameFormatMatch && (
-                <div className="duplicate-warning-row duplicate-warning-danger">
-                  <span>
-                    ⚠️ Already in your {form.mediaType === 'digital' ? 'digital' : 'Blu-ray'} collection
-                    {duplicateWarning.sameFormatMatch.mediaType === 'digital'
-                      ? duplicateWarning.sameFormatMatch.driveNumber
-                        ? ` (Drive ${duplicateWarning.sameFormatMatch.driveNumber})`
-                        : ''
-                      : [duplicateWarning.sameFormatMatch.closet, duplicateWarning.sameFormatMatch.shelf, duplicateWarning.sameFormatMatch.row]
-                          .filter(Boolean).length
-                        ? ` (${[duplicateWarning.sameFormatMatch.closet, duplicateWarning.sameFormatMatch.shelf, duplicateWarning.sameFormatMatch.row].filter(Boolean).join(' · ')})`
-                        : ''}
-                    . Adding this would create a duplicate.
-                  </span>
-                  {onOpenExisting && (
-                    <button type="button" className="btn btn-ghost" onClick={() => onOpenExisting(duplicateWarning.sameFormatMatch)}>
-                      View existing
-                    </button>
-                  )}
+              <span className="duplicate-compare-title">
+                Possibly already in your archive — compare posters to check it's the same film
+              </span>
+              <div className="duplicate-compare">
+                <div className="duplicate-card duplicate-card-new">
+                  {form.poster ? <img src={form.poster} alt="" /> : <div className="duplicate-noposter" />}
+                  <div className="duplicate-card-label">Adding</div>
+                  <div className="duplicate-card-title">{form.title}</div>
+                  <div className="duplicate-card-meta">{form.year || '—'}</div>
                 </div>
-              )}
-              {duplicateWarning.otherFormatMatch && (
-                <div className="duplicate-warning-row duplicate-warning-info">
-                  <span>
-                    📀 You already have this in {duplicateWarning.otherFormatMatch.mediaType === 'digital' ? 'digital' : 'Blu-ray'}
-                    {duplicateWarning.otherFormatMatch.mediaType === 'digital'
-                      ? duplicateWarning.otherFormatMatch.driveNumber
-                        ? ` (Drive ${duplicateWarning.otherFormatMatch.driveNumber})`
-                        : ''
-                      : [duplicateWarning.otherFormatMatch.closet, duplicateWarning.otherFormatMatch.shelf, duplicateWarning.otherFormatMatch.row]
-                          .filter(Boolean).length
-                        ? ` (${[duplicateWarning.otherFormatMatch.closet, duplicateWarning.otherFormatMatch.shelf, duplicateWarning.otherFormatMatch.row].filter(Boolean).join(' · ')})`
-                        : ''}
-                    . Saving this as a separate {form.mediaType === 'digital' ? 'digital' : 'Blu-ray'} copy is fine — they'll show together
-                    on the film page automatically.
-                  </span>
-                  {onOpenExisting && (
-                    <button type="button" className="btn btn-ghost" onClick={() => onOpenExisting(duplicateWarning.otherFormatMatch)}>
-                      View existing
-                    </button>
-                  )}
-                </div>
-              )}
+                {duplicateWarning.map((f) => {
+                  const sameFormat = (f.mediaType === 'digital' ? 'digital' : 'physical') === form.mediaType
+                  return (
+                    <div key={f.id} className={`duplicate-card ${sameFormat ? 'duplicate-card-danger' : 'duplicate-card-info'}`}>
+                      {f.poster ? <img src={f.poster} alt="" /> : <div className="duplicate-noposter" />}
+                      <div className="duplicate-card-label">
+                        {sameFormat ? '⚠️ Same format' : `📀 ${f.mediaType === 'digital' ? 'Digital' : 'Blu-ray'}`}
+                      </div>
+                      <div className="duplicate-card-title">{f.title}</div>
+                      <div className="duplicate-card-meta">{[f.year, filmLocation(f)].filter(Boolean).join(' · ')}</div>
+                      {onOpenExisting && (
+                        <button type="button" className="btn btn-ghost" onClick={() => onOpenExisting(f)}>
+                          View
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
               <button type="button" className="btn btn-ghost duplicate-warning-dismiss" onClick={() => setDuplicateWarning(null)}>
-                Dismiss
+                Not the same — dismiss
               </button>
             </div>
           )}
@@ -579,46 +642,28 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             <span>Title</span>
             <input
               value={form.title}
-              onChange={(e) => {
-                titleTypedRef.current = true
-                set('title')(e)
-              }}
+              onChange={typedInto('title')}
               onKeyDown={onTitleKeyDown}
-              onFocus={() => titleSuggestions.length && setSuggestOpen(true)}
+              onFocus={() => suggestField === 'title' && titleSuggestions.length && setSuggestOpen(true)}
               onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
               placeholder={isNew ? 'Start typing to search online…' : undefined}
               autoComplete="off"
             />
-            {isNew && suggestOpen && titleSuggestions.length > 0 && (
-              <ul className="title-suggest-list" role="listbox">
-                {titleSuggestions.map((s, i) => (
-                  <li
-                    key={s.tmdbId}
-                    role="option"
-                    aria-selected={i === suggestIndex}
-                    className={i === suggestIndex ? 'active' : ''}
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      pickSuggestion(s)
-                    }}
-                    onMouseEnter={() => setSuggestIndex(i)}
-                  >
-                    {s.poster ? <img src={s.poster} alt="" /> : <span className="title-suggest-noposter" />}
-                    <span className="title-suggest-text">
-                      <span className="title-suggest-name">{s.title}</span>
-                      <span className="title-suggest-meta">
-                        {[s.year, s.originalTitle && s.originalTitle !== s.title ? s.originalTitle : null].filter(Boolean).join(' · ')}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {suggestField === 'title' && renderSuggestions()}
           </label>
 
           <label className="edit-field full">
             <span>Original Title (if different — French, Italian, etc.)</span>
-            <input value={form.originalTitle} onChange={set('originalTitle')} placeholder="e.g. Il buono, il brutto, il cattivo" />
+            <input
+              value={form.originalTitle}
+              onChange={typedInto('originalTitle')}
+              onKeyDown={onTitleKeyDown}
+              onFocus={() => suggestField === 'originalTitle' && titleSuggestions.length && setSuggestOpen(true)}
+              onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
+              placeholder="e.g. Il buono, il brutto, il cattivo"
+              autoComplete="off"
+            />
+            {suggestField === 'originalTitle' && renderSuggestions()}
           </label>
 
           <label className="edit-field">

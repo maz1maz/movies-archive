@@ -1121,6 +1121,68 @@ body.light .header {
   border: 1px solid var(--border-strong);
   background: var(--surface-2);
 }
+.duplicate-compare-title {
+  color: var(--warning, #d9a441);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.duplicate-compare {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.duplicate-card {
+  display: flex;
+  width: 120px;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.duplicate-card img,
+.duplicate-noposter {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--surface-3);
+}
+.duplicate-card-new {
+  border-color: var(--accent);
+}
+.duplicate-card-danger {
+  border-color: #e05252;
+  background: rgba(224, 82, 82, 0.08);
+}
+.duplicate-card-info {
+  background: rgba(79, 163, 160, 0.08);
+}
+.duplicate-card-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.duplicate-card-danger .duplicate-card-label {
+  color: #e05252;
+}
+.duplicate-card-title {
+  color: var(--text);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.duplicate-card-meta {
+  color: var(--muted);
+}
+.duplicate-card .btn {
+  margin-top: 4px;
+  padding: 4px 8px;
+}
 .duplicate-warning-row {
   display: flex;
   align-items: center;
@@ -9905,4 +9967,15 @@ body.light .spine-theme-wood .spine-shelf-board {
 .title-suggest-meta {
   color: var(--muted);
   font-size: 12px;
+}
+
+.title-suggest-badge {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
 }

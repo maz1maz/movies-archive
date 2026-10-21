@@ -1341,6 +1341,15 @@ async function handleFetch(request, env, ctx) {
         const q = (url.searchParams.get('q') || '').trim()
         if (q.length < 2 || !env.TMDB_API_KEY) return json([], 200, corsHeaders)
         const tmdbType = url.searchParams.get('type') === 'series' ? 'tv' : 'movie'
+        // کش لبه‌ی Cloudflare (یک روز) — کلید فقط به نوع و متن کوئری بستگی داره
+        const cache = typeof caches !== 'undefined' ? caches.default : null
+        const cacheKey = new Request(`https://title-search.cache/${tmdbType}?q=${encodeURIComponent(q.toLowerCase())}`)
+        if (cache) {
+          try {
+            const hit = await cache.match(cacheKey)
+            if (hit) return json(await hit.json(), 200, corsHeaders)
+          } catch {}
+        }
         try {
           const res = await fetch(
             `https://api.themoviedb.org/3/search/${tmdbType}?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(q)}&include_adult=false`,
@@ -1358,6 +1367,11 @@ async function handleFetch(request, env, ctx) {
               poster: m.poster_path ? `https://image.tmdb.org/t/p/w92${m.poster_path}` : null,
             }
           })
+          if (cache) {
+            ctx?.waitUntil?.(
+              cache.put(cacheKey, new Response(JSON.stringify(results), { headers: { 'Cache-Control': 'max-age=86400' } })).catch(() => {})
+            )
+          }
           return json(results, 200, corsHeaders)
         } catch (e) {
           return json([], 200, corsHeaders)
