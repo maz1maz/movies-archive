@@ -238,6 +238,89 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
       setEmptying(false)
     }
   }
+  // انتقال کامل یه بخش (یا یه ردیف، بخش‌به‌بخش) به جای دیگه — با همون
+  // bulk-move که سقف ۶۰ نسخه‌ی هر بخش رو سمت سرور چک می‌کنه
+  const [moveTarget, setMoveTarget] = useState(null) // {mode:'section'|'row', closet, row, shelf} | null
+  const [relocating, setRelocating] = useState(false)
+  useEffect(() => setMoveTarget(null), [closet, row, shelf])
+  const bulkMove = async (ids, c, r, s) => {
+    const res = await fetch('/api/films/bulk-move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, closet: c, row: r, shelf: s }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || 'move failed')
+  }
+  const relocate = async () => {
+    if (!moveTarget || relocating) return
+    const t = moveTarget
+    const plan =
+      t.mode === 'section'
+        ? [{ from: shelf, to: t.shelf }]
+        : SECTIONS.map((sec) => ({ from: sec.num, to: sec.num }))
+    const steps = plan
+      .map((p) => ({ ...p, ids: (sectionIndex[`${closet}|${row}|${p.from}`] || []).map((f) => f.id) }))
+      .filter((p) => p.ids.length)
+    if (!steps.length) return
+    const targetLabel = t.mode === 'section' ? `C${t.closet} · R${t.row} · S${t.shelf}` : `C${t.closet} · R${t.row}`
+    const sourceLabel = t.mode === 'section' ? `C${closet} · R${row} · S${shelf}` : `C${closet} · R${row}`
+    const total = steps.reduce((n, p) => n + p.ids.length, 0)
+    if (!window.confirm(`Move ${total} films from ${sourceLabel} to ${targetLabel}?\n\nFilms already there stay; each section holds at most 60 copies.`)) return
+    setRelocating(true)
+    const failed = []
+    for (const p of steps) {
+      try {
+        await bulkMove(p.ids, t.closet, t.row, p.to)
+      } catch (e) {
+        failed.push(`S${p.from} → S${p.to}: ${e.message}`)
+      }
+    }
+    setRelocating(false)
+    setMoveTarget(null)
+    if (onFilmsChanged) onFilmsChanged()
+    if (failed.length) alert(`Some sections were not moved:\n\n${failed.join('\n')}`)
+  }
+  const renderMovePicker = (mode) =>
+    moveTarget?.mode === mode && (
+      <span className="shelf-move-picker">
+        Move to
+        <select value={moveTarget.closet} onChange={(e) => setMoveTarget({ ...moveTarget, closet: e.target.value })}>
+          {Array.from({ length: CLOSET_COUNT }, (_, i) => String(i + 1)).map((c) => (
+            <option key={c} value={c}>C{c}</option>
+          ))}
+        </select>
+        <select value={moveTarget.row} onChange={(e) => setMoveTarget({ ...moveTarget, row: e.target.value })}>
+          {Array.from({ length: ROW_COUNT }, (_, i) => String(i + 1)).map((r) => (
+            <option key={r} value={r}>R{r}</option>
+          ))}
+        </select>
+        {mode === 'section' && (
+          <select value={moveTarget.shelf} onChange={(e) => setMoveTarget({ ...moveTarget, shelf: e.target.value })}>
+            {SECTIONS.map((sec) => (
+              <option key={sec.num} value={sec.num}>S{sec.num}</option>
+            ))}
+          </select>
+        )}
+        <button
+          type="button"
+          className="shelf-back-btn"
+          disabled={
+            relocating ||
+            (moveTarget.closet === String(closet) &&
+              moveTarget.row === String(row) &&
+              (mode === 'row' || moveTarget.shelf === String(shelf)))
+          }
+          onClick={relocate}
+        >
+          {relocating ? 'Moving…' : 'Move'}
+        </button>
+        <button type="button" className="shelf-back-btn" onClick={() => setMoveTarget(null)}>
+          Cancel
+        </button>
+      </span>
+    )
+
   const filmsInRow = (c, r) =>
     Object.entries(sectionIndex)
       .filter(([key]) => key.startsWith(`${c}|${r}|`))
@@ -613,6 +696,17 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                     {emptying ? 'Emptying…' : `Empty row (${filmsInRow(closet, row).length})`}
                   </button>
                 )}
+                {canEdit && filmsInRow(closet, row).length > 0 && !moveTarget && (
+                  <button
+                    type="button"
+                    className="shelf-back-btn"
+                    onClick={() => setMoveTarget({ mode: 'row', closet: String(closet), row: String(row) })}
+                    title="Move this whole row (section by section) to another row"
+                  >
+                    Move row to…
+                  </button>
+                )}
+                {renderMovePicker('row')}
               </div>
               <div className="shelf-pick-sections">
                 {SECTIONS.map((sec) => {
@@ -671,6 +765,19 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                           {emptying ? 'Emptying…' : `Empty section (${(sectionIndex[`${closet}|${row}|${shelf}`] || []).length})`}
                         </button>
                       )}
+                      {(sectionIndex[`${closet}|${row}|${shelf}`] || []).length > 0 && !moveTarget && (
+                        <button
+                          type="button"
+                          className="shelf-back-btn shelf-move-btn"
+                          onClick={() =>
+                            setMoveTarget({ mode: 'section', closet: String(closet), row: String(row), shelf: String(shelf) })
+                          }
+                          title="Move every film in this section to another closet / row / section"
+                        >
+                          Move section to…
+                        </button>
+                      )}
+                      {renderMovePicker('section')}
                     </div>
                   )}
                 </div>
