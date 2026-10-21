@@ -2178,8 +2178,9 @@ body.light .header {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-width: 960px;
-  margin: 0 auto;
+  /* قفسه تمام‌عرض، هم‌اندازه‌ی Bookshelf */
+  max-width: none;
+  margin: 0;
 }
 .shelf-view-head {
   display: flex;
