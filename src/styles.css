@@ -10249,3 +10249,12 @@ body.light .spine-theme-wood .spine-shelf-board {
   background: var(--surface-2);
   color: var(--text);
 }
+
+/* جای خالی بخش: جلدهای کم‌رنگ و غیرقابل‌کلیک */
+.bluray-case.bluray-case-ghost {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+  cursor: default;
+  pointer-events: none;
+}
