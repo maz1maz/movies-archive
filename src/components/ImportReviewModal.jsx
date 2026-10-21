@@ -4,7 +4,13 @@ import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 function matchLocation(m) {
   if (m.mediaType === 'digital') return m.driveNumber ? (/^drive/i.test(String(m.driveNumber)) ? String(m.driveNumber) : `Drive ${m.driveNumber}`) : 'Digital'
-  return [m.closet, m.shelf, m.row].filter(Boolean).join(' · ') || 'Blu-ray'
+  // اسم‌ها همون برچسب‌های فرمه: closet=Closet، row=Row، shelf=Section
+  const parts = [
+    m.closet && `Closet ${m.closet}`,
+    m.row && `Row ${m.row}`,
+    m.shelf && `Section ${m.shelf}`,
+  ].filter(Boolean)
+  return parts.join(' · ') || 'Blu-ray (no location)'
 }
 
 const formatLabel = (mediaType) => (mediaType === 'digital' ? 'Digital' : 'Blu-ray')

@@ -123,7 +123,13 @@ const titleSearchCache = new Map()
 
 function filmLocation(f) {
   if (f.mediaType === 'digital') return f.driveNumber ? (/^drive/i.test(String(f.driveNumber)) ? String(f.driveNumber) : `Drive ${f.driveNumber}`) : 'Digital'
-  return [f.closet, f.shelf, f.row].filter(Boolean).join(' · ') || 'Blu-ray'
+  // اسم‌ها همون برچسب‌های فرمه: closet=Closet، row=Row، shelf=Section
+  const parts = [
+    f.closet && `Closet ${f.closet}`,
+    f.row && `Row ${f.row}`,
+    f.shelf && `Section ${f.shelf}`,
+  ].filter(Boolean)
+  return parts.join(' · ') || 'Blu-ray (no location)'
 }
 
 export default function EditModal({ film, onClose, onSave, onAutofill, onDelete, startWithLink, existingFilms, onOpenExisting }) {
@@ -623,12 +629,12 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
           {duplicateWarning && (
             <div className="edit-field full duplicate-warning-panel">
               <span className="duplicate-compare-title">
-                Possibly already in your archive — compare posters to check it's the same film
+                Already in your archive? Left: the film you're adding. Right: matching copies you own — compare posters
               </span>
               <div className="duplicate-compare">
                 <div className="duplicate-card duplicate-card-new">
                   {form.poster ? <img src={form.poster} alt="" /> : <div className="duplicate-noposter" />}
-                  <div className="duplicate-card-label">Adding</div>
+                  <div className="duplicate-card-label">➕ Adding now</div>
                   <div className="duplicate-card-title">{form.title}</div>
                   <div className="duplicate-card-meta">{form.year || '—'}</div>
                   {form.director && <div className="duplicate-card-meta">{form.director}</div>}
@@ -639,7 +645,9 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                     <div key={f.id} className={`duplicate-card ${sameFormat ? 'duplicate-card-danger' : 'duplicate-card-info'}`}>
                       {f.poster ? <img src={f.poster} alt="" /> : <div className="duplicate-noposter" />}
                       <div className="duplicate-card-label">
-                        {sameFormat ? '⚠️ Same format' : `📀 ${f.mediaType === 'digital' ? 'Digital' : 'Blu-ray'}`}
+                        {sameFormat
+                          ? `⚠️ You own this ${f.mediaType === 'digital' ? 'Digital' : 'Blu-ray'}`
+                          : `📀 You own a ${f.mediaType === 'digital' ? 'Digital' : 'Blu-ray'} copy`}
                       </div>
                       <div className="duplicate-card-title">{f.title}</div>
                       <div className="duplicate-card-meta">{[f.year, filmLocation(f)].filter(Boolean).join(' · ')}</div>
