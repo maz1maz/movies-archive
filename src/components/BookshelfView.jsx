@@ -370,34 +370,86 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
               <p>No films found on this bookshelf.</p>
             </div>
           ) : wallMode === 'cards' ? (
-            // نمای فشرده: هر بخش یه کارت — جای فیلم‌ها رو با یه نگاه پیدا کن
-            <div className="shelf-card-grid">
-              {shelfSections.map((sec) => {
-                const copies = sec.films.reduce((n, f) => n + Math.max(1, Number(f.copies) || 1), 0)
-                const cap = capacityFor ? capacityFor(sec.shelf) : 65
-                const pct = Math.min(100, Math.round((copies / cap) * 100))
-                const first = sec.films[0]
-                const last = sec.films[sec.films.length - 1]
+            // نمای فشرده: هر بخش یه کارت، گروه‌بندی‌شده بر اساس کمد. هر خط یه ردیف
+            // واقعیِ کمده (S1، S2، S3 کنار هم)؛ جای بخش‌های خالیِ همون ردیف کم‌رنگه.
+            <div className="shelf-card-closets">
+              {Object.entries(
+                shelfSections.reduce((acc, sec) => {
+                  ;(acc[sec.closet] = acc[sec.closet] || []).push(sec)
+                  return acc
+                }, {})
+              ).map(([closetId, secs]) => {
+                const capOf = (sh) => (capacityFor ? capacityFor(sh) : 65)
+                const copiesOf = (sec) => sec.films.reduce((n, f) => n + Math.max(1, Number(f.copies) || 1), 0)
+                const closetCopies = secs.reduce((n, sec) => n + copiesOf(sec), 0)
+                // ظرفیت کل کمد: ۱۰ ردیف × ۳ بخش
+                const closetCap = Array.from({ length: 10 }).reduce((n) => n + capOf('1') + capOf('2') + capOf('3'), 0)
+                const firstFilm = secs[0].films[0]
+                const lastSec = secs[secs.length - 1]
+                const lastFilm = lastSec.films[lastSec.films.length - 1]
+                const rowsUsed = [...new Set(secs.map((sec) => sec.row))].sort((a, b) => Number(a) - Number(b))
+                const secAt = (r, sh) => secs.find((sec) => sec.row === r && sec.shelf === sh)
                 return (
-                  <button
-                    type="button"
-                    key={`${sec.closet}-${sec.row}-${sec.shelf}`}
-                    className={`shelf-card shelf-card-s${sec.shelf}`}
-                    onClick={() => onPickSection && onPickSection(sec.closet, sec.row, sec.shelf)}
-                    title={`${sec.label} — ${first.title} → ${last.title}`}
-                  >
-                    <span className="shelf-card-loc">C{sec.closet} · R{sec.row} · S{sec.shelf}</span>
-                    <span className="shelf-card-range">{alphabetRange(first.title, last.title)}</span>
-                    <span className="shelf-card-titles">
-                      {first.title} → {last.title}
-                    </span>
-                    <span className="shelf-card-meter">
-                      <span className="shelf-card-fill" style={{ width: `${pct}%` }} />
-                    </span>
-                    <span className="shelf-card-count">
-                      {copies} / {cap} copies · {sec.films.length} titles
-                    </span>
-                  </button>
+                  <section className="shelf-card-closet" key={closetId}>
+                    <h3 className="shelf-card-closet-head">
+                      <span>Closet {closetId}</span>
+                      <span className="shelf-card-closet-meta">
+                        {secs.length} sections · {closetCopies} / {closetCap} copies · {alphabetRange(firstFilm.title, lastFilm.title)}
+                      </span>
+                    </h3>
+                    <div className="shelf-card-rows">
+                      {rowsUsed.map((r) => (
+                        <div className="shelf-card-row" key={r}>
+                          <span className="shelf-card-row-label">R{r}</span>
+                          {['1', '2', '3'].map((sh) => {
+                            const sec = secAt(r, sh)
+                            if (!sec) {
+                              // موقع جست‌وجو، بخش بدون نتیجه خالی نیست — فقط جاش رو نگه می‌داریم
+                              if (searchQuery.trim()) return <span key={sh} />
+                              return (
+                                <button
+                                  type="button"
+                                  key={sh}
+                                  className={`shelf-card shelf-card-empty shelf-card-s${sh}`}
+                                  onClick={() => onPickSection && onPickSection(closetId, r, sh)}
+                                  title={`C${closetId} · R${r} · S${sh} is empty — open it to fill`}
+                                >
+                                  <span className="shelf-card-loc">C{closetId} · R{r} · S{sh}</span>
+                                  <span className="shelf-card-count">Empty · 0 / {capOf(sh)}</span>
+                                </button>
+                              )
+                            }
+                            const copies = copiesOf(sec)
+                            const cap = capOf(sh)
+                            const pct = Math.min(100, Math.round((copies / cap) * 100))
+                            const first = sec.films[0]
+                            const last = sec.films[sec.films.length - 1]
+                            return (
+                              <button
+                                type="button"
+                                key={sh}
+                                className={`shelf-card shelf-card-s${sh}`}
+                                onClick={() => onPickSection && onPickSection(sec.closet, sec.row, sec.shelf)}
+                                title={`${sec.label} — ${first.title} → ${last.title}`}
+                              >
+                                <span className="shelf-card-loc">C{sec.closet} · R{sec.row} · S{sec.shelf}</span>
+                                <span className="shelf-card-range">{alphabetRange(first.title, last.title)}</span>
+                                <span className="shelf-card-titles">
+                                  {first.title} → {last.title}
+                                </span>
+                                <span className="shelf-card-meter">
+                                  <span className="shelf-card-fill" style={{ width: `${pct}%` }} />
+                                </span>
+                                <span className="shelf-card-count">
+                                  {copies} / {cap} copies · {sec.films.length} titles
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
                 )
               })}
             </div>
