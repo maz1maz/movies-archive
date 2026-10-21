@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload, IconArchive } from './icons.jsx'
 import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
 import { escapeHtml } from '../utils/escapeHtml.js'
@@ -70,6 +70,10 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
       setCapSaving(false)
     }
   }
+  // جلدها باید ایستاده و کنار هم (افقی) باشن، مثل BookshelfView: قفسه به
+  // ردیف‌های bluray-shelf-row تقسیم می‌شه و تعداد هر ردیف از عرض قفسه میاد
+  const shelfRef = useRef(null)
+  const [casesPerRow, setCasesPerRow] = useState(20)
   const [closet, setCloset] = useState('')
   const [row, setRow] = useState('')
   const [shelf, setShelf] = useState('')
@@ -80,6 +84,20 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [azLetter, setAzLetter] = useState(null)
   const [shelfViewMode, setShelfViewMode] = useState('spine')
   const [shelfScale, setShelfScale] = useState(1)
+  useEffect(() => {
+    const el = shelfRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const update = () => {
+      // .cinema-wood-shelf حدود 28px padding از هر طرف داره
+      const w = el.clientWidth - 56
+      const itemW = 34 * shelfScale + 2
+      if (w > 0) setCasesPerRow(Math.max(6, Math.floor(w / itemW)))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [shelfScale, closet, row, shelf, shelfViewMode])
   const [shelfTheme, setShelfTheme] = useState('wood')
   const [hoveredFilm, setHoveredFilm] = useState(null)
 
@@ -1009,10 +1027,13 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
 
                   <div className={`cinema-wood-shelf-wrapper shelf-theme-${shelfTheme}`}>
                     <div className="shelf-overhead-light" />
-                    <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }}>
+                    <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }} ref={shelfRef}>
                       <div className="shelf-inner-shadow" />
                       <div className="bluray-shelf" id="shelf">
-                        {shelfFilms.map((f, idx) => {
+                        {Array.from({ length: Math.ceil(shelfFilms.length / casesPerRow) }, (_, rowIdx) => (
+                        <div className="bluray-shelf-row" key={rowIdx}>
+                        {shelfFilms.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map((f, i) => {
+                          const idx = rowIdx * casesPerRow + i
                           const style = getSpineColor(f, idx)
                           const isCriterion = f.criterion || style.type === 'criterion'
                           const is4k = style.type === '4k'
@@ -1064,6 +1085,8 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                             </div>
                           )
                         })}
+                        </div>
+                        ))}
                       </div>
 
                       <div className="shelf-props-layer">
