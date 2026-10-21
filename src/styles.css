@@ -10108,3 +10108,50 @@ body.light .spine-theme-wood .spine-shelf-board {
   border-radius: 4px;
   object-fit: cover;
 }
+
+/* خلاصه‌ی فیلمِ دریافت‌شده تو فرم «Add Film» */
+.add-fetched-card {
+  flex-direction: row;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.add-fetched-card img,
+.add-fetched-card .duplicate-noposter {
+  width: 80px;
+  aspect-ratio: 2 / 3;
+  flex-shrink: 0;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.add-fetched-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.add-fetched-title {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+}
+.add-fetched-title span {
+  color: var(--muted);
+  font-weight: 500;
+}
+.add-fetched-meta {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.add-fetched-synopsis {
+  display: -webkit-box;
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}

@@ -668,6 +668,26 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             {suggestField === 'originalTitle' && renderSuggestions()}
           </label>
 
+          {/* تو حالت افزودن، فیلدهای متادیتا پنهانن — خلاصه‌ی چیزی که از لینک/سرچ
+              اومده این‌جا نشون داده می‌شه تا معلوم باشه فیلم درست انتخاب شده. */}
+          {isNew && (form.poster || form.director || form.synopsis) && (
+            <div className="edit-field full add-fetched-card">
+              {form.poster ? <img src={form.poster} alt="" /> : <div className="duplicate-noposter" />}
+              <div className="add-fetched-body">
+                <div className="add-fetched-title">
+                  {form.title}
+                  {form.year ? <span> ({form.year})</span> : null}
+                </div>
+                <div className="add-fetched-meta">
+                  {[form.director, form.runtime ? `${form.runtime} min` : null, form.country].filter(Boolean).join(' · ')}
+                </div>
+                {form.genre && <div className="add-fetched-meta">{form.genre}</div>}
+                {form.rating !== '' && form.rating != null && <div className="add-fetched-meta">IMDb {form.rating}</div>}
+                {form.synopsis && <p className="add-fetched-synopsis">{form.synopsis}</p>}
+              </div>
+            </div>
+          )}
+
           <label className="edit-field">
             <span>Media Type</span>
             <select
@@ -867,10 +887,6 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             <input type="number" value={form.year} onChange={set('year')} />
           </label>
           <label className="edit-field">
-            <span>Rating (IMDb)</span>
-            <input type="number" step="0.1" value={form.rating} onChange={set('rating')} />
-          </label>
-          <label className="edit-field">
             <span>My Rating</span>
             <StarRating
               value={form.myRating}
@@ -879,44 +895,52 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             />
           </label>
 
-          <label className="edit-field">
-            <span>Studio / Distributor</span>
-            <input value={form.studio} onChange={set('studio')} placeholder="e.g. Paramount Pictures" />
-          </label>
-          <label className="edit-field">
-            <span>Letterboxd Rating (0–5)</span>
-            <input type="number" step="0.5" min="0" max="5" value={form.letterboxdRating} onChange={set('letterboxdRating')} placeholder="e.g. 4.5" />
-          </label>
+          {!isNew && (
+            <>
+            <label className="edit-field">
+              <span>Rating (IMDb)</span>
+              <input type="number" step="0.1" value={form.rating} onChange={set('rating')} />
+            </label>
+            <label className="edit-field">
+              <span>Studio / Distributor</span>
+              <input value={form.studio} onChange={set('studio')} placeholder="e.g. Paramount Pictures" />
+            </label>
+            <label className="edit-field">
+              <span>Letterboxd Rating (0–5)</span>
+              <input type="number" step="0.5" min="0" max="5" value={form.letterboxdRating} onChange={set('letterboxdRating')} placeholder="e.g. 4.5" />
+            </label>
 
-          <label className="edit-field">
-            <span>Runtime (min)</span>
-            <input type="number" value={form.runtime} onChange={set('runtime')} />
-          </label>
-          <label className="edit-field">
-            <span>Country</span>
-            <input value={form.country} onChange={set('country')} />
-          </label>
+            <label className="edit-field">
+              <span>Runtime (min)</span>
+              <input type="number" value={form.runtime} onChange={set('runtime')} />
+            </label>
+            <label className="edit-field">
+              <span>Country</span>
+              <input value={form.country} onChange={set('country')} />
+            </label>
 
-          <label className="edit-field full">
-            <span>Director</span>
-            <input value={form.director} onChange={set('director')} />
-          </label>
-          <label className="edit-field full">
-            <span>Producer {form.itemType === 'series' ? '(for series, often more useful than Director since it varies per episode)' : ''}</span>
-            <input value={form.producer} onChange={set('producer')} />
-          </label>
-          <label className="edit-field full">
-            <span>Cast (comma separated)</span>
-            <input value={form.cast} onChange={set('cast')} />
-          </label>
-          <label className="edit-field full">
-            <span>Genre (comma separated)</span>
-            <input value={form.genre} onChange={set('genre')} />
-          </label>
-          <label className="edit-field full">
-            <span>Poster URL</span>
-            <input value={form.poster} onChange={set('poster')} />
-          </label>
+            <label className="edit-field full">
+              <span>Director</span>
+              <input value={form.director} onChange={set('director')} />
+            </label>
+            <label className="edit-field full">
+              <span>Producer {form.itemType === 'series' ? '(for series, often more useful than Director since it varies per episode)' : ''}</span>
+              <input value={form.producer} onChange={set('producer')} />
+            </label>
+            <label className="edit-field full">
+              <span>Cast (comma separated)</span>
+              <input value={form.cast} onChange={set('cast')} />
+            </label>
+            <label className="edit-field full">
+              <span>Genre (comma separated)</span>
+              <input value={form.genre} onChange={set('genre')} />
+            </label>
+            <label className="edit-field full">
+              <span>Poster URL</span>
+              <input value={form.poster} onChange={set('poster')} />
+            </label>
+            </>
+          )}
           <label className="edit-field">
             <span>Watch status</span>
             <select
@@ -963,10 +987,14 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
               )}
             </span>
           </label>
-          <label className="edit-field full">
-            <span>Synopsis</span>
-            <textarea rows="3" value={form.synopsis} onChange={set('synopsis')} />
-          </label>
+          {!isNew && (
+            <>
+            <label className="edit-field full">
+              <span>Synopsis</span>
+              <textarea rows="3" value={form.synopsis} onChange={set('synopsis')} />
+            </label>
+            </>
+          )}
           {/* جزئیات تکمیلی (گیشه، بودجه، تگ‌لاین…) فقط تو ویرایش نشون داده می‌شن؛
               موقع افزودن اگه لینک پرشون کرده باشه، تو state هست و ذخیره می‌شه. */}
           {!isNew && (
