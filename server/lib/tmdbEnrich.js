@@ -25,19 +25,43 @@ export function directorNamesOverlap(knownDirector, candidateDirectorNames) {
 }
 
 
+// کلید TMDB می‌تونه کلید v3 (پارامتر api_key) یا توکن v4 (هدر Bearer) باشه —
+// هر دو رو امتحان می‌کنیم، مثل بقیه‌ی جاهایی که TMDB صدا زده می‌شه.
+// خروجی: { data, status } — data وقتی موفق نبود null ه.
+// روشی که جواب داد تو همین isolate یادمون می‌مونه تا درخواست‌های بعدی دوبرابر نشن
+// (سقف subrequest ورکر برای backfill مهمه)
+let tmdbAuthMode = null // 'query' | 'bearer' | null
+export async function tmdbRequest(path, params, tmdbKey) {
+  const qs = new URLSearchParams(params || {}).toString()
+  const base = `https://api.themoviedb.org/3${path}${qs ? `?${qs}` : ''}`
+  const sep = qs ? '&' : '?'
+  const attempts = [
+    { url: `${base}${sep}api_key=${encodeURIComponent(tmdbKey)}`, headers: { accept: 'application/json' } },
+    { url: base, headers: { Authorization: `Bearer ${tmdbKey}`, accept: 'application/json' } },
+  ]
+  if (tmdbAuthMode === 'bearer') attempts.reverse()
+  let status = null
+  for (const a of attempts) {
+    try {
+      const res = await fetch(a.url, { headers: a.headers, signal: AbortSignal.timeout(8000) })
+      if (res.ok) {
+        tmdbAuthMode = a.headers.Authorization ? 'bearer' : 'query'
+        return { data: await res.json(), status: res.status }
+      }
+      status = res.status
+      // فقط خطای احراز هویت ارزش امتحان روش دوم رو داره
+      if (res.status !== 401 && res.status !== 403) break
+    } catch (e) {
+      status = String(e.message || e)
+    }
+  }
+  return { data: null, status }
+}
+
 export async function findVerifiedImdbId(title, year, knownDirector, itemType, env) {
   const tmdbKey = env.TMDB_API_KEY
   if (!title || !tmdbKey) return null
-  async function tmdbGet(path, params) {
-    const qs = new URLSearchParams({ api_key: tmdbKey, ...params }).toString()
-    try {
-      const res = await fetch(`https://api.themoviedb.org/3${path}?${qs}`, { signal: AbortSignal.timeout(8000) })
-      if (!res.ok) return null
-      return res.json()
-    } catch {
-      return null
-    }
-  }
+  const tmdbGet = async (path, params) => (await tmdbRequest(path, params, tmdbKey)).data
   const kind = itemType === 'series' ? 'tv' : 'movie'
   const searchParams = { query: title }
   if (year) searchParams[kind === 'tv' ? 'first_air_date_year' : 'year'] = String(year)
@@ -361,16 +385,7 @@ export async function fetchDirectorRecommendations(db, name, env) {
 export async function findImdbIdAndDirectorByExactTitle(title, year, itemType, env) {
   const tmdbKey = env.TMDB_API_KEY
   if (!title || !year || !tmdbKey) return null
-  async function tmdbGet(path, params) {
-    const qs = new URLSearchParams({ api_key: tmdbKey, ...params }).toString()
-    try {
-      const res = await fetch(`https://api.themoviedb.org/3${path}?${qs}`, { signal: AbortSignal.timeout(8000) })
-      if (!res.ok) return null
-      return res.json()
-    } catch {
-      return null
-    }
-  }
+  const tmdbGet = async (path, params) => (await tmdbRequest(path, params, tmdbKey)).data
   const kind = itemType === 'series' ? 'tv' : 'movie'
   const data = await tmdbGet(`/search/${kind}`, { query: title })
   const want = normalizeName(title).replace(/^(the|a|an)\s+/, '')

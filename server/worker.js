@@ -11,7 +11,7 @@ import { resolveLetterboxdPersonUrl, syncLetterboxdUserToReviews, parseLetterbox
 import { fetchCinemaHeadlines, fetchCinemaHeadlinesFa } from './lib/cinemaNews.js'
 import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailers, fetchGeneralUpcoming, fetchTrendingAndBoxOffice, fetchTrendingPeople, fetchBornTodayGeneral, fetchFestivalCalendar, ageFromBirthDate } from './lib/tmdbFeeds.js'
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
-import { findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
+import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
@@ -1425,12 +1425,8 @@ async function handleFetch(request, env, ctx) {
         let results = []
         if (env.TMDB_API_KEY) {
           try {
-            const res = await fetch(
-              `https://api.themoviedb.org/3/search/${tmdbType}?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(q)}&include_adult=false`,
-              { signal: AbortSignal.timeout(8000) }
-            )
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
-            const data = await res.json()
+            const { data, status } = await tmdbRequest(`/search/${tmdbType}`, { query: q, include_adult: 'false' }, env.TMDB_API_KEY)
+            if (!data) throw new Error(`HTTP ${status}`)
             results = (data.results || []).slice(0, 8).map((m) => {
               const date = m.release_date || m.first_air_date || ''
               return {
@@ -1491,11 +1487,7 @@ async function handleFetch(request, env, ctx) {
         if (!tmdbId || !env.TMDB_API_KEY) return json({ imdbId: null }, 200, corsHeaders)
         const tmdbType = url.searchParams.get('type') === 'series' ? 'tv' : 'movie'
         try {
-          const res = await fetch(
-            `https://api.themoviedb.org/3/${tmdbType}/${tmdbId}/external_ids?api_key=${env.TMDB_API_KEY}`,
-            { signal: AbortSignal.timeout(8000) }
-          )
-          const data = res.ok ? await res.json() : {}
+          const data = (await tmdbRequest(`/${tmdbType}/${tmdbId}/external_ids`, {}, env.TMDB_API_KEY)).data || {}
           return json({ imdbId: data.imdb_id || null }, 200, corsHeaders)
         } catch (e) {
           return json({ imdbId: null }, 200, corsHeaders)
