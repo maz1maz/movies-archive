@@ -451,6 +451,12 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
 
   const currentSection = SECTIONS.find((s) => s.num === shelf) || null
 
+  // جای خالیِ بخش (ظرفیت منهای نسخه‌ها) به‌صورت جلدهای کم‌رنگ، بعد از جلدهای واقعی
+  const shelfSlots = useMemo(() => {
+    const free = Math.max(0, (currentSection?.capacity || 0) - shelfCases.length)
+    return [...shelfCases, ...Array.from({ length: free }, (_, i) => ({ ghost: true, ghostIdx: i }))]
+  }, [shelfCases, currentSection])
+
   const selectCloset = (v) => {
     setCloset(v)
     setRow('')
@@ -1044,9 +1050,13 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                     <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale }} ref={shelfRef}>
                       <div className="shelf-inner-shadow" />
                       <div className="bluray-shelf" id="shelf">
-                        {Array.from({ length: Math.ceil(shelfCases.length / casesPerRow) }, (_, rowIdx) => (
+                        {Array.from({ length: Math.ceil(shelfSlots.length / casesPerRow) }, (_, rowIdx) => (
                         <div className="bluray-shelf-row" key={rowIdx}>
-                        {shelfCases.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map(({ f, copyIdx }, itemIdx) => {
+                        {shelfSlots.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map((slot, itemIdx) => {
+                          if (slot.ghost) {
+                            return <div key={`ghost-${slot.ghostIdx}`} className="bluray-case bluray-case-ghost" aria-hidden="true" />
+                          }
+                          const { f, copyIdx } = slot
                           // رنگ از جای خودِ فیلم میاد تا همه‌ی نسخه‌هاش یه رنگ باشن
                           const style = getSpineColor(f, shelfFilms.indexOf(f))
                           const isCriterion = f.criterion || style.type === 'criterion'
