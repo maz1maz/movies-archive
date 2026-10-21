@@ -1,6 +1,7 @@
 const CHARS = [
   ...'abcdefghijklmnopqrstuvwxyz'.split(''),
   '0-9',
+  '#', // عنوان‌هایی که با علامت یا حرف لهجه‌دار شروع می‌شن ('71، (500)، Élite)
 ]
 
 export default function AlphabetBar({ alpha, setAlpha }) {

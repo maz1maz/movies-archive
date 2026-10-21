@@ -1,0 +1,5 @@
+# The site is hosted on Cloudflare Workers (wrangler.jsonc); Netlify is no
+# longer used. Until the Netlify GitHub app is uninstalled, this makes Netlify
+# skip every build and deploy preview ("ignore" exiting 0 = skip).
+[build]
+  ignore = "exit 0"

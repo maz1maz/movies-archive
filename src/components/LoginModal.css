@@ -1,0 +1,189 @@
+/* Based on Uiverse.io by Priyanshu02020 (MIT) */
+.uv-login {
+  --uv-login-width: min(340px, calc(100vw - 40px));
+  --uv-login-box: var(--surface);
+  --uv-login-input: color-mix(in srgb, var(--text) 9%, var(--surface));
+  --uv-login-glow: var(--accent);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  width: var(--uv-login-width);
+  padding: 1px;
+  border-radius: 24px;
+  background: var(--uv-login-box);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 8px 16px rgba(0, 0, 0, 0.2),
+    0 0 16px color-mix(in srgb, var(--uv-login-glow) 18%, transparent);
+}
+
+/* Rotating light that peeks out around the 1px rim. */
+.uv-login::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  z-index: -1;
+  background: conic-gradient(from 45deg, transparent 75%, var(--uv-login-glow), transparent 100%);
+  animation: uv-login-spin 4s ease-in-out infinite;
+}
+
+@keyframes uv-login-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.uv-login-box {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 28px;
+  border-radius: 23px;
+  background: var(--uv-login-box);
+  box-shadow:
+    inset 0 40px 60px -8px color-mix(in srgb, var(--text) 10%, transparent),
+    inset 4px 0 12px -6px color-mix(in srgb, var(--text) 10%, transparent),
+    inset 0 0 12px -4px color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.uv-login-close {
+  position: absolute;
+  top: 14px;
+  inset-inline-end: 14px;
+}
+
+.uv-login-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* CSS-only user glyph: head (::after) + shoulders (::before). */
+.uv-login-logo {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 65px;
+  height: 65px;
+  border: 2px solid var(--accent);
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--text) 18%, transparent),
+    rgba(0, 0, 0, 0.18)
+  );
+  box-shadow:
+    8px 8px 16px rgba(0, 0, 0, 0.2),
+    -8px -8px 16px color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.uv-login-logo::before {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  width: 50%;
+  height: 20%;
+  border: 2.5px solid var(--accent);
+  border-radius: 40px 40px 20px 20px;
+}
+
+.uv-login-logo::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  width: 30%;
+  height: 30%;
+  border: 2.5px solid var(--accent);
+  border-radius: 50%;
+}
+
+.uv-login-header {
+  margin: 0;
+  padding: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+}
+
+.uv-login-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--uv-login-input);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.uv-login-input::placeholder {
+  color: var(--muted);
+}
+
+.uv-login-input:focus-visible {
+  border-color: var(--accent);
+}
+
+.uv-login-error {
+  align-self: stretch;
+  margin: 0;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.uv-login-button {
+  width: 100%;
+  height: 40px;
+  margin-top: 5px;
+  border: none;
+  border-radius: 20px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s, box-shadow 0.3s;
+  box-shadow:
+    inset 0 3px 6px -4px rgba(255, 255, 255, 0.6),
+    inset 0 -3px 6px -2px rgba(0, 0, 0, 0.45);
+}
+
+.uv-login-button:hover:not(:disabled) {
+  background: var(--accent-strong);
+  box-shadow:
+    inset 0 3px 6px rgba(255, 255, 255, 0.5),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.45),
+    0 0 10px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.uv-login-button:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.uv-login-button:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.uv-login-footer {
+  align-self: stretch;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .uv-login::before {
+    animation: none;
+  }
+}

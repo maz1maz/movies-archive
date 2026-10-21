@@ -72,8 +72,8 @@ export class Loader extends CustomEventTarget {
       src = await config.layerSrcFormat(layerIndex, this.store)
     } else {
       src = `${config.layerSrcFormat.startsWith('/') ? baseUrl : ''}${config.layerSrcFormat
-        .replaceAll('{INDEX}', `${(config.layerIndexStart ?? 0) + layerIndex}`)
-        .replaceAll('{EXT}', ext)}`
+        .split('{INDEX}').join(`${(config.layerIndexStart ?? 0) + layerIndex}`)
+        .split('{EXT}').join(ext)}`
     }
 
     if (!src) return

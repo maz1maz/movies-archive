@@ -1,3 +1,4 @@
+import { proxyImg } from '../utils/proxyImg.js'
 import { useEffect, useMemo, useState } from 'react'
 import EditModal from './EditModal.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -73,7 +74,7 @@ function HealthResultsList({ results, totalIssues, openKey, setOpenKey, onOpenFi
                       }}
                     >
                       <div style={{ width: 32, height: 46, flexShrink: 0, borderRadius: 4, overflow: 'hidden', background: 'var(--surface-2)' }}>
-                        {f.poster && <img src={f.poster} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                        {f.poster && <img src={proxyImg(f.poster)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                       </div>
                       <div style={{ flex: 1, fontSize: 12.5, color: 'var(--muted)' }}>
                         {f.title} {f.year ? `(${f.year})` : ''} · {f.itemType === 'series' ? 'سریال' : 'فیلم'}

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { IconDocument, IconPrinter, IconBarChart, IconDownload, IconSave } from './icons.jsx'
+import { IconDocument, IconPrinter, IconBarChart, IconDownload, IconSave, IconArchive } from './icons.jsx'
 import { escapeHtml } from '../utils/escapeHtml.js'
+import { useAuth } from '../context/AuthContext.jsx'
 import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
 
 // نمایش درایو برای یه فیلم/سریال تو خروجی‌ها — برای سریال‌هایی که فصل‌هاشون
@@ -54,6 +55,21 @@ function filterByScope(films, scope) {
 }
 
 export default function DashboardExportPanel({ films }) {
+  const { isAdmin } = useAuth()
+  const [driveState, setDriveState] = useState('idle')
+  const [driveMsg, setDriveMsg] = useState('')
+  const sendToDrive = async () => {
+    setDriveState('sending')
+    setDriveMsg('')
+    try {
+      const res = await fetch('/api/backups/drive-now', { method: 'POST', credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      setDriveMsg(data.ok ? 'Saved to Google Drive ✓' : `Failed: ${data.error || res.status}`)
+    } catch (e) {
+      setDriveMsg(`Failed: ${e.message}`)
+    }
+    setDriveState('idle')
+  }
   const [scopeKey, setScopeKey] = useState('all')
   const [letter, setLetter] = useState(null)
   const [drive, setDrive] = useState('')
@@ -300,6 +316,24 @@ export default function DashboardExportPanel({ films }) {
               <IconSave width={14} height={14} /> Download JSON Backup
             </a>
           </div>
+
+          {isAdmin && (
+            <div className="export-card">
+              <span className="export-icon">
+                <IconArchive width={22} height={22} />
+              </span>
+              <h3>Full Archive (all data)</h3>
+              <p>Every table: films, people, followed, order list, reviews, watchlists and users (no passwords). Use it to move to another host.</p>
+              <a href="/api/export/full" download className="btn btn-primary">
+                <IconDownload width={14} height={14} /> Download Full Archive (.json.gz)
+              </a>
+              <button type="button" className="btn btn-ghost" style={{ marginTop: 8 }} onClick={sendToDrive} disabled={driveState === 'sending'}>
+                {driveState === 'sending' ? 'Sending…' : 'Send to Google Drive now'}
+              </button>
+              {driveMsg && <p style={{ fontSize: 12, marginTop: 6 }}>{driveMsg}</p>}
+              <p style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>Sent to Google Drive automatically every Friday.</p>
+            </div>
+          )}
         </div>
       </section>
     </div>

@@ -311,6 +311,9 @@ export async function fetchDirectorRecommendations(db, name, env) {
       .slice(0, 20)
 
     const results = []
+    // اگه OMDb برای هیچ‌کدوم جواب نداد (معمولاً کوتای روزانه‌ش تموم شده)،
+    // لیست خالی «واقعی» نیست — null برمی‌گردونیم تا route کشش نکنه.
+    let omdbAnswered = 0
     for (const c of toCheck) {
       let imdbRating = null
       let runtimeMins = null
@@ -337,6 +340,7 @@ export async function fetchDirectorRecommendations(db, name, env) {
         )
         if (omdbRes.ok) {
           const omdbData = await omdbRes.json()
+          if (omdbData.Response === 'True') omdbAnswered++
           if (omdbData.Response === 'True' && omdbData.imdbRating && omdbData.imdbRating !== 'N/A') {
             const parsed = parseFloat(omdbData.imdbRating)
             if (!isNaN(parsed)) imdbRating = parsed
@@ -372,9 +376,10 @@ export async function fetchDirectorRecommendations(db, name, env) {
       })
     }
 
+    if (toCheck.length > 0 && omdbAnswered === 0) return null
     return results.sort((a, b) => b.imdbRating - a.imdbRating)
   } catch {
-    return []
+    return null
   }
 }
 

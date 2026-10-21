@@ -3168,29 +3168,9 @@ body.light .header {
 }
 .cine-poster-coverflow-wrap {
   display: flex;
+  flex-direction: column; /* نوار ریزعکس‌ها زیر دسته‌کارت، نه کنارش */
   align-items: center;
-  gap: 6px;
-}
-.cine-poster-nav {
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid var(--border-strong);
-  background: var(--surface-2);
-  color: var(--text);
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  transition: background 0.15s, transform 0.15s;
-}
-.cine-poster-nav:hover {
-  background: var(--surface-3);
-}
-.cine-poster-nav:active {
-  transform: scale(0.9);
+  justify-content: center;
 }
 .cine-poster-slide {
   position: absolute;
@@ -3203,7 +3183,61 @@ body.light .header {
   background: var(--surface-2);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease, filter 0.55s ease;
-  filter: grayscale(1) brightness(0.5);
+  filter: grayscale(1) brightness(0.6);
+  /* Swipeable card stack (based on Skiper UI Carousel_002 / Swiper's cards
+     effect): the posters behind peek out to the sides with a slight tilt,
+     and the front one follows the pointer while it's dragged (--drag, px). */
+  transform:
+    translateX(calc(var(--offset, 0) * 9% + var(--drag, 0) * 1px))
+    translateY(calc(var(--abs, 0) * 2%))
+    rotate(calc(var(--offset, 0) * 3deg + var(--drag, 0) * 0.04deg))
+    scale(calc(1 - var(--abs, 0) * 0.07));
+}
+.cine-poster-coverflow {
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+}
+.cine-poster-coverflow[data-dragging] {
+  cursor: grabbing;
+}
+.cine-poster-coverflow[data-dragging] .cine-poster-slide-active {
+  transition: opacity 0.55s ease, filter 0.55s ease;
+}
+/* Digital titles: blue deck (active border + light line) instead of gold. */
+.cine-poster-coverflow-wrap.is-digital {
+  --accent: #3f8de0;
+  --accent-strong: #6fb0f0;
+}
+/* Soft accent light line under the deck. */
+.cine-poster-coverflow::after {
+  content: '';
+  position: absolute;
+  left: -30%;
+  right: -30%;
+  bottom: -16px;
+  z-index: 4;
+  height: 4px;
+  border-radius: 50%;
+  background: linear-gradient(to right, transparent, var(--accent), transparent);
+  filter: blur(4px);
+  pointer-events: none;
+}
+.cine-poster-coverflow::before {
+  content: '';
+  position: absolute;
+  left: -15%;
+  right: -15%;
+  bottom: -15px;
+  z-index: 4;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--accent-strong), transparent);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cine-poster-slide {
+    transition: none;
+  }
 }
 .cine-poster-slide img {
   width: 100%;
@@ -5844,11 +5878,58 @@ body.light .folder-nav-stat-value {
 .folder-card p {
   margin: 2px 0 0;
 }
-.folder-card:hover {
-  border-color: var(--marquee-gold, var(--accent));
-  background: rgba(255, 255, 255, 0.09);
-  transform: translateY(-4px);
-  box-shadow: 0 14px 36px rgba(126, 87, 255, 0.28);
+/* هاور فقط روی دستگاه‌های با ماوس. روی موبایل/تلویزیون، لمس باعث می‌شه
+   حالت hover «گیر» کنه و کارت پرش (translateY) داشته باشه. */
+@media (hover: hover) and (pointer: fine) {
+  .folder-card:hover {
+    border-color: var(--marquee-gold, var(--accent));
+    background: rgba(255, 255, 255, 0.09);
+    transform: translateY(-4px);
+    box-shadow: 0 14px 36px rgba(126, 87, 255, 0.28);
+  }
+}
+.folder-card:active {
+  transform: scale(0.985);
+}
+/* روی گوشی‌های آیفون، backdrop-filter کنار انیمیشن ورود کارت‌ها باعث لرزش و
+   پرش ردیف‌ها می‌شه؛ برای موبایل شیشه‌ای حذف می‌کنیم و کارت‌ها رو روی لایه‌ی خودشون نگه می‌داریم. */
+/* روی موبایل، محتوای خانه از یک فاصله‌ی ثابت بالای صفحه شروع می‌شه (نه وسط‌چین).
+   با وسط‌چین، باز شدن ردیف‌ها کل بالای صفحه رو چند ده پیکسل بالا می‌بُرد؛ و
+   100svh (نه 100vh) باعث می‌شه با بالا/پایین رفتن نوار آدرس iOS ارتفاع عوض نشه. */
+@media (max-width: 860px) {
+  .folder-nav {
+    min-height: 100svh;
+    justify-content: flex-start;
+    padding-top: 14vh;
+  }
+}
+/* موبایل: بدون هیچ انیمیشن ورود/تغییر حالت روی کارت‌ها و عنوان خانه؛
+   هر انیمیشنی وقتی ردیف‌ها باز/بسته می‌شن یا نوار آدرس جمع می‌شه، جابه‌جایی می‌سازه. */
+@media (max-width: 860px) {
+  .folder-grid-open .folder-card,
+  .folder-nav .reveal-item {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  /* پرده‌ی تئاتر فقط انیمیشن ورود داره؛ بدون انیمیشن روی موبایل باید کلاً پنهان باشه،
+     وگرنه همون حالت اولیه‌ی بسته‌ش روی صفحه می‌مونه. */
+  .folder-nav .stage-curtain {
+    display: none;
+  }
+  .folder-card,
+  .folder-card:active {
+    transition: none;
+    transform: none;
+  }
+}
+@media (max-width: 860px) {
+  .folder-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
 }
 body.light .folder-card {
   background: rgba(255, 255, 255, 0.55);
@@ -10258,4 +10339,1000 @@ body.light .spine-theme-wood .spine-shelf-board {
   box-shadow: none;
   cursor: default;
   pointer-events: none;
+}
+
+/* ---------- Glow that travels around the card rim ----------
+   Based on Uiverse.io by dylanharriscameron (MIT). Instead of a blurred
+   blob behind an inset panel, a soft radial highlight is masked to a thin
+   ring and walked through the four corners. Hover only (plus keyboard focus)
+   so a full grid never animates at once; 5★ favourites keep it on. */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: var(--card-glow-width, 3px);
+  border-radius: inherit;
+  background: radial-gradient(circle, var(--card-glow-color, var(--accent-strong)) 0%, transparent 38%) 0 0 / 200% 200% no-repeat;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+@media (hover: hover) {
+  .card:hover::after {
+    opacity: 1;
+    animation: card-glow-orbit 3s ease infinite;
+  }
+}
+.card:focus-visible::after,
+.card-favorite::after {
+  opacity: 1;
+  animation: card-glow-orbit 3s ease infinite;
+}
+.card-digital {
+  --card-glow-color: #5aa8f5;
+}
+.card-criterion {
+  --card-glow-color: #e0455e;
+}
+@keyframes card-glow-orbit {
+  0%, 100% { background-position: 0 0; }
+  25% { background-position: 100% 0; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card::after {
+    animation: none !important;
+  }
+}
+
+/* ---------- Shine that sweeps across a heading ----------
+   Based on Uiverse.io by devkatyall (MIT). The text stays fully legible:
+   a thin highlight layer sits on top of the element's own fill
+   (--shine-base) and both are clipped to the glyphs. Long pause, then one
+   quick sweep, so it reads as a glint rather than a loop. */
+.text-shine {
+  --shine-base: linear-gradient(var(--text), var(--text));
+  --shine-color: rgba(255, 255, 255, 0.9);
+  background-image:
+    linear-gradient(110deg, transparent 41%, var(--shine-color) 50%, transparent 59%),
+    var(--shine-base);
+  background-size: 250% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: 100% 0, 0 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: text-shine-sweep 6s ease-in-out infinite;
+}
+.landing-gold-text.text-shine {
+  --shine-base: linear-gradient(100deg, #f8ecc9 0%, #e3b53f 42%, #f4d489 70%, #b37b18 100%);
+  --shine-color: #fffaf0;
+}
+body.light .brand-title.text-shine {
+  --shine-color: var(--accent-strong);
+}
+@keyframes text-shine-sweep {
+  0%, 70% { background-position: 100% 0, 0 0; }
+  100% { background-position: 0% 0, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .text-shine {
+    animation: none;
+  }
+}
+
+/* ---------- Home tiles: gradient frame + coloured glow on hover ----------
+   Based on Uiverse.io by gharsh11032000 (MIT). The original rotates a
+   portrait frame 90°, which doesn't fit wide tiles, so the frame instead
+   fades in as a gradient ring and springs outward a little, and the blurred
+   gradient glow becomes a two-tone shadow (the tiles use backdrop-filter, so
+   a z-index:-1 layer can't sit behind them). Gold by default, blue for the
+   digital tiles. */
+.folder-card {
+  --tile-a: #f6d77a;
+  --tile-b: #b37b18;
+  position: relative;
+}
+.folder-card-digital {
+  --tile-a: #84ccfc;
+  --tile-b: #2f69f2;
+}
+.folder-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: linear-gradient(-45deg, var(--tile-a), var(--tile-b), var(--tile-a)) 0 0 / 200% 200%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.3s ease,
+    transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    background-position 0.8s ease;
+}
+.folder-card:hover::before,
+.folder-card:focus-visible::before,
+.folder-card:active::before {
+  opacity: 1;
+  transform: scale(1.025, 1.08);
+  background-position: 100% 100%;
+}
+.folder-card:hover,
+.folder-card:focus-visible,
+.folder-card:active {
+  border-color: transparent;
+  box-shadow:
+    -14px 10px 34px -10px color-mix(in srgb, var(--tile-a) 55%, transparent),
+    14px 14px 34px -10px color-mix(in srgb, var(--tile-b) 60%, transparent);
+}
+.folder-card:focus-visible {
+  outline: none;
+}
+/* Keep each tile's own tint on hover instead of the generic grey glass. */
+.folder-card-physical:hover {
+  background: linear-gradient(120deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.05));
+}
+.folder-card-digital:hover {
+  background: linear-gradient(120deg, rgba(28, 61, 90, 0.42), rgba(28, 61, 90, 0.14));
+}
+body.light .folder-card-physical:hover {
+  background: linear-gradient(120deg, rgba(212, 175, 55, 0.22), rgba(255, 255, 255, 0.7));
+}
+body.light .folder-card-digital:hover {
+  background: linear-gradient(120deg, rgba(28, 61, 90, 0.2), rgba(255, 255, 255, 0.7));
+}
+.folder-icon {
+  transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.folder-card:hover .folder-icon,
+.folder-card:focus-visible .folder-icon {
+  transform: rotate(-14deg) scale(1.06);
+}
+@media (prefers-reduced-motion: reduce) {
+  .folder-card::before {
+    transition: opacity 0.3s ease;
+  }
+  .folder-icon {
+    transition: none;
+  }
+  .folder-card:hover .folder-icon,
+  .folder-card:focus-visible .folder-icon {
+    transform: none;
+  }
+  .folder-card:hover::before,
+  .folder-card:focus-visible::before,
+  .folder-card:active::before {
+    transform: none;
+  }
+}
+
+/* ---------- Freeze the page behind any open modal ----------
+   The wheel used to scroll the archive behind the overlay (and chain into
+   it once the modal hit its end). html is the scroller here (html/body
+   both set overflow-x), so lock it while any .modal-overlay is mounted;
+   the gutter stays reserved so the layout doesn't shift. */
+html:has(.modal-overlay) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+.modal-overlay,
+.modal-cine,
+.edit-modal {
+  overscroll-behavior: contain;
+}
+
+/* ---------- Person modal: same travelling rim glow as the grid cards ----------
+   Gold for Blu-ray titles, blue for digital ones (hover border follows). */
+.person-film-card {
+  --card-glow-color: var(--accent-strong);
+  position: relative;
+  /* Colour is visible at rest too, not only on hover. */
+  border-color: color-mix(in srgb, #d4af37 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #d4af37 18%, transparent);
+}
+.person-film-card:hover {
+  border-color: #d4af37;
+}
+.person-film-digital {
+  --card-glow-color: #5aa8f5;
+  border-color: color-mix(in srgb, #3f8de0 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #3f8de0 20%, transparent);
+}
+.person-film-digital:hover {
+  border-color: #3f8de0;
+}
+.person-film-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: var(--card-glow-width, 3px);
+  border-radius: inherit;
+  background: radial-gradient(circle, var(--card-glow-color) 0%, transparent 38%) 0 0 / 200% 200% no-repeat;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+@media (hover: hover) {
+  .person-film-card:hover::after {
+    opacity: 1;
+    animation: card-glow-orbit 3s ease infinite;
+  }
+}
+.person-film-card:focus-visible::after {
+  opacity: 1;
+  animation: card-glow-orbit 3s ease infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .person-film-card::after {
+    animation: none !important;
+  }
+}
+
+/* ---------- Home panel: gold light orbiting the frame ----------
+   A conic highlight masked to a thin ring; --marquee-orbit is an animatable
+   angle (@property) so the light glides evenly around the whole rectangle. */
+@property --marquee-orbit {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+.marquee-band::after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: -1px;
+  z-index: 5;
+  padding: 2.5px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--marquee-orbit),
+    transparent 0deg 260deg,
+    color-mix(in srgb, var(--marquee-gold) 45%, transparent) 315deg,
+    #f6d77a 350deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+  animation: marquee-orbit 6s linear infinite;
+}
+body.light .marquee-band::after {
+  background: conic-gradient(
+    from var(--marquee-orbit),
+    transparent 0deg 260deg,
+    color-mix(in srgb, var(--marquee-gold) 45%, transparent) 315deg,
+    #c9941f 350deg,
+    transparent 360deg
+  );
+}
+@keyframes marquee-orbit {
+  to { --marquee-orbit: 360deg; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-band::after {
+    animation: none;
+  }
+}
+
+/* ---------- Shelf hover-expand: full-bleed poster ----------
+   Based on Skiper UI HoverExpand_001 (attribution: Skiper UI). Instead of the
+   framed cream card, the opened case shows the poster edge to edge at its own
+   2:3 ratio, with a soft dark gradient from the bottom carrying the title,
+   and opens/closes with one smooth 0.3s ease. */
+.bluray-case,
+.bluray-case-near {
+  transition:
+    flex-basis 0.3s ease-in-out,
+    min-width 0.3s ease-in-out,
+    border-radius 0.3s ease-in-out,
+    transform 0.3s ease-in-out,
+    box-shadow 0.3s ease;
+}
+.bluray-case:hover {
+  flex: 0 0 calc(207px * var(--spine-scale, 1));
+  border-radius: 14px;
+  transition:
+    flex-basis 0.3s ease-in-out,
+    border-radius 0.3s ease-in-out,
+    transform 0.3s ease-in-out,
+    box-shadow 0.3s ease;
+}
+.case-expand-view {
+  background: #000;
+  border: 0;
+  box-shadow: none;
+  color: #fff;
+  transition: opacity 0.3s ease;
+}
+.bluray-case:hover .case-expand-view {
+  transition: opacity 0.3s ease 0.08s;
+}
+.case-expand-poster {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+.case-expand-poster img {
+  object-fit: cover;
+}
+.case-expand-info {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  flex: none;
+  padding: 48px 12px 10px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.4) 55%, transparent);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.bluray-case:hover .case-expand-info {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.15s;
+}
+.case-expand-title {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.case-expand-year,
+.case-expand-director {
+  color: rgba(255, 255, 255, 0.6);
+}
+.case-expand-badges {
+  color: #f2c75c;
+}
+.bluray-case:hover .case-glare {
+  opacity: 0.35;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bluray-case,
+  .bluray-case-near,
+  .bluray-case:hover,
+  .case-expand-info {
+    transition: none;
+  }
+}
+
+/* ---------- Cast: hover-expand strip ----------
+   Based on Skiper UI HoverExpand_001 (attribution: Skiper UI). Actor photos
+   sit side by side as tall slim strips; the active one widens and shows the
+   name and character over a dark bottom gradient. Hover/focus opens one on
+   desktop; on touch the first tap opens it and a second tap (or click on
+   the open one) goes to the person page. Scrolls sideways when the cast is
+   long. Selectors carry .cine-col-cast / .cine-cast-grid so they win over the
+   older small-avatar rules for the wide modal. */
+.cine-col-cast .cine-cast-grid.cine-cast-expand {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  max-width: none;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item {
+  position: relative;
+  flex: 0 0 46px;
+  width: auto;
+  height: 210px;
+  gap: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  transform: none;
+  background: var(--surface-2);
+  transition: flex-basis 0.3s ease-in-out, box-shadow 0.3s ease;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item.is-active {
+  flex-basis: 156px;
+  box-shadow: 0 0 0 1.5px var(--accent), 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-avatar-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+  box-shadow: none;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-img {
+  filter: brightness(0.7) saturate(0.8);
+  transition: filter 0.3s ease;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item.is-active .cine-actor-img {
+  filter: none;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-fallback {
+  /* آیکن بالا، تا با اسم عمودی پایین تداخل نکند */
+  align-items: flex-start;
+  padding-top: 18px;
+  box-sizing: border-box;
+}
+.cine-cast-expand .cine-cast-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 40px 10px 10px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.35) 60%, transparent);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+.cine-cast-expand .cine-cast-item.is-active .cine-cast-caption {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.12s;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-name {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-character {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item,
+  .cine-cast-expand .cine-cast-caption {
+    transition: none;
+  }
+}
+
+/* Closed strips: wider so faces read, photo anchored on the face, and the
+   actor's name printed vertically so you can tell who's who without hovering. */
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item {
+  flex-basis: 76px;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item.is-active {
+  flex-basis: 160px;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-actor-img {
+  object-position: 50% 22%;
+  filter: brightness(0.85) saturate(0.85);
+}
+.cine-cast-vlabel {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  z-index: 2;
+  max-height: 72%;
+  writing-mode: vertical-rl;
+  transform: translateX(-50%) rotate(180deg);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+/* dark bottom gradient under the vertical name (closed strips) */
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 70%;
+  z-index: 1;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item.is-active::after {
+  opacity: 0;
+}
+.cine-cast-expand .cine-cast-caption {
+  z-index: 2;
+}
+.cine-cast-expand .cine-cast-item.is-active .cine-cast-vlabel {
+  opacity: 0;
+}
+
+/* جوایز کارگردان: ردیف‌های ساده با خط جداکننده، سال طلایی سمت چپ */
+.person-awards-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.person-award-row {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.person-award-row:last-child {
+  border-bottom: 0;
+}
+.person-award-year {
+  color: #d4af37;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.person-award-text {
+  color: var(--text);
+}
+.person-award-work {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.person-award-own {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  font: inherit;
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 700;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.person-award-own.is-bluray {
+  color: #d4af37;
+}
+.person-award-own.is-digital {
+  color: #4ea1ff;
+}
+.person-award-own:hover {
+  background: color-mix(in srgb, currentColor 15%, transparent);
+}
+.person-award-work .person-recommendation-order {
+  margin-inline-start: 8px;
+  font-style: normal;
+  vertical-align: middle;
+}
+.person-award-fest {
+  display: inline-block;
+  min-width: 30px;
+  margin-inline-end: 7px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--fest) 18%, transparent);
+  color: var(--fest);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+  vertical-align: 1px;
+}
+.crew-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-inline-end: 7px;
+  vertical-align: middle;
+  border: 1px solid color-mix(in srgb, #d4af37 60%, transparent);
+}
+.cine-actor-count {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #d4af37;
+}
+.cine-interview-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+}
+.cine-interview-link:hover {
+  color: #d4af37;
+}
+.cine-stills {
+  margin-top: 22px;
+}
+/* شبکه‌ی چندردیفه، بدون اسکرول افقی */
+.cine-stills-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.cine-still {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--border-strong);
+  cursor: zoom-in;
+}
+.cine-still img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+.cine-still:hover img {
+  transform: scale(1.06);
+}
+@media (max-width: 640px) {
+  .cine-stills-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Discover tab */
+.discover-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.discover-year {
+  width: auto;
+  min-width: 90px;
+}
+.discover-decades {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+.discover-decade-row {
+  display: grid;
+  grid-template-columns: 56px minmax(40px, 30%) 1fr;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.discover-decade {
+  font-weight: 700;
+  color: #d4af37;
+}
+.discover-decade-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #d4af37, color-mix(in srgb, #d4af37 30%, transparent));
+}
+.discover-decade-genres {
+  color: var(--muted);
+}
+.discover-mismatch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  font-size: 13px;
+}
+.discover-mismatch-item {
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.discover-mismatch-item:hover {
+  border-color: #d4af37;
+}
+@media (max-width: 640px) {
+  .discover-decade-row {
+    grid-template-columns: 48px 1fr;
+  }
+  .discover-decade-genres {
+    grid-column: 1 / -1;
+  }
+}
+.cine-auto-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.cine-auto-tag {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #d4af37 55%, transparent);
+  color: #d4af37;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.cine-auto-tag.tag-cult {
+  border-color: #c04de0;
+  color: #d98bf0;
+}
+.cine-auto-tag.tag-experimental {
+  border-color: #3fc6b8;
+  color: #6fe0d4;
+}
+.dashboard-badge-owned {
+  top: 7px;
+  left: 7px;
+  background: #2f9e5b;
+  color: #fff;
+}
+.discover-mismatch-item.is-right {
+  border-color: #2f9e5b;
+  background: color-mix(in srgb, #2f9e5b 16%, transparent);
+  color: #7fe0a6;
+}
+.discover-mismatch-item.is-wrong {
+  border-color: #d9534f;
+  background: color-mix(in srgb, #d9534f 14%, transparent);
+  color: #f19a97;
+}
+.year-ok-text { color: #7fe0a6; font-weight: 700; }
+.year-bad-text { color: #f19a97; font-weight: 700; }
+.discover-mismatch-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.discover-fix-btn {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 0;
+  background: #2f9e5b;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.discover-fix-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.cine-related {
+  margin-top: 22px;
+}
+.cine-related-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cine-related-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  font-size: 12.5px;
+}
+.cine-related-item.is-owned {
+  border-color: color-mix(in srgb, #2f9e5b 60%, transparent);
+}
+.cine-related-kind {
+  color: var(--muted);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.cine-related-title {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+}
+button.cine-related-title {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, #2f9e5b 60%, transparent);
+}
+.cine-related-owned {
+  color: #7fe0a6;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.cine-related-order {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 0;
+  background: #7c4dff;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cine-related-order:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+a.cine-related-title {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, #f5c518 60%, transparent);
+}
+a.cine-related-title:hover {
+  color: #f5c518;
+}
+.cine-related-imdb {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #f5c518;
+  color: #000;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+/* فیلم‌های پربازیگر (تا ۱۲): ردیف بازیگرها تمام‌عرض، Crew و Trailer زیرش */
+.cine-bottom-row.has-many-cast {
+  grid-template-columns: 1fr 160px;
+}
+.cine-bottom-row.has-many-cast .cine-col-cast {
+  grid-column: 1 / -1;
+}
+/* نوارهای بسته کوچیک می‌شن تا همه تو عرض جا بشن؛ اسکرول افقی فقط اگه واقعاً لازم باشه، بدون نوار */
+.cine-col-cast .cine-cast-grid.cine-cast-expand {
+  scrollbar-width: none;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand::-webkit-scrollbar {
+  display: none;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item {
+  flex: 0 1 76px;
+  min-width: 40px;
+}
+.cine-col-cast .cine-cast-grid.cine-cast-expand .cine-cast-item.is-active {
+  flex: 0 0 160px;
+}
+@container cine-modal (max-width: 560px) {
+  .cine-bottom-row.has-many-cast {
+    grid-template-columns: 1fr;
+  }
+}
+/* ریزعکس پوسترها زیر دسته‌کارت */
+.cine-poster-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 26px;
+  position: relative;
+  z-index: 2;
+}
+.cine-poster-thumb {
+  width: 44px;
+  height: 64px;
+  padding: 0;
+  border: 1.5px solid transparent;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--border-strong);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s, border-color 0.2s;
+}
+.cine-poster-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cine-poster-thumb:hover {
+  opacity: 0.9;
+}
+.cine-poster-thumb.is-active {
+  opacity: 1;
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.cine-related-rating {
+  color: #f5c518;
+  font-size: 11px;
+  font-weight: 700;
+}
+/* آیتم‌های grid پیش‌فرض min-width:auto دارن؛ نوار ۱۲ بازیگر کل ردیف رو پهن
+   می‌کرد و تو موبایل Crew/Trailer از صفحه بیرون می‌زد. حالا نوار خودش اسکرول می‌خوره. */
+.cine-bottom-row > * {
+  min-width: 0;
+}
+/* نوار بازیگرها تو موبایل با انگشت افقی کشیده بشه (والد مودال pan-y داره) */
+.cine-col-cast .cine-cast-grid.cine-cast-expand {
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* صفحه‌ی جدای The Year in Film / Movements & Cult */
+.discover-page {
+  max-width: 1510px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+.discover-page-back {
+  margin-bottom: 18px;
+}
+.discover-page .oscars-panel h2.discover-home-title {
+  text-transform: none;
+  margin: 0 0 6px;
+  font-family: var(--font-display, inherit);
+  font-size: 28px;
+  letter-spacing: 0.02em;
+  color: #d4af37;
+}
+.dashboard-media-bluray {
+  bottom: 7px;
+  left: 7px;
+  background: #d4af37;
+  color: #1a1305;
+}
+.dashboard-media-digital {
+  bottom: 7px;
+  right: 7px;
+  background: #3f8de0;
+  color: #fff;
+}
+.discover-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 18px 0 6px;
+  font-size: 13px;
+}
+.discover-search {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 0 12px;
 }

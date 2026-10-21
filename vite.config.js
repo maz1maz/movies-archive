@@ -8,6 +8,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    // سینتکس قدیمی‌تر: WebView تلویزیون‌های اندروید قدیمی (Chrome ~70) بدون این
+    // کل بخش JS رو نمی‌خونن و صفحه سفید می‌مونه (?. و ?? از ES2020 هستن)
+    target: ['es2019', 'chrome70'],
   },
   server: {
     host: true,

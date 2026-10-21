@@ -1,6 +1,7 @@
 import { ENRICHABLE_FIELDS, isEmptyMetadata } from '../helpers.js'
 import { enrichFilm } from '../omdb.js'
 import { isCacheFresh } from './cache.js'
+import { tmdbFetch } from './tmdb.js'
 import { applyTmdbExtras, fetchTmdbExtras } from './tmdbEnrich.js'
 
 
@@ -78,7 +79,7 @@ export async function fetchCollectionDetails(db, env, collectionId) {
 
   if (!env.TMDB_API_KEY) return null
   try {
-    const res = await fetch(`https://api.themoviedb.org/3/collection/${collectionId}?api_key=${env.TMDB_API_KEY}`)
+    const res = await tmdbFetch(`https://api.themoviedb.org/3/collection/${collectionId}?api_key=${env.TMDB_API_KEY}`, env)
     if (!res.ok) return null
     const data = await res.json()
     const result = {
@@ -109,48 +110,96 @@ export async function fetchCollectionDetails(db, env, collectionId) {
 // یه فیلم رو به یه TMDB collection وصل می‌کنه (اگه قبلاً چک نشده باشه). نتیجه
 // رو مستقیم روی ردیف films ذخیره می‌کنه (collectionId='' یعنی چک‌شده و متعلق
 // به هیچ مجموعه‌ای نیست، تا دوباره هر بار fetch نشه).
+const COLLECTION_RECHECK_MS = 30 * 24 * 60 * 60 * 1000
+
+// زمان آخرین چکِ عضویت هر فیلم تو cinema_news_cache (کلید collcheck:<id>)
+// نگه داشته می‌شه تا بدون تغییر schema هر ۳۰ روز یه بار دوباره چک بشه.
+// ردیف‌های قدیمی که هنوز زمان ندارن «همین الان چک‌شده» حساب می‌شن — یعنی
+// جوابشون می‌مونه و ۳۰ روز بعد خودکار تازه می‌شن.
+// کلید TMDB از ۲۱ سپتامبر تا این لحظه خراب بود؛ «عضو هیچ مجموعه‌ای نیست»‌هایی
+// که قبل از این زمان ثبت شدن قابل اعتماد نیستن و یه‌بار دوباره چک می‌شن.
+const TMDB_KEY_FIXED_AT = Date.parse('2026-10-16T19:30:00Z')
+
+async function collectionCheckIsFresh(db, filmId, isEmpty = false) {
+  const key = `collcheck:${filmId}`
+  try {
+    const row = await db.prepare('SELECT fetchedAt FROM cinema_news_cache WHERE key = ?').bind(key).first()
+    if (!row) {
+      if (isEmpty) return false
+      await markCollectionChecked(db, filmId)
+      return true
+    }
+    const checkedAt = new Date(row.fetchedAt.replace(' ', 'T') + (row.fetchedAt.endsWith('Z') ? '' : 'Z')).getTime()
+    if (isEmpty && checkedAt < TMDB_KEY_FIXED_AT) return false
+    return Date.now() - checkedAt < COLLECTION_RECHECK_MS
+  } catch {
+    return true
+  }
+}
+
+async function markCollectionChecked(db, filmId) {
+  try {
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))")
+      .bind(`collcheck:${filmId}`)
+      .run()
+  } catch {}
+}
+
 export async function resolveFilmCollection(db, env, film) {
-  if (film.collectionId != null) {
-    // قبلاً چک شده — یا عضو یه مجموعه‌ست، یا مطمئنیم که نیست
+  if (film.collectionId != null && (await collectionCheckIsFresh(db, film.id, film.collectionId === ''))) {
+    // تو ۳۰ روز اخیر چک شده — یا عضو یه مجموعه‌ست، یا مطمئنیم که نیست
     if (!film.collectionId) return null
     return { collectionId: film.collectionId, collectionName: film.collectionName, collectionPoster: film.collectionPoster }
   }
+  const cachedResult = film.collectionId
+    ? { collectionId: film.collectionId, collectionName: film.collectionName, collectionPoster: film.collectionPoster }
+    : null
   if (!env.TMDB_API_KEY || film.itemType === 'series') {
     return null // TMDB collections فقط برای فیلمن، نه سریال
   }
 
   let tmdbMovieId = null
+  // فقط وقتی همه‌ی درخواست‌های TMDB واقعاً جواب دادن «عضو هیچ مجموعه‌ای
+  // نیست» ('') ذخیره می‌شه. قبلاً یه خطای گذرا (429/شبکه) هم '' دائمی
+  // می‌نوشت و فیلمی مثل Casino Royale برای همیشه مجموعه‌ش رو گم می‌کرد.
+  let lookupFailed = false
   try {
     if (film.imdbId) {
-      const findRes = await fetch(
-        `https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`
-      )
+      const findRes = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`, env)
       if (findRes.ok) {
         const findData = await findRes.json()
         tmdbMovieId = findData?.movie_results?.[0]?.id || null
+      } else {
+        lookupFailed = true
       }
     }
     if (!tmdbMovieId && film.title) {
       const q = encodeURIComponent(film.title)
       const yearParam = film.year ? `&year=${film.year}` : ''
-      const searchRes = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${env.TMDB_API_KEY}&query=${q}${yearParam}`)
+      const searchRes = await tmdbFetch(`https://api.themoviedb.org/3/search/movie?api_key=${env.TMDB_API_KEY}&query=${q}${yearParam}`, env)
       if (searchRes.ok) {
         const searchData = await searchRes.json()
         tmdbMovieId = searchData?.results?.[0]?.id || null
+      } else {
+        lookupFailed = true
       }
     }
     if (!tmdbMovieId) {
+      if (lookupFailed) return cachedResult
       await db.prepare("UPDATE films SET collectionId = '' WHERE id = ?").bind(film.id).run()
+      await markCollectionChecked(db, film.id)
       return null
     }
 
-    const movieRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbMovieId}?api_key=${env.TMDB_API_KEY}`)
-    if (!movieRes.ok) return null
+    const movieRes = await tmdbFetch(`https://api.themoviedb.org/3/movie/${tmdbMovieId}?api_key=${env.TMDB_API_KEY}`, env)
+    if (!movieRes.ok) return cachedResult
     const movieData = await movieRes.json()
     const collection = movieData.belongs_to_collection
 
     if (!collection) {
       await db.prepare("UPDATE films SET collectionId = '' WHERE id = ?").bind(film.id).run()
+      await markCollectionChecked(db, film.id)
       return null
     }
 
@@ -159,9 +208,10 @@ export async function resolveFilmCollection(db, env, film) {
       .prepare('UPDATE films SET collectionId = ?, collectionName = ?, collectionPoster = ? WHERE id = ?')
       .bind(String(collection.id), collection.name, collectionPoster, film.id)
       .run()
+    await markCollectionChecked(db, film.id)
     return { collectionId: String(collection.id), collectionName: collection.name, collectionPoster }
   } catch {
-    return null
+    return cachedResult
   }
 }
 
@@ -434,18 +484,29 @@ export async function fetchAltPosters(db, env, film) {
     }
   } catch {}
 
-  if (!env.TMDB_API_KEY || !film.imdbId) return []
+  if (!env.TMDB_API_KEY) return []
   try {
     const mediaType = film.itemType === 'series' ? 'tv' : 'movie'
-    const findRes = await fetch(
-      `https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`
-    )
-    if (!findRes.ok) return []
-    const findData = await findRes.json()
-    const tmdbId = findData?.[`${mediaType}_results`]?.[0]?.id
+    let tmdbId = null
+    if (film.imdbId) {
+      const findRes = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`, env)
+      if (!findRes.ok) return []
+      const findData = await findRes.json()
+      tmdbId = findData?.[`${mediaType}_results`]?.[0]?.id || null
+    }
+    // حدود ۲۰٪ آرشیو imdbId نداره و قبلاً همیشه فقط یه پوستر می‌گرفت —
+    // حالا با عنوان+سال تو TMDB جست‌وجو می‌کنیم (مثل resolveFilmCollection).
+    if (!tmdbId && film.title) {
+      const yearKey = mediaType === 'tv' ? 'first_air_date_year' : 'year'
+      const yearParam = film.year ? `&${yearKey}=${film.year}` : ''
+      const searchRes = await tmdbFetch(`https://api.themoviedb.org/3/search/${mediaType}?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))}${yearParam}`, env)
+      if (!searchRes.ok) return []
+      const searchData = await searchRes.json()
+      tmdbId = searchData?.results?.[0]?.id || null
+    }
     if (!tmdbId) return []
 
-    const imgRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/images?api_key=${env.TMDB_API_KEY}`)
+    const imgRes = await tmdbFetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}/images?api_key=${env.TMDB_API_KEY}`, env)
     if (!imgRes.ok) return []
     const imgData = await imgRes.json()
     const candidates = (imgData.posters || [])
@@ -704,4 +765,429 @@ export async function syncSharedMetadataToSibling(db, film) {
     }
   }
   if (changed) await updateFilm(db, siblingParsed)
+}
+
+
+// ---------- پر کردن imdbId گمشده از TMDB ----------
+// حدود ۲۰٪ آرشیو imdbId نداره (اسم/سال برای OMDb قابل‌تشخیص نبوده)، پس نه
+// پوستر جایگزین داره نه امتیاز IMDb. هر بار کرون یه دسته‌ی کوچیک رو با
+// جست‌وجوی TMDB پیدا می‌کنه — فقط وقتی عنوان (یا عنوان اصلی) دقیقاً یکی و
+// سال حداکثر ۱ سال فرق داره ذخیره می‌کنه، تا فیلم هم‌نام اشتباه ثبت نشه.
+// هر فیلم فقط یه‌بار امتحان می‌شه (کلید imdbfill:<id> تو cinema_news_cache).
+const normForMatch = (t) =>
+  (t || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/^(the|a|an)\s+/, '')
+    .replace(/[^a-z0-9Ѐ-ӿ؀-ۿ぀-ヿ一-鿿]+/g, '')
+
+export async function backfillImdbIds(db, env, limit = 20) {
+  if (!env.TMDB_API_KEY) return { processed: 0, matched: 0 }
+  const rows = await db
+    .prepare(
+      `SELECT id, title, year, itemType FROM films
+       WHERE (imdbId IS NULL OR imdbId = '') AND year IS NOT NULL AND title IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM cinema_news_cache c WHERE c.key = 'imdbfill:' || films.id)
+       LIMIT ?`
+    )
+    .bind(limit)
+    .all()
+  let processed = 0
+  let matched = 0
+  for (const film of rows.results || []) {
+    const isTv = film.itemType === 'series'
+    const kind = isTv ? 'tv' : 'movie'
+    const query = encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))
+    const searchRes = await tmdbFetch(`https://api.themoviedb.org/3/search/${kind}?api_key=${env.TMDB_API_KEY}&query=${query}`, env)
+    if (!searchRes.ok) break // TMDB در دسترس نیست / rate limit — دفعه‌ی بعد ادامه
+    const searchData = await searchRes.json()
+    const want = normForMatch(film.title)
+    const year = Number(film.year)
+    const hit = (searchData.results || []).find((r) => {
+      const y = parseInt(((isTv ? r.first_air_date : r.release_date) || '').slice(0, 4), 10)
+      if (!y || Math.abs(y - year) > 1) return false
+      const names = isTv ? [r.name, r.original_name] : [r.title, r.original_title]
+      return names.some((n) => n && normForMatch(n) === want)
+    })
+    let imdbId = null
+    if (hit) {
+      const extRes = await tmdbFetch(`https://api.themoviedb.org/3/${kind}/${hit.id}/external_ids?api_key=${env.TMDB_API_KEY}`, env)
+      if (!extRes.ok) break
+      const ext = await extRes.json()
+      if (/^tt\d+$/.test(ext?.imdb_id || '')) imdbId = ext.imdb_id
+    }
+    if (imdbId) {
+      // metadataEnrichmentAttemptedAt خالی می‌شه تا enrich روزانه با همین
+      // imdbId امتیاز/اطلاعات IMDb رو پر کنه؛ کش پوسترها هم پاک می‌شه.
+      await db
+        .prepare("UPDATE films SET imdbId = ?, metadataEnrichmentAttemptedAt = NULL WHERE id = ? AND (imdbId IS NULL OR imdbId = '')")
+        .bind(imdbId, film.id)
+        .run()
+      await db.prepare('DELETE FROM cinema_news_cache WHERE key = ?').bind(`posters:${film.id}`).run()
+      matched++
+    }
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+      .bind(`imdbfill:${film.id}`, imdbId || '')
+      .run()
+    processed++
+  }
+  return { processed, matched }
+}
+
+
+// ---------- بازیگران کامل از TMDB (یه‌بار، ذخیره تو خود ردیف فیلم) ----------
+// OMDb فقط ۳ بازیگر اصلی می‌ده (بدون نقش/عکس). اولین بار که فیلمی با ۳ یا
+// کمتر بازیگر باز می‌شه، تا ۱۲ بازیگر با نقش و عکس از TMDB گرفته و مستقیم
+// تو ستون cast ذخیره می‌شه — دفعه‌های بعد از همون دیتابیس میاد. هر فیلم فقط
+// یه‌بار امتحان می‌شه (castfill:<id>)، مگه TMDB جواب نده که بعداً دوباره.
+export async function fetchFullCast(db, env, film) {
+  if (!env.TMDB_API_KEY || !film) return null
+  const flagKey = `castfill:${film.id}`
+  const tried = await db.prepare('SELECT 1 FROM cinema_news_cache WHERE key = ?').bind(flagKey).first()
+  if (tried) return null
+  const markTried = () =>
+    db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))")
+      .bind(flagKey)
+      .run()
+  const isTv = film.itemType === 'series'
+  const kind = isTv ? 'tv' : 'movie'
+  const key = env.TMDB_API_KEY
+  let tmdbId = null
+  if (film.imdbId) {
+    const r = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${key}&external_source=imdb_id`, env)
+    if (!r.ok) return null
+    const d = await r.json()
+    tmdbId = d?.[`${kind}_results`]?.[0]?.id || null
+  }
+  if (!tmdbId && film.title) {
+    const yearKey = isTv ? 'first_air_date_year' : 'year'
+    const yearParam = film.year ? `&${yearKey}=${film.year}` : ''
+    const r = await tmdbFetch(
+      `https://api.themoviedb.org/3/search/${kind}?api_key=${key}&query=${encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))}${yearParam}`,
+      env
+    )
+    if (!r.ok) return null
+    const d = await r.json()
+    tmdbId = d?.results?.[0]?.id || null
+  }
+  if (!tmdbId) {
+    await markTried()
+    return null
+  }
+  const creditsPath = isTv ? `tv/${tmdbId}/aggregate_credits` : `movie/${tmdbId}/credits`
+  const r = await tmdbFetch(`https://api.themoviedb.org/3/${creditsPath}?api_key=${key}`, env)
+  if (!r.ok) return null
+  const credits = await r.json()
+  const cast = (credits?.cast || [])
+    .filter((c) => c?.name)
+    .slice(0, 12)
+    .map((c) => ({
+      name: c.name,
+      character: (isTv ? c.roles?.[0]?.character : c.character) || null,
+      photo: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
+    }))
+  await markTried()
+  const current = Array.isArray(film.cast) ? film.cast : []
+  if (cast.length <= current.length) return null
+  await db.prepare('UPDATE films SET cast = ? WHERE id = ?').bind(JSON.stringify(cast), film.id).run()
+  return cast
+}
+
+// عکس بازیگر از TMDB، وقتی ویکی‌پدیا عکس نداره. هر اسم فقط یه‌بار امتحان می‌شه
+// (کلید tmdbphoto:<name>)، تا برای بی‌عکس‌ها هر بار درخواست الکی نزنیم.
+export async function fetchTmdbPersonPhoto(db, env, name) {
+  if (!env?.TMDB_API_KEY || !name) return null
+  const key = `tmdbphoto:${name.toLowerCase()}`
+  try {
+    const tried = await db.prepare('SELECT 1 FROM cinema_news_cache WHERE key = ?').bind(key).first()
+    if (tried) return null
+    const res = await tmdbFetch(
+      `https://api.themoviedb.org/3/search/person?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(name)}`,
+      env
+    )
+    if (!res.ok) return null // خطای موقت؛ علامت نزن تا دفعه‌ی بعد دوباره امتحان بشه
+    const data = await res.json()
+    const target = normForMatch(name)
+    const hit = (data.results || []).find((p) => p.profile_path && normForMatch(p.name) === target)
+    await db
+      .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))")
+      .bind(key)
+      .run()
+    return hit ? `https://image.tmdb.org/t/p/w185${hit.profile_path}` : null
+  } catch {
+    return null
+  }
+}
+
+// بک‌فیلِ پس‌زمینه‌ی بازیگرها: فیلم‌هایی که ≤۳ بازیگر دارن و هنوز امتحان نشدن.
+export async function backfillFullCast(db, env, limit = 18) {
+  if (!env.TMDB_API_KEY) return { skipped: 'no key' }
+  const { results } = await db
+    .prepare(
+      `SELECT id, title, year, imdbId, itemType, cast FROM films
+       WHERE (cast IS NULL OR cast = '' OR json_valid(cast) = 0 OR json_array_length(cast) <= 3)
+         AND NOT EXISTS (SELECT 1 FROM cinema_news_cache c WHERE c.key = 'castfill:' || films.id)
+       LIMIT ?`
+    )
+    .bind(limit)
+    .all()
+  let filled = 0
+  for (const row of results) {
+    const got = await fetchFullCast(db, env, parseFilmRow(row)).catch(() => null)
+    if (got) filled++
+  }
+  return { tried: results.length, filled }
+}
+
+// عکس‌های صحنه/پشت‌صحنه (backdrops) از TMDB، کش ۹۰ روزه تو cinema_news_cache
+// (کلید stills:<id>). فقط لینک ذخیره می‌شه، نه خودِ عکس.
+export async function fetchFilmStills(db, env, film) {
+  const key = `stills:${film.id}`
+  const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(key).first()
+  if (cached && Date.now() - Date.parse(cached.fetchedAt.replace(' ', 'T') + 'Z') < 90 * 86400000) {
+    try { return JSON.parse(cached.data) } catch {}
+  }
+  if (!env.TMDB_API_KEY) return []
+  const isTv = film.itemType === 'series'
+  const kind = isTv ? 'tv' : 'movie'
+  const apiKey = env.TMDB_API_KEY
+  let tmdbId = null
+  if (film.imdbId) {
+    const r = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${apiKey}&external_source=imdb_id`, env)
+    if (!r.ok) return []
+    tmdbId = (await r.json())?.[`${kind}_results`]?.[0]?.id || null
+  }
+  if (!tmdbId && film.title) {
+    const yearKey = isTv ? 'first_air_date_year' : 'year'
+    const yearParam = film.year ? `&${yearKey}=${film.year}` : ''
+    const r = await tmdbFetch(
+      `https://api.themoviedb.org/3/search/${kind}?api_key=${apiKey}&query=${encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))}${yearParam}`,
+      env
+    )
+    if (!r.ok) return []
+    tmdbId = (await r.json())?.results?.[0]?.id || null
+  }
+  let stills = []
+  if (tmdbId) {
+    const r = await tmdbFetch(`https://api.themoviedb.org/3/${kind}/${tmdbId}/images?api_key=${apiKey}`, env)
+    if (!r.ok) return []
+    const d = await r.json()
+    stills = (d.backdrops || [])
+      .sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+      .slice(0, 12)
+      .map((b) => `https://image.tmdb.org/t/p/w780${b.file_path}`)
+  }
+  await db
+    .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+    .bind(key, JSON.stringify(stills))
+    .run()
+  return stills
+}
+
+// برچسب‌های خودکار از keywordهای TMDB (کالت/تجربی/جنبش‌ها). بدون تغییر schema:
+// تو cinema_news_cache با کلید tags:<id> (آرایه‌ی خالی یعنی «چک شد، چیزی نداشت»).
+const TAG_RULES = [
+  ['cult', /\bcult (film|classic|movie)\b/],
+  ['experimental', /\b(experimental|avant[- ]garde|surreal|art film)\b/],
+  ['noir', /\bfilm noir\b/],
+  ['neo-noir', /\bneo[- ]noir\b/],
+  ['french-new-wave', /\bfrench new wave|nouvelle vague\b/],
+  ['neorealism', /\bneorealis/],
+  ['german-expressionism', /\bgerman expressionism|expressionism\b/],
+  ['new-hollywood', /\bnew hollywood\b/],
+  ['dogme-95', /\bdogme\b/],
+  ['slow-cinema', /\bslow cinema\b/],
+  ['imax', /\bimax\b/],
+  ['70mm', /\b70 ?mm\b/],
+]
+
+export async function fetchFilmTags(db, env, film) {
+  const key = `tags:${film.id}`
+  const cached = await db.prepare('SELECT data FROM cinema_news_cache WHERE key = ?').bind(key).first()
+  if (cached) {
+    try { return JSON.parse(cached.data) } catch { return [] }
+  }
+  if (!env.TMDB_API_KEY) return []
+  const isTv = film.itemType === 'series'
+  const kind = isTv ? 'tv' : 'movie'
+  const apiKey = env.TMDB_API_KEY
+  let tmdbId = null
+  if (film.imdbId) {
+    const r = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${apiKey}&external_source=imdb_id`, env)
+    if (!r.ok) return []
+    tmdbId = (await r.json())?.[`${kind}_results`]?.[0]?.id || null
+  }
+  if (!tmdbId && film.title) {
+    const yearKey = isTv ? 'first_air_date_year' : 'year'
+    const yearParam = film.year ? `&${yearKey}=${film.year}` : ''
+    const r = await tmdbFetch(
+      `https://api.themoviedb.org/3/search/${kind}?api_key=${apiKey}&query=${encodeURIComponent(film.title.replace(/\s*\([^)]*\)\s*$/, ''))}${yearParam}`,
+      env
+    )
+    if (!r.ok) return []
+    tmdbId = (await r.json())?.results?.[0]?.id || null
+  }
+  let tags = []
+  if (tmdbId) {
+    const r = await tmdbFetch(`https://api.themoviedb.org/3/${kind}/${tmdbId}/keywords?api_key=${apiKey}`, env)
+    if (!r.ok) return [] // خطای موقت؛ کش نکن
+    const d = await r.json()
+    const names = (d.keywords || d.results || []).map((k) => (k.name || '').toLowerCase())
+    tags = TAG_RULES.filter(([, re]) => names.some((n) => re.test(n))).map(([t]) => t)
+  }
+  await db
+    .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+    .bind(key, JSON.stringify(tags))
+    .run()
+  return tags
+}
+
+export async function backfillFilmTags(db, env, limit = 20) {
+  if (!env.TMDB_API_KEY) return { skipped: 'no key' }
+  const { results } = await db
+    .prepare(
+      `SELECT id, title, year, imdbId, itemType FROM films
+       WHERE NOT EXISTS (SELECT 1 FROM cinema_news_cache c WHERE c.key = 'tags:' || films.id)
+       LIMIT ?`
+    )
+    .bind(limit)
+    .all()
+  let tagged = 0
+  for (const row of results) {
+    const t = await fetchFilmTags(db, env, row).catch(() => [])
+    if (t.length) tagged++
+  }
+  return { tried: results.length, tagged }
+}
+
+// فیلم‌های مرتبط (ادامه/قبلی/ریمیک/اقتباس از فیلم) + فرمت اکران (IMAX/70mm/…)
+// از Wikidata بر اساس imdbId. کش ۱۸۰ روزه (کلید wdrel:<id>).
+export async function fetchFilmRelations(db, film, env) {
+  const empty = { related: [], formats: [] }
+  if (!film.imdbId) return empty
+  const key = `wdrel:${film.id}`
+  const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(key).first()
+  // پارودی‌های بزرگسال (مثل «American Hustle XXX») تو Wikidata «اقتباس» ثبت شدن — حذفشون کن
+  const ADULT = /\bxxx\b|porn|\bparody\b|erotic/i
+  const clean = (o) => ({ ...o, related: (o.related || []).filter((r) => !ADULT.test(r.title || '')) })
+  if (cached && Date.now() - Date.parse(cached.fetchedAt.replace(' ', 'T') + 'Z') < 180 * 86400000) {
+    try {
+      const parsed = JSON.parse(cached.data)
+      // کش‌های قدیمی امتیاز نداشتن — دوباره بگیر
+      const lacksRatings = (parsed.related || []).some((r) => r.imdbId && r.rating === undefined)
+      if (!lacksRatings) return clean(parsed)
+    } catch {}
+  }
+  const imdb = String(film.imdbId).replace(/[^a-z0-9]/gi, '')
+  const sparql = `SELECT ?kind ?other ?otherLabel ?otherImdb ?otherYear ?fmtLabel WHERE {
+    ?film wdt:P345 "${imdb}".
+    {
+      { ?film wdt:P155 ?other. BIND("prequel" AS ?kind) } UNION
+      { ?film wdt:P156 ?other. BIND("sequel" AS ?kind) } UNION
+      { ?film wdt:P144 ?other. ?other wdt:P31/wdt:P279* wd:Q11424. BIND("based on" AS ?kind) } UNION
+      { ?other wdt:P144 ?film. ?other wdt:P31/wdt:P279* wd:Q11424. BIND("remake / adaptation" AS ?kind) } UNION
+      { ?film wdt:P4969 ?other. BIND("remake / adaptation" AS ?kind) }
+      OPTIONAL { ?other wdt:P345 ?otherImdb. }
+      OPTIONAL { ?other wdt:P577 ?date. BIND(YEAR(?date) AS ?otherYear) }
+    } UNION {
+      ?film wdt:P437 ?fmt. BIND("format" AS ?kind)
+    }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+  } LIMIT 60`
+  const headers = {
+    'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive; personal, single-user film archive app)',
+    accept: 'application/sparql-results+json',
+  }
+  let res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
+  if (!res.ok) return empty // موقت؛ کش نکن
+  const data = await res.json()
+  const related = new Map()
+  const formats = new Set()
+  for (const b of data?.results?.bindings || []) {
+    const kind = b.kind?.value
+    if (kind === 'format') {
+      const f = (b.fmtLabel?.value || '').toLowerCase()
+      if (/imax/.test(f)) formats.add('IMAX')
+      else if (/70 ?mm/.test(f)) formats.add('70mm')
+      else if (/35 ?mm/.test(f)) formats.add('35mm')
+      else if (/16 ?mm/.test(f)) formats.add('16mm')
+      else if (/3d/.test(f)) formats.add('3D')
+      continue
+    }
+    const label = b.otherLabel?.value
+    if (!label || /^Q\d+$/.test(label) || ADULT.test(label)) continue
+    const id = b.other?.value
+    const prev = related.get(id)
+    related.set(id, {
+      kind: prev?.kind || kind,
+      title: label,
+      year: prev?.year || (b.otherYear?.value ? Number(b.otherYear.value) : null),
+      imdbId: prev?.imdbId || b.otherImdb?.value || null,
+    })
+  }
+  const relatedList = [...related.values()].slice(0, 20)
+  // امتیاز TMDB برای هر فیلم مرتبط (کلاینت فقط خوش‌امتیازها یا موجودها رو نشون می‌ده)
+  if (env?.TMDB_API_KEY) {
+    await Promise.all(
+      relatedList.slice(0, 12).map(async (r) => {
+        r.rating = null
+        r.votes = 0
+        if (!r.imdbId) return
+        try {
+          const fr = await tmdbFetch(`https://api.themoviedb.org/3/find/${r.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`, env)
+          if (!fr.ok) return
+          const fd = await fr.json()
+          const m = fd.movie_results?.[0] || fd.tv_results?.[0]
+          if (m) {
+            r.rating = m.vote_average ? Math.round(m.vote_average * 10) / 10 : null
+            r.votes = m.vote_count || 0
+          }
+        } catch {}
+      })
+    )
+  }
+  const out = { related: relatedList, formats: [...formats] }
+  await db
+    .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+    .bind(key, JSON.stringify(out))
+    .run()
+  return out
+}
+
+// پوسترهایی که لینکشون مرده (۴۰۴) — بیشترشون لینک IMDb/media-amazon هستن که
+// IMDb پاکشون کرده. برای هر کدوم پوستر TMDB رو با imdbId پیدا و جایگزین می‌کنه.
+export async function repairDeadPosters(db, env, limit = 15) {
+  if (!env.TMDB_API_KEY) return { skipped: 'no key' }
+  const { results } = await db
+    .prepare(
+      `SELECT id, poster, imdbId, itemType FROM films
+       WHERE poster LIKE 'https://m.media-amazon.com/%' AND imdbId IS NOT NULL
+       LIMIT ?`
+    )
+    .bind(limit)
+    .all()
+  let repaired = 0
+  for (const film of results || []) {
+    try {
+      const res = await fetch(film.poster, {
+        method: 'HEAD',
+        headers: { 'User-Agent': 'CinefilmArchive/1.0 (personal film archive app; poster repair)' },
+        signal: AbortSignal.timeout(8000),
+      })
+      if (res.ok) continue
+      const mediaType = film.itemType === 'series' ? 'tv' : 'movie'
+      const findRes = await tmdbFetch(`https://api.themoviedb.org/3/find/${film.imdbId}?api_key=${env.TMDB_API_KEY}&external_source=imdb_id`, env)
+      if (!findRes.ok) continue
+      const findData = await findRes.json()
+      const path = findData?.[`${mediaType}_results`]?.[0]?.poster_path
+      if (!path) continue
+      await db.prepare('UPDATE films SET poster = ? WHERE id = ?').bind(`https://image.tmdb.org/t/p/w500${path}`, film.id).run()
+      repaired++
+    } catch {}
+  }
+  return { tried: (results || []).length, repaired }
 }
