@@ -10,6 +10,8 @@ import DashboardPanel from './components/DashboardPanel.jsx'
 import PosterCollage from './components/PosterCollage.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
+import ImportReviewModal from './components/ImportReviewModal.jsx'
+import MissingImdbModal from './components/MissingImdbModal.jsx'
 import { IconArchive, IconClose } from './components/icons.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 import { useTheme } from './context/ThemeContext.jsx'
@@ -195,6 +197,9 @@ export default function App() {
   const [photoScanOpen, setPhotoScanOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [enrichingCatalog, setEnrichingCatalog] = useState(false)
+  const [backfillingImdb, setBackfillingImdb] = useState(false)
+  const [missingImdbOpen, setMissingImdbOpen] = useState(false)
+  const [importReview, setImportReview] = useState(null) // {file, flagged, count} | null
   const [enrichRemaining, setEnrichRemaining] = useState(null)
 
   // section (physical/physical-series/digital-movie/digital-series) رو به
@@ -362,7 +367,7 @@ export default function App() {
   }
 
   const loadAllFilmsUnfiltered = () => {
-    fetch('/api/films')
+    return fetch('/api/films')
       .then((r) => r.json())
       .then((data) => {
         // همون مشکل loadFilms: اگه بجای آرایه، پاسخ خطا برگرده (مثلاً زیر بار
@@ -427,9 +432,31 @@ export default function App() {
     setDeepLinkReady(true)
   }, [allFilmsUnfiltered])
 
+  // اول پیش‌نمایش: ردیف‌هایی که شبیه فیلمی تو آرشیو هستن (هم‌عنوان) برمی‌گردن
+  // و قبل از ذخیره با پوستر کنار هم نشون داده می‌شن تا کاربر تصمیم بگیره.
   const handleImport = async (file) => {
     const fd = new FormData()
     fd.append('file', file)
+    showToast('Checking Excel file for duplicates…')
+    try {
+      const res = await fetch('/api/import?preview=1', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'import failed')
+      if (data.flagged?.length) {
+        setImportReview({ file, flagged: data.flagged, count: data.count, newCount: data.newCount })
+        return
+      }
+    } catch (e) {
+      showToast(e.message)
+      return
+    }
+    runImport(file, {})
+  }
+
+  const runImport = async (file, decisions) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('decisions', JSON.stringify(decisions))
     showToast('Importing Excel file…')
     try {
       const res = await fetch('/api/import', { method: 'POST', body: fd })
@@ -449,6 +476,7 @@ export default function App() {
 
       showToast(
         `Imported: ${data.added} new, ${data.updated} updated` +
+          (data.skipped ? `, ${data.skipped} skipped` : '') +
           (data.enriched ? `, ${data.enriched} auto-enriched from OMDb` : '') +
           (total != null ? ` — ${total} films total` : ''),
         7000
@@ -460,8 +488,30 @@ export default function App() {
       loadFilms()
       refreshMeta()
       loadAllFilmsUnfiltered()
+      if (data.addedIds?.length) fillImdbIdsFor(data.addedIds)
     } catch (e) {
       showToast(e.message)
+    }
+  }
+
+  // بعد از ایمپورت، شناسه‌ی IMDb فیلم‌های تازه‌اضافه‌شده رو بی‌صدا پر می‌کنیم
+  // (۴تا ۴تا، به‌خاطر سقف درخواست‌های ورکر) تا تشخیص تکراری بعدی دقیق باشه.
+  const fillImdbIdsFor = async (ids) => {
+    let found = 0
+    for (let i = 0; i < ids.length; i += 4) {
+      try {
+        const chunk = ids.slice(i, i + 4).join(',')
+        const res = await fetch(`/api/films/backfill-imdb?limit=4&ids=${encodeURIComponent(chunk)}`, { method: 'POST' })
+        if (!res.ok) return
+        const data = await res.json()
+        found += data.found || 0
+      } catch {
+        return
+      }
+    }
+    if (found) {
+      showToast(`Found IMDb IDs for ${found} newly imported film${found === 1 ? '' : 's'}`)
+      loadAllFilmsUnfiltered()
     }
   }
 
@@ -602,6 +652,40 @@ export default function App() {
     } catch (e) {
       showToast(e.message)
       return null
+    }
+  }
+
+  const handleBackfillImdbIds = async () => {
+    setBackfillingImdb(true)
+    let processed = 0
+    let found = 0
+    let directorsAdded = 0
+    let cursor = ''
+    try {
+      for (let batch = 0; batch < 500; batch++) {
+        const res = await fetch(`/api/films/backfill-imdb?limit=4&after=${encodeURIComponent(cursor)}`, { method: 'POST' })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'IMDb ID lookup failed')
+        processed += data.processed
+        found += data.found
+        directorsAdded += data.directorsAdded || 0
+        if (!data.processed || !data.nextCursor) break
+        cursor = data.nextCursor
+        showToast(`Finding IMDb IDs… ${found} found, ${data.remaining} left to check`, 60000)
+        if (data.remaining === 0) break
+      }
+      showToast(
+        `IMDb IDs: found ${found} of ${processed} films checked` +
+          (directorsAdded ? ` · ${directorsAdded} directors added` : ''),
+        7000
+      )
+      await loadAllFilmsUnfiltered()
+      // اونایی که پیدا نشدن رو نشون بده تا دستی (با لینک IMDb) درستشون کنی
+      if (found < processed) setMissingImdbOpen(true)
+    } catch (e) {
+      showToast(`Stopped after ${processed} films (${found} found) — ${e.message}`, 7000)
+    } finally {
+      setBackfillingImdb(false)
     }
   }
 
@@ -1134,6 +1218,9 @@ export default function App() {
         onSyncLetterboxd={handleSyncLetterboxd}
         onFetchSeasonCounts={handleFetchSeasonCounts}
         fetchingSeasonCounts={fetchingSeasonCounts}
+        onBackfillImdbIds={handleBackfillImdbIds}
+        onShowMissingImdb={() => setMissingImdbOpen(true)}
+        backfillingImdb={backfillingImdb}
         onOpenExport={() => {
           // به‌جای مودال جدای Export که تکراری بود، مستقیم می‌بره به تب
           // «Export & Backup» توی داشبورد — تنها جایی که خروجی‌ها ازونجا گرفته می‌شن.
@@ -1271,6 +1358,29 @@ export default function App() {
         />
       )}
 
+      {missingImdbOpen && (
+        <MissingImdbModal
+          films={allFilmsUnfiltered}
+          onClose={() => setMissingImdbOpen(false)}
+          onEdit={(film) => {
+            setMissingImdbOpen(false)
+            guardedEdit(film)
+          }}
+        />
+      )}
+      {importReview && (
+        <ImportReviewModal
+          flagged={importReview.flagged}
+          total={importReview.count}
+          newCount={importReview.newCount}
+          onCancel={() => setImportReview(null)}
+          onConfirm={(decisions) => {
+            const { file } = importReview
+            setImportReview(null)
+            runImport(file, decisions)
+          }}
+        />
+      )}
       {loanFilm && (
         <LoanModal
           film={loanFilm}

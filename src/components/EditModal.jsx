@@ -100,6 +100,32 @@ function normalizeTitleForMatch(t) {
     .replace(/\s+/g, ' ')
 }
 
+const itemKind = (f) => (f.itemType === 'series' ? 'series' : 'movie')
+
+// فیلم‌های هم‌خونِ آرشیو رو پیدا می‌کنه. اگه هر دو طرف شناسه‌ی IMDb دارن فقط همون
+// ملاکه؛ وگرنه عنوان (یا عنوان اصلی) باید یکی باشه *و* سال هم (اگه هر دو سال دارن).
+// این‌طوری «Dune 1984» با «Dune 2021» تکراری حساب نمی‌شه.
+function findArchiveMatches(existingFilms, candidate) {
+  if (!Array.isArray(existingFilms) || !existingFilms.length) return []
+  const titles = [candidate.title, candidate.originalTitle].map(normalizeTitleForMatch).filter(Boolean)
+  const year = candidate.year ? Number(candidate.year) : null
+  return existingFilms.filter((f) => {
+    if (candidate.itemType && itemKind(f) !== candidate.itemType) return false
+    if (candidate.imdbId && f.imdbId) return candidate.imdbId === f.imdbId
+    const fTitles = [f.title, f.originalTitle].map(normalizeTitleForMatch).filter(Boolean)
+    if (!fTitles.some((t) => titles.includes(t))) return false
+    return !year || !f.year || Number(f.year) === year
+  })
+}
+
+// کش سمت کلاینت برای پیشنهاد عنوان — همون کوئری دوباره به سرور نمی‌ره
+const titleSearchCache = new Map()
+
+function filmLocation(f) {
+  if (f.mediaType === 'digital') return f.driveNumber ? `Drive ${f.driveNumber}` : 'Digital'
+  return [f.closet, f.shelf, f.row].filter(Boolean).join(' · ') || 'Blu-ray'
+}
+
 export default function EditModal({ film, onClose, onSave, onAutofill, onDelete, startWithLink, existingFilms, onOpenExisting }) {
   const isNew = !film.id
   const overlayHandlers = useOverlayClose(onClose)
@@ -110,8 +136,14 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   const [linkUrl, setLinkUrl] = useState('')
   const [linkLoading, setLinkLoading] = useState(false)
   const [linkConflicts, setLinkConflicts] = useState(null) // [{key, label, oldVal, newVal, checked}] | null
-  const [duplicateWarning, setDuplicateWarning] = useState(null) // {sameFormatMatch, otherFormatMatch} | null
+  const [duplicateWarning, setDuplicateWarning] = useState(null) // [archive film] | null
   const linkInputRef = useRef(null)
+  // پیشنهاد زنده‌ی عنوان (فقط برای فیلم جدید) — موقع تایپ عنوان از TMDB سرچ می‌کنیم
+  const [titleSuggestions, setTitleSuggestions] = useState([])
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [suggestIndex, setSuggestIndex] = useState(-1)
+  // کدوم فیلد (title یا originalTitle) آخرین بار دستی تایپ شده — فقط برای اون سرچ می‌کنیم
+  const [suggestField, setSuggestField] = useState(null)
 
   const FIELD_LABELS = {
     title: 'Title', originalTitle: 'Original Title', year: 'Year', director: 'Director',
@@ -135,15 +167,16 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
     return data
   }
 
-  const lookupFromLink = async () => {
-    if (!linkUrl.trim()) {
+  const lookupFromLink = async (overrideUrl) => {
+    const link = typeof overrideUrl === 'string' ? overrideUrl : linkUrl.trim()
+    if (!link) {
       setLookupError('Paste an IMDb, Letterboxd, or TVMaze link')
       return
     }
     setLookupError('')
     setLinkLoading(true)
     try {
-      const qs = new URLSearchParams({ url: linkUrl.trim() })
+      const qs = new URLSearchParams({ url: link })
       const res = await fetch(`/api/link-lookup?${qs.toString()}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Not found')
@@ -168,22 +201,14 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
 
         // چک تکراری: هم‌عنوان‌هایی که از قبل تو آرشیو هستن رو پیدا کن (بین
         // همون نوع - فیلم/سریال - تا با تیتر مشابه ولی نوع متفاوت قاطی نشه)
-        if (Array.isArray(existingFilms) && existingFilms.length) {
-          const wantedItemType = data.itemType || form.itemType
-          const norm = normalizeTitleForMatch(fetched.title)
-          const matches = existingFilms.filter(
-            (f) => normalizeTitleForMatch(f.title) === norm && (f.itemType === 'series' ? 'series' : 'movie') === wantedItemType
-          )
-          if (matches.length) {
-            const sameFormatMatch = matches.find((f) => (f.mediaType === 'digital' ? 'digital' : 'physical') === form.mediaType)
-            const otherFormatMatch = matches.find((f) => (f.mediaType === 'digital' ? 'digital' : 'physical') !== form.mediaType)
-            if (sameFormatMatch || otherFormatMatch) {
-              setDuplicateWarning({ sameFormatMatch, otherFormatMatch })
-            }
-          } else {
-            setDuplicateWarning(null)
-          }
-        }
+        const matches = findArchiveMatches(existingFilms, {
+          title: fetched.title,
+          originalTitle: fetched.originalTitle,
+          year: fetched.year,
+          imdbId: fetched.imdbId,
+          itemType: data.itemType || form.itemType,
+        })
+        setDuplicateWarning(matches.length ? matches : null)
         return
       }
       // فیلم موجود — دیتای لینک نسبت به دیتای قبلی ارجحیت داره، ولی هر جا با
@@ -215,6 +240,126 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       setLinkLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!isNew || !suggestField) return
+    const q = (form[suggestField] || '').trim()
+    if (q.length < 2) {
+      setTitleSuggestions([])
+      return
+    }
+    const cacheKey = `${form.itemType}:${q.toLowerCase()}`
+    const show = (list) => {
+      setTitleSuggestions(list)
+      setSuggestIndex(-1)
+      setSuggestOpen(true)
+    }
+    if (titleSearchCache.has(cacheKey)) {
+      show(titleSearchCache.get(cacheKey))
+      return
+    }
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      try {
+        const qs = new URLSearchParams({ q, type: form.itemType })
+        const res = await fetch(`/api/title-search?${qs.toString()}`, { signal: controller.signal })
+        const data = res.ok ? await res.json() : []
+        const list = Array.isArray(data) ? data : []
+        if (res.ok) titleSearchCache.set(cacheKey, list)
+        show(list)
+      } catch {}
+    }, 300)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [form.title, form.originalTitle, form.itemType, suggestField, isNew])
+
+  // هر پیشنهادی که تو آرشیو هست (هم‌عنوان و هم‌سال) علامت می‌خوره
+  const suggestionsWithArchive = titleSuggestions.map((s) => ({
+    ...s,
+    inArchive: findArchiveMatches(existingFilms, { ...s, itemType: form.itemType }),
+  }))
+
+  const pickSuggestion = async (s) => {
+    setSuggestField(null)
+    setSuggestOpen(false)
+    setTitleSuggestions([])
+    setForm((prev) => ({
+      ...prev,
+      title: s.title,
+      originalTitle: s.originalTitle && s.originalTitle !== s.title ? s.originalTitle : prev.originalTitle,
+      year: s.year ?? prev.year,
+    }))
+    try {
+      const qs = new URLSearchParams({ tmdbId: s.tmdbId, type: form.itemType })
+      const res = await fetch(`/api/title-search/imdb-id?${qs.toString()}`)
+      const { imdbId } = res.ok ? await res.json() : {}
+      if (imdbId) {
+        const imdbUrl = `https://www.imdb.com/title/${imdbId}/`
+        setLinkUrl(imdbUrl)
+        await lookupFromLink(imdbUrl)
+      }
+    } catch (e) {
+      setLookupError(e.message)
+    }
+  }
+
+  const onTitleKeyDown = (e) => {
+    if (!suggestOpen || !titleSuggestions.length) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSuggestIndex((i) => (i + 1) % titleSuggestions.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSuggestIndex((i) => (i <= 0 ? titleSuggestions.length - 1 : i - 1))
+    } else if (e.key === 'Enter' && suggestIndex >= 0) {
+      e.preventDefault()
+      pickSuggestion(titleSuggestions[suggestIndex])
+    } else if (e.key === 'Escape') {
+      // فقط لیست رو ببند، نه کل مودال رو
+      e.stopPropagation()
+      e.nativeEvent.stopImmediatePropagation()
+      setSuggestOpen(false)
+    }
+  }
+
+  const typedInto = (key) => (e) => {
+    setSuggestField(key)
+    set(key)(e)
+  }
+
+  const renderSuggestions = () =>
+    isNew && suggestOpen && suggestionsWithArchive.length > 0 && (
+      <ul className="title-suggest-list" role="listbox">
+        {suggestionsWithArchive.map((s, i) => (
+          <li
+            key={s.tmdbId}
+            role="option"
+            aria-selected={i === suggestIndex}
+            className={i === suggestIndex ? 'active' : ''}
+            onMouseDown={(e) => {
+              e.preventDefault()
+              pickSuggestion(s)
+            }}
+            onMouseEnter={() => setSuggestIndex(i)}
+          >
+            {s.poster ? <img src={s.poster} alt="" /> : <span className="title-suggest-noposter" />}
+            <span className="title-suggest-text">
+              <span className="title-suggest-name">{s.title}</span>
+              <span className="title-suggest-meta">
+                {[s.year, s.originalTitle && s.originalTitle !== s.title ? s.originalTitle : null].filter(Boolean).join(' · ')}
+              </span>
+            </span>
+            {s.inArchive.length > 0 && (
+              <span className="title-suggest-badge" title={s.inArchive.map(filmLocation).join(', ')}>
+                In archive
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    )
 
   const toggleConflict = (key) => {
     setLinkConflicts((prev) => prev.map((c) => (c.key === key ? { ...c, checked: !c.checked } : c)))
@@ -458,64 +603,90 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
 
           {duplicateWarning && (
             <div className="edit-field full duplicate-warning-panel">
-              {duplicateWarning.sameFormatMatch && (
-                <div className="duplicate-warning-row duplicate-warning-danger">
-                  <span>
-                    ⚠️ Already in your {form.mediaType === 'digital' ? 'digital' : 'Blu-ray'} collection
-                    {duplicateWarning.sameFormatMatch.mediaType === 'digital'
-                      ? duplicateWarning.sameFormatMatch.driveNumber
-                        ? ` (Drive ${duplicateWarning.sameFormatMatch.driveNumber})`
-                        : ''
-                      : [duplicateWarning.sameFormatMatch.closet, duplicateWarning.sameFormatMatch.shelf, duplicateWarning.sameFormatMatch.row]
-                          .filter(Boolean).length
-                        ? ` (${[duplicateWarning.sameFormatMatch.closet, duplicateWarning.sameFormatMatch.shelf, duplicateWarning.sameFormatMatch.row].filter(Boolean).join(' · ')})`
-                        : ''}
-                    . Adding this would create a duplicate.
-                  </span>
-                  {onOpenExisting && (
-                    <button type="button" className="btn btn-ghost" onClick={() => onOpenExisting(duplicateWarning.sameFormatMatch)}>
-                      View existing
-                    </button>
-                  )}
+              <span className="duplicate-compare-title">
+                Possibly already in your archive — compare posters to check it's the same film
+              </span>
+              <div className="duplicate-compare">
+                <div className="duplicate-card duplicate-card-new">
+                  {form.poster ? <img src={form.poster} alt="" /> : <div className="duplicate-noposter" />}
+                  <div className="duplicate-card-label">Adding</div>
+                  <div className="duplicate-card-title">{form.title}</div>
+                  <div className="duplicate-card-meta">{form.year || '—'}</div>
+                  {form.director && <div className="duplicate-card-meta">{form.director}</div>}
                 </div>
-              )}
-              {duplicateWarning.otherFormatMatch && (
-                <div className="duplicate-warning-row duplicate-warning-info">
-                  <span>
-                    📀 You already have this in {duplicateWarning.otherFormatMatch.mediaType === 'digital' ? 'digital' : 'Blu-ray'}
-                    {duplicateWarning.otherFormatMatch.mediaType === 'digital'
-                      ? duplicateWarning.otherFormatMatch.driveNumber
-                        ? ` (Drive ${duplicateWarning.otherFormatMatch.driveNumber})`
-                        : ''
-                      : [duplicateWarning.otherFormatMatch.closet, duplicateWarning.otherFormatMatch.shelf, duplicateWarning.otherFormatMatch.row]
-                          .filter(Boolean).length
-                        ? ` (${[duplicateWarning.otherFormatMatch.closet, duplicateWarning.otherFormatMatch.shelf, duplicateWarning.otherFormatMatch.row].filter(Boolean).join(' · ')})`
-                        : ''}
-                    . Saving this as a separate {form.mediaType === 'digital' ? 'digital' : 'Blu-ray'} copy is fine — they'll show together
-                    on the film page automatically.
-                  </span>
-                  {onOpenExisting && (
-                    <button type="button" className="btn btn-ghost" onClick={() => onOpenExisting(duplicateWarning.otherFormatMatch)}>
-                      View existing
-                    </button>
-                  )}
-                </div>
-              )}
+                {duplicateWarning.map((f) => {
+                  const sameFormat = (f.mediaType === 'digital' ? 'digital' : 'physical') === form.mediaType
+                  return (
+                    <div key={f.id} className={`duplicate-card ${sameFormat ? 'duplicate-card-danger' : 'duplicate-card-info'}`}>
+                      {f.poster ? <img src={f.poster} alt="" /> : <div className="duplicate-noposter" />}
+                      <div className="duplicate-card-label">
+                        {sameFormat ? '⚠️ Same format' : `📀 ${f.mediaType === 'digital' ? 'Digital' : 'Blu-ray'}`}
+                      </div>
+                      <div className="duplicate-card-title">{f.title}</div>
+                      <div className="duplicate-card-meta">{[f.year, filmLocation(f)].filter(Boolean).join(' · ')}</div>
+                      {f.director && <div className="duplicate-card-meta">{f.director}</div>}
+                      {onOpenExisting && (
+                        <button type="button" className="btn btn-ghost" onClick={() => onOpenExisting(f)}>
+                          View
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
               <button type="button" className="btn btn-ghost duplicate-warning-dismiss" onClick={() => setDuplicateWarning(null)}>
-                Dismiss
+                Not the same — dismiss
               </button>
             </div>
           )}
 
-          <label className="edit-field full">
+          <label className="edit-field full title-suggest-field">
             <span>Title</span>
-            <input value={form.title} onChange={set('title')} />
+            <input
+              value={form.title}
+              onChange={typedInto('title')}
+              onKeyDown={onTitleKeyDown}
+              onFocus={() => suggestField === 'title' && titleSuggestions.length && setSuggestOpen(true)}
+              onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
+              placeholder={isNew ? 'Start typing to search online…' : undefined}
+              autoComplete="off"
+            />
+            {suggestField === 'title' && renderSuggestions()}
           </label>
 
           <label className="edit-field full">
             <span>Original Title (if different — French, Italian, etc.)</span>
-            <input value={form.originalTitle} onChange={set('originalTitle')} placeholder="e.g. Il buono, il brutto, il cattivo" />
+            <input
+              value={form.originalTitle}
+              onChange={typedInto('originalTitle')}
+              onKeyDown={onTitleKeyDown}
+              onFocus={() => suggestField === 'originalTitle' && titleSuggestions.length && setSuggestOpen(true)}
+              onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
+              placeholder="e.g. Il buono, il brutto, il cattivo"
+              autoComplete="off"
+            />
+            {suggestField === 'originalTitle' && renderSuggestions()}
           </label>
+
+          {/* تو حالت افزودن، فیلدهای متادیتا پنهانن — خلاصه‌ی چیزی که از لینک/سرچ
+              اومده این‌جا نشون داده می‌شه تا معلوم باشه فیلم درست انتخاب شده. */}
+          {isNew && (form.poster || form.director || form.synopsis) && (
+            <div className="edit-field full add-fetched-card">
+              {form.poster ? <img src={form.poster} alt="" /> : <div className="duplicate-noposter" />}
+              <div className="add-fetched-body">
+                <div className="add-fetched-title">
+                  {form.title}
+                  {form.year ? <span> ({form.year})</span> : null}
+                </div>
+                <div className="add-fetched-meta">
+                  {[form.director, form.runtime ? `${form.runtime} min` : null, form.country].filter(Boolean).join(' · ')}
+                </div>
+                {form.genre && <div className="add-fetched-meta">{form.genre}</div>}
+                {form.rating !== '' && form.rating != null && <div className="add-fetched-meta">IMDb {form.rating}</div>}
+                {form.synopsis && <p className="add-fetched-synopsis">{form.synopsis}</p>}
+              </div>
+            </div>
+          )}
 
           <label className="edit-field">
             <span>Media Type</span>
@@ -716,10 +887,6 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             <input type="number" value={form.year} onChange={set('year')} />
           </label>
           <label className="edit-field">
-            <span>Rating (IMDb)</span>
-            <input type="number" step="0.1" value={form.rating} onChange={set('rating')} />
-          </label>
-          <label className="edit-field">
             <span>My Rating</span>
             <StarRating
               value={form.myRating}
@@ -728,44 +895,52 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             />
           </label>
 
-          <label className="edit-field">
-            <span>Studio / Distributor</span>
-            <input value={form.studio} onChange={set('studio')} placeholder="e.g. Paramount Pictures" />
-          </label>
-          <label className="edit-field">
-            <span>Letterboxd Rating (0–5)</span>
-            <input type="number" step="0.5" min="0" max="5" value={form.letterboxdRating} onChange={set('letterboxdRating')} placeholder="e.g. 4.5" />
-          </label>
+          {!isNew && (
+            <>
+            <label className="edit-field">
+              <span>Rating (IMDb)</span>
+              <input type="number" step="0.1" value={form.rating} onChange={set('rating')} />
+            </label>
+            <label className="edit-field">
+              <span>Studio / Distributor</span>
+              <input value={form.studio} onChange={set('studio')} placeholder="e.g. Paramount Pictures" />
+            </label>
+            <label className="edit-field">
+              <span>Letterboxd Rating (0–5)</span>
+              <input type="number" step="0.5" min="0" max="5" value={form.letterboxdRating} onChange={set('letterboxdRating')} placeholder="e.g. 4.5" />
+            </label>
 
-          <label className="edit-field">
-            <span>Runtime (min)</span>
-            <input type="number" value={form.runtime} onChange={set('runtime')} />
-          </label>
-          <label className="edit-field">
-            <span>Country</span>
-            <input value={form.country} onChange={set('country')} />
-          </label>
+            <label className="edit-field">
+              <span>Runtime (min)</span>
+              <input type="number" value={form.runtime} onChange={set('runtime')} />
+            </label>
+            <label className="edit-field">
+              <span>Country</span>
+              <input value={form.country} onChange={set('country')} />
+            </label>
 
-          <label className="edit-field full">
-            <span>Director</span>
-            <input value={form.director} onChange={set('director')} />
-          </label>
-          <label className="edit-field full">
-            <span>Producer {form.itemType === 'series' ? '(for series, often more useful than Director since it varies per episode)' : ''}</span>
-            <input value={form.producer} onChange={set('producer')} />
-          </label>
-          <label className="edit-field full">
-            <span>Cast (comma separated)</span>
-            <input value={form.cast} onChange={set('cast')} />
-          </label>
-          <label className="edit-field full">
-            <span>Genre (comma separated)</span>
-            <input value={form.genre} onChange={set('genre')} />
-          </label>
-          <label className="edit-field full">
-            <span>Poster URL</span>
-            <input value={form.poster} onChange={set('poster')} />
-          </label>
+            <label className="edit-field full">
+              <span>Director</span>
+              <input value={form.director} onChange={set('director')} />
+            </label>
+            <label className="edit-field full">
+              <span>Producer {form.itemType === 'series' ? '(for series, often more useful than Director since it varies per episode)' : ''}</span>
+              <input value={form.producer} onChange={set('producer')} />
+            </label>
+            <label className="edit-field full">
+              <span>Cast (comma separated)</span>
+              <input value={form.cast} onChange={set('cast')} />
+            </label>
+            <label className="edit-field full">
+              <span>Genre (comma separated)</span>
+              <input value={form.genre} onChange={set('genre')} />
+            </label>
+            <label className="edit-field full">
+              <span>Poster URL</span>
+              <input value={form.poster} onChange={set('poster')} />
+            </label>
+            </>
+          )}
           <label className="edit-field">
             <span>Watch status</span>
             <select
@@ -812,80 +987,90 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
               )}
             </span>
           </label>
-          <label className="edit-field full">
-            <span>Synopsis</span>
-            <textarea rows="3" value={form.synopsis} onChange={set('synopsis')} />
-          </label>
-          <label className="edit-field">
-            <span>زبان اصلی</span>
-            <input value={form.originalLanguage} onChange={set('originalLanguage')} placeholder="مثلاً English" />
-          </label>
-          <label className="edit-field">
-            <span>فروش گیشه</span>
-            <input value={form.boxOffice} onChange={set('boxOffice')} placeholder="مثلاً $134,821,952" />
-          </label>
-          <label className="edit-field full">
-            <span>تگ‌لاین</span>
-            <input value={form.tagline} onChange={set('tagline')} placeholder="شعار تبلیغاتی فیلم…" />
-          </label>
-          <label className="edit-field">
-            <span>بودجه ($)</span>
-            <input type="number" value={form.budget} onChange={set('budget')} />
-          </label>
-          <label className="edit-field">
-            <span>فروش جهانی ($)</span>
-            <input type="number" value={form.revenue} onChange={set('revenue')} />
-          </label>
-          <label className="edit-field">
-            <span>Metascore</span>
-            <input type="number" min="0" max="100" value={form.metascore} onChange={set('metascore')} />
-          </label>
-          <label className="edit-field">
-            <span>Rotten Tomatoes</span>
-            <input value={form.rottenTomatoes} onChange={set('rottenTomatoes')} placeholder="مثلاً 87%" />
-          </label>
-          <label className="edit-field">
-            <span>تاریخ اکران دقیق</span>
-            <input value={form.releaseDate} onChange={set('releaseDate')} placeholder="مثلاً 14 Feb 2020" />
-          </label>
-          <label className="edit-field">
-            <span>وضعیت اکران</span>
-            <input value={form.status} onChange={set('status')} placeholder="Released / Post Production…" />
-          </label>
-          <label className="edit-field">
-            <span>محبوبیت TMDB</span>
-            <input type="number" step="0.1" value={form.popularity} onChange={set('popularity')} />
-          </label>
-          <label className="edit-field full">
-            <span>لینک رسمی فیلم</span>
-            <input value={form.homepage} onChange={set('homepage')} placeholder="https://…" />
-          </label>
-          <label className="edit-field full">
-            <span>شرکت‌های تولیدکننده</span>
-            <input value={form.productionCompanies} onChange={set('productionCompanies')} placeholder="با کاما جدا کن" />
-          </label>
-          <label className="edit-field">
-            <span>کشورهای تولیدکننده</span>
-            <input value={form.productionCountries} onChange={set('productionCountries')} placeholder="با کاما جدا کن" />
-          </label>
-          <label className="edit-field">
-            <span>زبان‌های فیلم</span>
-            <input value={form.spokenLanguages} onChange={set('spokenLanguages')} placeholder="با کاما جدا کن" />
-          </label>
-          {form.itemType === 'series' && (
+          {!isNew && (
             <>
-              <label className="edit-field">
-                <span>شبکه‌ی پخش</span>
-                <input value={form.network} onChange={set('network')} />
-              </label>
-              <label className="edit-field">
-                <span>وضعیت سریال</span>
-                <input value={form.seriesStatus} onChange={set('seriesStatus')} placeholder="Running / Ended / Cancelled" />
-              </label>
-              <label className="edit-field">
-                <span>روز/ساعت پخش</span>
-                <input value={form.schedule} onChange={set('schedule')} placeholder="مثلاً Friday 21:00" />
-              </label>
+            <label className="edit-field full">
+              <span>Synopsis</span>
+              <textarea rows="3" value={form.synopsis} onChange={set('synopsis')} />
+            </label>
+            </>
+          )}
+          {/* جزئیات تکمیلی (گیشه، بودجه، تگ‌لاین…) فقط تو ویرایش نشون داده می‌شن؛
+              موقع افزودن اگه لینک پرشون کرده باشه، تو state هست و ذخیره می‌شه. */}
+          {!isNew && (
+            <>
+            <label className="edit-field">
+              <span>زبان اصلی</span>
+              <input value={form.originalLanguage} onChange={set('originalLanguage')} placeholder="مثلاً English" />
+            </label>
+            <label className="edit-field">
+              <span>فروش گیشه</span>
+              <input value={form.boxOffice} onChange={set('boxOffice')} placeholder="مثلاً $134,821,952" />
+            </label>
+            <label className="edit-field full">
+              <span>تگ‌لاین</span>
+              <input value={form.tagline} onChange={set('tagline')} placeholder="شعار تبلیغاتی فیلم…" />
+            </label>
+            <label className="edit-field">
+              <span>بودجه ($)</span>
+              <input type="number" value={form.budget} onChange={set('budget')} />
+            </label>
+            <label className="edit-field">
+              <span>فروش جهانی ($)</span>
+              <input type="number" value={form.revenue} onChange={set('revenue')} />
+            </label>
+            <label className="edit-field">
+              <span>Metascore</span>
+              <input type="number" min="0" max="100" value={form.metascore} onChange={set('metascore')} />
+            </label>
+            <label className="edit-field">
+              <span>Rotten Tomatoes</span>
+              <input value={form.rottenTomatoes} onChange={set('rottenTomatoes')} placeholder="مثلاً 87%" />
+            </label>
+            <label className="edit-field">
+              <span>تاریخ اکران دقیق</span>
+              <input value={form.releaseDate} onChange={set('releaseDate')} placeholder="مثلاً 14 Feb 2020" />
+            </label>
+            <label className="edit-field">
+              <span>وضعیت اکران</span>
+              <input value={form.status} onChange={set('status')} placeholder="Released / Post Production…" />
+            </label>
+            <label className="edit-field">
+              <span>محبوبیت TMDB</span>
+              <input type="number" step="0.1" value={form.popularity} onChange={set('popularity')} />
+            </label>
+            <label className="edit-field full">
+              <span>لینک رسمی فیلم</span>
+              <input value={form.homepage} onChange={set('homepage')} placeholder="https://…" />
+            </label>
+            <label className="edit-field full">
+              <span>شرکت‌های تولیدکننده</span>
+              <input value={form.productionCompanies} onChange={set('productionCompanies')} placeholder="با کاما جدا کن" />
+            </label>
+            <label className="edit-field">
+              <span>کشورهای تولیدکننده</span>
+              <input value={form.productionCountries} onChange={set('productionCountries')} placeholder="با کاما جدا کن" />
+            </label>
+            <label className="edit-field">
+              <span>زبان‌های فیلم</span>
+              <input value={form.spokenLanguages} onChange={set('spokenLanguages')} placeholder="با کاما جدا کن" />
+            </label>
+            {form.itemType === 'series' && (
+              <>
+                <label className="edit-field">
+                  <span>شبکه‌ی پخش</span>
+                  <input value={form.network} onChange={set('network')} />
+                </label>
+                <label className="edit-field">
+                  <span>وضعیت سریال</span>
+                  <input value={form.seriesStatus} onChange={set('seriesStatus')} placeholder="Running / Ended / Cancelled" />
+                </label>
+                <label className="edit-field">
+                  <span>روز/ساعت پخش</span>
+                  <input value={form.schedule} onChange={set('schedule')} placeholder="مثلاً Friday 21:00" />
+                </label>
+              </>
+            )}
             </>
           )}
 
