@@ -582,7 +582,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
               </p>
             )}
             <p style={{ margin: 0, fontSize: '12px', opacity: 0.65 }}>
-              8 closets, 10 rows each. Closets 1–4 have 2 shelves per row, closets 5–8 have 3.
+              8 closets, 10 rows each, 3 shelves per row.
               Fill only touches unassigned physical films, sorted alphabetically (leading "The" ignored). Already-shelved films are shown too (greyed, with their location) so you can see where you are — pick one just to anchor the alphabetical start point. Use the returned last title as the next section's start.
             </p>
 

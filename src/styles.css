@@ -11336,3 +11336,73 @@ a.cine-related-title:hover {
   max-width: 420px;
   margin: 0 0 12px;
 }
+
+/* «Fill this section»: حرف + تعداد */
+.shelf-fill-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.shelf-fill-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+.shelf-fill-sub,
+.shelf-fill-free,
+.shelf-fill-next {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.shelf-fill-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.shelf-fill-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.shelf-fill-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.shelf-fill-controls input {
+  width: 80px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.shelf-fill-preview {
+  font-size: 13px;
+}
+.shelf-fill-preview ol {
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 6px 0 0;
+  padding-inline-start: 26px;
+  columns: 3 220px;
+  font-size: 12.5px;
+}
+.shelf-fill-msg {
+  font-size: 13px;
+  font-weight: 600;
+}
+.shelf-fill-msg-ok {
+  color: #2f9e6f;
+}
+.shelf-fill-msg-error {
+  color: #e05252;
+}
