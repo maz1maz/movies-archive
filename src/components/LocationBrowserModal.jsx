@@ -215,6 +215,34 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     }
   }
 
+  // خالی کردن کامل یه بخش یا ردیف: همه‌ی فیلم‌هاش به «بی‌آدرس» برمی‌گردن
+  const [emptying, setEmptying] = useState(false)
+  const emptyLocation = async (list, label) => {
+    if (emptying || !list.length) return
+    const copies = list.reduce((sum, f) => sum + Math.max(1, Number(f.copies) || 1), 0)
+    if (!window.confirm(`Empty ${label}?\n\n${list.length} films (${copies} copies) will move back to unassigned inventory. Nothing is deleted.`)) return
+    setEmptying(true)
+    try {
+      const res = await fetch('/api/films/bulk-unassign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: list.map((f) => f.id) }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'empty failed')
+      if (onFilmsChanged) onFilmsChanged()
+    } catch (e) {
+      console.error(e)
+      alert(e.message)
+    } finally {
+      setEmptying(false)
+    }
+  }
+  const filmsInRow = (c, r) =>
+    Object.entries(sectionIndex)
+      .filter(([key]) => key.startsWith(`${c}|${r}|`))
+      .flatMap(([, list]) => list)
+
   const closets = useMemo(() => Array.from({ length: CLOSET_COUNT }, (_, i) => String(i + 1)), [])
   const rows = useMemo(() => Array.from({ length: ROW_COUNT }, (_, i) => String(i + 1)), [])
 
@@ -574,6 +602,17 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   ← Back to C{closet}
                 </button>
                 <p className="shelf-pick-label" style={{ margin: 0 }}>Cabinet {closet} · Row {row} — choose a section</p>
+                {canEdit && filmsInRow(closet, row).length > 0 && (
+                  <button
+                    type="button"
+                    className="shelf-back-btn shelf-empty-btn"
+                    disabled={emptying}
+                    onClick={() => emptyLocation(filmsInRow(closet, row), `Cabinet ${closet} · Row ${row} (all sections)`)}
+                    title="Move every film in this row back to unassigned inventory"
+                  >
+                    {emptying ? 'Emptying…' : `Empty row (${filmsInRow(closet, row).length})`}
+                  </button>
+                )}
               </div>
               <div className="shelf-pick-sections">
                 {SECTIONS.map((sec) => {
@@ -616,7 +655,24 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                   <div className="shelf-view-title">
                     {currentSection.label} <span className="shelf-view-cap">(capacity {currentSection.capacity})</span>
                   </div>
-                  {canEdit && <div className="shelf-view-hint">Use ✕ to remove a film from this section (moves it to unassigned)</div>}
+                  {canEdit && (
+                    <div className="shelf-view-hint">
+                      Use ✕ to remove a film from this section (moves it to unassigned)
+                      {(sectionIndex[`${closet}|${row}|${shelf}`] || []).length > 0 && (
+                        <button
+                          type="button"
+                          className="shelf-back-btn shelf-empty-btn"
+                          disabled={emptying}
+                          onClick={() =>
+                            emptyLocation(sectionIndex[`${closet}|${row}|${shelf}`] || [], `C${closet} · R${row} · S${shelf}`)
+                          }
+                          title="Move every film in this section back to unassigned inventory"
+                        >
+                          {emptying ? 'Emptying…' : `Empty section (${(sectionIndex[`${closet}|${row}|${shelf}`] || []).length})`}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="shelf-view-actions">
                   {shelfViewMode === 'spine' && (

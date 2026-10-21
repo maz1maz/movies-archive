@@ -79,21 +79,27 @@ export default function ImportReviewModal({ flagged, total, newCount, onCancel, 
                   </div>
                   {r.matches.map((m) => {
                     const selected = d.action === 'merge' && d.targetId === m.id
+                    const sameFormat = m.mediaType === r.mediaType
                     return (
                       <button
                         type="button"
                         key={m.id}
-                        className={`duplicate-card import-review-match${selected ? ' selected' : ''}`}
+                        className={`duplicate-card import-review-match${sameFormat ? ' duplicate-card-danger' : ''}${selected ? ' selected' : ''}`}
                         onClick={() => decide(r.index, { action: 'merge', targetId: m.id })}
                         title="Merge this row into this archive film (only empty fields are filled)"
                       >
                         {m.poster ? <img src={m.poster} alt="" /> : <div className="duplicate-noposter" />}
                         <div className="duplicate-card-label">
-                          {selected ? '✓ Merge into' : 'In archive'} · {formatLabel(m.mediaType)}
+                          {selected
+                            ? `✓ Merge into · ${formatLabel(m.mediaType)}`
+                            : sameFormat
+                            ? `⚠️ You own this ${formatLabel(m.mediaType)}`
+                            : `📀 You own a ${formatLabel(m.mediaType)} copy`}
                         </div>
                         <div className="duplicate-card-title">{m.title}</div>
                         <div className="duplicate-card-meta">{[m.year, matchLocation(m)].filter(Boolean).join(' · ')}</div>
                         {m.director && <div className="duplicate-card-meta">{m.director}</div>}
+                        <div className="duplicate-card-meta">{m.copies > 1 ? `${m.copies} copies owned` : '1 copy owned'}</div>
                       </button>
                     )
                   })}
@@ -106,6 +112,11 @@ export default function ImportReviewModal({ flagged, total, newCount, onCancel, 
                     <input type="radio" checked={d.action === 'skip'} onChange={() => decide(r.index, { action: 'skip' })} /> Skip
                   </label>
                   {d.action === 'merge' && <span className="import-review-hint">Merging — click “Add as new” if it's a different film</span>}
+                  {d.action === 'new' && r.matches.some((m) => m.mediaType === r.mediaType) && (
+                    <span className="import-review-hint import-review-warn">
+                      ⚠️ You already own this {formatLabel(r.mediaType)} — adding creates a duplicate
+                    </span>
+                  )}
                 </div>
               </div>
             )

@@ -673,6 +673,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                       </div>
                       <div className="duplicate-card-title">{f.title}</div>
                       <div className="duplicate-card-meta">{[f.year, filmLocation(f)].filter(Boolean).join(' · ')}</div>
+                      <div className="duplicate-card-meta">{f.copies > 1 ? `${f.copies} copies owned` : '1 copy owned'}</div>
                       {f.director && <div className="duplicate-card-meta">{f.director}</div>}
                       {onOpenExisting && (
                         <button type="button" className="btn btn-ghost" onClick={() => onOpenExisting(f)}>

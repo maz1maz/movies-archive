@@ -1079,6 +1079,19 @@ async function handleFetch(request, env, ctx) {
         return json({ reset: updated?.meta?.changes ?? physical.length, physicalCount: physical.length, hadLocation }, 200, corsHeaders)
       }
 
+      // ---- POST /api/films/bulk-unassign (خالی کردن یه بخش یا یه ردیف کامل —
+      // مکان همه‌ی فیلم‌ها پاک می‌شه و به موجودیِ بی‌آدرس برمی‌گردن) ----
+      if (method === 'POST' && pathname === '/api/films/bulk-unassign') {
+        const denied = requireEditAccess()
+        if (denied) return denied
+        const body = await request.json().catch(() => ({}))
+        const ids = Array.isArray(body.ids) ? body.ids.map((x) => String(x)).filter(Boolean) : []
+        if (!ids.length) return json({ error: 'ids are required' }, 400, corsHeaders)
+        const stmt = db.prepare("UPDATE films SET closet = '', row = '', shelf = '', updatedAt = datetime('now') WHERE id = ?")
+        await db.batch(ids.map((id) => stmt.bind(id)))
+        return json({ unassigned: ids.length }, 200, corsHeaders)
+      }
+
       // ---- POST /api/films/bulk-move (assign the same location to many films) ----
       if (method === 'POST' && pathname === '/api/films/bulk-move') {
         const denied = requireEditAccess()
@@ -2835,6 +2848,7 @@ async function handleFetch(request, env, ctx) {
                 shelf: a.shelf || null,
                 row: a.row || null,
                 driveNumber: a.driveNumber || null,
+                copies: Number(a.copies) || 1,
               })),
             })
           })
