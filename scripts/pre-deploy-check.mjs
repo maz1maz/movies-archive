@@ -2,6 +2,11 @@
 // اگه هر کدوم از چک‌ها fail بشه، با exit code غیرصفر متوقف می‌شه و دیپلوی انجام نمی‌گیره.
 //
 // چک‌ها:
+//   0) git: فقط از main که با origin/main یکیه دیپلوی کن، و هیچ شاخه‌ی اخیری
+//      نباید کار merge نشده داشته باشه (درس ۲۱ اکتبر: ۹۷ commit از یه شاخه
+//      مستقیم دیپلوی شده بودن و هیچ‌وقت merge نشدن؛ دیپلوی بعدی از main
+//      همه‌شون رو از سایت حذف کرد). برای رد شدن عمدی: ALLOW_BRANCH_DEPLOY=1
+//      یا ALLOW_UNMERGED_BRANCHES=1
 //   1) سینتکس همه‌ی فایل‌های server/*.js
 //   2) build کامل frontend (vite build)
 //   3) تطبیق جدول‌های schema.sql با چیزی که worker.js واقعاً بهش رفرنس می‌ده
@@ -24,6 +29,77 @@ const fail = (msg) => {
   hasError = true
 }
 const ok = (msg) => console.log(`✅ ${msg}`)
+
+// ---- 0) git: شاخه‌ی دیپلوی و کارهای merge نشده ----
+console.log('\n— بررسی git (شاخه‌ی دیپلوی و شاخه‌های merge نشده) —')
+{
+  const git = (cmd) => execSync(`git ${cmd}`, { cwd: ROOT, stdio: 'pipe' }).toString().trim()
+  // تو CI (مثلاً Cloudflare Workers Builds روی main) فقط هشدار می‌دیم، بلاک نمی‌کنیم
+  const inCi = Boolean(process.env.CI || process.env.WORKERS_CI)
+  const gitFail = (msg) => (inCi ? warn(msg) : fail(msg))
+  try {
+    git('rev-parse --git-dir')
+    try {
+      git('fetch --quiet origin')
+    } catch {
+      warn('git fetch نشد — وضعیت شاخه‌های remote ممکنه قدیمی باشه')
+    }
+    const branch = git('rev-parse --abbrev-ref HEAD')
+    if (branch !== 'main' && !process.env.ALLOW_BRANCH_DEPLOY) {
+      gitFail(`داری از شاخه‌ی «${branch}» دیپلوی می‌کنی، نه main. اول merge کن، بعد از main دیپلوی کن (یا ALLOW_BRANCH_DEPLOY=1).`)
+    } else {
+      ok(`شاخه‌ی دیپلوی: ${branch}`)
+    }
+    const notOnMain = Number(git('rev-list --count origin/main..HEAD'))
+    if (notOnMain > 0 && !process.env.ALLOW_BRANCH_DEPLOY) {
+      gitFail(`${notOnMain} commit تو HEAD هست که تو origin/main نیست — سایت از کدی جلوتر از main ساخته می‌شه.`)
+    }
+    const behindMain = Number(git('rev-list --count HEAD..origin/main'))
+    if (behindMain > 0) {
+      gitFail(`HEAD ${behindMain} commit از origin/main عقبه — اول pull کن تا کار بقیه پاک نشه.`)
+    }
+    // شاخه‌هایی که تو ۳۰ روز اخیر commit دارن و کارشون هنوز تو main نیست
+    const monthAgo = Date.now() / 1000 - 30 * 24 * 3600
+    const refs = git("for-each-ref --format='%(refname:short) %(committerdate:unix)' refs/remotes/origin")
+      .split('\n')
+      .map((l) => l.replace(/'/g, '').trim().split(' '))
+      .filter(([ref]) => ref && ref !== 'origin/main' && ref !== 'origin/HEAD' && ref !== 'origin')
+    const recent = []
+    let stale = 0
+    let unrelated = 0
+    for (const [ref, ts] of refs) {
+      // شاخه‌ای که هیچ پایه‌ی مشترکی با main نداره (تاریخچه‌ی قدیمیِ بازنویسی‌شده)
+      // نمی‌تونه نسخه‌ی فعلیِ سایت باشه — فقط شمرده می‌شه
+      try {
+        git(`merge-base origin/main ${ref}`)
+      } catch {
+        unrelated++
+        continue
+      }
+      // git cherry فقط commitهایی رو می‌شمره که معادلشون (همون patch) تو main
+      // نیست — پس شاخه‌هایی که squash-merge شدن، «merge نشده» حساب نمی‌شن
+      const ahead = git(`cherry origin/main ${ref}`)
+        .split('\n')
+        .filter((l) => l.startsWith('+')).length
+      if (!ahead) continue
+      if (Number(ts) >= monthAgo) recent.push(`${ref} (${ahead} commit)`)
+      else stale++
+    }
+    if (unrelated) warn(`${unrelated} شاخه هیچ تاریخچه‌ی مشترکی با main ندارن (نادیده گرفته شدن)`)
+    if (recent.length && !process.env.ALLOW_UNMERGED_BRANCHES) {
+      gitFail(
+        `این شاخه‌ها کار merge نشده دارن؛ اگه قبلاً مستقیم دیپلوی شده باشن، این دیپلوی حذفشون می‌کنه:\n   ${recent.join('\n   ')}\n   اول merge کن یا مطمئن شو لازم نیستن (ALLOW_UNMERGED_BRANCHES=1).`
+      )
+    } else if (recent.length) {
+      warn(`شاخه‌های merge نشده (با ALLOW_UNMERGED_BRANCHES رد شد): ${recent.join(', ')}`)
+    } else {
+      ok('هیچ شاخه‌ی اخیری کار merge نشده نداره')
+    }
+    if (stale) warn(`${stale} شاخه‌ی قدیمی‌تر از ۳۰ روز هم commit merge نشده دارن (بلاک نمی‌کنن)`)
+  } catch (e) {
+    warn(`بررسی git انجام نشد: ${e.message}`)
+  }
+}
 
 // ---- 1) سینتکس فایل‌های سرور (شامل server/lib/*.js) ----
 console.log('\n— بررسی سینتکس server/**/*.js —')
