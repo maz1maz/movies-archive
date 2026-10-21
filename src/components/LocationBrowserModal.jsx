@@ -655,6 +655,70 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     printWindow.document.close()
   }
 
+  // برگه‌ی چیدمان: همه‌ی بخش‌های پرشده به ترتیب کمد → ردیف → بخش، هر بخش با
+  // تیتر خودش و فیلم‌ها به ترتیب الفبا با شماره‌ی جا (هر نسخه یه جا) — برای
+  // چیدن قفسه‌ی واقعی از روی برنامه. اگه کمدی انتخاب شده باشه فقط همون کمد.
+  const handlePrintPlan = () => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+    const num = (v) => Number(v) || 0
+    const keys = Object.keys(sectionIndex)
+      .filter((k) => !closet || k.startsWith(`${closet}|`))
+      .sort((a, b) => {
+        const [ac, ar, as] = a.split('|').map(num)
+        const [bc, br, bs] = b.split('|').map(num)
+        return ac - bc || ar - br || as - bs
+      })
+    const sectionsHtml = keys
+      .map((k) => {
+        const [c, r, sh] = k.split('|')
+        const films = [...sectionIndex[k]].sort(compareTitles)
+        const cap = SECTIONS.find((x) => x.num === sh)?.capacity || DEFAULT_CAPACITY
+        let slot = 0
+        const items = films
+          .map((f) => {
+            const n = Math.max(1, Number(f.copies) || 1)
+            const from = slot + 1
+            slot += n
+            const slots = n > 1 ? `${from}–${slot}` : `${from}`
+            return `<li><span class="slot">${slots}</span><span class="t">${escapeHtml(f.title)}</span>${f.year ? `<span class="y">${f.year}</span>` : ''}${n > 1 ? `<span class="x">×${n}</span>` : ''}</li>`
+          })
+          .join('')
+        return `<section><h2>Closet ${escapeHtml(c)} · Row ${escapeHtml(r)} · Section ${escapeHtml(sh)}<span>${slot} / ${cap} copies · ${films.length} titles</span></h2><ol>${items}</ol></section>`
+      })
+      .join('')
+    const scopeLabel = closet ? `Closet ${closet}` : 'All closets'
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Shelf Plan — ${scopeLabel} — ${new Date().toLocaleDateString()}</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 20px; color: #111; }
+            h1 { font-size: 20px; margin: 0 0 4px; }
+            .sub { font-size: 12px; color: #666; margin: 0 0 14px; }
+            section { break-inside: avoid-page; margin: 0 0 18px; }
+            h2 { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; margin: 0 0 6px; padding: 6px 8px; background: #f0f0f0; border-left: 4px solid #b8860b; }
+            h2 span { font-weight: 400; color: #555; font-size: 12px; }
+            ol { list-style: none; margin: 0; padding: 0; columns: 3; column-gap: 18px; font-size: 11px; }
+            li { display: flex; gap: 6px; padding: 2px 0; border-bottom: 1px dotted #ddd; break-inside: avoid; }
+            .slot { min-width: 34px; color: #888; font-variant-numeric: tabular-nums; }
+            .t { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .y, .x { color: #777; }
+            @media print { body { padding: 0; } button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <h1>🎬 Shelf Plan — ${scopeLabel}</h1>
+          <p class="sub">${keys.length} sections · numbers are shelf slots from the left (each copy takes one slot) · Generated on ${new Date().toLocaleString()}</p>
+          <button onclick="window.print()" style="padding:10px 18px; margin-bottom:15px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
+          ${sectionsHtml || '<p>No films are shelved yet.</p>'}
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
   return (
     <div className="modal-overlay" {...overlayHandlers}>
       <div className="location-browser" onClick={(e) => e.stopPropagation()}>
@@ -676,9 +740,21 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
               <p className="export-sub" style={{ margin: '4px 0 0' }}>Choose a closet, row and section — the shelf will appear below</p>
             </div>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {physical.length > 0 && (
+              <button
+                type="button"
+                className="shelf-back-btn"
+                onClick={handlePrintPlan}
+                title="Printable list of every filled section, in order, with slot numbers — for arranging the real shelves"
+              >
+                <IconPrinter width={14} height={14} /> Print shelf plan{closet ? ` (C${closet})` : ''}
+              </button>
+            )}
           <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
             <IconClose width={16} height={16} />
           </button>
+          </div>
         </header>
 
         <div className={`location-browser-selectors ${closet && row && shelf ? 'location-browser-selectors-collapsed' : ''}`}>
