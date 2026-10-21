@@ -4,6 +4,7 @@ import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/she
 import { proxyImg } from '../utils/proxyImg.js'
 import { escapeHtml } from '../utils/escapeHtml.js'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
+import { useShelfZoom, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../hooks/useShelfZoom.js'
 
 // زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
 const BASE_ZOOM = 0.8
@@ -93,7 +94,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [hideShelved, setHideShelved] = useState(true)
   const [azLetter, setAzLetter] = useState(null)
   const [shelfViewMode, setShelfViewMode] = useState('spine')
-  const [shelfScale, setShelfScale] = useState(0.8)
+  const [shelfScale, setShelfScale] = useShelfZoom(BASE_ZOOM)
   const [spineWidth, setSpineWidth] = useState(null) // همون اندازه‌ی پیش‌فرض BookshelfView
   useEffect(() => {
     const el = shelfRef.current
@@ -1147,7 +1148,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                         <button
                           type="button"
                           className="shelf-zoom-btn"
-                          onClick={() => setShelfScale((s) => Math.max(0.5, Number((s - 0.1).toFixed(2))))}
+                          onClick={() => setShelfScale((s) => Math.max(MIN_SHELF_ZOOM, Number((s - 0.1).toFixed(2))))}
                           title="Zoom Out shelf cases"
                         >
                           −
@@ -1156,7 +1157,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                         <button
                           type="button"
                           className="shelf-zoom-btn"
-                          onClick={() => setShelfScale((s) => Math.min(1.5, Number((s + 0.1).toFixed(2))))}
+                          onClick={() => setShelfScale((s) => Math.min(MAX_SHELF_ZOOM, Number((s + 0.1).toFixed(2))))}
                           title="Zoom In shelf cases"
                         >
                           +

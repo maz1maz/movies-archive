@@ -3,6 +3,7 @@ import { IconClose, IconBookshelf, IconPrinter } from './icons.jsx'
 import { getSpineColor } from '../utils/shelfDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
+import { useShelfZoom, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../hooks/useShelfZoom.js'
 
 // زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
 const BASE_ZOOM = 0.8
@@ -47,7 +48,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
   const overlayHandlers = useOverlayClose(onClose)
   const [closetFilter, setClosetFilter] = useState('1')
   const [shelfTheme, setShelfTheme] = useState('wood')
-  const [shelfScale, setShelfScale] = useState(0.8)
+  const [shelfScale, setShelfScale] = useShelfZoom(BASE_ZOOM)
   const [spineWidth, setSpineWidth] = useState(null)
   const shelfBodyRef = useRef(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -657,7 +658,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                 <button
                   type="button"
                   className="shelf-zoom-btn"
-                  onClick={() => setShelfScale((s) => Math.max(0.5, Number((s - 0.1).toFixed(2))))}
+                  onClick={() => setShelfScale((s) => Math.max(MIN_SHELF_ZOOM, Number((s - 0.1).toFixed(2))))}
                   title="Zoom Out shelf cases"
                 >
                   −
@@ -666,7 +667,7 @@ export default function BookshelfView({ films, onSelectFilm, onClose, onFilmsCha
                 <button
                   type="button"
                   className="shelf-zoom-btn"
-                  onClick={() => setShelfScale((s) => Math.min(1.5, Number((s + 0.1).toFixed(2))))}
+                  onClick={() => setShelfScale((s) => Math.min(MAX_SHELF_ZOOM, Number((s + 0.1).toFixed(2))))}
                   title="Zoom In shelf cases"
                 >
                   +
