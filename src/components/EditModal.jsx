@@ -440,10 +440,17 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       year: form.year !== '' ? parseInt(form.year, 10) : undefined,
       director: form.director || undefined,
       producer: form.producer || undefined,
+      // اسم‌هایی که عوض نشدن، آبجکتِ کاملشون (عکس/نقش) حفظ می‌شه
       cast: form.cast
         .split(',')
         .map((name) => name.trim())
-        .filter(Boolean),
+        .filter(Boolean)
+        .map((name) => {
+          const prev = Array.isArray(film.cast)
+            ? film.cast.find((x) => typeof x === 'object' && x?.name?.toLowerCase() === name.toLowerCase())
+            : null
+          return prev || name
+        }),
       genre: form.genre
         .split(',')
         .map((genre) => genre.trim())

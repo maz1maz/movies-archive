@@ -1,12 +1,31 @@
 import { useEffect, useMemo, useState } from 'react'
-import { IconClose, IconUser, IconPin, IconDisc } from './icons.jsx'
+import { IconClose, IconUser, IconPin, IconDisc, IconHardDrive } from './icons.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { addToOrderList } from '../utils/orderList.js'
 import { proxyImg } from '../utils/proxyImg.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
-function RecommendationOrderButton({ title, year, director }) {
+// نشانِ کوچکِ جشنواره/جایزه از روی اسم جایزه (رنگ و مخففِ هر جشنواره)
+const FESTIVALS = [
+  [/cannes|palme/i, 'CAN', '#d4af37'],
+  [/berlin|golden bear|silver bear/i, 'BER', '#e2483d'],
+  [/venice|golden lion|silver lion|volpi/i, 'VEN', '#e8a33d'],
+  [/academy award|oscar/i, 'OSC', '#c9a227'],
+  [/c[ée]sar/i, 'CÉS', '#b8b8c8'],
+  [/bafta/i, 'BAF', '#9a7b4f'],
+  [/golden globe/i, 'GG', '#f0c75e'],
+  [/european film/i, 'EFA', '#4ea1ff'],
+  [/sundance/i, 'SUN', '#f08a24'],
+  [/toronto|tiff/i, 'TIF', '#e05a8a'],
+  [/critics|national board|nbr/i, 'CRI', '#8fa3b8'],
+]
+const festivalOf = (label) => {
+  const hit = FESTIVALS.find(([re]) => re.test(label || ''))
+  return hit ? { abbr: hit[1], color: hit[2] } : null
+}
+
+function RecommendationOrderButton({ title, year, director, source = 'Director recommendations' }) {
   const [state, setState] = useState('idle') // idle | adding | added
   const handleClick = async (e) => {
     e.preventDefault()
@@ -14,7 +33,7 @@ function RecommendationOrderButton({ title, year, director }) {
     if (state !== 'idle') return
     setState('adding')
     try {
-      await addToOrderList({ title, releaseDate: year ? `${year}-01-01` : null, source: 'Director recommendations', director })
+      await addToOrderList({ title, releaseDate: year ? `${year}-01-01` : null, source, director })
       setState('added')
     } catch {
       setState('idle')
@@ -157,6 +176,26 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
     }
   }
   const dedupedFilms = Array.from(seenKeys.values())
+
+  // فیلمِ هر جایزه تو آرشیو: اول با عنوان (title/originalTitle)، وگرنه اگه
+  // دقیقاً یه فیلمِ این شخص در همون سال یا سال قبل باشه (عنوان انگلیسیِ جایزه
+  // معمولاً با عنوان اصلیِ فیلم فرق داره، مثل The Bait / L'Appât)
+  const normT = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+  const archiveCopiesForAward = (a) => {
+    if (!a.forWork) return []
+    const want = normT(a.forWork)
+    let hits = matchingFilmsRaw.filter((f) => normT(f.title) === want || normT(f.originalTitle) === want)
+    if (hits.length === 0 && a.year) {
+      const y = Number(a.year)
+      const near = matchingFilmsRaw.filter((f) => {
+        const fy = Number(f.year)
+        return fy === y || fy === y - 1
+      })
+      const keys = new Set(near.map((f) => `${normT(f.title)}::${f.year}`))
+      if (keys.size === 1) hits = near
+    }
+    return hits
+  }
 
   const isDirector = dedupedFilms.some((f) => (f.director || '').toLowerCase().includes(target))
   const isWriter = dedupedFilms.some((f) => (f.screenwriter || '').toLowerCase().includes(target))
@@ -452,15 +491,49 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                 {directorExtras?.awards?.length > 0 && (
                   <div className="person-awards">
                     <h4 className="person-extras-title">Awards ({directorExtras.awards.length})</h4>
-                    <div className="person-awards-list" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {directorExtras.awards.map((a, i) => (
-                        <span key={`${a.label}-${a.year}-${i}`} className="person-fact-chip person-award-chip" style={{ display: 'block' }}>
-                          {a.label}
-                          {a.year ? ` — ${a.year}` : ''}
-                          {a.forWork ? ` (${a.forWork})` : ''}
-                        </span>
-                      ))}
-                    </div>
+                    {/* لیست ساده: سال | جایزه + فیلم — بدون باکس دور هر ردیف */}
+                    <ul className="person-awards-rows">
+                      {directorExtras.awards.map((a, i) => {
+                        const copies = archiveCopiesForAward(a)
+                        // دکمه‌ی Order فقط روی اولین جایزه‌ی هر فیلمِ ناموجود
+                        const firstForWork =
+                          a.forWork && directorExtras.awards.findIndex((b) => normT(b.forWork) === normT(a.forWork)) === i
+                        const physical = copies.find((f) => f.mediaType !== 'digital')
+                        const digital = copies.find((f) => f.mediaType === 'digital')
+                        return (
+                          <li key={`${a.label}-${a.year}-${i}`} className="person-award-row">
+                            <span className="person-award-year">{a.year || '—'}</span>
+                            <span className="person-award-text">
+                              {(() => {
+                                const fest = festivalOf(a.label)
+                                return fest ? (
+                                  <span className="person-award-fest" style={{ '--fest': fest.color }} aria-hidden="true">{fest.abbr}</span>
+                                ) : null
+                              })()}
+                              {a.label}
+                              {a.forWork && (
+                                <em className="person-award-work">
+                                  {a.forWork}
+                                  {physical && (
+                                    <button type="button" className="person-award-own is-bluray" title="Blu-ray in your archive" onClick={() => onSelectFilm(physical)}>
+                                      <IconDisc width={11} height={11} /> Blu-ray
+                                    </button>
+                                  )}
+                                  {digital && (
+                                    <button type="button" className="person-award-own is-digital" title="Digital copy in your archive" onClick={() => onSelectFilm(digital)}>
+                                      <IconHardDrive width={11} height={11} /> Digital
+                                    </button>
+                                  )}
+                                  {copies.length === 0 && firstForWork && (
+                                    <RecommendationOrderButton title={a.forWork} director={personName} source="Director awards" />
+                                  )}
+                                </em>
+                              )}
+                            </span>
+                          </li>
+                        )
+                      })}
+                    </ul>
                   </div>
                 )}
 
@@ -517,14 +590,14 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
           const renderFilmCard = (film) => (
             <button
               key={film.id}
-              className="person-film-card"
+              className={film.mediaType === 'digital' ? 'person-film-card person-film-digital' : 'person-film-card'}
               onClick={() => {
                 onSelectFilm(film)
               }}
             >
               <div className="person-film-poster">
                 <img
-                  src={film.poster}
+                  src={proxyImg(film.poster)}
                   alt={film.title}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none'

@@ -1,5 +1,6 @@
+import { proxyImg } from '../utils/proxyImg.js'
 import { useMemo, useState } from 'react'
-import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconNewspaper, IconChevronRight } from './icons.jsx'
+import { IconLayers, IconTV, IconBarChart, IconDisc, IconStar, IconFilm, IconSearch, IconClose, IconSparkles, IconNewspaper, IconChevronRight, IconTrophy, IconMasks } from './icons.jsx'
 import PosterCollage from './PosterCollage.jsx'
 
 function escapeRegex(s) {
@@ -56,6 +57,8 @@ export default function FolderNav({
   onSelectDashboard,
   onSelectGallery,
   onSelectCinemaNews,
+  onSelectYearInFilm,
+  onSelectMovements,
   counts,
   posters,
   allFilms,
@@ -162,7 +165,7 @@ export default function FolderNav({
                   results.map((f) => (
                     <button key={f.id} type="button" className="folder-nav-search-row" onClick={() => onOpenFilm(f)}>
                       {f.poster ? (
-                        <img src={f.poster} alt="" className="folder-nav-search-poster" />
+                        <img src={proxyImg(f.poster)} alt="" className="folder-nav-search-poster" />
                       ) : (
                         <span className="folder-nav-search-poster folder-nav-search-poster-empty" />
                       )}
@@ -258,6 +261,26 @@ export default function FolderNav({
                 <span className="folder-card-text">
                   <h2>Cinema News</h2>
                   <p>Birthdays &amp; what's coming</p>
+                </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
+              </button>
+              <button className="folder-card reveal-item reveal-9" onClick={onSelectYearInFilm}>
+                <span className="folder-icon">
+                  <IconTrophy width={32} height={32} />
+                </span>
+                <span className="folder-card-text">
+                  <h2>The Year in Film</h2>
+                  <p>Best of each year &amp; what to order</p>
+                </span>
+                <IconChevronRight width={18} height={18} className="folder-card-chevron" />
+              </button>
+              <button className="folder-card reveal-item reveal-9" onClick={onSelectMovements}>
+                <span className="folder-icon">
+                  <IconMasks width={32} height={32} />
+                </span>
+                <span className="folder-card-text">
+                  <h2>Movements &amp; Cult</h2>
+                  <p>New waves, cult &amp; avant-garde</p>
                 </span>
                 <IconChevronRight width={18} height={18} className="folder-card-chevron" />
               </button>

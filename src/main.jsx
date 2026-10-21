@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import Landing from './components/Landing.jsx'
@@ -9,6 +9,11 @@ import LoginModal from './components/LoginModal.jsx'
 import AdminUsersModal from './components/AdminUsersModal.jsx'
 import SplashScreen from './components/SplashScreen.jsx'
 import './styles.css'
+
+// زمان‌بندی بوت برای عیب‌یابی اپ تلویزیون (لاگ در نوار پایین اپ اندروید دیده میشه)
+const bootT0 = performance.now()
+export const bootMark = (msg) => console.info('[boot] ' + msg + ' ' + Math.round(performance.now() - bootT0) + 'ms')
+bootMark('main start')
 
 if ('caches' in window) {
   caches.keys().then((keys) => {
@@ -41,6 +46,9 @@ function AdminModalMount() {
 // so there is no flash of the wrong view.
 function RootView() {
   const { isGuest, loading } = useAuth()
+  useEffect(() => {
+    if (!loading) bootMark('auth ready')
+  }, [loading])
   if (loading) return null
   return isGuest ? <Landing /> : <App />
 }

@@ -4,15 +4,16 @@ import { json, rowToFilm, normalizeTitle, EDITABLE, ENRICHABLE_FIELDS, isEmptyMe
 import { enrichFilm } from './omdb.js'
 import { fetchTotalSeasons, enrichSeriesFromTVMazeById, fetchTvMazePersonUpcoming } from './tvmaze.js'
 import * as XLSX from 'xlsx'
-import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader } from './auth.js'
+import { hashPassword, verifyPassword, getSessionUser, createSession, destroySession, sessionCookieHeader, parseCookies } from './auth.js'
 
-import { notifyServerError, runDailyBackup, gunzipToText } from './lib/backup.js'
+import { notifyServerError, runDailyBackup, gunzipToText, gzipText, fullExportGzipStream, fullExportGzipBytes, uploadBackupToDrive } from './lib/backup.js'
 import { resolveLetterboxdPersonUrl, syncLetterboxdUserToReviews, parseLetterboxdRss, parseLetterboxdBasic, titleToLetterboxdSlug, fetchLetterboxdRating } from './lib/letterboxd.js'
 import { fetchCinemaHeadlines, fetchCinemaHeadlinesFa } from './lib/cinemaNews.js'
 import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailers, fetchGeneralUpcoming, fetchTrendingAndBoxOffice, fetchTrendingPeople, fetchBornTodayGeneral, fetchFestivalCalendar, ageFromBirthDate } from './lib/tmdbFeeds.js'
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { tmdbFetch } from './lib/tmdb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -84,12 +85,42 @@ export default {
     }
 
     if (event.cron === '0 4 * * *') {
+      // عکس‌ها دیگه تو KV نگه داشته نمی‌شن؛ روزی ۷۰۰ تا از قدیمی‌ها پاک
+      // می‌شه (زیر سقف ۱۰۰۰ حذف روزانه) تا جا برای بکاپ‌ها آزاد بشه
+      try {
+        const old = await env.BACKUPS.list({ prefix: 'poster:', limit: 700 })
+        for (const k of old.keys) await env.BACKUPS.delete(k.name)
+      } catch {}
       try {
         await runDailyBackup(env)
       } catch (e) {
         await notifyServerError(env, `Daily backup (cron 0 4 * * *) failed: ${e.message}`).catch(() => {})
         throw e
       }
+      return
+    }
+
+    if (event.cron === '*/10 * * * *') {
+      // ۲۰ فیلم × حداکثر ۲ درخواست TMDB — زیر سقف subrequest هر invocation
+      // نوبتی: IMDb id / بازیگر کامل / برچسب‌ها (با هم از سقف ۵۰ subrequest رد می‌شن)
+      const slot = Math.floor((Date.now() / 600000)) % 4
+      if (slot === 3) {
+        const r = await repairDeadPosters(env.DB, env, 15).catch((e) => ({ error: e.message }))
+        console.log('Poster repair:', JSON.stringify(r))
+        return
+      }
+      if (slot === 2) {
+        const r = await backfillFilmTags(env.DB, env, 20).catch((e) => ({ error: e.message }))
+        console.log('Tags backfill:', JSON.stringify(r))
+        return
+      }
+      if (slot === 1) {
+        const r = await backfillFullCast(env.DB, env, 18).catch((e) => ({ error: e.message }))
+        console.log('Cast backfill:', JSON.stringify(r))
+        return
+      }
+      const r = await backfillImdbIds(env.DB, env, 20).catch((e) => ({ error: e.message }))
+      console.log('IMDb id backfill:', JSON.stringify(r))
       return
     }
 
@@ -154,7 +185,15 @@ async function handleFetch(request, env, ctx) {
     const db = env.DB // D1 binding
 
     // کاربر لاگین‌شده‌ی فعلی (از روی کوکی سشن) — مهمان‌ها null می‌گیرن.
-    const currentUser = await getSessionUser(db, request)
+    let currentUser = await getSessionUser(db, request)
+    // اپ تلویزیون (فقط خواندنی): کوکی cf_app با توکن سرور، بدون لاگین.
+    // توکن فقط تو secret سرور و داخل اپ هست؛ سایت معمولی هیچ‌وقت این کوکی رو نداره.
+    const appReadOnly =
+      !currentUser && !!env.APP_READ_TOKEN && parseCookies(request)['cf_app'] === env.APP_READ_TOKEN
+    if (appReadOnly) currentUser = { id: 'tv-app', username: 'tv-app', role: 'viewer', readonly: true }
+    if (appReadOnly && method !== 'GET') {
+      if (pathname !== '/api/auth/logout') return json({ error: 'The TV app is read-only' }, 403, corsHeaders)
+    }
     const requireAuth = () => (currentUser ? null : json({ error: 'You need to log in for this action' }, 401, corsHeaders))
 
     // ---- Audit Trail — ثبت اینکه کی چی رو تغییر داد، با مقدار قبل/بعد ----
@@ -398,7 +437,7 @@ async function handleFetch(request, env, ctx) {
         // شناخته‌شده‌ی عکس (TMDB/Wikimedia) رو می‌ده — قبلاً هیچ allowlist
         // نداشت و هرکسی می‌تونست از سرور به‌عنوان proxy باز برای هر URL
         // دلخواه استفاده کنه.
-        const allowedHosts = ['image.tmdb.org', 'upload.wikimedia.org', 'upload.wikimedia.beta.wmflabs.org']
+        const allowedHosts = ['image.tmdb.org', 'upload.wikimedia.org', 'upload.wikimedia.beta.wmflabs.org', 'm.media-amazon.com']
         if (!allowedHosts.includes(targetUrl.hostname)) {
           return new Response('Host not allowed', { status: 403, headers: corsHeaders })
         }
@@ -408,15 +447,20 @@ async function handleFetch(request, env, ctx) {
           // Cache API واقعاً دائمیه (Cloudflare می‌تونه هر از گاهی edge
           // cache رو خودش خالی کنه، ولی KV تا وقتی حذف نشه می‌مونه).
           const kvKey = 'poster:' + targetUrl.toString()
+          const imgHeaders = (ct) => ({ ...corsHeaders, 'Content-Type': ct, 'Cache-Control': 'public, max-age=604800, immutable' })
+          // همه‌ی عکس‌ها فقط تو edge cache (رایگان و بی‌سقف) نگه داشته می‌شن.
+          const useKv = false // فقط edge cache؛ KV دیگه برای عکس پر نمی‌شه (سقف ۱ گیگ برای بکاپ‌هاست)
+          const edgeCache = caches.default
+          const edgeKey = new Request(`https://img-cache.local/${encodeURIComponent(targetUrl.toString())}`)
+          const edgeHit = await edgeCache.match(edgeKey)
+          if (edgeHit) return new Response(edgeHit.body, { status: 200, headers: imgHeaders(edgeHit.headers.get('Content-Type') || 'image/jpeg') })
           if (env.BACKUPS) {
             try {
+              // ردیف‌های قدیمی (base64 داخل JSON) هنوز خونده می‌شن
               const cachedRecord = await env.BACKUPS.get(kvKey, 'json')
               if (cachedRecord) {
                 const bytes = Uint8Array.from(atob(cachedRecord.data), (c) => c.charCodeAt(0))
-                return new Response(bytes, {
-                  status: 200,
-                  headers: { ...corsHeaders, 'Content-Type': cachedRecord.contentType, 'Cache-Control': 'public, max-age=604800, immutable' },
-                })
+                return new Response(bytes, { status: 200, headers: imgHeaders(cachedRecord.contentType) })
               }
             } catch {}
           }
@@ -428,7 +472,8 @@ async function handleFetch(request, env, ctx) {
           const contentType = upstream.headers.get('content-type') || 'image/jpeg'
           const bodyBuffer = await upstream.arrayBuffer()
 
-          if (env.BACKUPS) {
+          ctx.waitUntil(edgeCache.put(edgeKey, new Response(bodyBuffer.slice(0), { headers: imgHeaders(contentType) })))
+          if (useKv && bodyBuffer.byteLength < 1_000_000) {
             try {
               const bytes = new Uint8Array(bodyBuffer)
               let binary = ''
@@ -436,12 +481,10 @@ async function handleFetch(request, env, ctx) {
               for (let i = 0; i < bytes.length; i += CHUNK) {
                 binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
               }
-              const b64 = btoa(binary)
-              // فقط عکس‌های معقول (زیر ۱ مگابایت) رو KV سیو کن، تا سهمیه‌ی
-              // نوشتن روزانه‌ی KV هدر نره
-              if (b64.length < 1_400_000) {
-                ctx.waitUntil(env.BACKUPS.put(kvKey, JSON.stringify({ data: b64, contentType })))
-              }
+              // ۱۸۰ روزه منقضی می‌شه تا KV دوباره پر نشه
+              ctx.waitUntil(
+                env.BACKUPS.put(kvKey, JSON.stringify({ data: btoa(binary), contentType }), { expirationTtl: 180 * 86400 })
+              )
             } catch {}
           }
 
@@ -816,6 +859,7 @@ async function handleFetch(request, env, ctx) {
           // (مثلاً "The Apartment" باید زیر A بره نه T)
           const alphaExpr = `(CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END)`
           if (alpha === '0-9') { sql += ` AND ${alphaExpr} GLOB '[0-9]*'` }
+          else if (alpha === '#') { sql += ` AND ${alphaExpr} GLOB '[^a-zA-Z0-9]*'` }
           else { sql += ` AND LOWER(${alphaExpr}) LIKE ?`; params.push(`${alpha.toLowerCase()}%`) }
         }
         if (decade) {
@@ -1795,6 +1839,14 @@ async function handleFetch(request, env, ctx) {
           // وگرنه این آدم برای همیشه بدون عکس/بیو می‌مونه.
           const cacheHasData = cached && (cached.photo || cached.bio || cached.birthDate)
           if (cacheHasData) {
+            // ویکی‌پدیا بیو داشت ولی عکس نه: یه‌بار از TMDB امتحان کن و ذخیره کن
+            if (!cached.photo) {
+              const tmdbPhoto = await fetchTmdbPersonPhoto(db, env, name)
+              if (tmdbPhoto) {
+                cached.photo = tmdbPhoto
+                await db.prepare('UPDATE people_photos SET photo = ? WHERE name = ?').bind(tmdbPhoto, cacheKey).run()
+              }
+            }
             return json(
               { ...cached, age: cached.deathDate ? null : ageFromBirthDate(cached.birthDate) },
               200,
@@ -1837,6 +1889,7 @@ async function handleFetch(request, env, ctx) {
             return json(emptyPersonInfo(), 200, corsHeaders)
           }
 
+          if (!info.photo) info.photo = await fetchTmdbPersonPhoto(db, env, name)
           info.letterboxdUrl = await resolveLetterboxdPersonUrl(name)
 
           // اگه ویکی‌پدیا هیچی برنگردوند (نه عکس نه بیو نه تاریخ تولد) احتمالاً
@@ -1890,11 +1943,12 @@ async function handleFetch(request, env, ctx) {
             .prepare('SELECT awards, recommendations, fetchedAt FROM director_extras WHERE name = ?')
             .bind(cacheKey)
             .first()
-          // اگه هم awards و هم recommendations خالی باشن، احتمالاً یه fetch
-          // (مثلاً به‌خاطر quota تموم‌شده‌ی OMDb) شکست خورده — به‌جای TTL کامل
-          // ۳۰ روزه، فقط ۱ روز نگهش می‌داریم تا خودش دوباره امتحان کنه.
-          const isEmpty =
-            (JSON.parse(cached?.awards || '[]').length === 0) && (JSON.parse(cached?.recommendations || '[]').length === 0)
+          // اگه recommendations خالی باشه، احتمالاً یه fetch (مثلاً به‌خاطر
+          // quota تموم‌شده‌ی OMDb) شکست خورده — به‌جای TTL کامل ۳۰ روزه، فقط
+          // ۱ روز نگهش می‌داریم تا خودش دوباره امتحان کنه. (قبلاً فقط وقتی
+          // awards هم خالی بود؛ کارگردانی که جایزه داشت ولی پیشنهادهاش به‌خاطر
+          // کوتا خالی برگشته بود، ۳۰ روز بدون باکس پیشنهاد می‌موند.)
+          const isEmpty = JSON.parse(cached?.recommendations || '[]').length === 0
           const ttl = isEmpty ? 1 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000
           const cacheFresh = cached?.fetchedAt && Date.now() - new Date(cached.fetchedAt).getTime() < ttl
           if (cacheFresh) {
@@ -1905,10 +1959,12 @@ async function handleFetch(request, env, ctx) {
             )
           }
 
-          const [awards, recommendations] = await Promise.all([
+          const [awards, fetchedRecs] = await Promise.all([
             fetchDirectorAwards(name),
             fetchDirectorRecommendations(db, name, env),
           ])
+          // null یعنی OMDb جواب نداد — لیست قبلی (اگه بود) رو نگه می‌داریم.
+          const recommendations = fetchedRecs ?? JSON.parse(cached?.recommendations || '[]')
 
           await db
             .prepare(
@@ -1963,11 +2019,173 @@ async function handleFetch(request, env, ctx) {
         }
       }
 
+      // ---- GET /api/films/:id/full-cast — بازیگران کامل (TMDB) یه‌بار، ذخیره تو cast ----
+      const fullCastMatch = pathname.match(/^\/api\/films\/([^/]+)\/full-cast$/)
+      if (method === 'GET' && fullCastMatch) {
+        try {
+          const row = await db.prepare('SELECT id, title, year, imdbId, itemType, cast FROM films WHERE id = ?').bind(fullCastMatch[1]).first()
+          if (!row) return json({ cast: null }, 200, corsHeaders)
+          const film = parseFilmRow(row)
+          const cast = await fetchFullCast(db, env, film)
+          return json({ cast }, 200, corsHeaders)
+        } catch (e) {
+          return json({ cast: null, error: String(e) }, 200, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/films/:id/relations — ادامه/ریمیک/اقتباس + فرمت اکران از Wikidata ----
+      const relMatch = pathname.match(/^\/api\/films\/([^/]+)\/relations$/)
+      if (method === 'GET' && relMatch) {
+        try {
+          const row = await db.prepare('SELECT id, imdbId FROM films WHERE id = ?').bind(relMatch[1]).first()
+          if (!row) return json({ related: [], formats: [] }, 200, corsHeaders)
+          return json(await fetchFilmRelations(db, row, env), 200, corsHeaders)
+        } catch (e) {
+          return json({ related: [], formats: [], error: String(e) }, 200, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/films/:id/tags — برچسب‌های خودکار (کالت/تجربی/جنبش) ----
+      const tagsMatch = pathname.match(/^\/api\/films\/([^/]+)\/tags$/)
+      if (method === 'GET' && tagsMatch) {
+        try {
+          const row = await db.prepare('SELECT id, title, year, imdbId, itemType FROM films WHERE id = ?').bind(tagsMatch[1]).first()
+          if (!row) return json({ tags: [] }, 200, corsHeaders)
+          return json({ tags: await fetchFilmTags(db, env, row) }, 200, corsHeaders)
+        } catch (e) {
+          return json({ tags: [], error: String(e) }, 200, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/release-year?title=&years=1964,1967&type=movie — کدوم سال درسته؟
+      // از TMDB: بین سال‌های کاندید، اونی که با سالِ اکران یه نتیجه‌ی هم‌نام می‌خونه. کش ۹۰ روزه. ----
+      if (method === 'GET' && pathname === '/api/release-year') {
+        const title = (url.searchParams.get('title') || '').trim()
+        const years = (url.searchParams.get('years') || '').split(',').map(Number).filter(Boolean)
+        const isTv = url.searchParams.get('type') === 'series'
+        if (!title || !years.length) return json({ year: null }, 200, corsHeaders)
+        const norm = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\([^)]*\)/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+        const cacheKey = `relyear:${isTv ? 'tv' : 'movie'}:${norm(title)}:${years.sort().join(',')}`
+        const cached = await db.prepare('SELECT data FROM cinema_news_cache WHERE key = ?').bind(cacheKey).first()
+        if (cached) return json({ year: cached.data === 'null' ? null : Number(cached.data) }, 200, corsHeaders)
+        if (!env.TMDB_API_KEY) return json({ year: null }, 200, corsHeaders)
+        const kind = isTv ? 'tv' : 'movie'
+        const r = await tmdbFetch(`https://api.themoviedb.org/3/search/${kind}?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(title.replace(/\s*\([^)]*\)\s*$/, ''))}`, env)
+        if (!r.ok) return json({ year: null }, 200, corsHeaders)
+        const d = await r.json()
+        const want = norm(title)
+        let found = null
+        for (const m of d.results || []) {
+          if (norm(m.title || m.name) !== want && norm(m.original_title || m.original_name) !== want) continue
+          const y = Number(String(m.release_date || m.first_air_date || '').slice(0, 4))
+          if (years.includes(y)) { found = y; break }
+        }
+        await db
+          .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+          .bind(cacheKey, String(found))
+          .run()
+        return json({ year: found }, 200, corsHeaders)
+      }
+
+      // ---- GET /api/person-credits?name= — فیلم‌شناسی کامل بازیگر از TMDB (کش ۳۰ روزه)
+      // تا «چند فیلمِ آرشیو» دقیق حساب بشه، نه فقط از روی ۳ بازیگرِ ذخیره‌شده‌ی هر فیلم. ----
+      if (method === 'GET' && pathname === '/api/person-credits') {
+        const name = (url.searchParams.get('name') || '').trim()
+        if (!name) return json({ credits: [] }, 200, corsHeaders)
+        const cacheKey = `pcredits:${name.toLowerCase()}`
+        const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(cacheKey).first()
+        if (cached && Date.now() - Date.parse(cached.fetchedAt.replace(' ', 'T') + 'Z') < 30 * 86400000) {
+          return json({ credits: JSON.parse(cached.data) }, 200, { ...corsHeaders, 'Cache-Control': 'public, max-age=3600' })
+        }
+        if (!env.TMDB_API_KEY) return json({ credits: [] }, 200, corsHeaders)
+        const sr = await tmdbFetch(`https://api.themoviedb.org/3/search/person?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(name)}`, env)
+        if (!sr.ok) return json({ credits: [] }, 200, corsHeaders)
+        const person = ((await sr.json()).results || [])[0]
+        let credits = []
+        if (person?.id) {
+          const cr = await tmdbFetch(`https://api.themoviedb.org/3/person/${person.id}/combined_credits?api_key=${env.TMDB_API_KEY}`, env)
+          if (!cr.ok) return json({ credits: [] }, 200, corsHeaders)
+          const cd = await cr.json()
+          const seen = new Set()
+          for (const c of [...(cd.cast || []), ...(cd.crew || [])]) {
+            const t = c.title || c.name
+            const y = Number(String(c.release_date || c.first_air_date || '').slice(0, 4)) || null
+            const k = `${t}|${y}`
+            if (!t || seen.has(k)) continue
+            seen.add(k)
+            credits.push({ t, o: c.original_title || c.original_name || null, y })
+          }
+        }
+        await db
+          .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+          .bind(cacheKey, JSON.stringify(credits))
+          .run()
+        return json({ credits }, 200, corsHeaders)
+      }
+
+      // ---- GET /api/top-of-year?year= — بهترین فیلم‌های هر سال از TMDB (کش ۳۰ روزه) ----
+      if (method === 'GET' && pathname === '/api/top-of-year') {
+        const year = Number(url.searchParams.get('year'))
+        if (!year || year < 1890 || year > 2100) return json({ films: [] }, 200, corsHeaders)
+        const cacheKey = `topyear:${year}`
+        const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(cacheKey).first()
+        if (cached && Date.now() - Date.parse(cached.fetchedAt.replace(' ', 'T') + 'Z') < 30 * 86400000) {
+          return json({ films: JSON.parse(cached.data) }, 200, corsHeaders)
+        }
+        if (!env.TMDB_API_KEY) return json({ films: [] }, 200, corsHeaders)
+        // سال‌های قدیمی رأی کمتری دارن؛ حداقلِ رأی رو با سال پایین میاریم
+        const minVotes = year >= 2000 ? 1500 : year >= 1980 ? 600 : year >= 1960 ? 300 : 120
+        const r = await tmdbFetch(
+          `https://api.themoviedb.org/3/discover/movie?api_key=${env.TMDB_API_KEY}&primary_release_year=${year}&sort_by=vote_average.desc&vote_count.gte=${minVotes}&without_genres=99,10770&page=1`,
+          env
+        )
+        if (!r.ok) return json({ films: [] }, 200, corsHeaders)
+        const d = await r.json()
+        const films = (d.results || []).slice(0, 15).map((m) => ({
+          title: m.title,
+          originalTitle: m.original_title,
+          year,
+          rating: m.vote_average ? Math.round(m.vote_average * 10) / 10 : null,
+          poster: m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : null,
+        }))
+        await db
+          .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+          .bind(cacheKey, JSON.stringify(films))
+          .run()
+        return json({ films }, 200, corsHeaders)
+      }
+
+      // ---- GET /api/tags — همه‌ی برچسب‌ها: { tag: [filmId, ...] } ----
+      if (method === 'GET' && pathname === '/api/tags') {
+        const { results } = await db
+          .prepare("SELECT key, data FROM cinema_news_cache WHERE key LIKE 'tags:%' AND data != '[]'")
+          .all()
+        const byTag = {}
+        for (const r of results) {
+          let tags = []
+          try { tags = JSON.parse(r.data) } catch {}
+          for (const t of tags) (byTag[t] ||= []).push(r.key.slice(5))
+        }
+        return json({ tags: byTag }, 200, { ...corsHeaders, 'Cache-Control': 'public, max-age=600' })
+      }
+
+      // ---- GET /api/films/:id/stills — عکس‌های صحنه از TMDB (کش ۹۰ روزه) ----
+      const stillsMatch = pathname.match(/^\/api\/films\/([^/]+)\/stills$/)
+      if (method === 'GET' && stillsMatch) {
+        try {
+          const row = await db.prepare('SELECT id, title, year, imdbId, itemType FROM films WHERE id = ?').bind(stillsMatch[1]).first()
+          if (!row) return json({ stills: [] }, 200, corsHeaders)
+          return json({ stills: await fetchFilmStills(db, env, row) }, 200, corsHeaders)
+        } catch (e) {
+          return json({ stills: [], error: String(e) }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/films/:id/alt-posters — پوسترهای جایگزین از TMDB برای اسلایدشوی گرید ----
       const altPostersMatch = pathname.match(/^\/api\/films\/([^/]+)\/alt-posters$/)
       if (method === 'GET' && altPostersMatch) {
         try {
-          const film = await db.prepare('SELECT id, imdbId, itemType FROM films WHERE id = ?').bind(altPostersMatch[1]).first()
+          const film = await db.prepare('SELECT id, imdbId, itemType, title, year FROM films WHERE id = ?').bind(altPostersMatch[1]).first()
           if (!film) return json({ posters: [] }, 200, corsHeaders)
           const posters = await fetchAltPosters(db, env, film)
           return json({ posters }, 200, corsHeaders)
@@ -2324,7 +2542,7 @@ async function handleFetch(request, env, ctx) {
           const existingKeys = new Set((existingRows.results || []).map((r) => `${r.t}::${r.year || ''}`))
           const acclaimed = []
           for (let page = 1; page <= 2 && acclaimed.length < 20; page++) {
-            const res = await fetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${tmdbKey}&page=${page}`)
+            const res = await tmdbFetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${tmdbKey}&page=${page}`, env)
             if (!res.ok) break
             const data = await res.json()
             for (const m of data.results || []) {
@@ -2361,12 +2579,12 @@ async function handleFetch(request, env, ctx) {
           const type = url.searchParams.get('type') === 'series' || url.searchParams.get('type') === 'tv' ? 'tv' : 'movie'
           if (!title) return json({ backdrops: [] }, 200, corsHeaders)
           const searchUrl = `https://api.themoviedb.org/3/search/${type}?api_key=${tmdbKey}&query=${encodeURIComponent(title)}${year ? `&year=${year}` : ''}`
-          const searchRes = await fetch(searchUrl)
+          const searchRes = await tmdbFetch(searchUrl, env)
           if (!searchRes.ok) return json({ backdrops: [] }, 200, corsHeaders)
           const searchData = await searchRes.json()
           const hit = (searchData.results || [])[0]
           if (!hit) return json({ backdrops: [] }, 200, corsHeaders)
-          const res = await fetch(`https://api.themoviedb.org/3/${type}/${hit.id}/images?api_key=${tmdbKey}`)
+          const res = await tmdbFetch(`https://api.themoviedb.org/3/${type}/${hit.id}/images?api_key=${tmdbKey}`, env)
           if (!res.ok) return json({ backdrops: [] }, 200, corsHeaders)
           const data = await res.json()
           const backdrops = (data.backdrops || [])
@@ -2992,6 +3210,37 @@ async function handleFetch(request, env, ctx) {
         }
 
         return json({ count: imported.length, added, updated, skipped, enriched, addedIds: newlyAddedIds }, 200, corsHeaders)
+      }
+
+      // ---- GET /api/export/full (admin) — کل دیتابیس (همه‌ی جدول‌ها) برای مهاجرت.
+      // سشن‌ها و کش‌ها حذف می‌شن؛ هشِ رمز کاربرها هم بیرون نمی‌ره. gzip‌شده. ----
+      if (method === 'GET' && pathname === '/api/export/full') {
+        const denied = requireAdmin()
+        if (denied) return denied
+        const gz = fullExportGzipStream(db)
+        const day = new Date().toISOString().slice(0, 10)
+        return new Response(gz, {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/gzip',
+            'Content-Disposition': `attachment; filename="movies-archive-full-${day}.json.gz"`,
+          },
+        })
+      }
+
+      // ---- POST /api/backups/drive-now (admin) — تست فوریِ بکاپ Google Drive ----
+      if (method === 'POST' && pathname === '/api/backups/drive-now') {
+        const denied = requireAdmin()
+        if (denied) return denied
+        try {
+          const gz = await fullExportGzipBytes(db)
+          const day = new Date().toISOString().slice(0, 10)
+          const ok = await uploadBackupToDrive(env, gz, `movies-archive-full-${day}.json.gz`)
+          return json(ok ? { ok: true } : { ok: false, error: 'Google Drive secrets are not set' }, ok ? 200 : 400, corsHeaders)
+        } catch (e) {
+          return json({ ok: false, error: e.message }, 500, corsHeaders)
+        }
       }
 
       // ---- GET /api/export/json (optional ?mediaType=&itemType= to scope the backup) ----

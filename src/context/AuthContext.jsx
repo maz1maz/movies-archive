@@ -11,8 +11,17 @@ export function AuthProvider({ children }) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch('/api/auth/me')
-      const data = await res.json()
+      // اگه سرور یا شبکه جواب نده، بعد از ۸ ثانیه ول کن و صفحه‌ی ورود رو نشون بده
+      // (قبلاً روی بعضی دستگاه‌ها این درخواست بی‌نهایت منتظر می‌موند و صفحه سیاه می‌موند)
+      const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), 8000) : null
+      let data = {}
+      try {
+        const res = await fetch('/api/auth/me', ctrl ? { signal: ctrl.signal } : undefined)
+        data = await res.json()
+      } finally {
+        if (timer) clearTimeout(timer)
+      }
       setUser(data.user || null)
     } catch {
       setUser(null)

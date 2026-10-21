@@ -2,7 +2,9 @@
 // upload.wikimedia.org وصل بشن، حتی اگه خودِ سایت باز بشه. این تابع اون
 // عکس‌ها رو از یه پراکسیِ خودِ Worker رد می‌کنه (که بهشون دسترسی داره) تا تو
 // هر شبکه‌ای لود بشن. برای عکس‌های خودِ آرشیو (که از قبل حل شده) کاری نمی‌کنه.
-const PROXIED_HOSTS = ['image.tmdb.org', 'upload.wikimedia.org']
+// m.media-amazon.com (پوسترهای IMDb/OMDb) هم تو بعضی شبکه‌ها باز نمی‌شه —
+// پوستر اصلی خیلی از فیلم‌ها از همون‌جاست و تو مودال خالی نشون داده می‌شد.
+const PROXIED_HOSTS = ['image.tmdb.org', 'upload.wikimedia.org', 'm.media-amazon.com']
 
 export function proxyImg(url) {
   if (!url) return url
