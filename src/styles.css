@@ -9849,3 +9849,60 @@ body.light .spine-theme-wood .spine-shelf-board {
     font-size: 11px;
   }
 }
+
+/* پیشنهاد زنده‌ی عنوان تو فرم «Add Film» */
+.title-suggest-field {
+  position: relative;
+}
+.title-suggest-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+.title-suggest-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.title-suggest-list li.active {
+  background: var(--surface-3);
+}
+.title-suggest-list img,
+.title-suggest-noposter {
+  width: 30px;
+  height: 45px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--surface-3);
+}
+.title-suggest-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.title-suggest-name {
+  color: var(--text);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.title-suggest-meta {
+  color: var(--muted);
+  font-size: 12px;
+}

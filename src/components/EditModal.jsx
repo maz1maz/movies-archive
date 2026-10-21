@@ -112,6 +112,11 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   const [linkConflicts, setLinkConflicts] = useState(null) // [{key, label, oldVal, newVal, checked}] | null
   const [duplicateWarning, setDuplicateWarning] = useState(null) // {sameFormatMatch, otherFormatMatch} | null
   const linkInputRef = useRef(null)
+  // پیشنهاد زنده‌ی عنوان (فقط برای فیلم جدید) — موقع تایپ عنوان از TMDB سرچ می‌کنیم
+  const [titleSuggestions, setTitleSuggestions] = useState([])
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [suggestIndex, setSuggestIndex] = useState(-1)
+  const titleTypedRef = useRef(false)
 
   const FIELD_LABELS = {
     title: 'Title', originalTitle: 'Original Title', year: 'Year', director: 'Director',
@@ -135,15 +140,16 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
     return data
   }
 
-  const lookupFromLink = async () => {
-    if (!linkUrl.trim()) {
+  const lookupFromLink = async (overrideUrl) => {
+    const link = typeof overrideUrl === 'string' ? overrideUrl : linkUrl.trim()
+    if (!link) {
       setLookupError('Paste an IMDb, Letterboxd, or TVMaze link')
       return
     }
     setLookupError('')
     setLinkLoading(true)
     try {
-      const qs = new URLSearchParams({ url: linkUrl.trim() })
+      const qs = new URLSearchParams({ url: link })
       const res = await fetch(`/api/link-lookup?${qs.toString()}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Not found')
@@ -213,6 +219,68 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       setLookupError(e.message)
     } finally {
       setLinkLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!isNew || !titleTypedRef.current) return
+    const q = form.title.trim()
+    if (q.length < 2) {
+      setTitleSuggestions([])
+      return
+    }
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      try {
+        const qs = new URLSearchParams({ q, type: form.itemType })
+        const res = await fetch(`/api/title-search?${qs.toString()}`, { signal: controller.signal })
+        const data = res.ok ? await res.json() : []
+        setTitleSuggestions(Array.isArray(data) ? data : [])
+        setSuggestIndex(-1)
+        setSuggestOpen(true)
+      } catch {}
+    }, 300)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [form.title, form.itemType, isNew])
+
+  const pickSuggestion = async (s) => {
+    titleTypedRef.current = false
+    setSuggestOpen(false)
+    setTitleSuggestions([])
+    setForm((prev) => ({ ...prev, title: s.title, year: s.year ?? prev.year }))
+    try {
+      const qs = new URLSearchParams({ tmdbId: s.tmdbId, type: form.itemType })
+      const res = await fetch(`/api/title-search/imdb-id?${qs.toString()}`)
+      const { imdbId } = res.ok ? await res.json() : {}
+      if (imdbId) {
+        const imdbUrl = `https://www.imdb.com/title/${imdbId}/`
+        setLinkUrl(imdbUrl)
+        await lookupFromLink(imdbUrl)
+      }
+    } catch (e) {
+      setLookupError(e.message)
+    }
+  }
+
+  const onTitleKeyDown = (e) => {
+    if (!suggestOpen || !titleSuggestions.length) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSuggestIndex((i) => (i + 1) % titleSuggestions.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSuggestIndex((i) => (i <= 0 ? titleSuggestions.length - 1 : i - 1))
+    } else if (e.key === 'Enter' && suggestIndex >= 0) {
+      e.preventDefault()
+      pickSuggestion(titleSuggestions[suggestIndex])
+    } else if (e.key === 'Escape') {
+      // فقط لیست رو ببند، نه کل مودال رو
+      e.stopPropagation()
+      e.nativeEvent.stopImmediatePropagation()
+      setSuggestOpen(false)
     }
   }
 
@@ -507,9 +575,45 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             </div>
           )}
 
-          <label className="edit-field full">
+          <label className="edit-field full title-suggest-field">
             <span>Title</span>
-            <input value={form.title} onChange={set('title')} />
+            <input
+              value={form.title}
+              onChange={(e) => {
+                titleTypedRef.current = true
+                set('title')(e)
+              }}
+              onKeyDown={onTitleKeyDown}
+              onFocus={() => titleSuggestions.length && setSuggestOpen(true)}
+              onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
+              placeholder={isNew ? 'Start typing to search online…' : undefined}
+              autoComplete="off"
+            />
+            {isNew && suggestOpen && titleSuggestions.length > 0 && (
+              <ul className="title-suggest-list" role="listbox">
+                {titleSuggestions.map((s, i) => (
+                  <li
+                    key={s.tmdbId}
+                    role="option"
+                    aria-selected={i === suggestIndex}
+                    className={i === suggestIndex ? 'active' : ''}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      pickSuggestion(s)
+                    }}
+                    onMouseEnter={() => setSuggestIndex(i)}
+                  >
+                    {s.poster ? <img src={s.poster} alt="" /> : <span className="title-suggest-noposter" />}
+                    <span className="title-suggest-text">
+                      <span className="title-suggest-name">{s.title}</span>
+                      <span className="title-suggest-meta">
+                        {[s.year, s.originalTitle && s.originalTitle !== s.title ? s.originalTitle : null].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </label>
 
           <label className="edit-field full">

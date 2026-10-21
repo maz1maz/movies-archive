@@ -1335,6 +1335,53 @@ async function handleFetch(request, env, ctx) {
         return json(decades, 200, corsHeaders)
       }
 
+      // ---- GET /api/title-search?q=X&type=movie|series (پیشنهاد زنده‌ی عنوان موقع تایپ
+      // تو فرم «Add Film» — از TMDB می‌گیریم چون سرچِ پیشوندی/فازی داره) ----
+      if (method === 'GET' && pathname === '/api/title-search') {
+        const q = (url.searchParams.get('q') || '').trim()
+        if (q.length < 2 || !env.TMDB_API_KEY) return json([], 200, corsHeaders)
+        const tmdbType = url.searchParams.get('type') === 'series' ? 'tv' : 'movie'
+        try {
+          const res = await fetch(
+            `https://api.themoviedb.org/3/search/${tmdbType}?api_key=${env.TMDB_API_KEY}&query=${encodeURIComponent(q)}&include_adult=false`,
+            { signal: AbortSignal.timeout(8000) }
+          )
+          if (!res.ok) return json([], 200, corsHeaders)
+          const data = await res.json()
+          const results = (data.results || []).slice(0, 8).map((m) => {
+            const date = m.release_date || m.first_air_date || ''
+            return {
+              tmdbId: m.id,
+              title: m.title || m.name,
+              originalTitle: m.original_title || m.original_name || null,
+              year: date ? Number(date.slice(0, 4)) : null,
+              poster: m.poster_path ? `https://image.tmdb.org/t/p/w92${m.poster_path}` : null,
+            }
+          })
+          return json(results, 200, corsHeaders)
+        } catch (e) {
+          return json([], 200, corsHeaders)
+        }
+      }
+
+      // ---- GET /api/title-search/imdb-id?tmdbId=X&type=movie|series (بعد از انتخاب
+      // پیشنهاد، شناسه‌ی IMDb رو می‌گیریم تا همون مسیر link-lookup پرش کنه) ----
+      if (method === 'GET' && pathname === '/api/title-search/imdb-id') {
+        const tmdbId = parseInt(url.searchParams.get('tmdbId') || '', 10)
+        if (!tmdbId || !env.TMDB_API_KEY) return json({ imdbId: null }, 200, corsHeaders)
+        const tmdbType = url.searchParams.get('type') === 'series' ? 'tv' : 'movie'
+        try {
+          const res = await fetch(
+            `https://api.themoviedb.org/3/${tmdbType}/${tmdbId}/external_ids?api_key=${env.TMDB_API_KEY}`,
+            { signal: AbortSignal.timeout(8000) }
+          )
+          const data = res.ok ? await res.json() : {}
+          return json({ imdbId: data.imdb_id || null }, 200, corsHeaders)
+        } catch (e) {
+          return json({ imdbId: null }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/omdb-lookup (single-title search for the "Add Film" autofill) ----
       if (method === 'GET' && pathname === '/api/omdb-lookup') {
         const key = env.OMDB_API_KEY
