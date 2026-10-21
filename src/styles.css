@@ -11617,3 +11617,23 @@ a.cine-related-title:hover {
     font-size: 15px;
   }
 }
+
+/* دکمه‌ی حرف تو «Fill this section»: حرف + باقی‌مونده‌ی بی‌آدرس */
+.film-selector-az-btn.shelf-fill-letter {
+  display: inline-flex;
+  height: auto;
+  min-width: 34px;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 3px 5px;
+  line-height: 1.1;
+}
+.shelf-fill-letter-left {
+  font-size: 9.5px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+.film-selector-az-btn.shelf-fill-letter-done {
+  opacity: 0.4;
+}

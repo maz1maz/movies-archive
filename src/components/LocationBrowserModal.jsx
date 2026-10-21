@@ -501,6 +501,16 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     const ch = String(title || '').replace(/^the\s+/i, '').replace(/^[^\p{L}\p{N}]+/u, '').charAt(0).toUpperCase()
     return /[A-Z]/.test(ch) ? ch : '#'
   }
+  // باقی‌مونده‌ی هر حرف: چند نسخه‌ی بی‌آدرس با این حرف شروع می‌شن (روی دکمه‌ی حرف)
+  const unassignedByLetter = useMemo(() => {
+    const out = {}
+    for (const f of physicalAll) {
+      if (f.closet) continue
+      const L = letterOf(f.title)
+      out[L] = (out[L] || 0) + Math.max(1, Number(f.copies) || 1)
+    }
+    return out
+  }, [physicalAll])
   const nextSection = (c, r, sh) => {
     const s3 = Number(sh)
     if (s3 < SECTIONS.length) return [c, r, String(s3 + 1)]
@@ -1255,19 +1265,28 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                     </span>
                   </div>
                   <div className="shelf-fill-letters">
-                    {AZ_LETTERS.map((L) => (
-                      <button
-                        type="button"
-                        key={L}
-                        className={'film-selector-az-btn' + (fillLetter === L ? ' film-selector-az-btn-active' : '')}
-                        onClick={() => {
-                          setFillLetter(L)
-                          setFillPreview(null)
-                        }}
-                      >
-                        {L}
-                      </button>
-                    ))}
+                    {AZ_LETTERS.map((L) => {
+                      const left = unassignedByLetter[L] || 0
+                      return (
+                        <button
+                          type="button"
+                          key={L}
+                          className={
+                            'film-selector-az-btn shelf-fill-letter' +
+                            (fillLetter === L ? ' film-selector-az-btn-active' : '') +
+                            (left ? '' : ' shelf-fill-letter-done')
+                          }
+                          onClick={() => {
+                            setFillLetter(L)
+                            setFillPreview(null)
+                          }}
+                          title={left ? `${left} unassigned copies start with ${L}` : `No unassigned copies left for ${L}`}
+                        >
+                          <span>{L}</span>
+                          <span className="shelf-fill-letter-left">{left}</span>
+                        </button>
+                      )
+                    })}
                   </div>
                   <div className="shelf-fill-controls">
                     <label>
