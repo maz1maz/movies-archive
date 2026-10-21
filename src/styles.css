@@ -11487,3 +11487,77 @@ a.cine-related-title:hover {
 .shelf-wall-section-link:hover {
   color: var(--accent);
 }
+
+/* Wall · Cards: هر بخش یه کارت */
+.shelf-wall-mode {
+  margin: 0 0 0 auto;
+}
+.shelf-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.shelf-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-top: 3px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.shelf-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.shelf-card-s2 {
+  border-top-color: #6b46c1;
+}
+.shelf-card-s3 {
+  border-top-color: #2f9e8f;
+}
+.shelf-card-loc {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.shelf-card-range {
+  font-size: 20px;
+  font-weight: 800;
+}
+.shelf-card-titles {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shelf-card-meter {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--bg);
+}
+.shelf-card-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.shelf-card-s2 .shelf-card-fill {
+  background: #6b46c1;
+}
+.shelf-card-s3 .shelf-card-fill {
+  background: #2f9e8f;
+}
+.shelf-card-count {
+  color: var(--muted);
+  font-size: 11.5px;
+}

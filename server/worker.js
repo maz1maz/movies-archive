@@ -2706,43 +2706,6 @@ async function handleFetch(request, env, ctx) {
         }
       }
 
-      // ---- POST /api/shelf/reset (clear closet/row/shelf for every film
-      // matching the given scope — used by the "Reset Shelf/Row/Closet"
-      // buttons on the bookshelf page) ----
-      if (method === 'POST' && pathname === '/api/shelf/reset') {
-        const denied = requireEditAccess()
-        if (denied) return denied
-        let body = {}
-        try {
-          body = await request.json()
-        } catch {
-          return json({ error: 'Invalid request body' }, 400, corsHeaders)
-        }
-        const scope = body.scope
-        const closet = (body.closet ?? '').toString().trim()
-        const row = (body.row ?? '').toString().trim()
-        const shelf = (body.shelf ?? '').toString().trim()
-        if (!['shelf', 'row', 'closet'].includes(scope)) {
-          return json({ error: 'scope must be shelf, row, or closet' }, 400, corsHeaders)
-        }
-        if (!closet) return json({ error: 'closet is required' }, 400, corsHeaders)
-        if (scope !== 'closet' && !row) return json({ error: 'row is required for this scope' }, 400, corsHeaders)
-        if (scope === 'shelf' && !shelf) return json({ error: 'shelf is required for this scope' }, 400, corsHeaders)
-
-        let sql = "UPDATE films SET closet = NULL, row = NULL, shelf = NULL WHERE closet = ?"
-        const binds = [closet]
-        if (scope === 'row' || scope === 'shelf') {
-          sql += ' AND row = ?'
-          binds.push(row)
-        }
-        if (scope === 'shelf') {
-          sql += ' AND shelf = ?'
-          binds.push(shelf)
-        }
-        const result = await db.prepare(sql).bind(...binds).run()
-        return json({ success: true, cleared: result.meta?.changes ?? 0 }, 200, corsHeaders)
-      }
-
       // ---- POST /api/films/poster-color-batch — { colors: [{id, color}] } ----
       if (method === 'POST' && pathname === '/api/films/poster-color-batch') {
         const denied = requireEditAccess()

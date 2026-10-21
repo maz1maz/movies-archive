@@ -6,6 +6,7 @@ import { escapeHtml } from '../utils/escapeHtml.js'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 import { useShelfZoom, useShelfTheme, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../hooks/useShelfZoom.js'
 import BookshelfView from './BookshelfView.jsx'
+import { alphabetRange } from '../utils/shelfRange.js'
 
 // زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
 const BASE_ZOOM = 0.8
@@ -740,16 +741,6 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
     const num = (v) => Number(v) || 0
-    const clean = (t) => String(t || '').replace(/^the\s+/i, '').replace(/^[^\p{L}\p{N}]+/u, '')
-    // دو حرف کافیه، مگه اینکه اول و آخر یکی بشن — اون‌وقت تا ۵ حرف بلندش می‌کنیم
-    const rangeOf = (a, b) => {
-      const x = clean(a)
-      const y = clean(b)
-      let n = 2
-      while (n < 5 && x.slice(0, n).toLowerCase() === y.slice(0, n).toLowerCase() && (x.length > n || y.length > n)) n++
-      const fmt = (v) => v.slice(0, n).replace(/^./, (ch) => ch.toUpperCase()) || '#'
-      return `${fmt(x)} – ${fmt(y)}`
-    }
     const keys = Object.keys(sectionIndex)
       .filter((k) => !closet || k.startsWith(`${closet}|`))
       .sort((a, b) => {
@@ -765,7 +756,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
         const last = films[films.length - 1]
         return `<div class="label">
           <div class="loc">C${escapeHtml(c)} · R${escapeHtml(r)} · S${escapeHtml(sh)}</div>
-          <div class="range">${escapeHtml(rangeOf(first.title, last.title))}</div>
+          <div class="range">${escapeHtml(alphabetRange(first.title, last.title))}</div>
           <div class="titles">${escapeHtml(first.title)} → ${escapeHtml(last.title)}</div>
         </div>`
       })
@@ -935,6 +926,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
               onSelectFilm={onSelectFilm}
               onFilmsChanged={onFilmsChanged}
               closet={closet}
+              capacityFor={(sh) => SECTIONS.find((x) => x.num === String(sh))?.capacity || DEFAULT_CAPACITY}
               onPickSection={(c, r, sh) => {
                 setCloset(c)
                 setRow(r)
