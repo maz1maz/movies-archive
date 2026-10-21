@@ -88,7 +88,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [hideShelved, setHideShelved] = useState(true)
   const [azLetter, setAzLetter] = useState(null)
   const [shelfViewMode, setShelfViewMode] = useState('spine')
-  const [shelfScale, setShelfScale] = useState(1)
+  const [shelfScale, setShelfScale] = useState(0.85) // همون اندازه‌ی پیش‌فرض BookshelfView
   useEffect(() => {
     const el = shelfRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
@@ -451,11 +451,16 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
 
   const currentSection = SECTIONS.find((s) => s.num === shelf) || null
 
-  // جای خالیِ بخش (ظرفیت منهای نسخه‌ها) به‌صورت جلدهای کم‌رنگ، بعد از جلدهای واقعی
+  // جای خالیِ بخش (ظرفیت منهای نسخه‌ها) به‌صورت جلدهای کم‌رنگ، بعد از جلدهای
+  // واقعی — ولی فقط تا آخر آخرین ردیفی که جلد واقعی داره، تا قفسه هم‌قدِ
+  // Bookshelf بمونه و ردیف خالیِ اضافه نسازه (نوار «x / ظرفیت» ظرفیت کامل رو نشون می‌ده)
   const shelfSlots = useMemo(() => {
     const free = Math.max(0, (currentSection?.capacity || 0) - shelfCases.length)
-    return [...shelfCases, ...Array.from({ length: free }, (_, i) => ({ ghost: true, ghostIdx: i }))]
-  }, [shelfCases, currentSection])
+    const rowsUsed = Math.max(1, Math.ceil(shelfCases.length / casesPerRow))
+    const roomInRows = rowsUsed * casesPerRow - shelfCases.length
+    const ghosts = Math.min(free, roomInRows)
+    return [...shelfCases, ...Array.from({ length: ghosts }, (_, i) => ({ ghost: true, ghostIdx: i }))]
+  }, [shelfCases, currentSection, casesPerRow])
 
   const selectCloset = (v) => {
     setCloset(v)
