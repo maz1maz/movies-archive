@@ -95,6 +95,7 @@ export default function Header({
   onFetchSeasonCounts,
   fetchingSeasonCounts,
   onBackfillImdbIds,
+  onShowMissingImdb,
   backfillingImdb,
   view,
   setView,
@@ -521,6 +522,16 @@ export default function Header({
                 >
                   <IconSparkles width={15} height={15} />{' '}
                   {backfillingImdb ? 'Finding IMDb IDs…' : 'Fill missing IMDb IDs'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onShowMissingImdb()
+                    setMenuOpen(false)
+                  }}
+                  title="List archive films that still have no IMDb ID"
+                >
+                  <IconSparkles width={15} height={15} /> Films without IMDb ID
                 </button>
               </div>
 

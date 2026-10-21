@@ -10064,3 +10064,47 @@ body.light .spine-theme-wood .spine-shelf-board {
 .import-review-summary strong {
   color: var(--text);
 }
+
+/* لیست فیلم‌های بدون شناسه‌ی IMDb */
+.missing-imdb-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.missing-imdb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.missing-imdb-list button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.missing-imdb-list button:hover {
+  background: var(--surface-3);
+}
+.missing-imdb-list img {
+  width: 30px;
+  height: 45px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  object-fit: cover;
+}

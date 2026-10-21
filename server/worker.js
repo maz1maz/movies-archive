@@ -11,7 +11,7 @@ import { resolveLetterboxdPersonUrl, syncLetterboxdUserToReviews, parseLetterbox
 import { fetchCinemaHeadlines, fetchCinemaHeadlinesFa } from './lib/cinemaNews.js'
 import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailers, fetchGeneralUpcoming, fetchTrendingAndBoxOffice, fetchTrendingPeople, fetchBornTodayGeneral, fetchFestivalCalendar, ageFromBirthDate } from './lib/tmdbFeeds.js'
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
-import { findVerifiedImdbId, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
+import { findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, fetchAltPosters, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
@@ -1237,14 +1237,27 @@ async function handleFetch(request, env, ctx) {
               .all()
         const candidates = batch.results || []
         let found = 0
+        let directorsAdded = 0
         for (const f of candidates) {
-          // بدون کارگردان و سال، «بهترین نتیجه»ی TMDB زیادی حدسیه — ردش می‌کنیم
-          if (!f.director && !f.year) continue
           try {
-            const imdbId = await findVerifiedImdbId(f.title, f.year, f.director, f.itemType, env)
-            if (imdbId) {
-              await db.prepare('UPDATE films SET imdbId = ? WHERE id = ?').bind(imdbId, f.id).run()
-              found++
+            if (f.director) {
+              const imdbId = await findVerifiedImdbId(f.title, f.year, f.director, f.itemType, env)
+              if (imdbId) {
+                await db.prepare('UPDATE films SET imdbId = ? WHERE id = ?').bind(imdbId, f.id).run()
+                found++
+              }
+            } else {
+              // بی‌کارگردان: فقط تطبیق دقیق عنوان+سال، و کارگردان هم همون‌جا ثبت می‌شه.
+              // بدون سال، حدس زیادی خطرناکه — ردش می‌کنیم.
+              const hit = await findImdbIdAndDirectorByExactTitle(f.title, f.year, f.itemType, env)
+              if (hit) {
+                await db
+                  .prepare("UPDATE films SET imdbId = ?, director = COALESCE(NULLIF(director, ''), ?) WHERE id = ?")
+                  .bind(hit.imdbId, hit.director, f.id)
+                  .run()
+                found++
+                if (hit.director) directorsAdded++
+              }
             }
           } catch {}
         }
@@ -1260,6 +1273,7 @@ async function handleFetch(request, env, ctx) {
           {
             processed: candidates.length,
             found,
+            directorsAdded,
             nextCursor: candidates.length ? candidates[candidates.length - 1].id : null,
             remaining: remainingAfter?.count || 0,
           },

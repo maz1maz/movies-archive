@@ -11,6 +11,7 @@ import PosterCollage from './components/PosterCollage.jsx'
 import { parseImportCsv, matchEntriesToFilms } from './utils/csvImport.js'
 import LoanModal from './components/LoanModal.jsx'
 import ImportReviewModal from './components/ImportReviewModal.jsx'
+import MissingImdbModal from './components/MissingImdbModal.jsx'
 import { IconArchive, IconClose } from './components/icons.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 import { useTheme } from './context/ThemeContext.jsx'
@@ -197,6 +198,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [enrichingCatalog, setEnrichingCatalog] = useState(false)
   const [backfillingImdb, setBackfillingImdb] = useState(false)
+  const [missingImdbOpen, setMissingImdbOpen] = useState(false)
   const [importReview, setImportReview] = useState(null) // {file, flagged, count} | null
   const [enrichRemaining, setEnrichRemaining] = useState(null)
 
@@ -365,7 +367,7 @@ export default function App() {
   }
 
   const loadAllFilmsUnfiltered = () => {
-    fetch('/api/films')
+    return fetch('/api/films')
       .then((r) => r.json())
       .then((data) => {
         // همون مشکل loadFilms: اگه بجای آرایه، پاسخ خطا برگرده (مثلاً زیر بار
@@ -657,6 +659,7 @@ export default function App() {
     setBackfillingImdb(true)
     let processed = 0
     let found = 0
+    let directorsAdded = 0
     let cursor = ''
     try {
       for (let batch = 0; batch < 500; batch++) {
@@ -665,13 +668,20 @@ export default function App() {
         if (!res.ok) throw new Error(data.error || 'IMDb ID lookup failed')
         processed += data.processed
         found += data.found
+        directorsAdded += data.directorsAdded || 0
         if (!data.processed || !data.nextCursor) break
         cursor = data.nextCursor
         showToast(`Finding IMDb IDs… ${found} found, ${data.remaining} left to check`, 60000)
         if (data.remaining === 0) break
       }
-      showToast(`IMDb IDs: found ${found} of ${processed} films checked`, 7000)
-      loadAllFilmsUnfiltered()
+      showToast(
+        `IMDb IDs: found ${found} of ${processed} films checked` +
+          (directorsAdded ? ` · ${directorsAdded} directors added` : ''),
+        7000
+      )
+      await loadAllFilmsUnfiltered()
+      // اونایی که پیدا نشدن رو نشون بده تا دستی (با لینک IMDb) درستشون کنی
+      if (found < processed) setMissingImdbOpen(true)
     } catch (e) {
       showToast(`Stopped after ${processed} films (${found} found) — ${e.message}`, 7000)
     } finally {
@@ -1209,6 +1219,7 @@ export default function App() {
         onFetchSeasonCounts={handleFetchSeasonCounts}
         fetchingSeasonCounts={fetchingSeasonCounts}
         onBackfillImdbIds={handleBackfillImdbIds}
+        onShowMissingImdb={() => setMissingImdbOpen(true)}
         backfillingImdb={backfillingImdb}
         onOpenExport={() => {
           // به‌جای مودال جدای Export که تکراری بود، مستقیم می‌بره به تب
@@ -1347,6 +1358,16 @@ export default function App() {
         />
       )}
 
+      {missingImdbOpen && (
+        <MissingImdbModal
+          films={allFilmsUnfiltered}
+          onClose={() => setMissingImdbOpen(false)}
+          onEdit={(film) => {
+            setMissingImdbOpen(false)
+            guardedEdit(film)
+          }}
+        />
+      )}
       {importReview && (
         <ImportReviewModal
           flagged={importReview.flagged}

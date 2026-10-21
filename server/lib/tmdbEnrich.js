@@ -353,3 +353,46 @@ export async function fetchDirectorRecommendations(db, name, env) {
     return []
   }
 }
+
+
+// برای فیلم‌هایی که کارگردان ندارن: فقط وقتی قبول می‌کنیم که دقیقاً *یک*
+// نتیجه‌ی TMDB هم عنوانش (یا عنوان اصلیش) و هم سالش با فیلم یکی باشه. بعد
+// کارگردان رو هم از credits همون نتیجه برمی‌گردونیم تا تو آرشیو ثبت بشه.
+export async function findImdbIdAndDirectorByExactTitle(title, year, itemType, env) {
+  const tmdbKey = env.TMDB_API_KEY
+  if (!title || !year || !tmdbKey) return null
+  async function tmdbGet(path, params) {
+    const qs = new URLSearchParams({ api_key: tmdbKey, ...params }).toString()
+    try {
+      const res = await fetch(`https://api.themoviedb.org/3${path}?${qs}`, { signal: AbortSignal.timeout(8000) })
+      if (!res.ok) return null
+      return res.json()
+    } catch {
+      return null
+    }
+  }
+  const kind = itemType === 'series' ? 'tv' : 'movie'
+  const data = await tmdbGet(`/search/${kind}`, { query: title })
+  const want = normalizeName(title).replace(/^(the|a|an)\s+/, '')
+  const exact = (data?.results || []).filter((r) => {
+    const date = r.release_date || r.first_air_date || ''
+    if (Number(date.slice(0, 4)) !== Number(year)) return false
+    const names = [r.title, r.name, r.original_title, r.original_name]
+      .filter(Boolean)
+      .map((n) => normalizeName(n).replace(/^(the|a|an)\s+/, ''))
+    return names.includes(want)
+  })
+  if (exact.length !== 1) return null
+  const cand = exact[0]
+  const [ext, credits] = await Promise.all([
+    tmdbGet(`/${kind}/${cand.id}/external_ids`, {}),
+    tmdbGet(`/${kind}/${cand.id}/credits`, {}),
+  ])
+  if (!ext?.imdb_id) return null
+  const crew = credits?.crew || []
+  const directors = (kind === 'tv'
+    ? crew.filter((c) => c.job === 'Director' || c.department === 'Directing')
+    : crew.filter((c) => c.job === 'Director')
+  ).map((c) => c.name)
+  return { imdbId: ext.imdb_id, director: [...new Set(directors)].slice(0, 3).join(', ') || null }
+}
