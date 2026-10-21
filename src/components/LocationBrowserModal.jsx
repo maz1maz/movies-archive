@@ -12,7 +12,7 @@ const PREVIEW_TITLES = 3
 //   بخش ۱: ظرفیت ۶۰ بلوری
 //   بخش ۲: ظرفیت ۶۰ بلوری
 // ظرفیت هر بخش از سرور (/api/settings/section-capacities) میاد؛ این فقط پیش‌فرضه
-const DEFAULT_CAPACITY = 60
+const DEFAULT_CAPACITY = 65 // پیش‌فرض و سقف هر بخش
 const BASE_SECTIONS = [
   { num: '1', label: 'Section 1' },
   { num: '2', label: 'Section 2' },
@@ -658,7 +658,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                       <input
                         type="number"
                         min="1"
-                        max="1000"
+                        max={DEFAULT_CAPACITY}
                         className="capacity-input"
                         value={capEditor[sec.num]}
                         onChange={(e) => setCapEditor({ ...capEditor, [sec.num]: e.target.value })}

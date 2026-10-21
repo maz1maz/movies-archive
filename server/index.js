@@ -200,9 +200,9 @@ app.post('/api/films', async (req, res) => {
       .filter((f) => String(f.closet || '') === String(film.closet) && String(f.row || '') === String(film.row) && String(f.shelf || '') === String(film.shelf))
       .reduce((sum, f) => sum + (Number(f.copies) || 1), 0)
     const newCopies = Number(film.copies || 1)
-    if (existingCopies + newCopies > 60) {
+    if (existingCopies + newCopies > 65) {
       return res.status(400).json({
-        error: `Section capacity exceeded (max 60 copies). C${film.closet} R${film.row} S${film.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
+        error: `Section capacity exceeded (max 65 copies). C${film.closet} R${film.row} S${film.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
       })
     }
   }
@@ -238,9 +238,9 @@ app.post('/api/films/bulk-move', (req, res) => {
   const movingCopies = films
     .filter((f) => idSet.has(String(f.id)))
     .reduce((sum, f) => sum + (Number(f.copies) || 1), 0)
-  if (existingCopies + movingCopies > 60) {
+  if (existingCopies + movingCopies > 65) {
     return res.status(400).json({
-      error: `Section capacity exceeded (max 60 copies). C${c} R${r} S${s} currently has ${existingCopies} copies; moving ${movingCopies} would exceed 60.`,
+      error: `Section capacity exceeded (max 65 copies). C${c} R${r} S${s} currently has ${existingCopies} copies; moving ${movingCopies} would exceed 65.`,
     })
   }
   let moved = 0
@@ -320,9 +320,9 @@ app.patch('/api/films/:id', (req, res) => {
       .filter((f) => f.id !== req.params.id && String(f.closet || '') === String(updated.closet) && String(f.row || '') === String(updated.row) && String(f.shelf || '') === String(updated.shelf))
       .reduce((sum, f) => sum + (Number(f.copies) || 1), 0)
     const newCopies = Number(updated.copies || 1)
-    if (existingCopies + newCopies > 60) {
+    if (existingCopies + newCopies > 65) {
       return res.status(400).json({
-        error: `Section capacity exceeded (max 60 copies). C${updated.closet} R${updated.row} S${updated.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
+        error: `Section capacity exceeded (max 65 copies). C${updated.closet} R${updated.row} S${updated.shelf} already has ${existingCopies} copies; this film has ${newCopies} copies.`,
       })
     }
   }

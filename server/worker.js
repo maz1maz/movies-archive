@@ -177,9 +177,10 @@ async function handleFetch(request, env, ctx) {
     }
 
     // ---- ظرفیت بخش‌ها (S1/S2/S3)، قابل تنظیم از Browse by Location؛ تو KV
-    // نگه داشته می‌شه و پیش‌فرض هر بخش ۶۰ نسخه‌ست ----
+    // نگه داشته می‌شه. پیش‌فرض و سقف هر بخش ۶۵ نسخه‌ست ----
     const SECTION_CAPACITY_KEY = 'settings:section-capacities:v1'
-    const DEFAULT_SECTION_CAPACITY = 60
+    const DEFAULT_SECTION_CAPACITY = 65
+    const MAX_SECTION_CAPACITY = 65
     let sectionCapacitiesCache = null
     const getSectionCapacities = async () => {
       if (sectionCapacitiesCache) return sectionCapacitiesCache
@@ -190,7 +191,7 @@ async function handleFetch(request, env, ctx) {
       const caps = { 1: DEFAULT_SECTION_CAPACITY, 2: DEFAULT_SECTION_CAPACITY, 3: DEFAULT_SECTION_CAPACITY }
       for (const k of Object.keys(caps)) {
         const v = Number(stored?.[k])
-        if (Number.isFinite(v) && v > 0) caps[k] = Math.floor(v)
+        if (Number.isFinite(v) && v > 0) caps[k] = Math.min(MAX_SECTION_CAPACITY, Math.floor(v))
       }
       sectionCapacitiesCache = caps
       return caps
@@ -1113,8 +1114,8 @@ async function handleFetch(request, env, ctx) {
           const next = {}
           for (const k of ['1', '2', '3']) {
             const v = Math.floor(Number(body?.[k]))
-            if (!Number.isFinite(v) || v < 1 || v > 1000) {
-              return json({ error: `Section ${k} capacity must be a number from 1 to 1000` }, 400, corsHeaders)
+            if (!Number.isFinite(v) || v < 1 || v > MAX_SECTION_CAPACITY) {
+              return json({ error: `Section ${k} capacity must be a number from 1 to ${MAX_SECTION_CAPACITY}` }, 400, corsHeaders)
             }
             next[k] = v
           }
