@@ -89,7 +89,6 @@ export default function Header({
   enrichScopeLabel,
   onOpenExport,
   onOpenLocationBrowser,
-  onOpenBookshelf,
   onOpenDriveBrowser,
   onSyncLetterboxd,
   onFetchSeasonCounts,
@@ -350,27 +349,12 @@ export default function Header({
                 setMenuOpen(false)
                 setAzOpen(false)
               }}
-              title="Browse by closet / row / section"
+              title="Shelves: fill, empty and move sections, or see every shelf as a wall"
             >
-              <IconPin width={14} height={14} /> <span className="btn-label">Location</span>
+              <IconPin width={14} height={14} /> <span className="btn-label">Shelves</span>
             </button>
           )}
 
-          {(section === 'physical' || section === 'physical-series') && onOpenBookshelf && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => {
-                onOpenBookshelf()
-                setFiltersOpen(false)
-                setMenuOpen(false)
-                setAzOpen(false)
-              }}
-              title="3D Physical Bookshelf view (pure exhibition without edit buttons)"
-            >
-              <IconBookshelf width={14} height={14} /> <span className="btn-label">Bookshelf</span>
-            </button>
-          )}
 
           {(section === 'digital-movie' || section === 'digital-series') && onOpenDriveBrowser && (
             <button
