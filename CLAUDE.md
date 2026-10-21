@@ -21,3 +21,8 @@ From a Claude Code cloud session, `wrangler deploy` can't upload changed static 
 
 - Code comments are in Persian. Match the surrounding style.
 - Squash-merge feature PRs. Use a merge commit when bringing a long-lived branch back in, so its history is kept.
+
+## Working with the owner
+
+- Don't end replies with a list of suggestions to approve one at a time; the owner finds that tiresome. Build small, clearly useful follow-ups directly in the same change and mention them in one line. Ask only before big or destructive decisions (removing a feature, bulk data changes, restructuring a page).
+- Replies are in Persian, in short sentences.

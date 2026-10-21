@@ -1279,6 +1279,9 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                           onClick={() => {
                             setFillLetter(L)
                             setFillPreview(null)
+                            // تعداد پیش‌فرض: هر کدوم کمتره — باقی‌مونده‌ی این حرف یا جای خالی بخش
+                            const free = Math.max(0, currentSection.capacity - shelfCopiesCount)
+                            if (left && free) setFillCount(String(Math.min(left, free)))
                           }}
                           title={left ? `${left} unassigned copies start with ${L}` : `No unassigned copies left for ${L}`}
                         >
@@ -1305,6 +1308,17 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                       />
                     </label>
                     <span className="shelf-fill-free">{Math.max(0, currentSection.capacity - shelfCopiesCount)} free</span>
+                    {(() => {
+                      // اگه تعداد از باقی‌مونده‌ی این حرف بیشتره، فیلم‌های حرف(های) بعدی هم میان
+                      const count = parseInt(fillCount, 10)
+                      const left = unassignedByLetter[fillLetter] || 0
+                      if (!Number.isFinite(count) || fillLetter === '#' || count <= left) return null
+                      return (
+                        <span className="shelf-fill-warn">
+                          Only {left} copies left for {fillLetter} — the rest will continue into the next letter{count - left > 1 ? 's' : ''}
+                        </span>
+                      )
+                    })()}
                     <button type="button" className="shelf-back-btn" disabled={fillBusy} onClick={() => runFill(true)}>
                       Preview
                     </button>
