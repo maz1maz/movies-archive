@@ -11741,7 +11741,7 @@ a.cine-related-title:hover {
 .spine-format-blu { background: #1d4ed8; color: #fff; }
 .spine-format-uhd { background: #0b0b0b; color: #fff; }
 .spine-format-dvd { background: #b91c1c; color: #fff; }
-.spine-format-crit { background: #ede7d9; color: #2a2620; }
+.spine-format-crit { background: #8e1b2e; color: #fbe9ea; }
 .spine-format-steel { background: #9ca3af; color: #111; }
 
 .cinema-wood-shelf .case-spine {
@@ -11907,3 +11907,13 @@ a.cine-collection-poster-btn {
   cursor: pointer;
   font: inherit;
 }
+
+/* لوگوی کرایتریون بالای عطف (جای برچسب CRIT. COLL.) */
+.spine-crit-logo {
+  display: block;
+  width: min(calc(100% - 4px), 22px);
+  aspect-ratio: 1;
+  margin: 3px auto 1px;
+  flex-shrink: 0;
+}
+.spine-crit-logo svg { display: block; width: 100%; height: 100%; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
