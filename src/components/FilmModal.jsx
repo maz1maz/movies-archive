@@ -8,7 +8,8 @@ import { shareFilmCard } from '../utils/shareCard.js'
 import { addToOrderList } from '../utils/orderList.js'
 import { parseDriveNumbers, driveLabel, driveSortValue, normalizeDriveValue } from '../utils/driveDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
-import { imdbUrl } from '../utils/imdbLink.js'
+// به اسم دیگه، چون داخل کامپوننت یه const imdbUrl (لینک خود فیلم) هست که سایه‌اش می‌انداخت
+import { imdbUrl as imdbLinkFor } from '../utils/imdbLink.js'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 function CollectionOrderButton({ title, year }) {
@@ -917,7 +918,7 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                         // فیلمی که نداری (Missing) — لینک واقعی به IMDb (window.open تو اپ نصب‌شده بلاک می‌شد)
                         <a
                           className="cine-collection-poster-btn"
-                          href={imdbUrl({ imdbId: p.imdbId, title: p.title, year: p.year })}
+                          href={imdbLinkFor({ imdbId: p.imdbId, title: p.title, year: p.year })}
                           target="_blank"
                           rel="noopener noreferrer"
                           title={`${p.title} — open on IMDb`}
@@ -1472,7 +1473,7 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                         {r.title}{r.year ? ` (${r.year})` : ''}
                       </a>
                     ) : (
-                      <a className="cine-related-title" href={imdbUrl({ title: r.title, year: r.year })} target="_blank" rel="noopener noreferrer">
+                      <a className="cine-related-title" href={imdbLinkFor({ title: r.title, year: r.year })} target="_blank" rel="noopener noreferrer">
                         {r.title}{r.year ? ` (${r.year})` : ''}
                       </a>
                     )}
