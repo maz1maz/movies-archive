@@ -8,6 +8,7 @@ import { shareFilmCard } from '../utils/shareCard.js'
 import { addToOrderList } from '../utils/orderList.js'
 import { parseDriveNumbers, driveLabel, driveSortValue, normalizeDriveValue } from '../utils/driveDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
+import { imdbUrl } from '../utils/imdbLink.js'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 
 function CollectionOrderButton({ title, year }) {
@@ -915,9 +916,13 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                       <button
                         type="button"
                         className="cine-collection-poster-btn"
-                        disabled={!p.inArchive}
                         onClick={async () => {
-                          if (!p.inArchive || !p.archiveFilmId || !onNavigate) return
+                          // فیلمی که نداری (Missing) — صفحه‌ی IMDbش باز می‌شه
+                          if (!p.inArchive) {
+                            window.open(imdbUrl({ imdbId: p.imdbId, title: p.title, year: p.year }), '_blank', 'noopener')
+                            return
+                          }
+                          if (!p.archiveFilmId || !onNavigate) return
                           const local = films.find((f) => f.id === p.archiveFilmId)
                           if (local) {
                             onNavigate(local)
@@ -931,7 +936,7 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                             }
                           } catch {}
                         }}
-                        title={p.title}
+                        title={p.inArchive ? p.title : `${p.title} — open on IMDb`}
                       >
                         {p.poster ? (
                           <img src={p.poster} alt={p.title} className="cine-collection-poster" loading="lazy" decoding="async" />
@@ -1454,7 +1459,9 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                         {r.title}{r.year ? ` (${r.year})` : ''}
                       </a>
                     ) : (
-                      <span className="cine-related-title">{r.title}{r.year ? ` (${r.year})` : ''}</span>
+                      <a className="cine-related-title" href={imdbUrl({ title: r.title, year: r.year })} target="_blank" rel="noopener noreferrer">
+                        {r.title}{r.year ? ` (${r.year})` : ''}
+                      </a>
                     )}
                     {r.rating ? <span className="cine-related-rating">★ {r.rating}</span> : null}
                     {owned && r.imdbId && (

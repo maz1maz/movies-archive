@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { addToOrderList } from '../utils/orderList.js'
+import { imdbUrl } from '../utils/imdbLink.js'
 
 function CollectionOrderButton({ title, year }) {
   const [state, setState] = useState('idle')
@@ -95,11 +96,13 @@ export default function DashboardCollectionsPanel({ films = [], onOpenFilm }) {
                       <div key={p.tmdbId} style={{ flex: '0 0 80px', textAlign: 'center' }}>
                         <button
                           type="button"
-                          disabled={!p.inArchive}
                           onClick={() => {
                             if (p.inArchive && p.archiveFilmId) {
                               const f = films.find((x) => x.id === p.archiveFilmId)
                               if (f && onOpenFilm) onOpenFilm(f)
+                            } else if (!p.inArchive) {
+                              // فیلمی که نداری — صفحه‌ی IMDbش
+                              window.open(imdbUrl({ imdbId: p.imdbId, title: p.title, year: p.year }), '_blank', 'noopener')
                             }
                           }}
                           style={{
@@ -109,7 +112,7 @@ export default function DashboardCollectionsPanel({ films = [], onOpenFilm }) {
                             overflow: 'hidden',
                             border: 'none',
                             padding: 0,
-                            cursor: p.inArchive ? 'pointer' : 'default',
+                            cursor: 'pointer',
                             opacity: p.inArchive ? 1 : 0.5,
                             background: 'var(--surface-2)',
                           }}

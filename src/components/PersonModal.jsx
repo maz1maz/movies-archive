@@ -5,6 +5,7 @@ import { addToOrderList } from '../utils/orderList.js'
 import { proxyImg } from '../utils/proxyImg.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
+import { imdbUrl } from '../utils/imdbLink.js'
 
 // نشانِ کوچکِ جشنواره/جایزه از روی اسم جایزه (رنگ و مخففِ هر جشنواره)
 const FESTIVALS = [
@@ -513,7 +514,14 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                               {a.label}
                               {a.forWork && (
                                 <em className="person-award-work">
-                                  {a.forWork}
+                                  {copies.length === 0 ? (
+                                    // فیلمی که نداری — اسمش به IMDb لینک می‌شه
+                                    <a href={imdbUrl({ title: a.forWork, year: a.year })} target="_blank" rel="noopener noreferrer" className="person-award-imdb-link">
+                                      {a.forWork}
+                                    </a>
+                                  ) : (
+                                    a.forWork
+                                  )}
                                   {physical && (
                                     <button type="button" className="person-award-own is-bluray" title="Blu-ray in your archive" onClick={() => onSelectFilm(physical)}>
                                       <IconDisc width={11} height={11} /> Blu-ray
