@@ -200,6 +200,11 @@ export default function App() {
   const [enrichingCatalog, setEnrichingCatalog] = useState(false)
   const [backfillingImdb, setBackfillingImdb] = useState(false)
   const [missingImdbOpen, setMissingImdbOpen] = useState(false)
+  // 'imdb' | 'year' — کدوم لیست کمبود باز باشه
+  const [missingMode, setMissingMode] = useState('imdb')
+  const [fillingYears, setFillingYears] = useState(false)
+  // تغییراتِ آخرین «Fill missing years» برای Undo
+  const [lastYearFill, setLastYearFill] = useState(null)
   const [importReview, setImportReview] = useState(null) // {file, flagged, count} | null
   const [enrichRemaining, setEnrichRemaining] = useState(null)
 
@@ -687,11 +692,69 @@ export default function App() {
       )
       await loadAllFilmsUnfiltered()
       // اونایی که پیدا نشدن رو نشون بده تا دستی (با لینک IMDb) درستشون کنی
-      if (found < processed) setMissingImdbOpen(true)
+      if (found < processed) {
+        setMissingMode('imdb')
+        setMissingImdbOpen(true)
+      }
     } catch (e) {
       showToast(`Stopped after ${processed} films (${found} found) — ${e.message}`, 7000)
     } finally {
       setBackfillingImdb(false)
+    }
+  }
+
+  // همون مسیر دستی (لینک IMDb → Fetch → Apply → Save) برای همه‌ی فیلم‌های بی‌سال
+  const handleFillMissingYears = async () => {
+    setFillingYears(true)
+    let processed = 0
+    let fixed = 0
+    let cursor = ''
+    const changes = []
+    let note = ''
+    try {
+      for (let batch = 0; batch < 500; batch++) {
+        const res = await fetch(`/api/films/fill-missing-year?limit=3&after=${encodeURIComponent(cursor)}`, { method: 'POST' })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Year lookup failed')
+        processed += data.processed
+        fixed += data.fixed
+        changes.push(...(data.changes || []))
+        if (data.quotaExceeded) {
+          note = ' · OMDb daily limit reached, run again tomorrow'
+          break
+        }
+        if (!data.processed || !data.nextCursor) break
+        cursor = data.nextCursor
+        showToast(`Filling missing years… ${fixed} fixed, ${data.remaining} left to check`, 60000)
+        if (data.remaining === 0) break
+      }
+      showToast(`Years: fixed ${fixed} of ${processed} films${note}`, 7000)
+    } catch (e) {
+      showToast(`Stopped after ${processed} films (${fixed} fixed) — ${e.message}`, 7000)
+    } finally {
+      setFillingYears(false)
+      setLastYearFill(changes.length ? changes : null)
+      await loadAllFilmsUnfiltered()
+      setMissingMode('year')
+      setMissingImdbOpen(true)
+    }
+  }
+
+  const handleUndoYearFill = async () => {
+    if (!lastYearFill) return
+    try {
+      const res = await fetch('/api/films/undo-fill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ changes: lastYearFill.map(({ id, fields }) => ({ id, fields })) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Undo failed')
+      showToast(`Reverted ${data.reverted} films`)
+      setLastYearFill(null)
+      await loadAllFilmsUnfiltered()
+    } catch (e) {
+      showToast(e.message)
     }
   }
 
@@ -1271,7 +1334,16 @@ export default function App() {
         onFetchSeasonCounts={handleFetchSeasonCounts}
         fetchingSeasonCounts={fetchingSeasonCounts}
         onBackfillImdbIds={handleBackfillImdbIds}
-        onShowMissingImdb={() => setMissingImdbOpen(true)}
+        onShowMissingImdb={() => {
+          setMissingMode('imdb')
+          setMissingImdbOpen(true)
+        }}
+        onFillMissingYears={handleFillMissingYears}
+        onShowMissingYear={() => {
+          setMissingMode('year')
+          setMissingImdbOpen(true)
+        }}
+        fillingYears={fillingYears}
         backfillingImdb={backfillingImdb}
         onOpenExport={() => {
           // به‌جای مودال جدای Export که تکراری بود، مستقیم می‌بره به تب
@@ -1414,6 +1486,9 @@ export default function App() {
       {missingImdbOpen && (
         <MissingImdbModal
           films={allFilmsUnfiltered}
+          mode={missingMode}
+          fixedChanges={missingMode === 'year' ? lastYearFill : null}
+          onUndo={handleUndoYearFill}
           onClose={() => setMissingImdbOpen(false)}
           onEdit={(film) => {
             setMissingImdbOpen(false)

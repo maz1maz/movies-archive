@@ -96,6 +96,9 @@ export default function Header({
   onBackfillImdbIds,
   onShowMissingImdb,
   backfillingImdb,
+  onFillMissingYears,
+  onShowMissingYear,
+  fillingYears,
   view,
   setView,
   alpha,
@@ -525,6 +528,28 @@ export default function Header({
                   title="List archive films that still have no IMDb ID"
                 >
                   <IconSparkles width={15} height={15} /> Films without IMDb ID
+                </button>
+                <button
+                  type="button"
+                  onClick={guarded(() => {
+                    onFillMissingYears()
+                    setMenuOpen(false)
+                  })}
+                  disabled={fillingYears}
+                  title="For films with no year: find the IMDb page and fill year and other empty details (never overwrites)"
+                >
+                  <IconSparkles width={15} height={15} />{' '}
+                  {fillingYears ? 'Filling missing years…' : 'Fill missing years'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onShowMissingYear()
+                    setMenuOpen(false)
+                  }}
+                  title="List archive films that still have no year"
+                >
+                  <IconSparkles width={15} height={15} /> Films without year
                 </button>
               </div>
 

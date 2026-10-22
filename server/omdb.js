@@ -15,7 +15,8 @@ function fillMissing(film, field, value) {
   film[field] = value
 }
 
-export async function enrichFilm(baseFilm, key, onApiCall) {
+// opts.force: حتی وقتی فیلدهای اصلی پرن OMDb رو بزن (مثلاً فقط سال خالیه)
+export async function enrichFilm(baseFilm, key, onApiCall, opts = {}) {
   let film = baseFilm
 
   // برای سریال، اول TVMaze رو امتحان می‌کنیم — رایگان، بدون کلید، و
@@ -44,7 +45,7 @@ export async function enrichFilm(baseFilm, key, onApiCall) {
     "director", "cast", "genre", "rating", "runtime", "country", "synopsis", "poster",
   ]
   const stillNeedsEnrichment = CORE_ENRICHABLE_FIELDS.some((field) => isEmptyMetadata(film[field]))
-  if (!stillNeedsEnrichment) return film
+  if (!stillNeedsEnrichment && !opts.force) return film
 
   // اگه imdbId از قبل معلومه (مثلاً از خود اکسل)، مستقیم با همون آیدی از
   // OMDb می‌گیریم — دقیق‌تر و مطمئن‌تر از جستجوی عنوان، که برای عنوان‌های

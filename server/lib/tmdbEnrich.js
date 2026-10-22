@@ -387,16 +387,18 @@ export async function fetchDirectorRecommendations(db, name, env) {
 // برای فیلم‌هایی که کارگردان ندارن: فقط وقتی قبول می‌کنیم که دقیقاً *یک*
 // نتیجه‌ی TMDB هم عنوانش (یا عنوان اصلیش) و هم سالش با فیلم یکی باشه. بعد
 // کارگردان رو هم از credits همون نتیجه برمی‌گردونیم تا تو آرشیو ثبت بشه.
-export async function findImdbIdAndDirectorByExactTitle(title, year, itemType, env) {
+// allowNoYear: برای فیلم‌های بی‌سال — اون‌وقت فقط عنوان دقیق باید بین کل نتایج
+// یکتا باشه (مثلاً «Orpheus» با چند نسخه‌ی هم‌نام رد می‌شه).
+export async function findImdbIdAndDirectorByExactTitle(title, year, itemType, env, allowNoYear = false) {
   const tmdbKey = env.TMDB_API_KEY
-  if (!title || !year || !tmdbKey) return null
+  if (!title || (!year && !allowNoYear) || !tmdbKey) return null
   const tmdbGet = async (path, params) => (await tmdbRequest(path, params, tmdbKey)).data
   const kind = itemType === 'series' ? 'tv' : 'movie'
   const data = await tmdbGet(`/search/${kind}`, { query: title })
   const want = normalizeName(title).replace(/^(the|a|an)\s+/, '')
   const exact = (data?.results || []).filter((r) => {
     const date = r.release_date || r.first_air_date || ''
-    if (Number(date.slice(0, 4)) !== Number(year)) return false
+    if (year && Number(date.slice(0, 4)) !== Number(year)) return false
     const names = [r.title, r.name, r.original_title, r.original_name]
       .filter(Boolean)
       .map((n) => normalizeName(n).replace(/^(the|a|an)\s+/, ''))
@@ -414,5 +416,21 @@ export async function findImdbIdAndDirectorByExactTitle(title, year, itemType, e
     ? crew.filter((c) => c.job === 'Director' || c.department === 'Directing')
     : crew.filter((c) => c.job === 'Director')
   ).map((c) => c.name)
-  return { imdbId: ext.imdb_id, director: [...new Set(directors)].slice(0, 3).join(', ') || null }
+  const date = cand.release_date || cand.first_air_date || ''
+  return {
+    imdbId: ext.imdb_id,
+    director: [...new Set(directors)].slice(0, 3).join(', ') || null,
+    year: parseInt(date.slice(0, 4), 10) || null,
+  }
+}
+
+// سال اکران از روی imdbId، از TMDB — وقتی OMDb این فیلم رو نداره یا سالش رو نمی‌ده.
+export async function findTmdbYear(imdbId, itemType, env) {
+  if (!imdbId || !env.TMDB_API_KEY) return null
+  const { data } = await tmdbRequest(`/find/${imdbId}`, { external_source: 'imdb_id' }, env.TMDB_API_KEY)
+  const movieHit = (data?.movie_results || [])[0]
+  const tvHit = (data?.tv_results || [])[0]
+  const hit = itemType === 'series' ? (tvHit || movieHit) : (movieHit || tvHit)
+  const date = hit?.release_date || hit?.first_air_date || ''
+  return parseInt(date.slice(0, 4), 10) || null
 }
