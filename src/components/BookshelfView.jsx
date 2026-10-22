@@ -4,6 +4,7 @@ import { proxyImg } from '../utils/proxyImg.js'
 import { alphabetRange } from '../utils/shelfRange.js'
 import { useShelfZoom, useShelfTheme, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../hooks/useShelfZoom.js'
 import SpineCase from './SpineCase.jsx'
+import { useShelfHover } from '../hooks/useShelfHover.js'
 
 // زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
 const BASE_ZOOM = 0.8
@@ -82,12 +83,7 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
   // جلد «فعال» (باز) — با ورود موس به یه جلد عوض می‌شه و فقط با خروج از کل
   // ردیف پاک می‌شه، تا تو فاصله‌ی بین جلدها بسته/باز نشه. بقیه‌ی جلدهای همون
   // ردیف با هم کمی جمع و کم‌رنگ می‌شن (CSS: .has-active).
-  const [hoverInfo, setHoverInfo] = useState(null) // { rowKey, itemIdx }
-  // کلیک روی جلد صفحه‌ی فیلم رو باز نمی‌کنه — جلد رو از قفسه بیرون می‌کشه و باز نگه می‌داره
-  // (صفحه‌ی فیلم فقط با «Open case»). کلیک دوباره روی همون جلد برش می‌گردونه.
-  const [pinnedInfo, setPinnedInfo] = useState(null) // { rowKey, itemIdx }
-  const activeInfo = hoverInfo || pinnedInfo
-  useEffect(() => setPinnedInfo(null), [closetFilter, searchQuery])
+  const shelfHover = useShelfHover()
   useEffect(() => {
     const el = shelfWidthRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
@@ -538,26 +534,23 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                         const rowKey = `${sec.closet}-${sec.row}-${sec.shelf}-${rowIdx}`
                         return (
                         <div
-                          className={`bluray-shelf-row ${activeInfo && activeInfo.rowKey === rowKey ? 'has-active' : ''}`}
+                          className="bluray-shelf-row"
                           key={rowIdx}
-                          // جلد باز فقط وقتی بسته می‌شه که موس از کل ردیف بیرون بره
-                          onMouseLeave={() => setHoverInfo(null)}
+                          onMouseOver={shelfHover.onMouseOver}
+                          onMouseLeave={shelfHover.onMouseLeave}
+                          onClick={shelfHover.onClick}
                         >
                           {row.map(({ f, style, isCriterion, is4k, isSteelbook, copyIdx, copyCount }, itemIdx) => {
-                            const isActive = activeInfo && activeInfo.rowKey === rowKey && activeInfo.itemIdx === itemIdx
                             return (
                             <div
                               key={`${f.id}-${copyIdx}`}
-                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''} ${isActive ? 'bluray-case-active' : ''}`}
+                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
+                              data-film-id={f.id}
                               style={{
                                 backgroundColor: style.bg,
                                 background: style.bg,
                                 '--spine-text': style.text,
                               }}
-                              onMouseEnter={() => setHoverInfo({ rowKey, itemIdx })}
-                              onClick={() =>
-                                setPinnedInfo((p) => (p && p.rowKey === rowKey && p.itemIdx === itemIdx ? null : { rowKey, itemIdx }))
-                              }
                               title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                             >
                               <SpineCase film={f} style={style} copyIdx={copyIdx} copyCount={copyCount} onOpen={onSelectFilm} />
