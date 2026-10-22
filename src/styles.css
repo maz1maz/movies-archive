@@ -11691,3 +11691,7 @@ a.cine-related-title:hover {
     transform: none;
   }
 }
+.person-award-imdb-link {
+  color: inherit;
+  text-decoration: underline dotted;
+}

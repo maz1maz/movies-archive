@@ -1,6 +1,7 @@
 import { proxyImg } from '../utils/proxyImg.js'
 import { useState } from 'react'
 import { addToOrderList } from '../utils/orderList.js'
+import { imdbUrl } from '../utils/imdbLink.js'
 
 // کارت پوستری مشترک برای تب‌های داشبورد (Oscars / Genre Tops / Watchlists) —
 // همون ظاهر کارت‌های آرشیو اصلی رو تکرار می‌کنه تا این بخش هم‌شکل بقیه‌ی اپ باشه.
@@ -47,6 +48,11 @@ export default function DashboardPosterCard({ title, subtitle, poster, badgeText
   const isClickable = clickable !== undefined ? clickable : inArchive
   const showMissing = showMissingBadge !== undefined ? showMissingBadge : !inArchive
   const [c1, c2] = PALETTE[hashCode(String(title)) % PALETTE.length]
+  // کارت فیلمی که نداری (با دکمه‌ی Order) — اگه لینک جدا داده نشده، پوستر به IMDb می‌ره
+  const yearInSubtitle = String(subtitle || '').match(/\b(19|20)\d{2}\b/)?.[0]
+  posterHref =
+    posterHref ||
+    (showMissing ? imdbUrl({ title: String(title).replace(/^\d+\.\s+/, ''), year: yearInSubtitle }) : null)
 
   // وقتی کارت خودش کلیک‌پذیر نیست (فیلم تو آرشیو نیست)، از یه <div> استفاده
   // می‌کنیم نه <button>، چون دکمه‌ی «Order» داخلش باید خودش جدا کلیک‌پذیر

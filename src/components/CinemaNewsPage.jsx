@@ -11,6 +11,7 @@ import {
 } from './icons.jsx'
 import { addToOrderList, lookupDirectorFromTmdbUrl } from '../utils/orderList.js'
 import { proxyImg } from '../utils/proxyImg.js'
+import { imdbUrl } from '../utils/imdbLink.js'
 
 const TABS = [
   { key: 'news', label: 'News', icon: IconNewspaper },
@@ -172,7 +173,7 @@ function UpcomingList({ items, onSelectPerson, films }) {
             className={`person-recommendation-item cinema-news-upcoming-item${missing ? ' cinema-news-missing' : ''}`}
           >
             <a
-              href={u.infoUrl || `https://www.themoviedb.org/search?query=${encodeURIComponent(u.title)}`}
+              href={missing ? imdbUrl({ title: u.title, year: String(u.releaseDate || '').slice(0, 4) }) : u.infoUrl || `https://www.themoviedb.org/search?query=${encodeURIComponent(u.title)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="cinema-news-upcoming-link"
@@ -216,7 +217,7 @@ function PosterGrid({ items, films }) {
           <div key={`${g.title}-${g.releaseDate}`} className={cardClass}>
             <a
               className="cinema-news-poster-card-link"
-              href={g.infoUrl || `https://www.themoviedb.org/search?query=${encodeURIComponent(g.title)}`}
+              href={missing ? imdbUrl({ title: g.title, year: String(g.releaseDate || '').slice(0, 4) }) : g.infoUrl || `https://www.themoviedb.org/search?query=${encodeURIComponent(g.title)}`}
               target="_blank"
               rel="noopener noreferrer"
             >
