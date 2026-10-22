@@ -15,7 +15,7 @@ export function spineFormat(f, style) {
 }
 
 export default function SpineCase({ film: f, style, copyIdx = 0, copyCount = 1, onOpen }) {
-  const [fmt1, fmt2, fmtClass] = spineFormat(f, style)
+  const [, , fmtClass] = spineFormat(f, style)
   // همه‌ی آرشیو بلوریه، پس برچسب فقط برای Criterion نشون داده می‌شه
   const showFormat = fmtClass === 'crit'
   const location = f.closet ? `C${f.closet}${f.row ? `·R${f.row}` : ''}${f.shelf ? `·S${f.shelf}` : ''}` : ''
@@ -28,9 +28,12 @@ export default function SpineCase({ film: f, style, copyIdx = 0, copyCount = 1, 
 
       <div className="case-spine-view">
         {showFormat && (
-          <span className={`spine-format spine-format-${fmtClass}`}>
-            <span>{fmt1}</span>
-            <span>{fmt2}</span>
+          // به‌جای برچسب نوشتاری، لوگوی C کرایتریون با رنگ برند Criterion تو اپ
+          <span className="spine-crit-logo" title="Criterion Collection">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="12" fill="#8e1b2e" />
+              <path d="M16.6 7.6A6.3 6.3 0 1 0 16.6 16.4" fill="none" stroke="#fbe9ea" strokeWidth="3.4" />
+            </svg>
           </span>
         )}
         <div className="case-spine">
