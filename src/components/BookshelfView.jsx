@@ -78,11 +78,9 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
   // itemsPerRow هم از عرض همون ردیف اندازه‌گیری می‌شه) که باعث می‌شد
   // اندازه‌گیری اولیه هیچ‌وقت واقعاً به‌روز نشه.
   const shelfWidthRef = useRef(null)
-  // هاورکردن یه جلد فقط چند تا همسایه‌ی نزدیکش (نه کل ردیف) رو کمی جمع
-  // می‌کنه تا جا باز کنه؛ بقیه‌ی ردیف کاملاً ثابت می‌مونه. قبلاً همه‌ی جلدهای
-  // ردیف به‌طور یکسان کمی جمع می‌شدن، که با هر هاور کل ردیف رو محسوس تکون
-  // می‌داد (حس «رفت‌وآمد» زیاد) -- حالا فقط یه خوشه‌ی کوچیک نزدیک موس.
-  const NEAR_RADIUS = 9
+  // جلد «فعال» (باز) — با ورود موس به یه جلد عوض می‌شه و فقط با خروج از کل
+  // ردیف پاک می‌شه، تا تو فاصله‌ی بین جلدها بسته/باز نشه. بقیه‌ی جلدهای همون
+  // ردیف با هم کمی جمع و کم‌رنگ می‌شن (CSS: .has-active).
   const [hoverInfo, setHoverInfo] = useState(null) // { rowKey, itemIdx }
   useEffect(() => {
     const el = shelfWidthRef.current
@@ -533,24 +531,24 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                       {rows.map((row, rowIdx) => {
                         const rowKey = `${sec.closet}-${sec.row}-${sec.shelf}-${rowIdx}`
                         return (
-                        <div className="bluray-shelf-row" key={rowIdx}>
+                        <div
+                          className={`bluray-shelf-row ${hoverInfo && hoverInfo.rowKey === rowKey ? 'has-active' : ''}`}
+                          key={rowIdx}
+                          // جلد باز فقط وقتی بسته می‌شه که موس از کل ردیف بیرون بره
+                          onMouseLeave={() => setHoverInfo(null)}
+                        >
                           {row.map(({ f, style, isCriterion, is4k, isSteelbook, copyIdx, copyCount }, itemIdx) => {
-                            const isNear =
-                              hoverInfo &&
-                              hoverInfo.rowKey === rowKey &&
-                              hoverInfo.itemIdx !== itemIdx &&
-                              Math.abs(hoverInfo.itemIdx - itemIdx) <= NEAR_RADIUS
+                            const isActive = hoverInfo && hoverInfo.rowKey === rowKey && hoverInfo.itemIdx === itemIdx
                             return (
                             <div
                               key={`${f.id}-${copyIdx}`}
-                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''} ${isNear ? 'bluray-case-near' : ''}`}
+                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''} ${isActive ? 'bluray-case-active' : ''}`}
                               style={{
                                 backgroundColor: style.bg,
                                 background: style.bg,
                                 '--spine-text': style.text,
                               }}
                               onMouseEnter={() => setHoverInfo({ rowKey, itemIdx })}
-                              onMouseLeave={() => setHoverInfo(null)}
                               onClick={() => onSelectFilm(f)}
                               title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                             >
