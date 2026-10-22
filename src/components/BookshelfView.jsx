@@ -3,6 +3,7 @@ import { getSpineColor } from '../utils/shelfDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
 import { alphabetRange } from '../utils/shelfRange.js'
 import { useShelfZoom, useShelfTheme, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../hooks/useShelfZoom.js'
+import SpineCase from './SpineCase.jsx'
 
 // زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
 const BASE_ZOOM = 0.8
@@ -82,6 +83,11 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
   // ردیف پاک می‌شه، تا تو فاصله‌ی بین جلدها بسته/باز نشه. بقیه‌ی جلدهای همون
   // ردیف با هم کمی جمع و کم‌رنگ می‌شن (CSS: .has-active).
   const [hoverInfo, setHoverInfo] = useState(null) // { rowKey, itemIdx }
+  // کلیک روی جلد صفحه‌ی فیلم رو باز نمی‌کنه — جلد رو از قفسه بیرون می‌کشه و باز نگه می‌داره
+  // (صفحه‌ی فیلم فقط با «Open case»). کلیک دوباره روی همون جلد برش می‌گردونه.
+  const [pinnedInfo, setPinnedInfo] = useState(null) // { rowKey, itemIdx }
+  const activeInfo = hoverInfo || pinnedInfo
+  useEffect(() => setPinnedInfo(null), [closetFilter, searchQuery])
   useEffect(() => {
     const el = shelfWidthRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
@@ -532,13 +538,13 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                         const rowKey = `${sec.closet}-${sec.row}-${sec.shelf}-${rowIdx}`
                         return (
                         <div
-                          className={`bluray-shelf-row ${hoverInfo && hoverInfo.rowKey === rowKey ? 'has-active' : ''}`}
+                          className={`bluray-shelf-row ${activeInfo && activeInfo.rowKey === rowKey ? 'has-active' : ''}`}
                           key={rowIdx}
                           // جلد باز فقط وقتی بسته می‌شه که موس از کل ردیف بیرون بره
                           onMouseLeave={() => setHoverInfo(null)}
                         >
                           {row.map(({ f, style, isCriterion, is4k, isSteelbook, copyIdx, copyCount }, itemIdx) => {
-                            const isActive = hoverInfo && hoverInfo.rowKey === rowKey && hoverInfo.itemIdx === itemIdx
+                            const isActive = activeInfo && activeInfo.rowKey === rowKey && activeInfo.itemIdx === itemIdx
                             return (
                             <div
                               key={`${f.id}-${copyIdx}`}
@@ -549,43 +555,12 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                                 '--spine-text': style.text,
                               }}
                               onMouseEnter={() => setHoverInfo({ rowKey, itemIdx })}
-                              onClick={() => onSelectFilm(f)}
+                              onClick={() =>
+                                setPinnedInfo((p) => (p && p.rowKey === rowKey && p.itemIdx === itemIdx ? null : { rowKey, itemIdx }))
+                              }
                               title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                             >
-                              <div className="case-glare" />
-
-                              <div className="case-spine-view">
-                                <div className="case-spine">
-                                  <span className="spine-title" style={{ color: style.text || '#fff' }}>
-                                    {f.title}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="case-expand-view">
-                                <div className="case-expand-poster">
-                                  {f.poster ? (
-                                    <img src={proxyImg(f.poster)} alt="" loading="lazy" decoding="async" />
-                                  ) : (
-                                    <div className="case-expand-poster-fallback">🎬</div>
-                                  )}
-                                </div>
-                                <div className="case-expand-info">
-                                  <div className="case-expand-title-row">
-                                    <span className="case-expand-title">{f.title}</span>
-                                    {f.year && <span className="case-expand-year">{f.year}</span>}
-                                  </div>
-                                  <div className="case-expand-meta-row">
-                                    {f.director && <span className="case-expand-director">Dir: {f.director}</span>}
-                                    {(f.rating || f.copies > 1) && (
-                                      <span className="case-expand-badges">
-                                        {f.rating && <span>★ {f.rating.toFixed(1)}</span>}
-                                        {f.copies > 1 && <span>×{f.copies}</span>}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
+                              <SpineCase film={f} style={style} copyIdx={copyIdx} copyCount={copyCount} onOpen={onSelectFilm} />
                             </div>
                             )
                           })}

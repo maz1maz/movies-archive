@@ -11695,3 +11695,202 @@ a.cine-related-title:hover {
   color: inherit;
   text-decoration: underline dotted;
 }
+
+/* ---------- جلدها شبیه نمونه‌ی «Physical Filmshelf» ----------
+   عطف: برچسب فرمت بالا، عنوان عمودی بالا‌به‌پایین با Inter، سال پایین.
+   ارتفاع جلد تقریباً تا سقف ردیف؛ جلد باز بالا نمی‌ره و پهن‌تره (پوستر + پنل). */
+.cinema-wood-shelf {
+  --case-h: calc(330px * var(--spine-scale, 1));
+  padding-top: 12px;
+  min-height: calc(var(--case-h) + 22px);
+}
+.cinema-wood-shelf .bluray-shelf-row {
+  min-height: var(--case-h);
+}
+.cinema-wood-shelf .bluray-case {
+  height: var(--case-h);
+  border-radius: 2px;
+}
+.cinema-wood-shelf .bluray-case.criterion::before {
+  display: none; /* برچسب «CRIT. COLL.» جاشو گرفته */
+}
+.cinema-wood-shelf .bluray-case.bluray-case-active {
+  flex-basis: calc(430px * var(--spine-scale, 1));
+  transform: none;
+  border-radius: 3px;
+}
+
+.cinema-wood-shelf .case-spine-view {
+  justify-content: flex-start;
+  padding: 5px 0 6px;
+  box-sizing: border-box;
+}
+.spine-format {
+  display: flex;
+  width: calc(100% - 6px);
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 0 1px;
+  border-radius: 1px;
+  font-family: 'Inter', var(--font-sans);
+  font-size: calc(6.5px * var(--spine-scale, 1) + 0.6px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+}
+.spine-format-blu { background: #1d4ed8; color: #fff; }
+.spine-format-uhd { background: #0b0b0b; color: #fff; }
+.spine-format-dvd { background: #b91c1c; color: #fff; }
+.spine-format-crit { background: #ede7d9; color: #2a2620; }
+.spine-format-steel { background: #9ca3af; color: #111; }
+
+.cinema-wood-shelf .case-spine {
+  flex: 1;
+  min-height: 0;
+  padding: 8px 2px;
+}
+.cinema-wood-shelf .spine-title {
+  /* بالا به پایین، مثل عطف واقعی بلوری */
+  writing-mode: vertical-rl;
+  transform: none;
+  font-family: 'Inter', var(--font-sans);
+  font-size: calc(12.5px * var(--spine-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-shadow: none;
+  max-height: 100%;
+}
+.spine-foot {
+  font-family: 'Inter', var(--font-sans);
+  font-size: calc(6.5px * var(--spine-scale, 1) + 0.5px);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+  writing-mode: vertical-rl;
+}
+
+/* جلد باز: پوستر سمت چپ (نسبت ۲:۳) + پنل اطلاعات */
+.cinema-wood-shelf .case-expand-view {
+  flex-direction: row;
+  background: #0d0d0d;
+}
+.cinema-wood-shelf .case-expand-poster {
+  position: relative;
+  inset: auto;
+  width: calc(var(--case-h) * 0.667);
+  height: 100%;
+  flex-shrink: 0;
+}
+.case-expand-panel {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: calc(6px * var(--spine-scale, 1));
+  padding: calc(14px * var(--spine-scale, 1));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--case-tint) 35%, #120f0b) 0%, #120f0b 100%);
+  color: #f3efe6;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.3s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.bluray-case.bluray-case-active .case-expand-panel {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.12s;
+}
+.case-panel-kicker {
+  color: rgba(243, 239, 230, 0.6);
+  font-family: 'Inter', var(--font-sans);
+  font-size: calc(9px * var(--spine-scale, 1) + 1px);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.case-panel-title {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font-family: 'Instrument Serif', var(--font-serif);
+  font-size: calc(26px * var(--spine-scale, 1));
+  font-style: italic;
+  line-height: 1.02;
+}
+.case-panel-director,
+.case-panel-meta {
+  overflow: hidden;
+  font-family: 'Inter', var(--font-sans);
+  font-size: calc(11.5px * var(--spine-scale, 1) + 1px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.case-panel-director {
+  color: #f3efe6;
+  font-weight: 600;
+}
+.case-panel-meta {
+  color: rgba(243, 239, 230, 0.65);
+}
+.case-panel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.case-panel-format {
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-family: 'Inter', var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.case-panel-loc {
+  color: rgba(243, 239, 230, 0.55);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+}
+.case-panel-open {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 7px 16px;
+  border: 1px solid rgba(243, 239, 230, 0.55);
+  border-radius: 999px;
+  background: transparent;
+  color: #f3efe6;
+  font-family: 'Inter', var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.case-panel-open:hover {
+  background: rgba(243, 239, 230, 0.12);
+}
+/* وسایل تزئینی (دفترچه، کلاکت، بلیت) روی جلدها می‌افتادن و اسم فیلم رو می‌پوشوندن */
+.cinema-wood-shelf .shelf-props-layer {
+  display: none;
+}
+.dashboard-poster-imdb-link {
+  position: absolute;
+  inset: 0;
+  display: block;
+  color: inherit;
+}
+.dashboard-poster-imdb-link img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+a.cine-collection-poster-btn {
+  display: block;
+  cursor: pointer;
+}
+/* لایه‌ی جلد باز pointer-events:none داره؛ دکمه‌ی Open case باید کلیک بخوره */
+.bluray-case.bluray-case-active .case-panel-open {
+  pointer-events: auto;
+}
