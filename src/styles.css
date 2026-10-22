@@ -7510,7 +7510,7 @@ body.light .dashboard-panel {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-.bluray-case.bluray-case-active {
+.bluray-case.is-open {
   flex: 0 0 200px;
   transform: translateY(-8px);
   z-index: 50;
@@ -7544,7 +7544,7 @@ body.light .dashboard-panel {
   overflow: hidden;
   transition: opacity 0.1s ease;
 }
-.bluray-case.bluray-case-active .case-spine-view {
+.bluray-case.is-open .case-spine-view {
   opacity: 0;
   pointer-events: none;
 }
@@ -7567,7 +7567,7 @@ body.light .dashboard-panel {
   box-sizing: border-box;
   box-shadow: 0 0 0 1px #d9a441;
 }
-.bluray-case.bluray-case-active .case-expand-view {
+.bluray-case.is-open .case-expand-view {
   opacity: 1;
   transition: opacity 0.15s ease 0.05s;
 }
@@ -10643,7 +10643,7 @@ body.light .marquee-band::after {
     transform 0.3s ease-in-out,
     box-shadow 0.3s ease;
 }
-.bluray-case.bluray-case-active {
+.bluray-case.is-open {
   flex: 0 0 calc(207px * var(--spine-scale, 1));
   border-radius: 14px;
   transition:
@@ -10659,7 +10659,7 @@ body.light .marquee-band::after {
   color: #fff;
   transition: opacity 0.3s ease;
 }
-.bluray-case.bluray-case-active .case-expand-view {
+.bluray-case.is-open .case-expand-view {
   transition: opacity 0.3s ease 0.08s;
 }
 .case-expand-poster {
@@ -10682,7 +10682,7 @@ body.light .marquee-band::after {
   transform: translateY(6px);
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
-.bluray-case.bluray-case-active .case-expand-info {
+.bluray-case.is-open .case-expand-info {
   opacity: 1;
   transform: none;
   transition-delay: 0.15s;
@@ -10698,13 +10698,13 @@ body.light .marquee-band::after {
 .case-expand-badges {
   color: #f2c75c;
 }
-.bluray-case.bluray-case-active .case-glare {
+.bluray-case.is-open .case-glare {
   opacity: 0.35;
 }
 @media (prefers-reduced-motion: reduce) {
   .bluray-case,
   .bluray-case-near,
-  .bluray-case.bluray-case-active,
+  .bluray-case.is-open,
   .case-expand-info {
     transition: none;
   }
@@ -11652,7 +11652,7 @@ a.cine-related-title:hover {
 
 
 /* ---------- Shelf hover: نرم‌تر، مثل نمونه‌های hover-expand ----------
-   «فعال» بودن جلد از JS میاد (کلاس bluray-case-active)، نه :hover — پس تو فاصله‌ی
+   «فعال» بودن جلد از JS میاد (کلاس is-open، useShelfHover)، نه :hover — پس تو فاصله‌ی
    بین جلدها جمع نمی‌شه و تا وقتی موس رو جلد دیگه‌ای نره یا از کل ردیف بیرون نره،
    باز می‌مونه. عرض با یه ease شبیه فنر (۰.۴۵ ثانیه) باز می‌شه؛ بقیه‌ی جلدهای ردیف
    همه با هم کمی جمع و کم‌رنگ می‌شن، نه فقط چند تا همسایه. پوستر کمی سه‌بعدی می‌چرخه. */
@@ -11666,12 +11666,12 @@ a.cine-related-title:hover {
     transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.3s ease;
 }
-.bluray-shelf-row.has-active .bluray-case:not(.bluray-case-active) {
+.bluray-shelf-row.has-open .bluray-case:not(.is-open) {
   flex-shrink: 1;
   min-width: calc(var(--spine-w, calc(34px * var(--spine-scale, 1))) * 0.5);
   opacity: 0.58;
 }
-.bluray-shelf-row .bluray-case.bluray-case-active {
+.bluray-shelf-row .bluray-case.is-open {
   flex-shrink: 0;
   opacity: 1;
 }
@@ -11679,7 +11679,7 @@ a.cine-related-title:hover {
   transform-origin: left center;
   transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.bluray-case.bluray-case-active .case-expand-poster {
+.bluray-case.is-open .case-expand-poster {
   transform: perspective(850px) rotateY(-13deg);
 }
 @media (prefers-reduced-motion: reduce) {
@@ -11687,7 +11687,7 @@ a.cine-related-title:hover {
   .bluray-case .case-expand-poster {
     transition: none;
   }
-  .bluray-case.bluray-case-active .case-expand-poster {
+  .bluray-case.is-open .case-expand-poster {
     transform: none;
   }
 }
@@ -11714,7 +11714,7 @@ a.cine-related-title:hover {
 .cinema-wood-shelf .bluray-case.criterion::before {
   display: none; /* برچسب «CRIT. COLL.» جاشو گرفته */
 }
-.cinema-wood-shelf .bluray-case.bluray-case-active {
+.cinema-wood-shelf .bluray-case.is-open {
   flex-basis: calc(430px * var(--spine-scale, 1));
   transform: none;
   border-radius: 3px;
@@ -11795,7 +11795,7 @@ a.cine-related-title:hover {
   transform: translateX(-8px);
   transition: opacity 0.3s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.bluray-case.bluray-case-active .case-expand-panel {
+.bluray-case.is-open .case-expand-panel {
   opacity: 1;
   transform: none;
   transition-delay: 0.12s;
@@ -11891,6 +11891,6 @@ a.cine-collection-poster-btn {
   cursor: pointer;
 }
 /* لایه‌ی جلد باز pointer-events:none داره؛ دکمه‌ی Open case باید کلیک بخوره */
-.bluray-case.bluray-case-active .case-panel-open {
+.bluray-case.is-open .case-panel-open {
   pointer-events: auto;
 }

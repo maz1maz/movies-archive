@@ -8,6 +8,7 @@ import { useShelfZoom, useShelfTheme, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../
 import BookshelfView from './BookshelfView.jsx'
 import { alphabetRange } from '../utils/shelfRange.js'
 import SpineCase from './SpineCase.jsx'
+import { useShelfHover } from '../hooks/useShelfHover.js'
 
 // زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
 const BASE_ZOOM = 0.8
@@ -88,10 +89,9 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   // ردیف‌های bluray-shelf-row تقسیم می‌شه و تعداد هر ردیف از عرض قفسه میاد
   const shelfRef = useRef(null)
   const [casesPerRow, setCasesPerRow] = useState(20)
-  const [spineHover, setSpineHover] = useState(null) // {rowIdx, itemIdx}
-  // کلیک روی جلد: بیرون کشیدن و باز نگه داشتنش (صفحه‌ی فیلم فقط با «Open case»)
-  const [spinePinned, setSpinePinned] = useState(null) // {rowIdx, itemIdx, film}
-  const spineActive = spineHover || spinePinned
+  // نوار جزئیات بالای قفسه فقط جلدِ «بیرون کشیده» (کلیک‌شده) رو نشون می‌ده —
+  // هاور دیگه state ری‌اکت عوض نمی‌کنه (useShelfHover)، که باعث لگ می‌شد
+  const shelfHover = useShelfHover((filmId) => setHoveredFilm(filmId ? films.find((x) => x.id === filmId) || null : null))
   const [closet, setCloset] = useState('')
   const [row, setRow] = useState('')
   const [shelf, setShelf] = useState('')
@@ -321,7 +321,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [moveTarget, setMoveTarget] = useState(null) // {mode:'section'|'row', closet, row, shelf} | null
   const [relocating, setRelocating] = useState(false)
   useEffect(() => setMoveTarget(null), [closet, row, shelf])
-  useEffect(() => setSpinePinned(null), [closet, row, shelf])
+  useEffect(() => setHoveredFilm(null), [closet, row, shelf])
   const bulkMove = async (ids, c, r, s) => {
     const res = await fetch('/api/films/bulk-move', {
       method: 'POST',
@@ -1448,13 +1448,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                       <div className="bluray-shelf" id="shelf">
                         {Array.from({ length: Math.ceil(shelfSlots.length / casesPerRow) }, (_, rowIdx) => (
                         <div
-                          className={`bluray-shelf-row ${spineActive && spineActive.rowIdx === rowIdx ? 'has-active' : ''}`}
+                          className="bluray-shelf-row"
                           key={rowIdx}
-                          // جلد باز فقط وقتی بسته می‌شه که موس از کل ردیف بیرون بره
-                          onMouseLeave={() => {
-                            setHoveredFilm(spinePinned?.film || null)
-                            setSpineHover(null)
-                          }}
+                          onMouseOver={shelfHover.onMouseOver}
+                          onMouseLeave={shelfHover.onMouseLeave}
+                          onClick={shelfHover.onClick}
                         >
                         {shelfSlots.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map((slot, itemIdx) => {
                           if (slot.ghost) {
@@ -1467,23 +1465,16 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                           const is4k = style.type === '4k'
                           const isSteelbook = style.type === 'steelbook'
                           const copyCount = Math.max(1, Number(f.copies) || 1)
-                          const isActive = spineActive && spineActive.rowIdx === rowIdx && spineActive.itemIdx === itemIdx
                           return (
                             <div
                               key={`${f.id}-${copyIdx}`}
-                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''} ${isActive ? 'bluray-case-active' : ''}`}
+                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
+                              data-film-id={f.id}
                               style={{
                                 backgroundColor: style.bg,
                                 background: style.bg,
                                 '--spine-text': style.text,
                               }}
-                              onMouseEnter={() => {
-                                setHoveredFilm(f)
-                                setSpineHover({ rowIdx, itemIdx })
-                              }}
-                              onClick={() =>
-                                setSpinePinned((p) => (p && p.rowIdx === rowIdx && p.itemIdx === itemIdx ? null : { rowIdx, itemIdx, film: f }))
-                              }
                               title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                             >
                               <SpineCase film={f} style={style} copyIdx={copyIdx} copyCount={copyCount} onOpen={onSelectFilm} />

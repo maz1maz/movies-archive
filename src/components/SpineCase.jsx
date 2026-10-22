@@ -16,6 +16,8 @@ export function spineFormat(f, style) {
 
 export default function SpineCase({ film: f, style, copyIdx = 0, copyCount = 1, onOpen }) {
   const [fmt1, fmt2, fmtClass] = spineFormat(f, style)
+  // همه‌ی آرشیو بلوریه، پس برچسب فقط برای Criterion نشون داده می‌شه
+  const showFormat = fmtClass === 'crit'
   const location = f.closet ? `C${f.closet}${f.row ? `·R${f.row}` : ''}${f.shelf ? `·S${f.shelf}` : ''}` : ''
   const meta = [f.year, f.runtime ? `${f.runtime} min` : null, f.country ? String(f.country).split(',').slice(0, 2).join(' / ') : null]
     .filter(Boolean)
@@ -25,10 +27,12 @@ export default function SpineCase({ film: f, style, copyIdx = 0, copyCount = 1, 
       <div className="case-glare" />
 
       <div className="case-spine-view">
-        <span className={`spine-format spine-format-${fmtClass}`}>
-          <span>{fmt1}</span>
-          <span>{fmt2}</span>
-        </span>
+        {showFormat && (
+          <span className={`spine-format spine-format-${fmtClass}`}>
+            <span>{fmt1}</span>
+            <span>{fmt2}</span>
+          </span>
+        )}
         <div className="case-spine">
           <span className="spine-title" style={{ color: style?.text || '#fff' }}>
             {f.title}
@@ -48,21 +52,16 @@ export default function SpineCase({ film: f, style, copyIdx = 0, copyCount = 1, 
           )}
         </div>
         <div className="case-expand-panel" style={{ '--case-tint': style?.bg || '#1b1c20' }}>
-          <span className="case-panel-kicker">
-            {fmt1}
-            {fmt2 && fmt1.endsWith('-') ? '' : ' '}
-            {fmt2}
-            {f.rating ? ` · ★ ${Number(f.rating).toFixed(1)}` : ''}
-          </span>
+          {(showFormat || f.rating) && (
+            <span className="case-panel-kicker">
+              {[showFormat ? 'Criterion Collection' : null, f.rating ? `★ ${Number(f.rating).toFixed(1)} IMDb` : null].filter(Boolean).join(' · ')}
+            </span>
+          )}
           <span className="case-panel-title">{f.title}</span>
           {f.director && <span className="case-panel-director">{f.director}</span>}
           {meta && <span className="case-panel-meta">{meta}</span>}
           <span className="case-panel-tags">
-            <span className={`case-panel-format spine-format-${fmtClass}`}>
-              {fmt1}
-              {fmt1.endsWith('-') ? '' : ' '}
-              {fmt2}
-            </span>
+            {showFormat && <span className={`case-panel-format spine-format-${fmtClass}`}>CRITERION</span>}
             {location && <span className="case-panel-loc">{location}</span>}
             {copyCount > 1 && <span className="case-panel-loc">copy {copyIdx + 1}/{copyCount}</span>}
           </span>
