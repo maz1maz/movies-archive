@@ -913,38 +913,51 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                 <div className="cine-collection-grid">
                   {collection.parts.map((p) => (
                     <div key={p.tmdbId} className={`cine-collection-item${p.title === film.title ? ' cine-collection-item-current' : ''}`}>
-                      <button
-                        type="button"
-                        className="cine-collection-poster-btn"
-                        onClick={async () => {
-                          // فیلمی که نداری (Missing) — صفحه‌ی IMDbش باز می‌شه
-                          if (!p.inArchive) {
-                            window.open(imdbUrl({ imdbId: p.imdbId, title: p.title, year: p.year }), '_blank', 'noopener')
-                            return
-                          }
-                          if (!p.archiveFilmId || !onNavigate) return
-                          const local = films.find((f) => f.id === p.archiveFilmId)
-                          if (local) {
-                            onNavigate(local)
-                            return
-                          }
-                          try {
-                            const res = await fetch(`/api/films/${p.archiveFilmId}`)
-                            if (res.ok) {
-                              const data = await res.json()
-                              onNavigate(data)
+                      {!p.inArchive ? (
+                        // فیلمی که نداری (Missing) — لینک واقعی به IMDb (window.open تو اپ نصب‌شده بلاک می‌شد)
+                        <a
+                          className="cine-collection-poster-btn"
+                          href={imdbUrl({ imdbId: p.imdbId, title: p.title, year: p.year })}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`${p.title} — open on IMDb`}
+                        >
+                          {p.poster ? (
+                            <img src={p.poster} alt={p.title} className="cine-collection-poster" loading="lazy" decoding="async" />
+                          ) : (
+                            <span className="cine-collection-poster-empty">{p.title}</span>
+                          )}
+                          <span className="cine-collection-missing-badge">Missing</span>
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          className="cine-collection-poster-btn"
+                          onClick={async () => {
+                            if (!p.archiveFilmId || !onNavigate) return
+                            const local = films.find((f) => f.id === p.archiveFilmId)
+                            if (local) {
+                              onNavigate(local)
+                              return
                             }
-                          } catch {}
-                        }}
-                        title={p.inArchive ? p.title : `${p.title} — open on IMDb`}
-                      >
-                        {p.poster ? (
-                          <img src={p.poster} alt={p.title} className="cine-collection-poster" loading="lazy" decoding="async" />
-                        ) : (
-                          <span className="cine-collection-poster-empty">{p.title}</span>
-                        )}
-                        {!p.inArchive && <span className="cine-collection-missing-badge">Missing</span>}
-                      </button>
+                            try {
+                              const res = await fetch(`/api/films/${p.archiveFilmId}`)
+                              if (res.ok) {
+                                const data = await res.json()
+                                onNavigate(data)
+                              }
+                            } catch {}
+                          }}
+                          title={p.title}
+                        >
+                          {p.poster ? (
+                            <img src={p.poster} alt={p.title} className="cine-collection-poster" loading="lazy" decoding="async" />
+                          ) : (
+                            <span className="cine-collection-poster-empty">{p.title}</span>
+                          )}
+                          {!p.inArchive && <span className="cine-collection-missing-badge">Missing</span>}
+                        </button>
+                      )}
                       <span className="cine-collection-item-title">
                         {p.title} {p.year ? `(${p.year})` : ''}
                       </span>

@@ -7,6 +7,7 @@ import { useOverlayClose } from '../hooks/useOverlayClose.js'
 import { useShelfZoom, useShelfTheme, MIN_SHELF_ZOOM, MAX_SHELF_ZOOM } from '../hooks/useShelfZoom.js'
 import BookshelfView from './BookshelfView.jsx'
 import { alphabetRange } from '../utils/shelfRange.js'
+import SpineCase from './SpineCase.jsx'
 
 // زوم پایه: تو این زوم یه ردیف قفسه دقیقاً SLOTS_PER_ROW_AT_BASE جلد جا می‌گیره
 const BASE_ZOOM = 0.8
@@ -88,6 +89,9 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const shelfRef = useRef(null)
   const [casesPerRow, setCasesPerRow] = useState(20)
   const [spineHover, setSpineHover] = useState(null) // {rowIdx, itemIdx}
+  // کلیک روی جلد: بیرون کشیدن و باز نگه داشتنش (صفحه‌ی فیلم فقط با «Open case»)
+  const [spinePinned, setSpinePinned] = useState(null) // {rowIdx, itemIdx, film}
+  const spineActive = spineHover || spinePinned
   const [closet, setCloset] = useState('')
   const [row, setRow] = useState('')
   const [shelf, setShelf] = useState('')
@@ -317,6 +321,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [moveTarget, setMoveTarget] = useState(null) // {mode:'section'|'row', closet, row, shelf} | null
   const [relocating, setRelocating] = useState(false)
   useEffect(() => setMoveTarget(null), [closet, row, shelf])
+  useEffect(() => setSpinePinned(null), [closet, row, shelf])
   const bulkMove = async (ids, c, r, s) => {
     const res = await fetch('/api/films/bulk-move', {
       method: 'POST',
@@ -1443,11 +1448,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                       <div className="bluray-shelf" id="shelf">
                         {Array.from({ length: Math.ceil(shelfSlots.length / casesPerRow) }, (_, rowIdx) => (
                         <div
-                          className={`bluray-shelf-row ${spineHover && spineHover.rowIdx === rowIdx ? 'has-active' : ''}`}
+                          className={`bluray-shelf-row ${spineActive && spineActive.rowIdx === rowIdx ? 'has-active' : ''}`}
                           key={rowIdx}
                           // جلد باز فقط وقتی بسته می‌شه که موس از کل ردیف بیرون بره
                           onMouseLeave={() => {
-                            setHoveredFilm(null)
+                            setHoveredFilm(spinePinned?.film || null)
                             setSpineHover(null)
                           }}
                         >
@@ -1462,7 +1467,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                           const is4k = style.type === '4k'
                           const isSteelbook = style.type === 'steelbook'
                           const copyCount = Math.max(1, Number(f.copies) || 1)
-                          const isActive = spineHover && spineHover.rowIdx === rowIdx && spineHover.itemIdx === itemIdx
+                          const isActive = spineActive && spineActive.rowIdx === rowIdx && spineActive.itemIdx === itemIdx
                           return (
                             <div
                               key={`${f.id}-${copyIdx}`}
@@ -1476,43 +1481,12 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                                 setHoveredFilm(f)
                                 setSpineHover({ rowIdx, itemIdx })
                               }}
-                              onClick={() => onSelectFilm(f)}
+                              onClick={() =>
+                                setSpinePinned((p) => (p && p.rowIdx === rowIdx && p.itemIdx === itemIdx ? null : { rowIdx, itemIdx, film: f }))
+                              }
                               title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                             >
-                              <div className="case-glare" />
-
-                              <div className="case-spine-view">
-                                <div className="case-spine">
-                                  <span className="spine-title" style={{ color: style.text || '#fff' }}>
-                                    {f.title}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="case-expand-view">
-                                <div className="case-expand-poster">
-                                  {f.poster ? (
-                                    <img src={proxyImg(f.poster)} alt="" loading="lazy" decoding="async" />
-                                  ) : (
-                                    <div className="case-expand-poster-fallback">🎬</div>
-                                  )}
-                                </div>
-                                <div className="case-expand-info">
-                                  <div className="case-expand-title-row">
-                                    <span className="case-expand-title">{f.title}</span>
-                                    {f.year && <span className="case-expand-year">{f.year}</span>}
-                                  </div>
-                                  <div className="case-expand-meta-row">
-                                    {f.director && <span className="case-expand-director">Dir: {f.director}</span>}
-                                    {(f.rating || copyCount > 1) && (
-                                      <span className="case-expand-badges">
-                                        {f.rating && <span>★ {Number(f.rating).toFixed(1)}</span>}
-                                        {copyCount > 1 && <span>{copyIdx + 1}/{copyCount}</span>}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
+                              <SpineCase film={f} style={style} copyIdx={copyIdx} copyCount={copyCount} onOpen={onSelectFilm} />
                             </div>
                           )
                         })}

@@ -94,18 +94,20 @@ export default function DashboardCollectionsPanel({ films = [], onOpenFilm }) {
                   ) : (
                     (detail?.parts || []).map((p) => (
                       <div key={p.tmdbId} style={{ flex: '0 0 80px', textAlign: 'center' }}>
-                        <button
-                          type="button"
+                        {/* فیلمی که نداری: لینک واقعی به IMDb؛ فیلمی که داری: باز کردنش تو آرشیو */}
+                        <a
+                          href={p.inArchive ? undefined : imdbUrl({ imdbId: p.imdbId, title: p.title, year: p.year })}
+                          target={p.inArchive ? undefined : '_blank'}
+                          rel={p.inArchive ? undefined : 'noopener noreferrer'}
+                          role={p.inArchive ? 'button' : undefined}
                           onClick={() => {
                             if (p.inArchive && p.archiveFilmId) {
                               const f = films.find((x) => x.id === p.archiveFilmId)
                               if (f && onOpenFilm) onOpenFilm(f)
-                            } else if (!p.inArchive) {
-                              // فیلمی که نداری — صفحه‌ی IMDbش
-                              window.open(imdbUrl({ imdbId: p.imdbId, title: p.title, year: p.year }), '_blank', 'noopener')
                             }
                           }}
                           style={{
+                            display: 'block',
                             width: 80,
                             height: 116,
                             borderRadius: 6,
@@ -119,9 +121,17 @@ export default function DashboardCollectionsPanel({ films = [], onOpenFilm }) {
                           title={p.title}
                         >
                           {p.poster && <img src={p.poster} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                        </button>
+                        </a>
                         <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 4 }}>
-                          {p.title} {p.year ? `(${p.year})` : ''}
+                          {p.inArchive ? (
+                            <>
+                              {p.title} {p.year ? `(${p.year})` : ''}
+                            </>
+                          ) : (
+                            <a href={imdbUrl({ imdbId: p.imdbId, title: p.title, year: p.year })} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+                              {p.title} {p.year ? `(${p.year})` : ''} ↗
+                            </a>
+                          )}
                         </div>
                         {!p.inArchive && <CollectionOrderButton title={p.title} year={p.year} />}
                       </div>

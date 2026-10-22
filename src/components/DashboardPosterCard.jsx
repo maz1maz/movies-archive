@@ -66,23 +66,19 @@ export default function DashboardPosterCard({ title, subtitle, poster, badgeText
       {...wrapperProps}
     >
       <div className="poster" style={!poster ? { background: `linear-gradient(160deg, ${c1}, ${c2})` } : undefined}>
-        {poster ? (
-          <img
-            src={proxyImg(poster)}
-            alt={title}
-            loading="lazy"
-            onError={(e) => (e.currentTarget.style.display = 'none')}
-            onClick={posterHref ? () => window.open(posterHref, '_blank', 'noopener') : undefined}
-            style={posterHref ? { cursor: 'pointer' } : undefined}
-          />
+        {/* لینک واقعی (نه window.open که تو اپ نصب‌شده بلاک می‌شد) */}
+        {posterHref ? (
+          <a className="dashboard-poster-imdb-link" href={posterHref} target="_blank" rel="noopener noreferrer" title={`${title} — open on IMDb`}>
+            {poster ? (
+              <img src={proxyImg(poster)} alt={title} loading="lazy" onError={(e) => (e.currentTarget.style.display = 'none')} />
+            ) : (
+              <span className="poster-fallback">{title}</span>
+            )}
+          </a>
+        ) : poster ? (
+          <img src={proxyImg(poster)} alt={title} loading="lazy" onError={(e) => (e.currentTarget.style.display = 'none')} />
         ) : (
-          <span
-            className="poster-fallback"
-            onClick={posterHref ? () => window.open(posterHref, '_blank', 'noopener') : undefined}
-            style={posterHref ? { cursor: 'pointer' } : undefined}
-          >
-            {title}
-          </span>
+          <span className="poster-fallback">{title}</span>
         )}
         {badgeText && (
           <span className={`dashboard-badge dashboard-badge-${badgeVariant || 'default'}`}>{badgeText}</span>
