@@ -40,7 +40,6 @@ function sortKey(title) {
 // ترتیب طبیعی: «Film 2» قبل از «Film 10»
 const compareTitles = (a, b) => sortKey(a.title).localeCompare(sortKey(b.title), undefined, { numeric: true })
 
-const SPINE_NEAR_RADIUS = 9
 const AZ_LETTERS = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))]
 
 function firstLetterOf(title) {
@@ -1443,7 +1442,15 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                       <div className="shelf-inner-shadow" />
                       <div className="bluray-shelf" id="shelf">
                         {Array.from({ length: Math.ceil(shelfSlots.length / casesPerRow) }, (_, rowIdx) => (
-                        <div className="bluray-shelf-row" key={rowIdx}>
+                        <div
+                          className={`bluray-shelf-row ${spineHover && spineHover.rowIdx === rowIdx ? 'has-active' : ''}`}
+                          key={rowIdx}
+                          // جلد باز فقط وقتی بسته می‌شه که موس از کل ردیف بیرون بره
+                          onMouseLeave={() => {
+                            setHoveredFilm(null)
+                            setSpineHover(null)
+                          }}
+                        >
                         {shelfSlots.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map((slot, itemIdx) => {
                           if (slot.ghost) {
                             return <div key={`ghost-${slot.ghostIdx}`} className="bluray-case bluray-case-ghost" aria-hidden="true" />
@@ -1455,16 +1462,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                           const is4k = style.type === '4k'
                           const isSteelbook = style.type === 'steelbook'
                           const copyCount = Math.max(1, Number(f.copies) || 1)
-                          // همون رفتار BookshelfView: با هاور فقط همسایه‌های نزدیک جا باز می‌کنن
-                          const isNear =
-                            spineHover &&
-                            spineHover.rowIdx === rowIdx &&
-                            spineHover.itemIdx !== itemIdx &&
-                            Math.abs(spineHover.itemIdx - itemIdx) <= SPINE_NEAR_RADIUS
+                          const isActive = spineHover && spineHover.rowIdx === rowIdx && spineHover.itemIdx === itemIdx
                           return (
                             <div
                               key={`${f.id}-${copyIdx}`}
-                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''} ${isNear ? 'bluray-case-near' : ''}`}
+                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''} ${isActive ? 'bluray-case-active' : ''}`}
                               style={{
                                 backgroundColor: style.bg,
                                 background: style.bg,
@@ -1473,10 +1475,6 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                               onMouseEnter={() => {
                                 setHoveredFilm(f)
                                 setSpineHover({ rowIdx, itemIdx })
-                              }}
-                              onMouseLeave={() => {
-                                setHoveredFilm(null)
-                                setSpineHover(null)
                               }}
                               onClick={() => onSelectFilm(f)}
                               title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
