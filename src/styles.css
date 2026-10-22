@@ -11894,3 +11894,16 @@ a.cine-collection-poster-btn {
 .bluray-case.is-open .case-panel-open {
   pointer-events: auto;
 }
+
+/* نتیجه‌ی «Fill missing years» با دکمه‌ی Undo */
+.missing-fixed { color: var(--accent, #c9a227); }
+.missing-undo {
+  background: none;
+  border: 1px solid currentColor;
+  color: inherit;
+  border-radius: 6px;
+  padding: 1px 8px;
+  margin-left: 6px;
+  cursor: pointer;
+  font: inherit;
+}

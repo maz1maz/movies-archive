@@ -11,7 +11,7 @@ import { resolveLetterboxdPersonUrl, syncLetterboxdUserToReviews, parseLetterbox
 import { fetchCinemaHeadlines, fetchCinemaHeadlinesFa } from './lib/cinemaNews.js'
 import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailers, fetchGeneralUpcoming, fetchTrendingAndBoxOffice, fetchTrendingPeople, fetchBornTodayGeneral, fetchFestivalCalendar, ageFromBirthDate } from './lib/tmdbFeeds.js'
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
-import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
+import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, findTmdbYear, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
 import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
@@ -1259,7 +1259,7 @@ async function handleFetch(request, env, ctx) {
       // تا تو فرم ویرایش نشون داده بشه و کاربر با زدن دکمه‌ی Save صریحاً تأییدش
       // کنه. ذخیره‌ی واقعی از همون مسیر همیشگی PATCH /api/films/:id انجام می‌شه.
       const enrichOneMatch = pathname.match(/^\/api\/films\/([^/]+)$/)
-      const RESERVED_FILM_SUBPATHS = ['enrich', 'scan-photo', 'season-counts', 'poster-color-batch', 'reset-locations', 'bulk-move', 'bulk-set-drive', 'by-person', 'counts', 'enrich-status']
+      const RESERVED_FILM_SUBPATHS = ['enrich', 'scan-photo', 'season-counts', 'poster-color-batch', 'reset-locations', 'bulk-move', 'bulk-set-drive', 'by-person', 'counts', 'enrich-status', 'backfill-imdb', 'fill-missing-year', 'undo-fill']
       if (method === 'POST' && enrichOneMatch && !RESERVED_FILM_SUBPATHS.includes(enrichOneMatch[1])) {
         const denied = requireEditAccess()
         if (denied) return denied
@@ -1384,6 +1384,112 @@ async function handleFetch(request, env, ctx) {
           200,
           corsHeaders
         )
+      }
+
+      // ---- POST /api/films/fill-missing-year?limit=N&after=<id> (همون کاری که
+      // کاربر دستی می‌کنه — لینک IMDb → Fetch → Apply → Save — برای فیلم‌های
+      // بی‌سال، خودکار). اگه imdbId نداره، اول پیداش می‌کنیم: با تأیید کارگردان،
+      // یا اگه کارگردان هم نداره فقط وقتی عنوان دقیق بین نتایج TMDB یکتاست.
+      // فقط فیلدهای خالی پر می‌شن؛ changes تو جواب برای Undo برمی‌گرده. ----
+      if (method === 'POST' && pathname === '/api/films/fill-missing-year') {
+        const denied = requireEditAccess()
+        if (denied) return denied
+        const requestedLimit = parseInt(url.searchParams.get('limit') || '3', 10)
+        // هر فیلم تا ~۱۲ درخواست بیرونی؛ زیر سقف subrequest ورکر می‌مونیم
+        const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 3) : 3
+        const after = url.searchParams.get('after') || ''
+        const missingClause = "(year IS NULL OR year = '' OR year = 0) AND title IS NOT NULL AND title != ''"
+        const batch = await db
+          .prepare(`SELECT * FROM films WHERE ${missingClause} AND id > ? ORDER BY id ASC LIMIT ?`)
+          .bind(after, limit)
+          .all()
+        const candidates = batch.results || []
+        const changes = []
+        let fixed = 0
+        let quotaExceeded = false
+        for (const row of candidates) {
+          const parsed = parseFilmRow(row)
+          const before = { ...parsed }
+          let matchedBy = parsed.imdbId ? 'imdb' : null
+          try {
+            if (!parsed.imdbId) {
+              if (parsed.director) {
+                const id = await findVerifiedImdbId(parsed.title, null, parsed.director, parsed.itemType, env)
+                if (id) { parsed.imdbId = id; matchedBy = 'director' }
+              } else {
+                const hit = await findImdbIdAndDirectorByExactTitle(parsed.title, null, parsed.itemType, env, true)
+                if (hit) {
+                  parsed.imdbId = hit.imdbId
+                  if (hit.director) parsed.director = hit.director
+                  if (hit.year) parsed.year = hit.year
+                  matchedBy = 'title'
+                }
+              }
+            }
+            if (!parsed.imdbId) continue
+            let enriched = parsed
+            try {
+              enriched = await enrichFilm(parsed, env.OMDB_API_KEY, () => bumpApiUsage('omdb'), { force: true })
+            } catch (e) {
+              if (e.code === 'OMDB_QUOTA_EXCEEDED') quotaExceeded = true
+              enriched = parsed
+            }
+            try {
+              const { extras } = await fetchTmdbExtras(enriched.imdbId, enriched.itemType, env)
+              applyTmdbExtras(enriched, extras)
+            } catch {}
+            if (isEmptyMetadata(enriched.year)) {
+              try {
+                const y = await findTmdbYear(enriched.imdbId, enriched.itemType, env)
+                if (y) enriched.year = y
+              } catch {}
+            }
+            const fields = ENRICHABLE_FIELDS.filter((f) => isEmptyMetadata(before[f]) && !isEmptyMetadata(enriched[f]))
+            if (!fields.length) continue
+            // فقط همون فیلدهای خالی رو از نتیجه برمی‌داریم، بقیه دست‌نخورده
+            const merged = { ...before }
+            for (const f of fields) merged[f] = enriched[f]
+            await updateFilm(db, merged)
+            try { await syncSharedMetadataToSibling(db, merged) } catch {}
+            if (!isEmptyMetadata(merged.year)) fixed++
+            changes.push({ id: row.id, title: merged.title, year: merged.year || null, imdbId: merged.imdbId, matchedBy, fields })
+          } catch {}
+          if (quotaExceeded) break
+        }
+        const last = candidates[candidates.length - 1]
+        const remainingAfter = last
+          ? await db.prepare(`SELECT COUNT(*) AS count FROM films WHERE ${missingClause} AND id > ?`).bind(last.id).first()
+          : { count: 0 }
+        return json(
+          {
+            processed: candidates.length,
+            fixed,
+            changes,
+            quotaExceeded,
+            nextCursor: last ? last.id : null,
+            remaining: remainingAfter?.count || 0,
+          },
+          200,
+          corsHeaders
+        )
+      }
+
+      // ---- POST /api/films/undo-fill  body: { changes: [{id, fields}] } —
+      // برگردوندن fill-missing-year: همون فیلدهایی که پر شده بودن دوباره خالی می‌شن
+      // (چون قبلش خالی بودن). فقط ستون‌های ENRICHABLE_FIELDS مجازن. ----
+      if (method === 'POST' && pathname === '/api/films/undo-fill') {
+        const denied = requireEditAccess()
+        if (denied) return denied
+        const body = await request.json().catch(() => ({}))
+        const list = Array.isArray(body.changes) ? body.changes.slice(0, 2000) : []
+        const stmts = []
+        for (const c of list) {
+          const fields = (Array.isArray(c.fields) ? c.fields : []).filter((f) => ENRICHABLE_FIELDS.includes(f))
+          if (!c.id || !fields.length) continue
+          stmts.push(db.prepare(`UPDATE films SET ${fields.map((f) => `${f} = NULL`).join(', ')} WHERE id = ?`).bind(String(c.id)))
+        }
+        for (let i = 0; i < stmts.length; i += 50) await db.batch(stmts.slice(i, i + 50))
+        return json({ reverted: stmts.length }, 200, corsHeaders)
       }
 
       // ---- POST /api/films/season-counts (fetch "total seasons produced so
