@@ -2233,7 +2233,8 @@ async function handleFetch(request, env, ctx) {
       if (method === 'GET' && pathname === '/api/top-of-year') {
         const year = Number(url.searchParams.get('year'))
         if (!year || year < 1890 || year > 2100) return json({ films: [] }, 200, corsHeaders)
-        const cacheKey = `topyear:${year}`
+        // v2: شناسه‌ی IMDb هم داره تا کارت مستقیم به صفحه‌ی فیلم بره، نه سرچ IMDb
+        const cacheKey = `topyear:v2:${year}`
         const cached = await db.prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?').bind(cacheKey).first()
         if (cached && Date.now() - Date.parse(cached.fetchedAt.replace(' ', 'T') + 'Z') < 30 * 86400000) {
           return json({ films: JSON.parse(cached.data) }, 200, corsHeaders)
@@ -2253,7 +2254,16 @@ async function handleFetch(request, env, ctx) {
           year,
           rating: m.vote_average ? Math.round(m.vote_average * 10) / 10 : null,
           poster: m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : null,
+          tmdbId: m.id,
         }))
+        await Promise.all(
+          films.map(async (f) => {
+            try {
+              const { data } = await tmdbRequest(`/movie/${f.tmdbId}/external_ids`, {}, env.TMDB_API_KEY)
+              if (data?.imdb_id) f.imdbId = data.imdb_id
+            } catch {}
+          })
+        )
         await db
           .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
           .bind(cacheKey, JSON.stringify(films))

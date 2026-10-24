@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { guessMovements, TAG_LABELS } from '../utils/movements.js'
 import DashboardPosterCard from './DashboardPosterCard.jsx'
+import { imdbUrl } from '../utils/imdbLink.js'
 
 // تب «Discover» — همه‌چیز خودکار از دیتای موجود، بدون ورود دستی:
 // Top 10 هر سال، تحسین‌شده‌های ندیده، ژانر غالب هر دهه، و اسکن سال‌های مشکوک.
@@ -290,7 +291,7 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
                   subtitle={[w.year, w.rating ? `★ ${w.rating}` : null].filter(Boolean).join(' — ')}
                   poster={w.poster}
                   inArchive={false}
-                  posterHref={`https://www.imdb.com/find/?q=${encodeURIComponent(`${w.title} ${w.year || ''}`.trim())}&s=tt`}
+                  posterHref={imdbUrl({ imdbId: w.imdbId, title: w.title, year: w.year })}
                 />
               )
             )}
