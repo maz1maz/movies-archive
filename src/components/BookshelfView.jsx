@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { getSpineColor } from '../utils/shelfDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
 import { alphabetRange } from '../utils/shelfRange.js'
@@ -83,8 +83,12 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
   // جلد «فعال» (باز) — با ورود موس به یه جلد عوض می‌شه و فقط با خروج از کل
   // ردیف پاک می‌شه، تا تو فاصله‌ی بین جلدها بسته/باز نشه. بقیه‌ی جلدهای همون
   // ردیف با هم کمی جمع و کم‌رنگ می‌شن (CSS: .has-active).
-  const shelfHover = useShelfHover()
-  useEffect(() => {
+  const shelfHover = useShelfHover((id) => {
+    const f = films.find((x) => x.id === id)
+    if (f) onSelectFilm(f)
+  })
+  // قبل از اولین نقاشی اندازه می‌گیریم تا جلدها اول پهن و چندردیفه دیده نشن
+  useLayoutEffect(() => {
     const el = shelfWidthRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
     const update = () => {
@@ -106,7 +110,7 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
     // بخشی از قفسه رندر نشده (مثلاً فیلتر رو یه کلوزتِ خالی بود)، shelfWidthRef
     // هنوز به هیچی وصل نیست؛ با تغییر این‌ها، وقتی بالاخره محتوا ظاهر شد،
     // این افکت دوباره تلاش می‌کنه وصل بشه.
-  }, [shelfScale, closetFilter, searchQuery, films])
+  }, [shelfScale, closetFilter, searchQuery, films, wallMode])
 
   const [shelfMessage, setShelfMessage] = useState(null)
   const [colorAnalysisRunning, setColorAnalysisRunning] = useState(false)

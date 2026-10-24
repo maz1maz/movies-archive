@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload, IconArchive } from './icons.jsx'
 import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
@@ -91,7 +91,10 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [casesPerRow, setCasesPerRow] = useState(20)
   // نوار جزئیات بالای قفسه فقط جلدِ «بیرون کشیده» (کلیک‌شده) رو نشون می‌ده —
   // هاور دیگه state ری‌اکت عوض نمی‌کنه (useShelfHover)، که باعث لگ می‌شد
-  const shelfHover = useShelfHover((filmId) => setHoveredFilm(filmId ? films.find((x) => x.id === filmId) || null : null))
+  const shelfHover = useShelfHover((id) => {
+    const f = films.find((x) => x.id === id)
+    if (f) onSelectFilm(f)
+  })
   const [closet, setCloset] = useState('')
   const [row, setRow] = useState('')
   const [shelf, setShelf] = useState('')
@@ -103,7 +106,8 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [shelfViewMode, setShelfViewMode] = useState('spine')
   const [shelfScale, setShelfScale] = useShelfZoom(BASE_ZOOM)
   const [spineWidth, setSpineWidth] = useState(null) // همون اندازه‌ی پیش‌فرض BookshelfView
-  useEffect(() => {
+  // قبل از اولین نقاشی اندازه می‌گیریم تا جلدها اول پهن و چندردیفه دیده نشن
+  useLayoutEffect(() => {
     const el = shelfRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
     const update = () => {
@@ -120,7 +124,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [shelfScale, closet, row, shelf, shelfViewMode])
+  }, [shelfScale, closet, row, shelf, shelfViewMode, shelvesView])
   const [shelfTheme, setShelfTheme] = useShelfTheme()
   const [hoveredFilm, setHoveredFilm] = useState(null)
 
