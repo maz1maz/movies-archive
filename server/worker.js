@@ -275,7 +275,7 @@ async function handleFetch(request, env, ctx) {
     // ---- گیت کلی: بدون لاگین هیچ‌چیزی از سایت در دسترس نیست — نه مرور،
     // نه سرچ، هیچی. فقط خود مسیرهای auth (لاگین/گوگل/خروج/وضعیت فعلی)
     // بدون لاگین قابل‌دسترسن، وگرنه هیچ‌کس نمی‌تونه اصلاً وارد بشه. ----
-    const PUBLIC_AUTH_PATHS = ['/api/auth/login', '/api/auth/logout', '/api/auth/me', '/api/films/counts', '/api/image-proxy', '/api/decades', '/api/cinema-news']
+    const PUBLIC_AUTH_PATHS = ['/api/auth/login', '/api/auth/logout', '/api/auth/me', '/api/films/counts', '/api/image-proxy', '/api/decades', '/api/cinema-news', '/api/imdb-go']
     if (!currentUser && pathname.startsWith('/api/') && !PUBLIC_AUTH_PATHS.includes(pathname)) {
       return json({ error: 'You need to log in to use the archive' }, 401, corsHeaders)
     }
@@ -2230,6 +2230,62 @@ async function handleFetch(request, env, ctx) {
       }
 
       // ---- GET /api/top-of-year?year= — بهترین فیلم‌های هر سال از TMDB (کش ۳۰ روزه) ----
+      // ---- GET /api/imdb-go?title=&year=&type=movie|tv  یا  ?name=  (لینک IMDb
+      // برای جاهایی که شناسه‌ی IMDb نداریم): از TMDB شناسه رو پیدا می‌کنه و
+      // مستقیم به صفحه‌ی فیلم/آدم ریدایرکت می‌کنه، نه صفحه‌ی جست‌وجوی IMDb.
+      // بدون لاگین هم باز می‌شه، چون لینک تو مرورگر بیرونی باز می‌شه. ----
+      if (method === 'GET' && pathname === '/api/imdb-go') {
+        const name = (url.searchParams.get('name') || '').trim()
+        const title = (url.searchParams.get('title') || '').trim()
+        const year = parseInt(url.searchParams.get('year') || '', 10) || null
+        const type = url.searchParams.get('type') === 'tv' ? 'tv' : url.searchParams.get('type') === 'movie' ? 'movie' : null
+        const fallback = name
+          ? `https://www.imdb.com/find/?q=${encodeURIComponent(name)}&s=nm`
+          : `https://www.imdb.com/find/?q=${encodeURIComponent(`${title} ${year || ''}`.trim())}&s=tt`
+        const go = (to) => new Response(null, { status: 302, headers: { Location: to, 'Cache-Control': 'private, max-age=3600' } })
+        if ((!name && !title) || !env.TMDB_API_KEY) return go(fallback)
+        const cacheKey = `imdbgo:${name ? `nm:${name.toLowerCase()}` : `tt:${title.toLowerCase()}|${year || ''}|${type || ''}`}`
+        try {
+          const hit = env.BACKUPS ? await env.BACKUPS.get(cacheKey) : null
+          if (hit) return go(hit)
+        } catch {}
+        const key = env.TMDB_API_KEY
+        let target = null
+        try {
+          if (name) {
+            const { data } = await tmdbRequest('/search/person', { query: name }, key)
+            const p = (data?.results || [])[0]
+            if (p) {
+              const ext = (await tmdbRequest(`/person/${p.id}/external_ids`, {}, key)).data
+              if (ext?.imdb_id) target = `https://www.imdb.com/name/${ext.imdb_id}/`
+            }
+          } else {
+            const norm = (x) => String(x || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+            const want = norm(title)
+            for (const kind of type ? [type] : ['movie', 'tv']) {
+              const params = { query: title }
+              if (year) params[kind === 'tv' ? 'first_air_date_year' : 'year'] = String(year)
+              let results = (await tmdbRequest(`/search/${kind}`, params, key)).data?.results || []
+              // سال گاهی یکی‌دو سال فرق داره (اکران‌های مختلف)؛ بدون سال هم یه بار امتحان
+              if (!results.length && year) results = (await tmdbRequest(`/search/${kind}`, { query: title }, key)).data?.results || []
+              if (!results.length) continue
+              const yr = (r) => parseInt(String(r.release_date || r.first_air_date || '').slice(0, 4), 10)
+              const exact = (r) => [r.title, r.name, r.original_title, r.original_name].some((n) => norm(n) === want)
+              const pick =
+                results.find((r) => exact(r) && (!year || Math.abs(yr(r) - year) <= 1)) ||
+                results.find((r) => exact(r)) ||
+                results[0]
+              const ext = (await tmdbRequest(`/${kind}/${pick.id}/external_ids`, {}, key)).data
+              if (ext?.imdb_id) { target = `https://www.imdb.com/title/${ext.imdb_id}/`; break }
+            }
+          }
+        } catch {}
+        if (target && env.BACKUPS) {
+          try { await env.BACKUPS.put(cacheKey, target, { expirationTtl: 30 * 86400 }) } catch {}
+        }
+        return go(target || fallback)
+      }
+
       if (method === 'GET' && pathname === '/api/top-of-year') {
         const year = Number(url.searchParams.get('year'))
         if (!year || year < 1890 || year > 2100) return json({ films: [] }, 200, corsHeaders)
