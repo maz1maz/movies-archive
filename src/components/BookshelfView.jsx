@@ -83,7 +83,10 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
   // جلد «فعال» (باز) — با ورود موس به یه جلد عوض می‌شه و فقط با خروج از کل
   // ردیف پاک می‌شه، تا تو فاصله‌ی بین جلدها بسته/باز نشه. بقیه‌ی جلدهای همون
   // ردیف با هم کمی جمع و کم‌رنگ می‌شن (CSS: .has-active).
-  const shelfHover = useShelfHover()
+  const shelfHover = useShelfHover((id) => {
+    const f = films.find((x) => x.id === id)
+    if (f) onSelectFilm(f)
+  })
   // قبل از اولین نقاشی اندازه می‌گیریم تا جلدها اول پهن و چندردیفه دیده نشن
   useLayoutEffect(() => {
     const el = shelfWidthRef.current

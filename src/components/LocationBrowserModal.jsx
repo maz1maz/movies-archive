@@ -91,7 +91,10 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [casesPerRow, setCasesPerRow] = useState(20)
   // نوار جزئیات بالای قفسه فقط جلدِ «بیرون کشیده» (کلیک‌شده) رو نشون می‌ده —
   // هاور دیگه state ری‌اکت عوض نمی‌کنه (useShelfHover)، که باعث لگ می‌شد
-  const shelfHover = useShelfHover((filmId) => setHoveredFilm(filmId ? films.find((x) => x.id === filmId) || null : null))
+  const shelfHover = useShelfHover((id) => {
+    const f = films.find((x) => x.id === id)
+    if (f) onSelectFilm(f)
+  })
   const [closet, setCloset] = useState('')
   const [row, setRow] = useState('')
   const [shelf, setShelf] = useState('')
