@@ -509,9 +509,7 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
     (film.originalTitle || film.title) + ' official trailer'
   )}`
 
-  const imdbUrl = film.imdbId
-    ? `https://www.imdb.com/title/${film.imdbId}/`
-    : `https://www.imdb.com/find/?q=${encodeURIComponent(film.title)}`
+  const imdbUrl = imdbLinkFor({ imdbId: film.imdbId, title: film.originalTitle || film.title, year: film.year, type: film.itemType })
 
   // لتربوکس یه لینک ریدایرکت مستقیم بر اساس IMDb ID داره که همیشه به صفحه‌ی
   // درست همون فیلم می‌ره (نه نتایج سرچ) — چون حدس زدن اسلاگ از رو عنوان/سال

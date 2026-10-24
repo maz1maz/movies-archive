@@ -5,7 +5,7 @@ import { addToOrderList } from '../utils/orderList.js'
 import { proxyImg } from '../utils/proxyImg.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
-import { imdbUrl } from '../utils/imdbLink.js'
+import { imdbUrl, imdbPersonUrl } from '../utils/imdbLink.js'
 
 // نشانِ کوچکِ جشنواره/جایزه از روی اسم جایزه (رنگ و مخففِ هر جشنواره)
 const FESTIVALS = [
@@ -409,9 +409,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
               <a
                 className="person-imdb-link"
                 href={
-                  facts.imdbId
-                    ? `https://www.imdb.com/name/${facts.imdbId}/`
-                    : `https://www.imdb.com/find/?q=${encodeURIComponent(personName)}`
+                  imdbPersonUrl({ imdbId: facts.imdbId, name: personName })
                 }
                 target="_blank"
                 rel="noopener noreferrer"
@@ -555,7 +553,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                         <li key={`${r.title}-${r.year}`} className="person-recommendation-item">
                           <a
                             className="person-recommendation-link"
-                            href={`https://www.imdb.com/find/?q=${encodeURIComponent(`${r.title} ${r.year}`)}`}
+                            href={imdbUrl({ imdbId: r.imdbId, title: r.title, year: r.year })}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
