@@ -804,7 +804,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   }
 
   return (
-    <div className="modal-overlay" {...overlayHandlers}>
+    <div className="modal-overlay shelves-overlay" {...overlayHandlers}>
       <div className="location-browser" onClick={(e) => e.stopPropagation()}>
         <header className="location-browser-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>

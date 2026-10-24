@@ -210,7 +210,7 @@ export default function DriveBrowserModal({ films, onSelectFilm, onClose, canEdi
   }
 
   return (
-    <div className="modal-overlay drive-browser-glass-overlay" {...overlayHandlers}>
+    <div className="modal-overlay shelves-overlay drive-browser-glass-overlay" {...overlayHandlers}>
       <div className="location-browser drive-browser-glass" onClick={(e) => e.stopPropagation()}>
         <header
           className="location-browser-head"
