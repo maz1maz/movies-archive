@@ -23,7 +23,7 @@ function hashCode(str) {
   return Math.abs(h)
 }
 
-function OrderBadge({ title }) {
+function OrderBadge({ title, className = '' }) {
   const [state, setState] = useState('idle') // idle | adding | added
   const handleClick = async (e) => {
     e.preventDefault()
@@ -31,14 +31,15 @@ function OrderBadge({ title }) {
     if (state !== 'idle') return
     setState('adding')
     try {
-      await addToOrderList({ title, source: 'Watchlist' })
+      // شماره‌ی ردیف («9. Hoppers») نباید تو لیست سفارش بره
+      await addToOrderList({ title: String(title).replace(/^\d+\.\s+/, ''), source: 'Watchlist' })
       setState('added')
     } catch {
       setState('idle')
     }
   }
   return (
-    <button type="button" className="dashboard-badge dashboard-badge-order" onClick={handleClick} disabled={state !== 'idle'}>
+    <button type="button" className={`dashboard-badge dashboard-badge-order ${className}`} onClick={handleClick} disabled={state !== 'idle'}>
       {state === 'added' ? 'Added ✓' : state === 'adding' ? '…' : 'Order'}
     </button>
   )
@@ -84,6 +85,8 @@ export default function DashboardPosterCard({ title, subtitle, poster, badgeText
           <span className={`dashboard-badge dashboard-badge-${badgeVariant || 'default'}`}>{badgeText}</span>
         )}
         {showMissing && <OrderBadge title={title} />}
+        {/* فقط دیجیتالش رو داری: Order برای خرید بلوری، بالا‌راست (پایین‌راست جای Digitalه) */}
+        {!showMissing && media?.digital && !media?.bluray && <OrderBadge title={title} className="dashboard-badge-order-top" />}
         {/* نسخه‌ها: بلوری پایین‌چپ، دیجیتال پایین‌راست */}
         {media?.bluray && <span className="dashboard-badge dashboard-media-bluray">Blu-ray</span>}
         {media?.digital && <span className="dashboard-badge dashboard-media-digital">Digital</span>}
