@@ -274,8 +274,6 @@ export default function DashboardDiscoverPanel({ films = [], onOpenFilm, onFilms
                   title={`${i + 1}. ${w.owned.title}`}
                   subtitle={[w.owned.year, w.owned.director].filter(Boolean).join(' — ')}
                   poster={w.owned.poster || w.poster}
-                  badgeText="In archive"
-                  badgeVariant="owned"
                   media={(() => {
                     const t = mediaMap.get(keyOf(w.owned)) || new Set()
                     return { bluray: t.has('physical'), digital: t.has('digital') }

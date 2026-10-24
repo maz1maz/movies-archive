@@ -11921,3 +11921,6 @@ a.cine-collection-poster-btn {
 /* صفحه‌ی Shelves یه لایه زیر بقیه‌ی مودال‌ها — تا صفحه‌ی فیلمی که از روی قفسه
    باز می‌شه (و هر مودال بعدی) روش بیاد، نه پشتش */
 .modal-overlay.shelves-overlay { z-index: 65; }
+
+/* Order روی کارتی که فقط دیجیتالش هست (پایین‌راست مال برچسب Digitalه) */
+.dashboard-badge-order.dashboard-badge-order-top { top: 7px; bottom: auto; }
