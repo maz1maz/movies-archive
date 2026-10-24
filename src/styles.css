@@ -11917,3 +11917,7 @@ a.cine-collection-poster-btn {
   flex-shrink: 0;
 }
 .spine-crit-logo svg { display: block; width: 100%; height: 100%; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+
+/* صفحه‌ی Shelves یه لایه زیر بقیه‌ی مودال‌ها — تا صفحه‌ی فیلمی که از روی قفسه
+   باز می‌شه (و هر مودال بعدی) روش بیاد، نه پشتش */
+.modal-overlay.shelves-overlay { z-index: 65; }
