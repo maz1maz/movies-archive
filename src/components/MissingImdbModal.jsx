@@ -6,7 +6,7 @@ import { useOverlayClose } from '../hooks/useOverlayClose.js'
 // لینک IMDb رو دستی بدی. لیست از روی آرشیوِ تازه حساب می‌شه، پس هر فیلمی که
 // درست بشه خودش از لیست می‌ره. mode='year': همین لیست برای فیلم‌های بی‌سال، به‌همراه
 // نتیجه‌ی آخرین «Fill missing years» و دکمه‌ی Undo.
-export default function MissingImdbModal({ films, onClose, onEdit, mode = 'imdb', fixedChanges, onUndo }) {
+export default function MissingImdbModal({ films, onClose, onEdit, mode = 'imdb', fixedChanges, onUndo, scopeLabel = null }) {
   const isYear = mode === 'year'
   const overlayHandlers = useOverlayClose(onClose)
   const [query, setQuery] = useState('')
@@ -37,7 +37,10 @@ export default function MissingImdbModal({ films, onClose, onEdit, mode = 'imdb'
         <button className="modal-close" onClick={onClose} aria-label="Close">
           <IconClose width={15} height={15} />
         </button>
-        <h2 className="edit-title">{isYear ? 'Films without year' : 'Films without IMDb ID'}</h2>
+        <h2 className="edit-title">
+          {isYear ? 'Films without year' : 'Films without IMDb ID'}
+          {scopeLabel && <span className="missing-scope"> · {scopeLabel}</span>}
+        </h2>
         {fixedChanges?.length > 0 && (
           <p className="import-review-intro missing-fixed">
             Updated {fixedChanges.length} films automatically (only empty fields were filled).{' '}
@@ -48,7 +51,7 @@ export default function MissingImdbModal({ films, onClose, onEdit, mode = 'imdb'
         )}
         <p className="import-review-intro">
           {missing.length
-            ? `${missing.length} films couldn't be matched automatically. Open one and paste its IMDb link to fix it.`
+            ? `${missing.length} films couldn't be matched automatically. Open one, then Edit and paste its IMDb link to fix it.`
             : isYear
             ? 'Every film in your archive has a year.'
             : 'Every film in your archive has an IMDb ID.'}

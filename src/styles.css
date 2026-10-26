@@ -11931,3 +11931,4 @@ a.cine-collection-poster-btn {
 .location-browser-selector-group .location-chip-list.location-chip-grid-5 {
   max-width: none;
 }
+.missing-scope { font-size: 0.6em; font-weight: 500; color: var(--muted); }

@@ -1485,14 +1485,25 @@ export default function App() {
 
       {missingImdbOpen && (
         <MissingImdbModal
-          films={allFilmsUnfiltered}
+          // فقط فیلم‌های بخش فعلی (مثلاً تو Blu-ray فقط بلوری‌ها)
+          films={(() => {
+            const { mediaType, itemType } = sectionToMediaItemType(section)
+            return allFilmsUnfiltered.filter(
+              (f) =>
+                (!mediaType || (f.mediaType === 'digital' ? 'digital' : 'physical') === mediaType) &&
+                (!itemType || (f.itemType === 'series' ? 'series' : 'movie') === itemType)
+            )
+          })()}
+          scopeLabel={enrichScopeLabel(section)}
           mode={missingMode}
           fixedChanges={missingMode === 'year' ? lastYearFill : null}
           onUndo={handleUndoYearFill}
           onClose={() => setMissingImdbOpen(false)}
+          // کلیک: صفحه‌ی فیلم (از اونجا Edit هم هست)، نه مستقیم فرم ویرایش
           onEdit={(film) => {
             setMissingImdbOpen(false)
-            guardedEdit(film)
+            setForceFilmOverlay(true)
+            setSelected(film)
           }}
         />
       )}
