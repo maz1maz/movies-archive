@@ -709,17 +709,19 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
       const [bc, br] = b.split('|').map(num)
       return ac - bc || ar - br
     })
+    // S1 لایه‌ی جلوئه (دمِ در)، شماره‌ی بزرگ‌تر عقب‌تر
     const layerName = (sh, count) => {
       const n = num(sh)
-      if (count >= 3) return n === 1 ? 'back' : n === 2 ? 'middle' : 'front'
-      if (count === 2) return n === 1 ? 'back' : 'front'
+      if (count >= 3) return n === 1 ? 'front' : n === 2 ? 'middle' : 'back'
+      if (count === 2) return n === 1 ? 'front' : 'back'
       return ''
     }
     let totalSections = 0
     const pagesHtml = rowKeys
       .map((rk) => {
         const [c, r] = rk.split('|')
-        const shelves = rowsMap.get(rk).sort((a, b) => num(a) - num(b))
+        // ستون‌ها از عقب به جلو، تا الفبا از چپ به راست خونده بشه
+        const shelves = rowsMap.get(rk).sort((a, b) => num(b) - num(a))
         const maxSh = Math.max(...shelves.map(num))
         let rowCopies = 0
         let maxLines = 0
@@ -802,7 +804,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
         <body>
           <div class="intro">
             <h1>🎬 Shelf Plan — ${scopeLabel}</h1>
-            <p>${rowKeys.length} rows · ${totalSections} sections · one page per row, sections side by side (S1 = back) · numbers are slots from the left, a darker line every 5 · Generated ${new Date().toLocaleString()}</p>
+            <p>${rowKeys.length} rows · ${totalSections} sections · one page per row, sections side by side, back → front (S1 = front) · numbers are slots from the left, a darker line every 5 · Generated ${new Date().toLocaleString()}</p>
             <button onclick="window.print()" style="padding:10px 18px; margin-bottom:12px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
           </div>
           ${pagesHtml || '<p>No films are shelved yet.</p>'}
