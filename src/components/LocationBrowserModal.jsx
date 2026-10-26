@@ -817,6 +817,90 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   // برچسب لبه‌ی قفسه: برای هر بخش پرشده یه کارت کوچیک با «C1 · R1 · S1» و
   // بازه‌ی الفبا (دو حرف اول اولین و آخرین عنوان، مثل «A – Ba») — برای
   // چسبوندن جلوی هر بخش تا بعداً جای فیلم‌ها راحت پیدا بشه.
+  // چک‌لیست چیدن: هر ردیف کمد یه سطر، هر بخش یه خونه با مربع تیک، بازه‌ی الفبا،
+  // تعداد نسخه و اولین → آخرین عنوان — کل آرشیو تو ۲ صفحه، برای تیک زدن موقع
+  // چیدن فیزیکی.
+  const handlePrintChecklist = () => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+    const num = (v) => Number(v) || 0
+    const keys = Object.keys(sectionIndex).filter((k) => !closet || k.startsWith(`${closet}|`))
+    const rowsMap = new Map()
+    for (const k of keys) {
+      const [c, r, sh] = k.split('|')
+      const rk = `${c}|${r}`
+      if (!rowsMap.has(rk)) rowsMap.set(rk, {})
+      rowsMap.get(rk)[sh] = k
+    }
+    const rowKeys = [...rowsMap.keys()].sort((a, b) => {
+      const [ac, ar] = a.split('|').map(num)
+      const [bc, br] = b.split('|').map(num)
+      return ac - bc || ar - br
+    })
+    const maxSh = Math.max(1, ...keys.map((k) => num(k.split('|')[2])))
+    const shNums = Array.from({ length: maxSh }, (_, i) => String(i + 1))
+    let prevCloset = null
+    let total = 0
+    const rowsHtml = rowKeys
+      .map((rk) => {
+        const [c, r] = rk.split('|')
+        const newCloset = prevCloset !== null && prevCloset !== c
+        prevCloset = c
+        const cells = shNums
+          .map((sh) => {
+            const k = rowsMap.get(rk)[sh]
+            if (!k) return '<td class="none"></td>'
+            total++
+            const films = [...sectionIndex[k]].sort(compareTitles)
+            const copies = films.reduce((n, f) => n + Math.max(1, Number(f.copies) || 1), 0)
+            const first = films[0]
+            const last = films[films.length - 1]
+            return `<td><div class="cell"><span class="box"></span><div class="txt">
+              <div class="l1"><b>S${escapeHtml(sh)}</b> <span class="rng">${escapeHtml(alphabetRange(first.title, last.title))}</span><span class="n">${copies}</span></div>
+              <div class="l2">${escapeHtml(first.title)} → ${escapeHtml(last.title)}</div></div></div></td>`
+          })
+          .join('')
+        return `<tr class="${newCloset ? 'new-closet' : ''}"><th>C${escapeHtml(c)} · R${escapeHtml(r)}</th>${cells}</tr>`
+      })
+      .join('')
+    const scopeLabel = closet ? `Closet ${closet}` : 'All closets'
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Shelf Checklist — ${scopeLabel}</title>
+          <style>
+            @page { size: A4 portrait; margin: 8mm; }
+            body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 14px; color: #111; }
+            h1 { font-size: 16px; margin: 0 0 2px; }
+            .sub { font-size: 10px; color: #666; margin: 0 0 8px; }
+            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            th { width: 52px; text-align: left; font-size: 11px; font-weight: 800; white-space: nowrap; padding: 0 4px; }
+            td { border: 1px solid #ccc; padding: 2px 4px; vertical-align: middle; }
+            td.none { background: repeating-linear-gradient(45deg, #fafafa, #fafafa 4px, #f0f0f0 4px, #f0f0f0 8px); }
+            tr { height: 6.9mm; break-inside: avoid; }
+            tr.new-closet th, tr.new-closet td { border-top: 2.5px solid #111; }
+            .cell { display: flex; align-items: center; gap: 5px; min-width: 0; }
+            .box { width: 11px; height: 11px; border: 1.5px solid #333; border-radius: 2px; flex-shrink: 0; }
+            .txt { min-width: 0; flex: 1; }
+            .l1 { display: flex; gap: 4px; align-items: baseline; font-size: 10.5px; line-height: 1.15; }
+            .rng { font-weight: 800; color: #8a6400; }
+            .n { margin-left: auto; color: #666; font-size: 9px; }
+            .l2 { font-size: 7.5px; color: #666; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            @media print { body { padding: 0; } button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <h1>☑ Shelf Checklist — ${scopeLabel}</h1>
+          <p class="sub">${rowKeys.length} rows · ${total} sections · tick each section once it's placed · S1 = back · number = copies</p>
+          <button onclick="window.print()" style="padding:8px 16px; margin-bottom:10px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
+          <table>${rowsHtml || '<tr><td>No films are shelved yet.</td></tr>'}</table>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
   const handlePrintLabels = () => {
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
@@ -905,6 +989,16 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                 title="Small cut-out labels for the front of each section: location and alphabetical range"
               >
                 <IconPrinter width={14} height={14} /> Print shelf labels{closet ? ` (C${closet})` : ''}
+              </button>
+            )}
+            {physical.length > 0 && (
+              <button
+                type="button"
+                className="shelf-back-btn"
+                onClick={handlePrintChecklist}
+                title="One line per row, a tick box per section — check sections off while arranging the real shelves (about 2 pages)"
+              >
+                <IconPrinter width={14} height={14} /> Print checklist{closet ? ` (C${closet})` : ''}
               </button>
             )}
           <button className="modal-close cine-close" onClick={onClose} aria-label="Close">
