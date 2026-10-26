@@ -722,6 +722,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
         const shelves = rowsMap.get(rk).sort((a, b) => num(a) - num(b))
         const maxSh = Math.max(...shelves.map(num))
         let rowCopies = 0
+        let maxLines = 0
         const allTitles = []
         const cols = shelves
           .map((sh) => {
@@ -741,6 +742,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
               })
               .join('')
             rowCopies += slot
+            maxLines = Math.max(maxLines, films.length)
             const layer = layerName(sh, Math.max(maxSh, shelves.length))
             return `<div class="col"><h3>S${escapeHtml(sh)}${layer ? ` <small>${layer}</small>` : ''}<span>${slot}/${cap}</span></h3>
               <div class="range">${films.length ? `${escapeHtml(films[0].title)} → ${escapeHtml(films[films.length - 1].title)}` : '—'}</div>
@@ -749,7 +751,9 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
           .join('')
         allTitles.sort(compareTitles)
         const range = allTitles.length ? alphabetRange(allTitles[0].title, allTitles[allTitles.length - 1].title) : ''
-        return `<section class="page"><header><div class="loc">Closet ${escapeHtml(c)} · Row ${escapeHtml(r)}</div><div class="letters">${escapeHtml(range)}</div><div class="meta">${rowCopies} copies · ${allTitles.length} titles</div></header>
+        // ارتفاع هر سطر طوری که بلندترین ستون کل صفحه‌ی A4 رو پر کنه (نه کمتر، نه بیشتر)
+        const lineH = Math.max(12, Math.min(22, Math.floor((940 / Math.max(1, maxLines)) * 10) / 10))
+        return `<section class="page" style="--line-h:${lineH}px"><header><div class="loc">Closet ${escapeHtml(c)} · Row ${escapeHtml(r)}</div><div class="letters">${escapeHtml(range)}</div><div class="meta">${rowCopies} copies · ${allTitles.length} titles</div></header>
           <div class="cols cols-${shelves.length}">${cols}</div></section>`
       })
       .join('')
@@ -763,7 +767,13 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
             @page { size: A4 portrait; margin: 9mm; }
             body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 16px; color: #111; }
             .intro h1 { font-size: 18px; margin: 0 0 2px; }
-            @media print { .intro { display: none; } .col ol { font-size: 9px; line-height: 1.15; } .col li { padding: 0.5px 4px; } .page header { margin-bottom: 5px; } }
+            @media print {
+              .intro { display: none; }
+              .page header { margin-bottom: 5px; }
+              .col li { height: var(--line-h); padding: 0 4px; align-items: center; box-sizing: border-box; }
+              .col ol { font-size: min(12px, calc(var(--line-h) * 0.68)); line-height: 1.1; }
+              .t em { font-size: 0.85em; }
+            }
             .intro p { font-size: 12px; color: #666; margin: 0 0 12px; }
             .page { break-after: page; margin-bottom: 28px; }
             .page:last-child { break-after: auto; }
