@@ -11924,3 +11924,10 @@ a.cine-collection-poster-btn {
 
 /* Order روی کارتی که فقط دیجیتالش هست (پایین‌راست مال برچسب Digitalه) */
 .dashboard-badge-order.dashboard-badge-order-top { top: 7px; bottom: auto; }
+
+/* با شمارنده‌های سه‌رقمی، شبکه‌ی ۵تایی ردیف‌ها از ۳۰۰px پهن‌تر می‌شد و روی
+   ستون Section می‌افتاد؛ عرض رو آزاد می‌ذاریم تا Section خودش کنار بره */
+.location-browser-selector-group .location-chip-list.location-chip-grid-4,
+.location-browser-selector-group .location-chip-list.location-chip-grid-5 {
+  max-width: none;
+}

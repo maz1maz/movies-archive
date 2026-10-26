@@ -688,36 +688,69 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     printWindow.document.close()
   }
 
-  // برگه‌ی چیدمان: همه‌ی بخش‌های پرشده به ترتیب کمد → ردیف → بخش، هر بخش با
-  // تیتر خودش و فیلم‌ها به ترتیب الفبا با شماره‌ی جا (هر نسخه یه جا) — برای
-  // چیدن قفسه‌ی واقعی از روی برنامه. اگه کمدی انتخاب شده باشه فقط همون کمد.
+  // برگه‌ی چیدمان: هر ردیف یه صفحه، بخش‌هاش کنار هم (S1 عقب → جلو) — همون‌جوری
+  // که جلوی کمد می‌ایستی. هر بخش یه ستون با شماره‌ی جا از چپ (هر نسخه یه جا)،
+  // هر ۵ جا یه خط پررنگ‌تر برای شمردن، و اولین → آخرین عنوان بالای ستون.
+  // اگه کمدی انتخاب شده باشه فقط همون کمد.
   const handlePrintPlan = () => {
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
     const num = (v) => Number(v) || 0
-    const keys = Object.keys(sectionIndex)
-      .filter((k) => !closet || k.startsWith(`${closet}|`))
-      .sort((a, b) => {
-        const [ac, ar, as] = a.split('|').map(num)
-        const [bc, br, bs] = b.split('|').map(num)
-        return ac - bc || ar - br || as - bs
-      })
-    const sectionsHtml = keys
-      .map((k) => {
-        const [c, r, sh] = k.split('|')
-        const films = [...sectionIndex[k]].sort(compareTitles)
-        const cap = SECTIONS.find((x) => x.num === sh)?.capacity || DEFAULT_CAPACITY
-        let slot = 0
-        const items = films
-          .map((f) => {
-            const n = Math.max(1, Number(f.copies) || 1)
-            const from = slot + 1
-            slot += n
-            const slots = n > 1 ? `${from}–${slot}` : `${from}`
-            return `<li><span class="slot">${slots}</span><span class="t">${escapeHtml(f.title)}</span>${f.year ? `<span class="y">${f.year}</span>` : ''}${n > 1 ? `<span class="x">×${n}</span>` : ''}</li>`
+    const keys = Object.keys(sectionIndex).filter((k) => !closet || k.startsWith(`${closet}|`))
+    const rowsMap = new Map()
+    for (const k of keys) {
+      const [c, r, sh] = k.split('|')
+      const rk = `${c}|${r}`
+      if (!rowsMap.has(rk)) rowsMap.set(rk, [])
+      rowsMap.get(rk).push(sh)
+    }
+    const rowKeys = [...rowsMap.keys()].sort((a, b) => {
+      const [ac, ar] = a.split('|').map(num)
+      const [bc, br] = b.split('|').map(num)
+      return ac - bc || ar - br
+    })
+    const layerName = (sh, count) => {
+      const n = num(sh)
+      if (count >= 3) return n === 1 ? 'back' : n === 2 ? 'middle' : 'front'
+      if (count === 2) return n === 1 ? 'back' : 'front'
+      return ''
+    }
+    let totalSections = 0
+    const pagesHtml = rowKeys
+      .map((rk) => {
+        const [c, r] = rk.split('|')
+        const shelves = rowsMap.get(rk).sort((a, b) => num(a) - num(b))
+        const maxSh = Math.max(...shelves.map(num))
+        let rowCopies = 0
+        const allTitles = []
+        const cols = shelves
+          .map((sh) => {
+            totalSections++
+            const films = [...sectionIndex[`${c}|${r}|${sh}`]].sort(compareTitles)
+            allTitles.push(...films)
+            const cap = SECTIONS.find((x) => x.num === sh)?.capacity || DEFAULT_CAPACITY
+            let slot = 0
+            const items = films
+              .map((f) => {
+                const n = Math.max(1, Number(f.copies) || 1)
+                const from = slot + 1
+                slot += n
+                // خط پررنگ زیر جایی که شماره‌ی ۵، ۱۰، ۱۵… توشه
+                const five = Math.floor(slot / 5) > Math.floor((from - 1) / 5)
+                return `<li class="${five ? 'five' : ''}"><span class="slot">${n > 1 ? `${from}–${slot}` : from}</span><span class="t">${escapeHtml(f.title)}${f.year ? ` <em>${f.year}</em>` : ''}</span>${n > 1 ? `<span class="x">×${n}</span>` : ''}</li>`
+              })
+              .join('')
+            rowCopies += slot
+            const layer = layerName(sh, Math.max(maxSh, shelves.length))
+            return `<div class="col"><h3>S${escapeHtml(sh)}${layer ? ` <small>${layer}</small>` : ''}<span>${slot}/${cap}</span></h3>
+              <div class="range">${films.length ? `${escapeHtml(films[0].title)} → ${escapeHtml(films[films.length - 1].title)}` : '—'}</div>
+              <ol>${items}</ol></div>`
           })
           .join('')
-        return `<section><h2>Closet ${escapeHtml(c)} · Row ${escapeHtml(r)} · Section ${escapeHtml(sh)}<span>${slot} / ${cap} copies · ${films.length} titles</span></h2><ol>${items}</ol></section>`
+        allTitles.sort(compareTitles)
+        const range = allTitles.length ? alphabetRange(allTitles[0].title, allTitles[allTitles.length - 1].title) : ''
+        return `<section class="page"><header><div class="loc">Closet ${escapeHtml(c)} · Row ${escapeHtml(r)}</div><div class="letters">${escapeHtml(range)}</div><div class="meta">${rowCopies} copies · ${allTitles.length} titles</div></header>
+          <div class="cols cols-${shelves.length}">${cols}</div></section>`
       })
       .join('')
     const scopeLabel = closet ? `Closet ${closet}` : 'All closets'
@@ -727,25 +760,42 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
         <head>
           <title>Shelf Plan — ${scopeLabel} — ${new Date().toLocaleDateString()}</title>
           <style>
-            body { font-family: system-ui, sans-serif; padding: 20px; color: #111; }
-            h1 { font-size: 20px; margin: 0 0 4px; }
-            .sub { font-size: 12px; color: #666; margin: 0 0 14px; }
-            section { break-inside: avoid-page; margin: 0 0 18px; }
-            h2 { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; margin: 0 0 6px; padding: 6px 8px; background: #f0f0f0; border-left: 4px solid #b8860b; }
-            h2 span { font-weight: 400; color: #555; font-size: 12px; }
-            ol { list-style: none; margin: 0; padding: 0; columns: 3; column-gap: 18px; font-size: 11px; }
-            li { display: flex; gap: 6px; padding: 2px 0; border-bottom: 1px dotted #ddd; break-inside: avoid; }
-            .slot { min-width: 34px; color: #888; font-variant-numeric: tabular-nums; }
-            .t { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .y, .x { color: #777; }
-            @media print { body { padding: 0; } button { display: none; } }
+            @page { size: A4 portrait; margin: 9mm; }
+            body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 16px; color: #111; }
+            .intro h1 { font-size: 18px; margin: 0 0 2px; }
+            @media print { .intro { display: none; } .col ol { font-size: 9px; line-height: 1.15; } .col li { padding: 0.5px 4px; } .page header { margin-bottom: 5px; } }
+            .intro p { font-size: 12px; color: #666; margin: 0 0 12px; }
+            .page { break-after: page; margin-bottom: 28px; }
+            .page:last-child { break-after: auto; }
+            header { display: flex; align-items: baseline; gap: 14px; border-bottom: 2.5px solid #111; padding-bottom: 4px; margin-bottom: 8px; }
+            .loc { font-size: 19px; font-weight: 800; }
+            .letters { font-size: 22px; font-weight: 800; color: #8a6400; }
+            .meta { margin-left: auto; font-size: 12px; color: #555; }
+            .cols { display: grid; gap: 10px; }
+            .cols-1 { grid-template-columns: 1fr; } .cols-2 { grid-template-columns: 1fr 1fr; } .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+            .col { min-width: 0; }
+            h3 { display: flex; align-items: baseline; gap: 6px; margin: 0; padding: 4px 6px; background: #111; color: #fff; font-size: 13px; border-radius: 3px 3px 0 0; }
+            h3 small { font-weight: 400; text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; color: #f3d27a; }
+            h3 span { margin-left: auto; font-weight: 400; font-size: 11px; color: #ddd; }
+            .range { font-size: 9.5px; color: #555; padding: 3px 6px; background: #f3f0e8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            ol { list-style: none; margin: 0; padding: 0; font-size: 10px; line-height: 1.2; }
+            li { display: flex; gap: 5px; padding: 1px 4px; border-bottom: 1px solid #eee; }
+            li:nth-child(even) { background: #fafafa; }
+            li.five { border-bottom: 1.5px solid #999; }
+            .slot { min-width: 30px; color: #888; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+            .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+            .t em { font-style: normal; font-weight: 400; color: #888; font-size: 9px; }
+            .x { color: #b45309; font-weight: 700; flex-shrink: 0; }
+            @media print { body { padding: 0; } .intro button { display: none; } }
           </style>
         </head>
         <body>
-          <h1>🎬 Shelf Plan — ${scopeLabel}</h1>
-          <p class="sub">${keys.length} sections · numbers are shelf slots from the left (each copy takes one slot) · Generated on ${new Date().toLocaleString()}</p>
-          <button onclick="window.print()" style="padding:10px 18px; margin-bottom:15px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
-          ${sectionsHtml || '<p>No films are shelved yet.</p>'}
+          <div class="intro">
+            <h1>🎬 Shelf Plan — ${scopeLabel}</h1>
+            <p>${rowKeys.length} rows · ${totalSections} sections · one page per row, sections side by side (S1 = back) · numbers are slots from the left, a darker line every 5 · Generated ${new Date().toLocaleString()}</p>
+            <button onclick="window.print()" style="padding:10px 18px; margin-bottom:12px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
+          </div>
+          ${pagesHtml || '<p>No films are shelved yet.</p>'}
         </body>
       </html>
     `)
