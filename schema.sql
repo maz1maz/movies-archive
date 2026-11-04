@@ -261,3 +261,7 @@ CREATE TRIGGER IF NOT EXISTS films_fts_au AFTER UPDATE OF title, originalTitle, 
   VALUES (new.rowid, new.title, new.originalTitle, new.director, new.producer, new."cast");
 END;
 
+
+-- 0009: ایندکس عنوان نرمال‌شده برای syncSharedMetadataToSibling
+CREATE INDEX IF NOT EXISTS idx_films_media_titlenorm
+  ON films(mediaType, LOWER(TRIM(REPLACE(title, char(8217), char(39)))));
