@@ -340,7 +340,12 @@ export default function App() {
   // غیره) اصلاً دوباره fetch نمی‌کرد، و صفحه‌بندی هم کاملاً سمت مرورگر (روی
   // یه آرایه‌ی از پیش دانلودشده) انجام می‌شد. الان هر دو از سرور میان.
   useEffect(() => {
-    const t = setTimeout(loadFilms, 250)
+    // سرچ هر بار یه اسکن کامل جدول (۱۷هزار+ ردیف) روی D1 می‌شه؛ پس برای
+    // تایپ‌کردن تأخیر بیشتری می‌ذاریم تا فقط بعد از مکث درخواست بره، و
+    // یک‌حرفی‌ها اصلاً سرچ نمی‌شن.
+    const searching = (query || '').trim().length > 0
+    if (searching && query.trim().length < 2) return
+    const t = setTimeout(loadFilms, searching ? 700 : 250)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, searchIn, genre, loanedOnly, criterionOnly, watched, minRating, decade, drive, sort, alpha, section, page])
