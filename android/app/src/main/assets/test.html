@@ -9,7 +9,7 @@ function show(name, p) {
   p.then(function (t) { lines.push(name + ': OK ' + String(t).slice(0, 60)); out.innerHTML = lines.join('<br>'); })
    .catch(function (e) { lines.push(name + ': FAIL ' + String(e).slice(0, 80)); out.innerHTML = lines.join('<br>'); });
 }
-show('site api', fetch('https://movies-archive.hamidreza-mazlaghani.workers.dev/api/films/counts').then(function (r) { return 'HTTP ' + r.status; }));
+show('site api', fetch('https://movies-archive.cinearchive.workers.dev/api/films/counts').then(function (r) { return 'HTTP ' + r.status; }));
 show('google', fetch('https://www.google.com/generate_204', { mode: 'no-cors' }).then(function () { return 'reached'; }));
 show('image', new Promise(function (res, rej) { var i = new Image(); i.onload = function () { res('loaded'); }; i.onerror = function () { rej('error'); }; i.src = 'https://image.tmdb.org/t/p/w92/wwemzKWzjKYJFfCeiB57q3r4Bcm.png'; }));
 </script></body></html>
