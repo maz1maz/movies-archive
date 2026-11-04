@@ -801,6 +801,8 @@ async function handleFetch(request, env, ctx) {
         }
         let sql = 'SELECT * FROM films WHERE 1=1'
         const params = []
+        let ftsClause = null
+        let ftsParamIdx = -1
 
         if (mediaType) { sql += ' AND mediaType = ?'; params.push(mediaType) }
         if (itemType) { sql += ' AND itemType = ?'; params.push(itemType) }
@@ -841,6 +843,18 @@ async function handleFetch(request, env, ctx) {
         if (q) {
           const ql = q.toLowerCase()
           const s = `%${ql}%`
+          // پیش‌فیلتر FTS5 (trigram، جدول films_fts — migration 0008): فقط ردیف‌هایی
+          // که عبارت کامل رو دارن می‌مونن؛ LIKEهای پایین همون معنی قبلی رو
+          // دقیق نگه می‌دارن. برای کمتر از ۳ حرف trigram کار نمی‌کنه → همون اسکن قبلی.
+          if (ql.length >= 3) {
+            const cols = searchIn === 'people'
+              ? 'director producer "cast"'
+              : !ql.trim().includes(' ') ? 'title originalTitle' : 'title originalTitle director "cast"'
+            ftsClause = ' AND films.rowid IN (SELECT rowid FROM films_fts WHERE films_fts MATCH ?)'
+            sql += ftsClause
+            ftsParamIdx = params.length
+            params.push(`{${cols}} : "${ql.replace(/"/g, '""')}"`)
+          }
           if (searchIn === 'people') {
             // کاربر صریحاً خواسته بازیگر/کارگردان/تهیه‌کننده هم چک بشه —
             // اینجا برخلاف حالت پیش‌فرض، substring ساده کافیه، چون همینو خواسته.
@@ -910,7 +924,17 @@ async function handleFetch(request, env, ctx) {
           params.push(limitNum, offsetNum)
         }
 
-        const result = await db.prepare(sql).bind(...params).all()
+        let result
+        try {
+          result = await db.prepare(sql).bind(...params).all()
+        } catch (e) {
+          // اگه migration 0008 هنوز اعمال نشده (جدول films_fts نیست)، بدون پیش‌فیلتر
+          if (!ftsClause || !/films_fts|fts5|MATCH/i.test(String(e.message || e))) throw e
+          sql = sql.replace(ftsClause, '')
+          params.splice(ftsParamIdx, 1)
+          ftsClause = null
+          result = await db.prepare(sql).bind(...params).all()
+        }
         if (isPaginated) {
           const rows0 = result.results || []
           if (rows0.length) {
