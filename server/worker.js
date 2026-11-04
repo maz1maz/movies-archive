@@ -177,7 +177,8 @@ async function handleFetch(request, env, ctx) {
     // نشست کاربر لاگین‌شده به API درخواست بزنه و جوابش رو بخونه. الان فقط
     // دامنه‌ی خودِ اپ + پورت‌های dev محلی مجازن.
     const ALLOWED_ORIGINS = [
-      'https://movies-archive.hamidreza-mazlaghani.workers.dev',
+      'https://movies-archive.cinearchive.workers.dev',
+      'https://movies-archive.hamidreza-mazlaghani.workers.dev', // آدرس قدیمی — بعد از تغییر زیردامنه حذف بشه
       'http://localhost:5173',
       'http://127.0.0.1:5173',
     ]

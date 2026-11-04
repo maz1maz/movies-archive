@@ -14,8 +14,8 @@ import android.view.WindowManager
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 
-private const val SITE_URL = "https://movies-archive.hamidreza-mazlaghani.workers.dev/"
-private const val HOME_HOST = "movies-archive.hamidreza-mazlaghani.workers.dev"
+private const val SITE_URL = "https://movies-archive.cinearchive.workers.dev/"
+private const val HOME_HOST = "movies-archive.cinearchive.workers.dev"
 
 class MainActivity : Activity() {
 
