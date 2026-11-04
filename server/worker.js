@@ -897,18 +897,34 @@ async function handleFetch(request, env, ctx) {
 
         // برای pagination، شمارش کل (بدون LIMIT) رو با همون WHERE می‌گیریم تا
         // فرانت‌اند بدونه چند صفحه هست — قبل از اضافه‌کردن LIMIT/OFFSET به sql.
+        // شمارش کل با window function (COUNT(*) OVER()) تو همون کوئری اصلی —
+        // قبلاً یه کوئری COUNT جدا هم اجرا می‌شد و هر سرچ/فیلتر دو اسکن کامل
+        // جدول (۱۷هزار+ ردیف) روی D1 بود؛ الان فقط یکی.
         let totalCount = null
+        let offsetNum = 0
         if (isPaginated) {
-          const countSql = 'SELECT COUNT(*) as cnt FROM films WHERE 1=1' + sql.slice(sql.indexOf('WHERE 1=1') + 'WHERE 1=1'.length, sql.indexOf(' ORDER BY'))
-          const countRow = await db.prepare(countSql).bind(...params).first()
-          totalCount = countRow ? countRow.cnt : 0
           const limitNum = Math.min(Math.max(parseInt(limit, 10) || 48, 1), 500)
-          const offsetNum = Math.max(parseInt(offset, 10) || 0, 0)
+          offsetNum = Math.max(parseInt(offset, 10) || 0, 0)
+          sql = sql.replace('SELECT * FROM films WHERE 1=1', 'SELECT *, COUNT(*) OVER() AS __total FROM films WHERE 1=1')
           sql += ' LIMIT ? OFFSET ?'
           params.push(limitNum, offsetNum)
         }
 
         const result = await db.prepare(sql).bind(...params).all()
+        if (isPaginated) {
+          const rows0 = result.results || []
+          if (rows0.length) {
+            totalCount = rows0[0].__total
+            for (const r of rows0) delete r.__total
+          } else if (offsetNum > 0) {
+            // صفحه‌ی خالی (offset بعد از آخر) — total رو جدا می‌گیریم
+            const countSql = 'SELECT COUNT(*) as cnt FROM films WHERE 1=1' + sql.slice(sql.indexOf('WHERE 1=1') + 'WHERE 1=1'.length, sql.indexOf(' ORDER BY'))
+            const countRow = await db.prepare(countSql).bind(...params.slice(0, -2)).first()
+            totalCount = countRow ? countRow.cnt : 0
+          } else {
+            totalCount = 0
+          }
+        }
         // Parse JSON string fields
         const films = (result.results || []).map(parseFilmRow)
         if (env.BACKUPS) {
