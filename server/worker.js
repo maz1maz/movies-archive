@@ -104,23 +104,35 @@ export default {
       // ۲۰ فیلم × حداکثر ۲ درخواست TMDB — زیر سقف subrequest هر invocation
       // نوبتی: IMDb id / بازیگر کامل / برچسب‌ها (با هم از سقف ۵۰ subrequest رد می‌شن)
       const slot = Math.floor((Date.now() / 600000)) % 4
-      if (slot === 3) {
-        const r = await repairDeadPosters(env.DB, env, 15).catch((e) => ({ error: e.message }))
-        console.log('Poster repair:', JSON.stringify(r))
+      // هر اجرای بی‌کار کل جدول films رو اسکن می‌کرد (NOT EXISTS / LIKE / json_*)
+      // و سقف ۵ میلیون row-read روزانه‌ی D1 پر می‌شد. حالا اگه کاری نمونده،
+      // برای چند ساعت از اسکن بعدی صرف‌نظر می‌شه.
+      const idleCheck = (r) => !r || r.error || r.skipped || !(r.processed || r.tried)
+      const jobs = {
+        3: ['posters', 6, () => repairDeadPosters(env.DB, env, 15), () => true],
+        2: ['tags', 12, () => backfillFilmTags(env.DB, env, 20), idleCheck],
+        1: ['cast', 12, () => backfillFullCast(env.DB, env, 18), idleCheck],
+        0: ['imdb', 12, () => backfillImdbIds(env.DB, env, 20), idleCheck],
+      }
+      const [name, idleHours, run, isIdle] = jobs[slot]
+      const flagKey = `cronidle:${name}`
+      const flag = await env.DB
+        .prepare('SELECT fetchedAt FROM cinema_news_cache WHERE key = ?')
+        .bind(flagKey)
+        .first()
+        .catch(() => null)
+      if (flag && Date.now() - new Date(flag.fetchedAt.replace(' ', 'T') + 'Z').getTime() < idleHours * 3600000) {
         return
       }
-      if (slot === 2) {
-        const r = await backfillFilmTags(env.DB, env, 20).catch((e) => ({ error: e.message }))
-        console.log('Tags backfill:', JSON.stringify(r))
-        return
+      const r = await run().catch((e) => ({ error: e.message }))
+      console.log(`Cron ${name}:`, JSON.stringify(r))
+      if (isIdle(r)) {
+        await env.DB
+          .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))")
+          .bind(flagKey)
+          .run()
+          .catch(() => {})
       }
-      if (slot === 1) {
-        const r = await backfillFullCast(env.DB, env, 18).catch((e) => ({ error: e.message }))
-        console.log('Cast backfill:', JSON.stringify(r))
-        return
-      }
-      const r = await backfillImdbIds(env.DB, env, 20).catch((e) => ({ error: e.message }))
-      console.log('IMDb id backfill:', JSON.stringify(r))
       return
     }
 
