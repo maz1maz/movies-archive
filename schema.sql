@@ -237,3 +237,27 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 --   createdAt TEXT DEFAULT (datetime('now'))
 -- );
 
+
+-- ---- 0008_films_fts: جست‌وجوی سریع (FTS5 trigram) روی films ----
+CREATE VIRTUAL TABLE IF NOT EXISTS films_fts USING fts5(
+  title, originalTitle, director, producer, "cast",
+  content='films', content_rowid='rowid', tokenize='trigram'
+);
+
+CREATE TRIGGER IF NOT EXISTS films_fts_ai AFTER INSERT ON films BEGIN
+  INSERT INTO films_fts(rowid, title, originalTitle, director, producer, "cast")
+  VALUES (new.rowid, new.title, new.originalTitle, new.director, new.producer, new."cast");
+END;
+
+CREATE TRIGGER IF NOT EXISTS films_fts_ad AFTER DELETE ON films BEGIN
+  INSERT INTO films_fts(films_fts, rowid, title, originalTitle, director, producer, "cast")
+  VALUES ('delete', old.rowid, old.title, old.originalTitle, old.director, old.producer, old."cast");
+END;
+
+CREATE TRIGGER IF NOT EXISTS films_fts_au AFTER UPDATE OF title, originalTitle, director, producer, "cast" ON films BEGIN
+  INSERT INTO films_fts(films_fts, rowid, title, originalTitle, director, producer, "cast")
+  VALUES ('delete', old.rowid, old.title, old.originalTitle, old.director, old.producer, old."cast");
+  INSERT INTO films_fts(rowid, title, originalTitle, director, producer, "cast")
+  VALUES (new.rowid, new.title, new.originalTitle, new.director, new.producer, new."cast");
+END;
+
