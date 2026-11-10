@@ -1553,6 +1553,15 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                 </div>
               ) : shelfViewMode === 'spine' ? (
                 <>
+                  {/* عنوان بالای قفسه، مثل نمای Wall */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>
+                      Closet {closet} · Row {row} · Section {shelf}
+                    </h3>
+                    <span style={{ fontSize: '12.5px', color: 'var(--muted)', fontWeight: 600 }}>
+                      {shelfFilms.length} titles ({shelfCopiesCount} copies)
+                    </span>
+                  </div>
                   <div className={`cinema-wood-shelf-wrapper shelf-theme-${shelfTheme}`}>
                     <div className="shelf-overhead-light" />
                     <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale, ...(spineWidth ? { '--spine-w': `${spineWidth}px` } : {}) }} ref={shelfRefCb}>
