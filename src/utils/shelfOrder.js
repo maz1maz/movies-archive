@@ -24,3 +24,26 @@ export function shelfSlotOf(films, film) {
   }
   return null
 }
+
+// نقشه‌ی id → {start, end} برای همه‌ی فیلم‌های فیزیکی؛ یه بار برای کل آرشیو
+// (برای لیست‌هایی که برای هر کارت شماره‌ی جایگاه می‌خوان)
+export function buildSlotIndex(films) {
+  const bySection = new Map()
+  for (const f of films) {
+    if (f.mediaType === 'digital' || !f.closet) continue
+    const k = `${f.closet}|${f.row || '–'}|${f.shelf || '–'}`
+    if (!bySection.has(k)) bySection.set(k, [])
+    bySection.get(k).push(f)
+  }
+  const out = new Map()
+  for (const list of bySection.values()) {
+    list.sort(compareTitles)
+    let pos = 0
+    for (const f of list) {
+      const copies = Math.max(1, Number(f.copies) || 1)
+      out.set(f.id, { start: pos + 1, end: pos + copies })
+      pos += copies
+    }
+  }
+  return out
+}

@@ -558,7 +558,7 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                               }}
                               title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                             >
-                              <SpineCase film={f} style={style} copyIdx={copyIdx} copyCount={copyCount} onOpen={onSelectFilm} />
+                              <SpineCase film={f} style={style} copyIdx={copyIdx} copyCount={copyCount} onOpen={onSelectFilm} slot={slotOffset + itemIdx + 1} />
                             </div>
                             )
                           })}
