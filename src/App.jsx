@@ -16,6 +16,7 @@ import { IconArchive, IconClose } from './components/icons.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 import { useTheme } from './context/ThemeContext.jsx'
 import { parseDriveNumbers, driveSortValue } from './utils/driveDisplay.js'
+import { buildSlotIndex } from './utils/shelfOrder.js'
 import { sectionToMediaItemType, enrichScopeLabel, enrichScopeParams, normNames } from './utils/filmScope.js'
 
 // Lazy: pulls in the ogl WebGL library, only needed by the rarely-visited
@@ -191,6 +192,8 @@ export default function App() {
   const [showLocationBrowser, setShowLocationBrowser] = useState(false)
   // فیلمی که با کلیک رو برچسب موقعیت (Closet/Row/Section) تو صفحه‌ی فیلم انتخاب شده
   const [shelfFocus, setShelfFocus] = useState(null)
+  // شماره‌ی جایگاه هر فیلم تو قفسه (برای برچسب موقعیت کارت‌ها/لیست)
+  const slotIndex = useMemo(() => buildSlotIndex(allFilmsUnfiltered || []), [allFilmsUnfiltered])
   const showOnShelf = (film) => {
     setShelfFocus(film)
     setShowLocationBrowser('section')
@@ -1417,7 +1420,7 @@ export default function App() {
             )}
           </div>
         ) : view === 'list' ? (
-          <FilmList films={visibleFilms} onSelect={setSelected} onEdit={guardedEdit} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
+          <FilmList slotIndex={slotIndex} films={visibleFilms} onSelect={setSelected} onEdit={guardedEdit} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
         ) : useSplitView && selected ? (
           <div className="grid-split">
             <div className="grid-split-grid">
@@ -1426,7 +1429,7 @@ export default function App() {
                   <span>{gridHeading}</span>
                 </div>
               )}
-              <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
+              <FilmGrid slotIndex={slotIndex} films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
             </div>
             <div className="grid-split-detail">
               <FilmModal
@@ -1455,7 +1458,7 @@ export default function App() {
                 <span>{gridHeading}</span>
               </div>
             )}
-            <FilmGrid films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
+            <FilmGrid slotIndex={slotIndex} films={visibleFilms} onSelect={setSelected} onToggleWatch={(film, patch) => handleSaveFilm(film.id, patch)} hasBluray={hasBlurayCopy} hasDigital={hasDigitalCopy} />
           </>
         )}
         {pageCount > 1 && !loading && (

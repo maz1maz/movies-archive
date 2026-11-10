@@ -1616,6 +1616,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                               }}
                             >
                               {rowIdx * casesPerRow + i + 1}
+                              <i>{closet}·{row}·{shelf}</i>
                             </span>
                           ))}
                         </div>
