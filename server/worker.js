@@ -116,12 +116,12 @@ export default {
       const idleCheck = (r) => !r || r.error || r.skipped || !(r.processed || r.tried)
       // [نام، ساعت وقفه وقتی کاری نمونده، ساعت حداقل فاصله بین اجراها وقتی کار هست]
       // هر اجرا کل جدول رو برای پیدا کردن ~۲۰ فیلم اسکن می‌کنه (~۳۷هزار ردیف)،
-      // پس به‌جای هر ۴۰ دقیقه، هر job حداکثر هر ۲ ساعت اجرا می‌شه.
+      // پس به‌جای هر ۴۰ دقیقه، هر job حداکثر هر ۸ ساعت اجرا می‌شه.
       const jobs = {
-        3: ['posters', 6, 6, () => repairDeadPosters(env.DB, env, 15), () => true],
-        2: ['tags', 12, 2, () => backfillFilmTags(env.DB, env, 20), idleCheck],
-        1: ['cast', 12, 2, () => backfillFullCast(env.DB, env, 18), idleCheck],
-        0: ['imdb', 12, 2, () => backfillImdbIds(env.DB, env, 20), idleCheck],
+        3: ['posters', 8, 8, () => repairDeadPosters(env.DB, env, 15), () => true],
+        2: ['tags', 12, 8, () => backfillFilmTags(env.DB, env, 20), idleCheck],
+        1: ['cast', 12, 8, () => backfillFullCast(env.DB, env, 18), idleCheck],
+        0: ['imdb', 12, 8, () => backfillImdbIds(env.DB, env, 20), idleCheck],
       }
       const [name, idleHours, activeHours, run, isIdle] = jobs[slot]
       const flagKey = `cronidle:${name}`
