@@ -127,7 +127,6 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     return () => ro.disconnect()
   }, [shelfScale, closet, row, shelf, shelfViewMode, shelvesView])
   const [shelfTheme, setShelfTheme] = useShelfTheme()
-  const [hoveredFilm, setHoveredFilm] = useState(null)
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -326,7 +325,6 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [moveTarget, setMoveTarget] = useState(null) // {mode:'section'|'row', closet, row, shelf} | null
   const [relocating, setRelocating] = useState(false)
   useEffect(() => setMoveTarget(null), [closet, row, shelf])
-  useEffect(() => setHoveredFilm(null), [closet, row, shelf])
   // فیلمی که با کلیک رو برچسب موقعیت اومدیم: جلدش رو تو قفسه باز می‌کنیم (مثل هاور)
   // و تو دید می‌آریم — فقط یک بار، وقتی جلد تو DOM اومد.
   const focusOpenedRef = useRef(false)
@@ -1557,63 +1555,6 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                 </div>
               ) : shelfViewMode === 'spine' ? (
                 <>
-                  <div className={`spine-inspector-bar${hoveredFilm ? '' : ' is-empty'}`}>
-                    {hoveredFilm ? (
-                      <div className="spine-inspector-content">
-                        <div className="spine-inspector-poster">
-                          {hoveredFilm.poster ? (
-                            <img src={hoveredFilm.poster} alt={hoveredFilm.title} />
-                          ) : (
-                            <div className="spine-inspector-poster-fallback">🎬</div>
-                          )}
-                        </div>
-                        <div className="spine-inspector-details">
-                          <div className="spine-inspector-line1">
-                            <span className="spine-inspector-title">{hoveredFilm.title}</span>
-                            {hoveredFilm.originalTitle && hoveredFilm.originalTitle !== hoveredFilm.title && (
-                              <span className="spine-inspector-orig">({hoveredFilm.originalTitle})</span>
-                            )}
-                            {hoveredFilm.year && <span className="spine-inspector-year">{hoveredFilm.year}</span>}
-                          </div>
-                          <div className="spine-inspector-line2">
-                            {hoveredFilm.director && (
-                              <span className="spine-inspector-dir">Dir: {hoveredFilm.director}</span>
-                            )}
-                            {hoveredFilm.studio && (
-                              <span className="spine-inspector-studio">{hoveredFilm.studio}</span>
-                            )}
-                          </div>
-                          <div className="spine-inspector-badges">
-                            {hoveredFilm.rating && (
-                              <span className="spine-inspector-badge badge-imdb">★ {hoveredFilm.rating.toFixed(1)} IMDb</span>
-                            )}
-                            <span className="spine-inspector-badge badge-loc">
-                              C{hoveredFilm.closet || '–'} R{hoveredFilm.row || '–'} S{hoveredFilm.shelf || '–'}
-                            </span>
-                            <span className="spine-inspector-badge badge-format">
-                              {hoveredFilm.format || 'Blu-ray'}
-                            </span>
-                            {hoveredFilm.criterion && (
-                              <span className="spine-inspector-badge badge-criterion">
-                                CRITERION{hoveredFilm.criterionCopies > 1 ? ` ×${hoveredFilm.criterionCopies}` : ''}
-                              </span>
-                            )}
-                            {hoveredFilm.copies > 1 && (
-                              <span className="spine-inspector-badge badge-copies">×{hoveredFilm.copies} copies</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="spine-inspector-cta">
-                          <span>Click case to open full details →</span>
-                        </div>
-                      </div>
-                    ) : (
-                      // متن راهنما حذف شد؛ نوار خالی نامرئی می‌مونه (جاش رو نگه می‌داره تا
-                      // با هاور قفسه جابه‌جا نشه)
-                      <div className="spine-inspector-empty" aria-hidden="true" />
-                    )}
-                  </div>
-
                   <div className={`cinema-wood-shelf-wrapper shelf-theme-${shelfTheme}`}>
                     <div className="shelf-overhead-light" />
                     <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale, ...(spineWidth ? { '--spine-w': `${spineWidth}px` } : {}) }} ref={shelfRef}>
@@ -1656,9 +1597,24 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                         })}
                         </div>
                         {/* شماره‌ی جایگاه (۱ تا ظرفیت) زیر هر جلد */}
-                        <div className="shelf-slot-numbers" aria-hidden="true">
-                          {shelfSlots.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map((_, i) => (
-                            <span key={i}>{rowIdx * casesPerRow + i + 1}</span>
+                        <div className="shelf-slot-numbers">
+                          {shelfSlots.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map((slot, i) => (
+                            <span
+                              key={i}
+                              className={slot.ghost ? 'is-empty-slot' : ''}
+                              onClick={(e) => {
+                                // کلیک رو شماره: جلد همون جایگاه باز می‌شه
+                                if (slot.ghost) return
+                                const rowEl = e.currentTarget.closest('.bluray-shelf-group')?.querySelector('.bluray-shelf-row')
+                                const caseEl = rowEl?.children[i]
+                                if (!caseEl) return
+                                rowEl.querySelectorAll('.bluray-case.is-open').forEach((x) => x.classList.remove('is-open'))
+                                caseEl.classList.add('is-open')
+                                rowEl.classList.add('has-open')
+                              }}
+                            >
+                              {rowIdx * casesPerRow + i + 1}
+                            </span>
                           ))}
                         </div>
                         </div>

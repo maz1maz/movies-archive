@@ -11949,4 +11949,6 @@ a.cine-collection-poster-btn {
   opacity: 0.8;
   user-select: none;
 }
-.spine-inspector-bar.is-empty { visibility: hidden; }
+.shelf-slot-numbers span { cursor: pointer; }
+.shelf-slot-numbers span:hover { color: var(--text, #fff); opacity: 1; }
+.shelf-slot-numbers span.is-empty-slot { cursor: default; }
