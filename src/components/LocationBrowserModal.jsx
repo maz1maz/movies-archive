@@ -327,19 +327,15 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [moveTarget, setMoveTarget] = useState(null) // {mode:'section'|'row', closet, row, shelf} | null
   const [relocating, setRelocating] = useState(false)
   useEffect(() => setMoveTarget(null), [closet, row, shelf])
-  // فیلمی که با کلیک رو برچسب موقعیت اومدیم: جلدش رو تو قفسه باز می‌کنیم (مثل هاور)
-  // و تو دید می‌آریم — فقط یک بار، وقتی جلد تو DOM اومد.
-  const focusOpenedRef = useRef(false)
+  // فیلمی که با کلیک رو برچسب موقعیت اومدیم: جلدش با کلاس React باز نگه داشته می‌شه
+  // (نه دستکاری DOM)، تا با اندازه‌گیری دوباره‌ی قفسه (تغییر تعداد جلد تو ردیف)
+  // که جلدها رو دوباره می‌سازه، باز بودنش از بین نره. با اولین هاور رو قفسه آزاد می‌شه.
+  const [focusId, setFocusId] = useState(focusFilm?.id ?? null)
   useEffect(() => {
-    if (!focusFilm || focusOpenedRef.current) return
-    const el = shelfRef.current?.querySelector(`.bluray-case[data-film-id="${CSS.escape(String(focusFilm.id))}"]`)
-    if (!el) return
-    focusOpenedRef.current = true
-    const rowEl = el.closest('.bluray-shelf-row')
-    el.classList.add('is-open')
-    rowEl?.classList.add('has-open')
-    el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
-  })
+    if (!focusId) return
+    const el = shelfRef.current?.querySelector(`.bluray-case[data-film-id="${CSS.escape(String(focusId))}"]`)
+    el?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
+  }, [focusId, casesPerRow, spineWidth, shelfEl])
   const bulkMove = async (ids, c, r, s) => {
     const res = await fetch('/api/films/bulk-move', {
       method: 'POST',
@@ -1565,8 +1561,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                         {Array.from({ length: Math.ceil(shelfSlots.length / casesPerRow) }, (_, rowIdx) => (
                         <div className="bluray-shelf-group" key={rowIdx}>
                         <div
-                          className="bluray-shelf-row"
-                          onMouseOver={shelfHover.onMouseOver}
+                          className={`bluray-shelf-row${focusId && shelfSlots.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).some((sl) => !sl.ghost && sl.f.id === focusId && sl.copyIdx === 0) ? ' has-open' : ''}`}
+                          onMouseOver={(e) => {
+                            if (focusId) setFocusId(null)
+                            shelfHover.onMouseOver(e)
+                          }}
                           onMouseLeave={shelfHover.onMouseLeave}
                           onClick={shelfHover.onClick}
                         >
@@ -1584,7 +1583,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                           return (
                             <div
                               key={`${f.id}-${copyIdx}`}
-                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}`}
+                              className={`bluray-case ${isCriterion ? 'criterion' : is4k ? 'four-k' : isSteelbook ? 'steelbook' : ''}${focusId && f.id === focusId && copyIdx === 0 ? ' is-open' : ''}`}
                               data-film-id={f.id}
                               style={{
                                 backgroundColor: style.bg,
