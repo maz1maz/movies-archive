@@ -50,7 +50,7 @@ function firstLetterOf(title) {
   return ch >= 'A' && ch <= 'Z' ? ch : '#'
 }
 
-export default function LocationBrowserModal({ films, onSelectFilm, onClose, canEdit = false, onFilmsChanged, initialView = 'section' }) {
+export default function LocationBrowserModal({ films, onSelectFilm, onClose, canEdit = false, onFilmsChanged, initialView = 'section', focusFilm = null }) {
   // دو نمای صفحه‌ی Shelves: «section» (یه بخش + پر/خالی/جابه‌جایی) و «wall» (همه‌ی بخش‌ها پشت سر هم)
   const [shelvesView, setShelvesView] = useState(initialView)
   const overlayHandlers = useOverlayClose(onClose)
@@ -95,9 +95,10 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     const f = films.find((x) => x.id === id)
     if (f) onSelectFilm(f)
   })
-  const [closet, setCloset] = useState('')
-  const [row, setRow] = useState('')
-  const [shelf, setShelf] = useState('')
+  // اگه با کلیک رو برچسب موقعیت یه فیلم باز شده، مستقیم همون Closet/Row/Section رو باز کن
+  const [closet, setCloset] = useState(focusFilm?.closet ? String(focusFilm.closet) : '')
+  const [row, setRow] = useState(focusFilm?.row ? String(focusFilm.row) : '')
+  const [shelf, setShelf] = useState(focusFilm?.shelf ? String(focusFilm.shelf) : '')
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [filmQuery, setFilmQuery] = useState('')
   const [moving, setMoving] = useState(false)
@@ -326,6 +327,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [relocating, setRelocating] = useState(false)
   useEffect(() => setMoveTarget(null), [closet, row, shelf])
   useEffect(() => setHoveredFilm(null), [closet, row, shelf])
+  // فیلم انتخاب‌شده تو پنل جزئیات بالای قفسه نشون داده بشه (بعد از effect بالا)
+  useEffect(() => {
+    if (focusFilm) setHoveredFilm(focusFilm)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const bulkMove = async (ids, c, r, s) => {
     const res = await fetch('/api/films/bulk-move', {
       method: 'POST',

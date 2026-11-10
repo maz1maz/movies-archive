@@ -189,6 +189,13 @@ export default function App() {
     }
   }
   const [showLocationBrowser, setShowLocationBrowser] = useState(false)
+  // فیلمی که با کلیک رو برچسب موقعیت (Closet/Row/Section) تو صفحه‌ی فیلم انتخاب شده
+  const [shelfFocus, setShelfFocus] = useState(null)
+  const showOnShelf = (film) => {
+    setShelfFocus(film)
+    setShowLocationBrowser('section')
+    closeFilmModal()
+  }
   const [showDriveBrowser, setShowDriveBrowser] = useState(false)
   const [forceFilmOverlay, setForceFilmOverlay] = useState(false)
   const [shelfNavFilms, setShelfNavFilms] = useState(null)
@@ -1104,6 +1111,7 @@ export default function App() {
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
               onEdit={guardedEdit}
+              onShowOnShelf={showOnShelf}
               onClose={closeFilmModal}
             />
           )}
@@ -1173,6 +1181,7 @@ export default function App() {
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
               onEdit={guardedEdit}
+              onShowOnShelf={showOnShelf}
               onClose={closeFilmModal}
             />
           )}
@@ -1210,6 +1219,7 @@ export default function App() {
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
               onEdit={guardedEdit}
+              onShowOnShelf={showOnShelf}
               onClose={closeFilmModal}
             />
           )}
@@ -1238,6 +1248,7 @@ export default function App() {
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
               onEdit={guardedEdit}
+              onShowOnShelf={showOnShelf}
               onClose={closeFilmModal}
             />
           )}
@@ -1281,6 +1292,7 @@ export default function App() {
               onRateFilm={guardedRate}
               onSaveSeasonDrive={guardedSeasonDrive}
               onEdit={guardedEdit}
+              onShowOnShelf={showOnShelf}
               onClose={closeFilmModal}
             />
           )}
@@ -1431,6 +1443,7 @@ export default function App() {
                 onRateFilm={guardedRate}
                 onSaveSeasonDrive={guardedSeasonDrive}
                 onEdit={guardedEdit}
+                onShowOnShelf={showOnShelf}
                 onClose={closeFilmModal}
               />
             </div>
@@ -1472,6 +1485,7 @@ export default function App() {
           onRateFilm={guardedRate}
           onSaveSeasonDrive={guardedSeasonDrive}
           onEdit={guardedEdit}
+          onShowOnShelf={showOnShelf}
           onClose={closeFilmModal}
         />
       )}
@@ -1585,6 +1599,7 @@ export default function App() {
         <Suspense fallback={<div className="dashboard-panel-loading">Loading…</div>}>
           <LocationBrowserModal
             initialView={showLocationBrowser === 'wall' ? 'wall' : 'section'}
+            focusFilm={shelfFocus}
             films={allFilmsUnfiltered}
             canEdit={!isGuest && !isViewer}
             onSelectFilm={(film) => {
@@ -1593,7 +1608,10 @@ export default function App() {
               setSelected(film)
             }}
             onFilmsChanged={loadAllFilmsUnfiltered}
-            onClose={() => setShowLocationBrowser(false)}
+            onClose={() => {
+              setShowLocationBrowser(false)
+              setShelfFocus(null)
+            }}
           />
         </Suspense>
       )}
