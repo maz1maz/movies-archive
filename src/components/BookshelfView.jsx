@@ -536,10 +536,11 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                     <div className="bluray-shelf">
                       {rows.map((row, rowIdx) => {
                         const rowKey = `${sec.closet}-${sec.row}-${sec.shelf}-${rowIdx}`
+                        const slotOffset = rows.slice(0, rowIdx).reduce((n, r) => n + r.length, 0)
                         return (
+                        <div className="bluray-shelf-group" key={rowIdx}>
                         <div
                           className="bluray-shelf-row"
-                          key={rowIdx}
                           onMouseOver={shelfHover.onMouseOver}
                           onMouseLeave={shelfHover.onMouseLeave}
                           onClick={shelfHover.onClick}
@@ -561,6 +562,25 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                             </div>
                             )
                           })}
+                        </div>
+                        {/* شماره‌ی جایگاه (۱ تا N) زیر هر جلد؛ کلیک = باز شدن همون جلد */}
+                        <div className="shelf-slot-numbers">
+                          {row.map((_, i) => (
+                            <span
+                              key={i}
+                              onClick={(e) => {
+                                const rowEl = e.currentTarget.closest('.bluray-shelf-group')?.querySelector('.bluray-shelf-row')
+                                const caseEl = rowEl?.children[i]
+                                if (!caseEl) return
+                                rowEl.querySelectorAll('.bluray-case.is-open').forEach((x) => x.classList.remove('is-open'))
+                                caseEl.classList.add('is-open')
+                                rowEl.classList.add('has-open')
+                              }}
+                            >
+                              {slotOffset + i + 1}
+                            </span>
+                          ))}
+                        </div>
                         </div>
                         )
                       })}
