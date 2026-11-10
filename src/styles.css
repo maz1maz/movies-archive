@@ -11950,8 +11950,5 @@ a.cine-collection-poster-btn {
   user-select: none;
 }
 .shelf-slot-numbers span { cursor: pointer; }
-.shelf-slot-numbers span i { display: block; font-style: normal; font-size: 8px; line-height: 10px; white-space: nowrap; opacity: 0.9; }
-/* جا برای دو خط شماره زیر آخرین ردیف، تا کف قفسه نبُرتش */
-.cinema-wood-shelf .bluray-shelf { padding-bottom: 18px; }
 .shelf-slot-numbers span:hover { color: var(--text, #fff); opacity: 1; }
 .shelf-slot-numbers span.is-empty-slot { cursor: default; }
