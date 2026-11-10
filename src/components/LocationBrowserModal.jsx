@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { sortKey, compareTitles } from '../utils/shelfOrder.js'
 import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload, IconArchive } from './icons.jsx'
 import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
@@ -82,6 +82,14 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   // جلدها باید ایستاده و کنار هم (افقی) باشن، مثل BookshelfView: قفسه به
   // ردیف‌های bluray-shelf-row تقسیم می‌شه و تعداد هر ردیف از عرض قفسه میاد
   const shelfRef = useRef(null)
+  // وقتی قفسه تو DOM می‌آد (مثلاً مستقیم با کلیک رو برچسب موقعیت یه فیلم باز شده،
+  // نه با انتخاب دستی کمد/ردیف/بخش)، اندازه‌گیری عرض دوباره اجرا بشه — وگرنه
+  // ردیف‌ها با پیش‌فرض ۲۰ جلدی و جلدهای باریک می‌موندن
+  const [shelfEl, setShelfEl] = useState(null)
+  const shelfRefCb = useCallback((el) => {
+    shelfRef.current = el
+    setShelfEl(el)
+  }, [])
   const [casesPerRow, setCasesPerRow] = useState(20)
   // نوار جزئیات بالای قفسه فقط جلدِ «بیرون کشیده» (کلیک‌شده) رو نشون می‌ده —
   // هاور دیگه state ری‌اکت عوض نمی‌کنه (useShelfHover)، که باعث لگ می‌شد
@@ -119,7 +127,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [shelfScale, closet, row, shelf, shelfViewMode, shelvesView])
+  }, [shelfScale, closet, row, shelf, shelfViewMode, shelvesView, shelfEl])
   const [shelfTheme, setShelfTheme] = useShelfTheme()
 
   useEffect(() => {
@@ -1551,7 +1559,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                 <>
                   <div className={`cinema-wood-shelf-wrapper shelf-theme-${shelfTheme}`}>
                     <div className="shelf-overhead-light" />
-                    <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale, ...(spineWidth ? { '--spine-w': `${spineWidth}px` } : {}) }} ref={shelfRef}>
+                    <div className="cinema-wood-shelf" style={{ '--spine-scale': shelfScale, ...(spineWidth ? { '--spine-w': `${spineWidth}px` } : {}) }} ref={shelfRefCb}>
                       <div className="shelf-inner-shadow" />
                       <div className="bluray-shelf" id="shelf">
                         {Array.from({ length: Math.ceil(shelfSlots.length / casesPerRow) }, (_, rowIdx) => (
