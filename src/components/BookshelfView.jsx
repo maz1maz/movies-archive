@@ -578,7 +578,6 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
                               }}
                             >
                               {slotOffset + i + 1}
-                              <i>{sec.closet}·{sec.row}·{sec.shelf}</i>
                             </span>
                           ))}
                         </div>
