@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { shelfSlotOf } from '../utils/shelfOrder.js'
 import { IconClose, IconPin, IconHandshake, IconBuilding, IconEdit, IconShare } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
@@ -636,6 +637,17 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                           Closet <strong>{physicalRecord.closet || '—'}</strong> / Row{' '}
                           <strong>{physicalRecord.row || '—'}</strong> / Section{' '}
                           <strong>{physicalRecord.shelf || '—'}</strong>
+                          {(() => {
+                            // شماره‌ی جایگاه فیلم تو قفسه (مثل شماره‌های زیر جلدها)
+                            const slot = shelfSlotOf(allFilms, physicalRecord)
+                            if (!slot) return null
+                            return (
+                              <>
+                                {' '}/ Slot{' '}
+                                <strong>{slot.start === slot.end ? slot.start : `${slot.start}–${slot.end}`}</strong>
+                              </>
+                            )
+                          })()}
                         </span>
                       </div>
                     )}

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { sortKey, compareTitles } from '../utils/shelfOrder.js'
 import { IconClose, IconPin, IconFilm, IconBookshelf, IconPrinter, IconDownload, IconArchive } from './icons.jsx'
 import { getSpineColor, getEditionBadge, getStudioBadgeText } from '../utils/shelfDisplay.js'
 import { proxyImg } from '../utils/proxyImg.js'
@@ -34,13 +35,6 @@ function countCopies(list) {
   return list.reduce((sum, f) => sum + (Number(f.copies) || 1), 0)
 }
 
-function sortKey(title) {
-  return String(title || '')
-    .replace(/^the\s+/i, '')
-    .toLowerCase()
-}
-// ترتیب طبیعی: «Film 2» قبل از «Film 10»
-const compareTitles = (a, b) => sortKey(a.title).localeCompare(sortKey(b.title), undefined, { numeric: true })
 
 const AZ_LETTERS = ['#', ...Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))]
 
