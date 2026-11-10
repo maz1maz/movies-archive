@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { compareTitles } from '../utils/shelfOrder.js'
 import { IconClose, IconSave, IconSearch, IconLink } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import { normalizeDriveValue } from '../utils/driveDisplay.js'
@@ -118,7 +119,13 @@ function suggestShelfSpot(existingFilms, title) {
   const copiesHere = existingFilms
     .filter((f) => f.mediaType !== 'digital' && String(f.closet) === loc.closet && String(f.row || '') === loc.row && String(f.shelf || '') === loc.shelf)
     .reduce((n, f) => n + Math.max(1, Number(f.copies) || 1), 0)
-  return { ...loc, prev: prev?.title || null, next: next?.title || null, copiesHere }
+  // جایگاه پیشنهادی تو بخش: بعد از همه‌ی نسخه‌هایی که تو ترتیب قفسه قبل از این عنوان می‌آن
+  const slot =
+    existingFilms
+      .filter((f) => f.mediaType !== 'digital' && String(f.closet) === loc.closet && String(f.row || '') === loc.row && String(f.shelf || '') === loc.shelf)
+      .filter((f) => compareTitles(f, { title }) <= 0)
+      .reduce((n, f) => n + Math.max(1, Number(f.copies) || 1), 0) + 1
+  return { ...loc, prev: prev?.title || null, next: next?.title || null, copiesHere, slot }
 }
 
 const itemKind = (f) => (f.itemType === 'series' ? 'series' : 'movie')
@@ -823,7 +830,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                 return (
                   <div className="edit-field full shelf-spot-suggest">
                     <span>
-                      📍 Suggested spot: <strong>C{spot.closet} · R{spot.row} · S{spot.shelf}</strong>
+                      📍 Suggested spot: <strong>C{spot.closet} · R{spot.row} · S{spot.shelf} · Slot {spot.slot}</strong>
                       {spot.prev && spot.next
                         ? ` — between “${spot.prev}” and “${spot.next}”`
                         : spot.prev
