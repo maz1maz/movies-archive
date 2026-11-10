@@ -27,14 +27,20 @@ const FILMS_CACHE_TTL = 180
 const DECADES_CACHE_KEY = 'decadescache:all'
 const DECADES_CACHE_TTL = 3600
 
-async function invalidateFilmsCache(env) {
+// دهه‌ها و ژانرها فقط وقتی فیلم تازه اضافه/ایمپورت می‌شه باطل می‌شن (resetMeta)؛
+// ویرایش/enrich/حذف دیگه کششون رو پاک نمی‌کنه — قبلاً هر PATCH و enrich یه
+// اسکن کامل جدول (۳۷هزار ردیف) برای هر دو بعد از خودش می‌ساخت. بدترین حالت:
+// تا ۱ ساعت تأخیر تو دیده‌شدن یه ژانر/دهه‌ی تازه بعد از ویرایش (TTL).
+async function invalidateFilmsCache(env, resetMeta = false) {
   if (!env.BACKUPS) return
   try {
     const list = await env.BACKUPS.list({ prefix: FILMS_CACHE_KEY })
     await Promise.all((list.keys || []).map((k) => env.BACKUPS.delete(k.name)))
-    await env.BACKUPS.delete(DECADES_CACHE_KEY)
+    if (resetMeta) {
+      await env.BACKUPS.delete(DECADES_CACHE_KEY)
+      await env.BACKUPS.delete('genrescache:v1')
+    }
     await env.BACKUPS.delete('filmscounts:v1')
-    await env.BACKUPS.delete('genrescache:v1')
     await env.BACKUPS.delete('shelvescache:v1')
     await env.BACKUPS.delete('closetscache:v1')
     await env.BACKUPS.delete('acclaimedcache:v1')
@@ -52,7 +58,7 @@ export default {
         response.status < 400 &&
         (pathname.startsWith('/api/films') || pathname === '/api/import' || pathname.startsWith('/api/shelf/'))
       ) {
-        ctx.waitUntil(invalidateFilmsCache(env))
+        ctx.waitUntil(invalidateFilmsCache(env, (request.method === 'POST' && pathname === '/api/films') || pathname === '/api/import'))
       }
     } catch {}
     return response
@@ -108,31 +114,35 @@ export default {
       // و سقف ۵ میلیون row-read روزانه‌ی D1 پر می‌شد. حالا اگه کاری نمونده،
       // برای چند ساعت از اسکن بعدی صرف‌نظر می‌شه.
       const idleCheck = (r) => !r || r.error || r.skipped || !(r.processed || r.tried)
+      // [نام، ساعت وقفه وقتی کاری نمونده، ساعت حداقل فاصله بین اجراها وقتی کار هست]
+      // هر اجرا کل جدول رو برای پیدا کردن ~۲۰ فیلم اسکن می‌کنه (~۳۷هزار ردیف)،
+      // پس به‌جای هر ۴۰ دقیقه، هر job حداکثر هر ۸ ساعت اجرا می‌شه.
       const jobs = {
-        3: ['posters', 6, () => repairDeadPosters(env.DB, env, 15), () => true],
-        2: ['tags', 12, () => backfillFilmTags(env.DB, env, 20), idleCheck],
-        1: ['cast', 12, () => backfillFullCast(env.DB, env, 18), idleCheck],
-        0: ['imdb', 12, () => backfillImdbIds(env.DB, env, 20), idleCheck],
+        3: ['posters', 8, 8, () => repairDeadPosters(env.DB, env, 15), () => true],
+        2: ['tags', 12, 8, () => backfillFilmTags(env.DB, env, 20), idleCheck],
+        1: ['cast', 12, 8, () => backfillFullCast(env.DB, env, 18), idleCheck],
+        0: ['imdb', 12, 8, () => backfillImdbIds(env.DB, env, 20), idleCheck],
       }
-      const [name, idleHours, run, isIdle] = jobs[slot]
+      const [name, idleHours, activeHours, run, isIdle] = jobs[slot]
       const flagKey = `cronidle:${name}`
       const flag = await env.DB
-        .prepare('SELECT fetchedAt FROM cinema_news_cache WHERE key = ?')
+        .prepare('SELECT data, fetchedAt FROM cinema_news_cache WHERE key = ?')
         .bind(flagKey)
         .first()
         .catch(() => null)
-      if (flag && Date.now() - new Date(flag.fetchedAt.replace(' ', 'T') + 'Z').getTime() < idleHours * 3600000) {
-        return
+      if (flag) {
+        const ageMs = Date.now() - new Date(flag.fetchedAt.replace(' ', 'T') + 'Z').getTime()
+        // flag.data: '1' یعنی آخرین اجرا بی‌کار بود، '0' یعنی کار داشت
+        const wait = flag.data === '0' ? activeHours : idleHours
+        if (ageMs < wait * 3600000) return
       }
       const r = await run().catch((e) => ({ error: e.message }))
       console.log(`Cron ${name}:`, JSON.stringify(r))
-      if (isIdle(r)) {
-        await env.DB
-          .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))")
-          .bind(flagKey)
-          .run()
-          .catch(() => {})
-      }
+      await env.DB
+        .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+        .bind(flagKey, isIdle(r) ? '1' : '0')
+        .run()
+        .catch(() => {})
       return
     }
 
@@ -1022,12 +1032,25 @@ async function handleFetch(request, env, ctx) {
       // below, which would otherwise treat "enrich-status" as a film id
       // and 404 first. ----
       if (method === 'GET' && pathname === '/api/films/enrich-status') {
+        // کش ۶۰ ثانیه‌ای (کمینه‌ی TTL تو KV) — این شمارش اسکن کامل جدوله و
+        // فرانت هر چند ثانیه صداش می‌زنه
+        const statusKey = `enrichstatus:${url.search || '?'}`
+        if (env.BACKUPS) {
+          try {
+            const cached = await env.BACKUPS.get(statusKey, 'json')
+            if (cached) return json(cached, 200, corsHeaders)
+          } catch {}
+        }
         const remaining = await db
           .prepare(
             `SELECT COUNT(*) as count FROM films WHERE metadataEnrichmentAttemptedAt IS NULL${enrichScopeClause(url.searchParams)}`
           )
           .first()
-        return json({ remaining: remaining?.count || 0 }, 200, corsHeaders)
+        const statusBody = { remaining: remaining?.count || 0 }
+        if (env.BACKUPS) {
+          try { await env.BACKUPS.put(statusKey, JSON.stringify(statusBody), { expirationTtl: 60 }) } catch {}
+        }
+        return json(statusBody, 200, corsHeaders)
       }
 
       // ---- GET /api/films/:id ----
