@@ -1549,7 +1549,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                 </div>
               ) : shelfViewMode === 'spine' ? (
                 <>
-                  <div className="spine-inspector-bar">
+                  <div className={`spine-inspector-bar${hoveredFilm ? '' : ' is-empty'}`}>
                     {hoveredFilm ? (
                       <div className="spine-inspector-content">
                         <div className="spine-inspector-poster">
@@ -1600,10 +1600,9 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                         </div>
                       </div>
                     ) : (
-                      <div className="spine-inspector-empty">
-                        <span className="spine-inspector-empty-icon">✨</span>
-                        <span>Hover over any Blu-ray case below to inspect its poster and details, or click to open the film page.</span>
-                      </div>
+                      // متن راهنما حذف شد؛ نوار خالی نامرئی می‌مونه (جاش رو نگه می‌داره تا
+                      // با هاور قفسه جابه‌جا نشه)
+                      <div className="spine-inspector-empty" aria-hidden="true" />
                     )}
                   </div>
 
@@ -1613,9 +1612,9 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                       <div className="shelf-inner-shadow" />
                       <div className="bluray-shelf" id="shelf">
                         {Array.from({ length: Math.ceil(shelfSlots.length / casesPerRow) }, (_, rowIdx) => (
+                        <div className="bluray-shelf-group" key={rowIdx}>
                         <div
                           className="bluray-shelf-row"
-                          key={rowIdx}
                           onMouseOver={shelfHover.onMouseOver}
                           onMouseLeave={shelfHover.onMouseLeave}
                           onClick={shelfHover.onClick}
@@ -1647,6 +1646,13 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                             </div>
                           )
                         })}
+                        </div>
+                        {/* شماره‌ی جایگاه (۱ تا ظرفیت) زیر هر جلد */}
+                        <div className="shelf-slot-numbers" aria-hidden="true">
+                          {shelfSlots.slice(rowIdx * casesPerRow, (rowIdx + 1) * casesPerRow).map((_, i) => (
+                            <span key={i}>{rowIdx * casesPerRow + i + 1}</span>
+                          ))}
+                        </div>
                         </div>
                         ))}
                       </div>
