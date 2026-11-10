@@ -14,11 +14,11 @@ export function spineFormat(f, style) {
   return ['BLU-', 'RAY', 'blu']
 }
 
-export default function SpineCase({ film: f, style, copyIdx = 0, copyCount = 1, onOpen }) {
+export default function SpineCase({ film: f, style, copyIdx = 0, copyCount = 1, onOpen, slot = null }) {
   const [, , fmtClass] = spineFormat(f, style)
   // همه‌ی آرشیو بلوریه، پس برچسب فقط برای Criterion نشون داده می‌شه
   const showFormat = fmtClass === 'crit'
-  const location = f.closet ? `C${f.closet}${f.row ? `·R${f.row}` : ''}${f.shelf ? `·S${f.shelf}` : ''}` : ''
+  const location = f.closet ? `C${f.closet}${f.row ? `·R${f.row}` : ''}${f.shelf ? `·S${f.shelf}` : ''}${slot ? `·#${slot}` : ''}` : ''
   const meta = [f.year, f.runtime ? `${f.runtime} min` : null, f.country ? String(f.country).split(',').slice(0, 2).join(' / ') : null]
     .filter(Boolean)
     .join(' · ')

@@ -1593,7 +1593,7 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
                               }}
                               title={`${f.title} (${f.year || 'N/A'}) — Dir: ${f.director || 'Unknown'}${copyCount > 1 ? ` — copy ${copyIdx + 1}/${copyCount}` : ''}`}
                             >
-                              <SpineCase film={f} style={style} copyIdx={copyIdx} copyCount={copyCount} onOpen={onSelectFilm} />
+                              <SpineCase film={f} style={style} copyIdx={copyIdx} copyCount={copyCount} onOpen={onSelectFilm} slot={rowIdx * casesPerRow + itemIdx + 1} />
                             </div>
                           )
                         })}

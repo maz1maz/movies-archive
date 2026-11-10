@@ -6,6 +6,7 @@ import { proxyImg } from '../utils/proxyImg.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 import { imdbUrl, imdbPersonUrl } from '../utils/imdbLink.js'
+import { buildSlotIndex } from '../utils/shelfOrder.js'
 
 // نشانِ کوچکِ جشنواره/جایزه از روی اسم جایزه (رنگ و مخففِ هر جشنواره)
 const FESTIVALS = [
@@ -145,6 +146,8 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
   // تا وقتی جواب سرور نرسیده، به‌عنوان fallback از همون لیستِ کلاینت استفاده
   // می‌کنیم تا صفحه خالی نیفته؛ به محض رسیدن جواب سرور، جایگزینش می‌کنیم.
   const source = serverFilms !== null ? serverFilms : allFilms
+  // شماره‌ی جایگاه هر فیلم تو قفسه — از کل آرشیو (نه فقط فیلم‌های این آدم)
+  const slotIndex = useMemo(() => buildSlotIndex(allFilms || []), [allFilms])
 
   // فیلم کوتاه (زیر ۴۰ دقیقه، طبق تعریف رایج) رو تو صفحه‌ی هنرمند نشون نمی‌دیم
   // — معمولاً مستندهای مصاحبه‌ای/گلچین‌ان که ده‌ها آدم رو یه‌بار مشترک می‌کنن
@@ -613,6 +616,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                 {(film.closet || film.shelf || film.row) && (
                   <span className="person-location-badge">
                     <IconPin width={11} height={11} /> C{film.closet || '—'} R{film.row || '—'} S{film.shelf || '—'}
+                    {slotIndex.get(film.id) ? ` #${slotIndex.get(film.id).start}` : ''}
                   </span>
                 )}
                 {hasBluray && hasBluray(film) && (
