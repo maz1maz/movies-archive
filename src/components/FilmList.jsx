@@ -11,7 +11,7 @@ function seriesDriveDisplay(f) {
   return f.driveNumber ? driveLabel(f.driveNumber) : ''
 }
 
-export default function FilmList({ films, onSelect, onEdit, hasBluray, hasDigital }) {
+export default function FilmList({ films, onSelect, onEdit, hasBluray, hasDigital, slotIndex }) {
   return (
     <div className="list">
       {films.map((f) => (
@@ -74,7 +74,7 @@ export default function FilmList({ films, onSelect, onEdit, hasBluray, hasDigita
               <IconPin width={11} height={11} />{' '}
               {f.mediaType === 'digital'
                 ? seriesDriveDisplay(f) || '–'
-                : `C${f.closet || '–'} R${f.row || '–'} S${f.shelf || '–'}`}
+                : `C${f.closet || '–'} R${f.row || '–'} S${f.shelf || '–'}${slotIndex?.get(f.id) ? ` #${slotIndex.get(f.id).start}` : ''}`}
             </span>
             {typeof f.rating === 'number' && (
               <span className="tag tag-accent">

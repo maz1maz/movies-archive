@@ -23,7 +23,7 @@ function hashCode(str) {
   return Math.abs(h)
 }
 
-export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, hasDigital }) {
+export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, hasDigital, slot }) {
   const [c1, c2] = PALETTE[hashCode(String(film.id)) % PALETTE.length]
   const isDigital = film.mediaType === 'digital'
 
@@ -191,7 +191,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
           <div className="poster-badge-stack poster-badge-stack-right">
             <span className="location-badge">
               <IconPin width={11} height={11} />{' '}
-              {isDigital ? driveDisplay : `C${film.closet || '–'} R${film.row || '–'} S${film.shelf || '–'}`}
+              {isDigital ? driveDisplay : `C${film.closet || '–'} R${film.row || '–'} S${film.shelf || '–'}${slot ? ` #${slot}` : ''}`}
             </span>
             {hasDigital && (
               <span className="digital-badge" title="Digital copy also owned">
