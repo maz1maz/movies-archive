@@ -327,11 +327,19 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
   const [relocating, setRelocating] = useState(false)
   useEffect(() => setMoveTarget(null), [closet, row, shelf])
   useEffect(() => setHoveredFilm(null), [closet, row, shelf])
-  // فیلم انتخاب‌شده تو پنل جزئیات بالای قفسه نشون داده بشه (بعد از effect بالا)
+  // فیلمی که با کلیک رو برچسب موقعیت اومدیم: جلدش رو تو قفسه باز می‌کنیم (مثل هاور)
+  // و تو دید می‌آریم — فقط یک بار، وقتی جلد تو DOM اومد.
+  const focusOpenedRef = useRef(false)
   useEffect(() => {
-    if (focusFilm) setHoveredFilm(focusFilm)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    if (!focusFilm || focusOpenedRef.current) return
+    const el = shelfRef.current?.querySelector(`.bluray-case[data-film-id="${CSS.escape(String(focusFilm.id))}"]`)
+    if (!el) return
+    focusOpenedRef.current = true
+    const rowEl = el.closest('.bluray-shelf-row')
+    el.classList.add('is-open')
+    rowEl?.classList.add('has-open')
+    el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
+  })
   const bulkMove = async (ids, c, r, s) => {
     const res = await fetch('/api/films/bulk-move', {
       method: 'POST',
