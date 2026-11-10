@@ -27,14 +27,20 @@ const FILMS_CACHE_TTL = 180
 const DECADES_CACHE_KEY = 'decadescache:all'
 const DECADES_CACHE_TTL = 3600
 
-async function invalidateFilmsCache(env) {
+// دهه‌ها و ژانرها فقط وقتی فیلم تازه اضافه/ایمپورت می‌شه باطل می‌شن (resetMeta)؛
+// ویرایش/enrich/حذف دیگه کششون رو پاک نمی‌کنه — قبلاً هر PATCH و enrich یه
+// اسکن کامل جدول (۳۷هزار ردیف) برای هر دو بعد از خودش می‌ساخت. بدترین حالت:
+// تا ۱ ساعت تأخیر تو دیده‌شدن یه ژانر/دهه‌ی تازه بعد از ویرایش (TTL).
+async function invalidateFilmsCache(env, resetMeta = false) {
   if (!env.BACKUPS) return
   try {
     const list = await env.BACKUPS.list({ prefix: FILMS_CACHE_KEY })
     await Promise.all((list.keys || []).map((k) => env.BACKUPS.delete(k.name)))
-    await env.BACKUPS.delete(DECADES_CACHE_KEY)
+    if (resetMeta) {
+      await env.BACKUPS.delete(DECADES_CACHE_KEY)
+      await env.BACKUPS.delete('genrescache:v1')
+    }
     await env.BACKUPS.delete('filmscounts:v1')
-    await env.BACKUPS.delete('genrescache:v1')
     await env.BACKUPS.delete('shelvescache:v1')
     await env.BACKUPS.delete('closetscache:v1')
     await env.BACKUPS.delete('acclaimedcache:v1')
@@ -52,7 +58,7 @@ export default {
         response.status < 400 &&
         (pathname.startsWith('/api/films') || pathname === '/api/import' || pathname.startsWith('/api/shelf/'))
       ) {
-        ctx.waitUntil(invalidateFilmsCache(env))
+        ctx.waitUntil(invalidateFilmsCache(env, (request.method === 'POST' && pathname === '/api/films') || pathname === '/api/import'))
       }
     } catch {}
     return response
