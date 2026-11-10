@@ -189,15 +189,15 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         </span>
         {hasLocation && (
           <div className="poster-badge-stack poster-badge-stack-right">
-            <span className="location-badge">
-              <IconPin width={11} height={11} />{' '}
-              {isDigital ? driveDisplay : `C${film.closet || '–'} R${film.row || '–'} S${film.shelf || '–'}${slot ? ` #${slot}` : ''}`}
-            </span>
             {hasDigital && (
               <span className="digital-badge" title="Digital copy also owned">
                 <IconClapper width={11} height={11} /> DIGITAL
               </span>
             )}
+            <span className="location-badge">
+              <IconPin width={11} height={11} />{' '}
+              {isDigital ? driveDisplay : `C${film.closet || '–'} R${film.row || '–'} S${film.shelf || '–'}${slot ? ` #${slot}` : ''}`}
+            </span>
           </div>
         )}
         {!hasLocation && hasDigital && (
