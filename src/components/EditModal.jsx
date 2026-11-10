@@ -400,7 +400,12 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             </span>
             {s.inArchive.length > 0 && (
               <span className="title-suggest-badge" title={s.inArchive.map(filmLocation).join(', ')}>
-                In archive
+                {(() => {
+                  // نوع نسخه‌ی موجود تو آرشیو: Physical / Digital / هر دو
+                  const hasDigital = s.inArchive.some((f) => f.mediaType === 'digital')
+                  const hasPhysical = s.inArchive.some((f) => f.mediaType !== 'digital')
+                  return hasDigital && hasPhysical ? 'Physical + Digital' : hasDigital ? 'Digital' : 'Physical'
+                })()}
               </span>
             )}
           </li>

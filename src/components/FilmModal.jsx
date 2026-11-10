@@ -38,7 +38,7 @@ function CollectionOrderButton({ title, year }) {
   )
 }
 
-export default function FilmModal({ film, films = [], archiveFilms = null, onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false, siblingFilm = null, onSaveSeasonDrive }) {
+export default function FilmModal({ film, films = [], archiveFilms = null, onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false, siblingFilm = null, onSaveSeasonDrive, onShowOnShelf }) {
   // films = لیست ناوبری (صفحه/بخش فعلی)؛ allFilms = کل آرشیو برای شمارش/تطبیق
   const allFilms = Array.isArray(archiveFilms) && archiveFilms.length ? archiveFilms : films
   const [showAllCast, setShowAllCast] = useState(false)
@@ -611,7 +611,24 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                       {physicalFormat}{physicalRecord.copies > 1 ? ` ×${physicalRecord.copies}` : ''}
                     </span>
                     {(physicalRecord.closet || physicalRecord.shelf || physicalRecord.row) && (
-                      <div className="cine-shelf-badge">
+                      <div
+                        className="cine-shelf-badge"
+                        {...(onShowOnShelf
+                          ? {
+                              role: 'button',
+                              tabIndex: 0,
+                              title: 'Show on shelf',
+                              style: { cursor: 'pointer' },
+                              onClick: () => onShowOnShelf(physicalRecord),
+                              onKeyDown: (e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  onShowOnShelf(physicalRecord)
+                                }
+                              },
+                            }
+                          : {})}
+                      >
                         <span className="shelf-icon">
                           <IconPin width={13} height={13} />
                         </span>
