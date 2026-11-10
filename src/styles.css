@@ -11950,5 +11950,6 @@ a.cine-collection-poster-btn {
   user-select: none;
 }
 .shelf-slot-numbers span { cursor: pointer; }
+.shelf-slot-numbers span i { display: block; font-style: normal; font-size: 7px; line-height: 9px; white-space: nowrap; opacity: 0.7; }
 .shelf-slot-numbers span:hover { color: var(--text, #fff); opacity: 1; }
 .shelf-slot-numbers span.is-empty-slot { cursor: default; }
