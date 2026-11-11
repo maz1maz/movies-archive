@@ -53,6 +53,30 @@ async function invalidateFilmsCache(env, resetMeta = false) {
   } catch {}
 }
 
+// فیلم تازه‌اضافه‌شده: به‌جای پاک‌کردن کش ژانر/دهه (که هر بار یه اسکن کامل جدوله، ۲۷ بار تو
+// یه صبح که چند فیلم اضافه می‌شد)، ژانر و دهه‌ی همین فیلم رو مستقیم تو کش ادغام می‌کنیم.
+async function mergeFilmIntoMetaCaches(env, film) {
+  if (!env.BACKUPS || !film) return
+  try {
+    const genres = Array.isArray(film.genre) ? film.genre : []
+    if (genres.length) {
+      const cached = await env.BACKUPS.get('genrescache:v1', 'json')
+      if (Array.isArray(cached)) {
+        const merged = [...new Set([...cached, ...genres.filter(Boolean)])].sort()
+        if (merged.length !== cached.length) await env.BACKUPS.put('genrescache:v1', JSON.stringify(merged), { expirationTtl: 3600 })
+      }
+    }
+    const year = Number(film.year)
+    if (Number.isFinite(year) && year > 0) {
+      const decade = Math.floor(year / 10) * 10
+      const cached = await env.BACKUPS.get(DECADES_CACHE_KEY, 'json')
+      if (Array.isArray(cached) && !cached.includes(decade)) {
+        await env.BACKUPS.put(DECADES_CACHE_KEY, JSON.stringify([...cached, decade].sort((a, b) => a - b)), { expirationTtl: DECADES_CACHE_TTL })
+      }
+    }
+  } catch {}
+}
+
 export default {
   async fetch(request, env, ctx) {
     const response = await handleFetch(request, env, ctx)
@@ -64,7 +88,11 @@ export default {
         response.status < 400 &&
         (pathname.startsWith('/api/films') || pathname === '/api/import' || pathname.startsWith('/api/shelf/'))
       ) {
-        ctx.waitUntil(invalidateFilmsCache(env, (request.method === 'POST' && pathname === '/api/films') || pathname === '/api/import'))
+        // افزودن فیلم: ژانر/دهه‌ی فیلم تازه تو کش ادغام می‌شه (بدون اسکن)؛ فقط ایمپورت کامل پاکشون می‌کنه
+        ctx.waitUntil(invalidateFilmsCache(env, pathname === '/api/import'))
+        if (request.method === 'POST' && pathname === '/api/films') {
+          ctx.waitUntil(response.clone().json().then((film) => mergeFilmIntoMetaCaches(env, film)).catch(() => {}))
+        }
       }
     } catch {}
     return response
