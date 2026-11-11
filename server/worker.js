@@ -19,7 +19,13 @@ import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBoo
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
 // کند بود؛ حالا ۱۸۰ ثانیه کش می‌شه و با هر نوشتن روی films/import باطل می‌شه.
 const FILMS_CACHE_KEY = 'filmscache:all'
-const FILMS_CACHE_TTL = 180
+// نوشتن‌ها (افزودن/ویرایش/حذف) کل کش رو فوراً باطل می‌کنن، پس TTL بلند امنه؛ فقط تغییرات
+// کرون (enrich/backfill) تا این‌قدر دیر دیده می‌شن
+const FILMS_CACHE_TTL = 1800
+// نتیجه‌ی بزرگ (لیست کل آرشیو، ~۴۰ مگابایت) از سقف ۲۵ مگابایتیِ هر مقدار KV رد می‌شد و
+// هیچ‌وقت کش نمی‌شد — هر بار باز شدن اپ یه اسکن کامل جدول روی D1 بود (۷۹ بار تو یه روز).
+// حالا تکه‌تکه (هر تکه ≤ این تعداد فیلم) تو KV نگه داشته می‌شه.
+const FILMS_CACHE_CHUNK = 3000
 
 // کش KV برای GET /api/decades — دهه‌ی فیلم‌ها تقریباً هیچ‌وقت عوض نمی‌شه،
 // ولی قبلاً هر بار یه full table scan روی films می‌زد. حالا ۱ ساعت کش
@@ -803,7 +809,14 @@ async function handleFetch(request, env, ctx) {
         const filmsCacheKey = `${FILMS_CACHE_KEY}:${url.search || '?'}`
         if (env.BACKUPS) {
           try {
-            const cached = await env.BACKUPS.get(filmsCacheKey, 'json')
+            let cached = await env.BACKUPS.get(filmsCacheKey, 'json')
+            if (cached && cached.chunks) {
+              const parts = await Promise.all(
+                Array.from({ length: cached.chunks }, (_, i) => env.BACKUPS.get(`filmschunk:${cached.ver}:${i}`, 'json'))
+              )
+              // اگه یه تکه منقضی/حذف شده بود، کش ناقصه → از D1 دوباره بخون
+              cached = parts.every(Array.isArray) ? { films: parts.flat(), totalCount: cached.totalCount } : null
+            }
             if (cached) {
               const headers = cached.totalCount != null ? { ...corsHeaders, 'X-Total-Count': String(cached.totalCount) } : corsHeaders
               return json(cached.films, 200, headers)
@@ -963,7 +976,23 @@ async function handleFetch(request, env, ctx) {
         // Parse JSON string fields
         const films = (result.results || []).map(parseFilmRow)
         if (env.BACKUPS) {
-          ctx.waitUntil(env.BACKUPS.put(filmsCacheKey, JSON.stringify({ films, totalCount }), { expirationTtl: FILMS_CACHE_TTL }).catch(() => {}))
+          ctx.waitUntil(
+            (async () => {
+              if (films.length <= FILMS_CACHE_CHUNK) {
+                await env.BACKUPS.put(filmsCacheKey, JSON.stringify({ films, totalCount }), { expirationTtl: FILMS_CACHE_TTL })
+                return
+              }
+              const n = Math.ceil(films.length / FILMS_CACHE_CHUNK)
+              // تکه‌ها با کلید نسخه‌دار (پیشوند جدا از filmscache) — باطل‌کردن فقط متا رو
+              // پاک می‌کنه و تکه‌های یتیم با TTL می‌میرن (سقف حذف روزانه‌ی KV رو نمی‌خوره)
+              const ver = Math.random().toString(36).slice(2, 10)
+              // اول تکه‌ها، آخر متا — تا خواننده هیچ‌وقت متای بدون تکه نبینه
+              for (let i = 0; i < n; i++) {
+                await env.BACKUPS.put(`filmschunk:${ver}:${i}`, JSON.stringify(films.slice(i * FILMS_CACHE_CHUNK, (i + 1) * FILMS_CACHE_CHUNK)), { expirationTtl: FILMS_CACHE_TTL })
+              }
+              await env.BACKUPS.put(filmsCacheKey, JSON.stringify({ chunks: n, ver, totalCount }), { expirationTtl: FILMS_CACHE_TTL })
+            })().catch(() => {})
+          )
         }
         const headers = totalCount != null ? { ...corsHeaders, 'X-Total-Count': String(totalCount) } : corsHeaders
         return json(films, 200, headers)
