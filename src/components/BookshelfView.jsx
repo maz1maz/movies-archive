@@ -48,19 +48,7 @@ function queuePrefetch(url) {
 // نمای «Wall» داخل صفحه‌ی Shelves (LocationBrowserModal): همه‌ی بخش‌های قفسه‌دار
 // پشت سر هم، فقط برای دیدن. پر/خالی کردن بخش‌ها تو نمای Section انجام می‌شه.
 // closet خالی یعنی همه‌ی کمدها؛ کلیک روی تیتر هر بخش onPickSection رو صدا می‌زنه.
-export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, closet: closetFilter = '', onPickSection, onPickCloset, capacityFor, focusRow = '', focusShelf = '' }) {
-  // انتخاب ردیف/بخش بالای صفحه تو نمای Wall: به همون بخش اسکرول کن (Wall همه‌ی بخش‌های
-  // کمد رو پشت سر هم نشون می‌ده، فیلتر نمی‌کنه)
-  useEffect(() => {
-    if (!focusRow || !closetFilter) return
-    const t = setTimeout(() => {
-      const sel = focusShelf
-        ? `[data-sec="${CSS.escape(`${closetFilter}|${focusRow}|${focusShelf}`)}"]`
-        : `[data-sec^="${CSS.escape(`${closetFilter}|${focusRow}|`)}"]`
-      document.querySelector(sel)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
-    }, 60)
-    return () => clearTimeout(t)
-  }, [focusRow, focusShelf, closetFilter])
+export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, closet: closetFilter = '', onPickSection, onPickCloset, capacityFor, focusRow = '' }) {
   const [shelfTheme, setShelfTheme] = useShelfTheme()
   // «spines» = قفسه‌ها با جلدها، «cards» = هر بخش یه کارت کوچیک (بازه‌ی الفبا + پر بودن)
   const [wallMode, setWallMode] = useState(() => {
@@ -245,8 +233,11 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
       map[key].films.push(f)
     }
     const n = (v) => Number(v) || 0
-    return Object.values(map).sort((a, b) => n(a.closet) - n(b.closet) || n(a.row) - n(b.row) || n(a.shelf) - n(b.shelf))
-  }, [filteredFilms])
+    // ردیف انتخاب‌شده بالای صفحه: فقط بخش‌های همون ردیف نشون داده می‌شه
+    return Object.values(map)
+      .filter((sec) => !focusRow || !closetFilter || sec.row === String(focusRow))
+      .sort((a, b) => n(a.closet) - n(b.closet) || n(a.row) - n(b.row) || n(a.shelf) - n(b.shelf))
+  }, [filteredFilms, focusRow, closetFilter])
 
   // هر بخش قفسه فقط وقتی تازه داره وارد نمای صفحه می‌شه (با یه فاصله‌ی جلوتر
   // -- rootMargin) پوسترهاش رو پیش‌بارگذاری می‌کنه؛ تا وقتی کاربر واقعاً به
@@ -512,7 +503,7 @@ export default function BookshelfView({ films, onSelectFilm, onFilmsChanged, clo
               }
 
               return (
-              <div key={`${sec.closet}-${sec.row}-${sec.shelf}`} data-sec={`${sec.closet}|${sec.row}|${sec.shelf}`} style={{ marginBottom: '32px' }}>
+              <div key={`${sec.closet}-${sec.row}-${sec.shelf}`} style={{ marginBottom: '32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text)' }}>
                     {onPickSection ? (
