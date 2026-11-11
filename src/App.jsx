@@ -624,6 +624,8 @@ export default function App() {
       }
       const saved = await res.json()
       setFilms((prev) => prev.map((f) => (f.id === id ? saved : f)))
+      // لیست کل آرشیو هم همگام بشه — شماره‌ی جایگاه‌ها (تعداد نسخه/محل/عنوان) ازش حساب می‌شن
+      setAllFilmsUnfiltered((prev) => prev.map((f) => (f.id === id ? saved : f)))
       if (selected && selected.id === id) setSelected(saved)
       showToast('Saved')
       setEditing(null)

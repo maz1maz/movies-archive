@@ -47,3 +47,9 @@ export function buildSlotIndex(films) {
   }
   return out
 }
+
+// متن شماره‌ی جایگاه: «22» یا برای چند نسخه بازه‌ی «22–23»
+export function slotLabel(slot) {
+  if (!slot) return ''
+  return slot.start === slot.end ? String(slot.start) : `${slot.start}–${slot.end}`
+}

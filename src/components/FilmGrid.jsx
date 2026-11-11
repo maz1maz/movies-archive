@@ -1,4 +1,5 @@
 import FilmCard from './FilmCard.jsx'
+import { slotLabel } from '../utils/shelfOrder.js'
 
 export default function FilmGrid({ films, onSelect, onToggleWatch, hasBluray, hasDigital, slotIndex }) {
   return (
@@ -11,7 +12,7 @@ export default function FilmGrid({ films, onSelect, onToggleWatch, hasBluray, ha
           onToggleWatch={onToggleWatch}
           hasBluray={hasBluray ? hasBluray(film) : false}
           hasDigital={hasDigital ? hasDigital(film) : false}
-          slot={slotIndex?.get(film.id)?.start}
+          slot={slotLabel(slotIndex?.get(film.id))}
         />
       ))}
     </div>

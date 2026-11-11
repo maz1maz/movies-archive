@@ -1,3 +1,4 @@
+import { slotLabel } from '../utils/shelfOrder.js'
 import { proxyImg } from '../utils/proxyImg.js'
 import { IconFilm, IconPin, IconStar, IconEdit, IconDisc, IconClapper } from './icons.jsx'
 import { parseDriveNumbers, driveLabel, driveSortValue } from '../utils/driveDisplay.js'
@@ -74,7 +75,7 @@ export default function FilmList({ films, onSelect, onEdit, hasBluray, hasDigita
               <IconPin width={11} height={11} />{' '}
               {f.mediaType === 'digital'
                 ? seriesDriveDisplay(f) || '–'
-                : `C${f.closet || '–'} R${f.row || '–'} S${f.shelf || '–'}${slotIndex?.get(f.id) ? ` #${slotIndex.get(f.id).start}` : ''}`}
+                : `C${f.closet || '–'} R${f.row || '–'} S${f.shelf || '–'}${slotIndex?.get(f.id) ? ` #${slotLabel(slotIndex.get(f.id))}` : ''}`}
             </span>
             {typeof f.rating === 'number' && (
               <span className="tag tag-accent">

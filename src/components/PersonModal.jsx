@@ -6,7 +6,7 @@ import { proxyImg } from '../utils/proxyImg.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useOverlayClose } from '../hooks/useOverlayClose.js'
 import { imdbUrl, imdbPersonUrl } from '../utils/imdbLink.js'
-import { buildSlotIndex } from '../utils/shelfOrder.js'
+import { buildSlotIndex, slotLabel } from '../utils/shelfOrder.js'
 
 // نشانِ کوچکِ جشنواره/جایزه از روی اسم جایزه (رنگ و مخففِ هر جشنواره)
 const FESTIVALS = [
@@ -616,7 +616,7 @@ export default function PersonModal({ personName, allFilms, onSelectFilm, onSele
                 {(film.closet || film.shelf || film.row) && (
                   <span className="person-location-badge">
                     <IconPin width={11} height={11} /> C{film.closet || '—'} R{film.row || '—'} S{film.shelf || '—'}
-                    {slotIndex.get(film.id) ? ` #${slotIndex.get(film.id).start}` : ''}
+                    {slotIndex.get(film.id) ? ` #${slotLabel(slotIndex.get(film.id))}` : ''}
                   </span>
                 )}
                 {hasBluray && hasBluray(film) && (
