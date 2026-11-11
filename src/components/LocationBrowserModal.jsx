@@ -15,6 +15,7 @@ import { useShelfHover } from '../hooks/useShelfHover.js'
 const BASE_ZOOM = 0.8
 const SLOTS_PER_ROW_AT_BASE = 65
 const SPINE_GAP = 2
+const MIN_SPINE_W = 24
 
 const CLOSET_COUNT = 8
 const ROW_COUNT = 10
@@ -119,9 +120,11 @@ export default function LocationBrowserModal({ films, onSelectFilm, onClose, can
       if (w <= 0) return
       // تو زوم ۸۰٪ دقیقاً ۶۵ جلد (ظرفیت یه بخش) یه ردیف کامل رو پر می‌کنن؛
       // زوم‌های دیگه به همون نسبت پهن‌تر/باریک‌ترن
-      const spineW = (w / SLOTS_PER_ROW_AT_BASE - SPINE_GAP) * (shelfScale / BASE_ZOOM)
+      // تو صفحه‌ی باریک (موبایل) ۶۵ جلد تو یه ردیف می‌شد نخ‌های ریز و ناخوانا؛
+      // حداقل عرض جلد می‌ذاریم و ردیف‌ها چندتایی می‌شن
+      const spineW = Math.max((w / SLOTS_PER_ROW_AT_BASE - SPINE_GAP) * (shelfScale / BASE_ZOOM), MIN_SPINE_W * (shelfScale / BASE_ZOOM))
       setSpineWidth(spineW)
-      setCasesPerRow(Math.max(6, Math.floor((w + 0.5) / (spineW + SPINE_GAP))))
+      setCasesPerRow(Math.max(3, Math.floor((w + 0.5) / (spineW + SPINE_GAP))))
     }
     update()
     const ro = new ResizeObserver(update)

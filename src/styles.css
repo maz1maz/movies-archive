@@ -11952,3 +11952,8 @@ a.cine-collection-poster-btn {
 .shelf-slot-numbers span { cursor: pointer; }
 .shelf-slot-numbers span:hover { color: var(--text, #fff); opacity: 1; }
 .shelf-slot-numbers span.is-empty-slot { cursor: default; }
+
+/* موبایل: هدر Shelves کم‌جا‌تر (توضیح زیر عنوان کل صفحه‌ی اول رو می‌گرفت) */
+@media (max-width: 700px) {
+  .location-browser-title .export-sub { display: none; }
+}
