@@ -1982,9 +1982,17 @@ async function handleFetch(request, env, ctx) {
         }
 
         const addTmdbPosterFallback = async (film) => {
-          if (film.poster || !film.imdbId) return film
+          if (!film.imdbId) return film
+          const sameAsTitle = (o) => String(o || '').trim().toLowerCase() === String(film.title || '').trim().toLowerCase()
+          const needPoster = !film.poster
+          const needOriginal = !film.originalTitle || sameAsTitle(film.originalTitle)
+          if (!needPoster && !needOriginal) return film
           const result = await tmdbFind(film.imdbId)
-          if (result?.hit?.poster_path) film.poster = `https://image.tmdb.org/t/p/w500${result.hit.poster_path}`
+          const hit = result?.hit
+          if (needPoster && hit?.poster_path) film.poster = `https://image.tmdb.org/t/p/w500${hit.poster_path}`
+          // عنوان اصلی واقعی از TMDB؛ اگه با عنوان فرق نداشت اصلاً پر نمی‌شه
+          const orig = hit?.original_title || hit?.original_name
+          if (needOriginal) film.originalTitle = orig && !sameAsTitle(orig) ? orig : ''
           return film
         }
 
@@ -1999,6 +2007,7 @@ async function handleFetch(request, env, ctx) {
           return {
             imdbId,
             title: hit.title || hit.name,
+            originalTitle: (hit.original_title || hit.original_name) && (hit.original_title || hit.original_name) !== (hit.title || hit.name) ? hit.original_title || hit.original_name : undefined,
             year: releaseDate ? parseInt(releaseDate.slice(0, 4), 10) : undefined,
             synopsis: hit.overview || undefined,
             poster: hit.poster_path ? `https://image.tmdb.org/t/p/w500${hit.poster_path}` : undefined,

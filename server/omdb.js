@@ -100,7 +100,9 @@ export async function enrichFilm(baseFilm, key, onApiCall, opts = {}) {
     const year = parseInt(data.Year, 10)
     if (!Number.isNaN(year)) fillMissing(out, 'year', year)
   }
-  if (data.Title && data.Title !== 'N/A') fillMissing(out, 'originalTitle', data.Title)
+  // OMDb فقط عنوان رایج/انگلیسی رو می‌ده، نه عنوان اصلی — قبلاً همین رو تو originalTitle می‌ریختیم
+  // و عنوان اصلی واقعی (مثلاً ایتالیایی) بعد از Fetch با عنوان انگلیسی عوض می‌شد.
+  // عنوان اصلی از TMDB (original_title) می‌آد.
   if (data.Title && data.Title !== 'N/A') fillMissing(out, 'title', data.Title)
   if (data.Director && data.Director !== 'N/A') fillMissing(out, 'director', data.Director)
   if (data.Writer && data.Writer !== 'N/A') {
