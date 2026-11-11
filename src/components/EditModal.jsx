@@ -223,6 +223,8 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
         // می‌کنیم، وگرنه همون چیزی که از قبل توی بخش (فیلم/سریال) انتخاب شده می‌مونه.
         setForm((prev) => ({
           ...fetched,
+          // عنوان اصلی‌ای که از قبل (مثلاً از پیشنهاد عنوان) پر شده، با خالیِ لینک پاک نشه
+          originalTitle: fetched.originalTitle || prev.originalTitle,
           closet: prev.closet,
           shelf: prev.shelf,
           row: prev.row,
