@@ -464,6 +464,12 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
       setConfirmingDuplicate(true)
       return
     }
+    // تأیید تکراری: رکورد دوم نمی‌سازیم، تعداد نسخه‌ی همون فیلم یکی زیاد می‌شه
+    // (اگه این یکی Criterion باشه، یه Criterion هم به شمارشش اضافه می‌شه)
+    if (sameFormatDuplicate && confirmingDuplicate && onAddCopy) {
+      onAddCopy(sameFormatDuplicate, { criterion: !!form.criterion })
+      return
+    }
     const patch = {
       title: form.title,
       originalTitle: form.originalTitle,
@@ -629,7 +635,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
               <span className="edit-duplicate-confirm">
                 ⚠️ You already own this {form.mediaType === 'digital' ? 'Digital' : 'Blu-ray'}.
                 {onAddCopy && (
-                  <button type="button" className="btn btn-ghost" onClick={() => onAddCopy(sameFormatDuplicate)}>
+                  <button type="button" className="btn btn-ghost" onClick={() => onAddCopy(sameFormatDuplicate, { criterion: !!form.criterion })}>
                     +1 copy instead
                   </button>
                 )}
@@ -640,7 +646,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             )}
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button className="btn btn-primary" onClick={save}>
-              <IconSave width={14} height={14} /> {!isNew ? 'Save' : confirmingDuplicate && sameFormatDuplicate ? 'Add anyway' : 'Add Film'}
+              <IconSave width={14} height={14} /> {!isNew ? 'Save' : confirmingDuplicate && sameFormatDuplicate ? (onAddCopy ? 'Add as +1 copy' : 'Add anyway') : 'Add Film'}
             </button>
           </div>
         </div>
@@ -724,7 +730,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                         <button
                           type="button"
                           className="btn btn-ghost"
-                          onClick={() => onAddCopy(f)}
+                          onClick={() => onAddCopy(f, { criterion: !!form.criterion })}
                           title={`Raise copies owned from ${f.copies || 1} to ${(f.copies || 1) + 1} instead of adding a duplicate`}
                         >
                           Copies +1
