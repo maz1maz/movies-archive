@@ -37,7 +37,7 @@ const DECADES_CACHE_TTL = 3600
 // ویرایش/enrich/حذف دیگه کششون رو پاک نمی‌کنه — قبلاً هر PATCH و enrich یه
 // اسکن کامل جدول (۳۷هزار ردیف) برای هر دو بعد از خودش می‌ساخت. بدترین حالت:
 // تا ۱ ساعت تأخیر تو دیده‌شدن یه ژانر/دهه‌ی تازه بعد از ویرایش (TTL).
-async function invalidateFilmsCache(env, resetMeta = false) {
+async function invalidateFilmsCache(env, resetMeta = false, resetCounts = true) {
   if (!env.BACKUPS) return
   try {
     const list = await env.BACKUPS.list({ prefix: FILMS_CACHE_KEY })
@@ -46,7 +46,9 @@ async function invalidateFilmsCache(env, resetMeta = false) {
       await env.BACKUPS.delete(DECADES_CACHE_KEY)
       await env.BACKUPS.delete('genrescache:v1')
     }
-    await env.BACKUPS.delete('filmscounts:v1')
+    // شمارنده‌ی صفحه‌ی اصلی (GROUP BY کل جدول) فقط وقتی عوض می‌شه که فیلم اضافه/حذف/ایمپورت بشه؛
+    // ویرایش (PATCH) معمولاً تعداد دسته‌ها رو عوض نمی‌کنه — TTL ۱۵ دقیقه‌ای کافیه
+    if (resetCounts) await env.BACKUPS.delete('filmscounts:v1')
     await env.BACKUPS.delete('shelvescache:v1')
     await env.BACKUPS.delete('closetscache:v1')
     await env.BACKUPS.delete('acclaimedcache:v1')
@@ -89,7 +91,7 @@ export default {
         (pathname.startsWith('/api/films') || pathname === '/api/import' || pathname.startsWith('/api/shelf/'))
       ) {
         // افزودن فیلم: ژانر/دهه‌ی فیلم تازه تو کش ادغام می‌شه (بدون اسکن)؛ فقط ایمپورت کامل پاکشون می‌کنه
-        ctx.waitUntil(invalidateFilmsCache(env, pathname === '/api/import'))
+        ctx.waitUntil(invalidateFilmsCache(env, pathname === '/api/import', request.method !== 'PATCH'))
         if (request.method === 'POST' && pathname === '/api/films') {
           ctx.waitUntil(response.clone().json().then((film) => mergeFilmIntoMetaCaches(env, film)).catch(() => {}))
         }
