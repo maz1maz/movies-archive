@@ -1574,12 +1574,19 @@ export default function App() {
             setForceFilmOverlay(true)
             setSelected(existingFilm)
           }}
-          onAddCopy={async (existingFilm) => {
+          onAddCopy={async (existingFilm, { criterion = false } = {}) => {
             const copies = (existingFilm.copies || 1) + 1
-            if (!(await handleSaveFilm(existingFilm.id, { copies }))) return
+            const patch = { copies }
+            // نسخه‌ی تازه Criterion بود: تعداد Criterionها هم یکی زیاد می‌شه
+            // (فیلم قبلاً Criterion نبود → ۱؛ بود → قبلی + ۱)
+            if (criterion) {
+              patch.criterion = true
+              patch.criterionCopies = (existingFilm.criterion ? existingFilm.criterionCopies || 1 : 0) + 1
+            }
+            if (!(await handleSaveFilm(existingFilm.id, patch))) return
             setAdding(false)
             loadAllFilmsUnfiltered()
-            showToast(`“${existingFilm.title}” — now ${copies} copies owned`)
+            showToast(`“${existingFilm.title}” — now ${copies} copies owned${criterion ? ` (${patch.criterionCopies} Criterion)` : ''}`)
           }}
           onClose={() => setAdding(false)}
           onSave={handleAddFilm}
