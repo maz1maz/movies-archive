@@ -2265,18 +2265,24 @@ async function handleFetch(request, env, ctx) {
           // چک کن کدوم فیلم‌های مجموعه از قبل تو آرشیو هستن (بر اساس عنوان+سال،
           // نادیده گرفتن "The" مثل بقیه‌ی جاهای اپ؛ فاصله‌های تکراری/کوتیشن‌های
           // فرقی هم نادیده گرفته می‌شن تا یه ویرایش جزئی عنوان match رو خراب نکنه)
+          // نرمال‌سازی قوی: حرکات/لهجه‌ها و هر چیزی جز حرف/عدد (!، ؟، ?، :، خط تیره، کوتیشن) حذف می‌شه —
+          // وگرنه «Diabolik: Ginko Attacks!» (TMDB) با «Diabolik: Ginko Attacks» (آرشیو) یکی حساب نمی‌شد
+          // و فیلمی که تو آرشیو بود «Missing» می‌خورد.
           const normTitle = (t) =>
             (t || '')
               .toLowerCase()
-              .replace(/[\u2018\u2019]/g, "'")
-              .replace(/[\u201c\u201d]/g, '"')
-              .replace(/\s+/g, ' ')
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9\u0600-\u06ff]+/g, ' ')
               .replace(/^the\s+/, '')
               .trim()
-          const allTitlesRes = await db.prepare('SELECT id, title, year FROM films').all()
+          const allTitlesRes = await db.prepare('SELECT id, title, originalTitle, year FROM films').all()
           const archiveIndex = new Map()
           for (const f of allTitlesRes.results || []) {
-            archiveIndex.set(`${normTitle(f.title)}::${f.year || ''}`, f.id)
+            for (const t of [f.title, f.originalTitle]) {
+              const k = `${normTitle(t)}::${f.year || ''}`
+              if (normTitle(t) && !archiveIndex.has(k)) archiveIndex.set(k, f.id)
+            }
           }
           const parts = details.parts.map((p) => {
             const archiveFilmId = archiveIndex.get(`${normTitle(p.title)}::${p.year || ''}`) || null
