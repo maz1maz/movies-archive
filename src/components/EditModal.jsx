@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { compareTitles } from '../utils/shelfOrder.js'
+import { compareTitles, shelfSlotOf, slotLabel } from '../utils/shelfOrder.js'
 import { IconClose, IconSave, IconSearch, IconLink } from './icons.jsx'
 import StarRating from './StarRating.jsx'
 import { normalizeDriveValue } from '../utils/driveDisplay.js'
@@ -172,6 +172,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   const [linkConflicts, setLinkConflicts] = useState(null) // [{key, label, oldVal, newVal, checked}] | null
   const [duplicateWarning, setDuplicateWarning] = useState(null) // [archive film] | null
   const [confirmingDuplicate, setConfirmingDuplicate] = useState(false)
+  const [confirmingMove, setConfirmingMove] = useState(false)
   const linkInputRef = useRef(null)
   // پیشنهاد زنده‌ی عنوان (فقط برای فیلم جدید) — موقع تایپ عنوان از TMDB سرچ می‌کنیم
   const [titleSuggestions, setTitleSuggestions] = useState([])
@@ -457,6 +458,19 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
     setForm((previous) => ({ ...previous, [key]: event.target.value }))
   }
 
+  // تغییر عنوان فیلمِ فیزیکی، جایگاهش تو قفسه (ترتیب الفبایی) رو عوض می‌کنه — باید دیسک رو هم
+  // جابه‌جا کرد. قبل از ذخیره هشدار می‌دیم.
+  const slotMove = (() => {
+    if (isNew || film.mediaType === 'digital' || !film.closet || !Array.isArray(existingFilms)) return null
+    if (!form.title || form.title === film.title) return null
+    const before = shelfSlotOf(existingFilms, film)
+    const renamed = { ...film, title: form.title }
+    const after = shelfSlotOf(existingFilms.map((f) => (f.id === film.id ? renamed : f)), renamed)
+    if (!before || !after || before.start === after.start) return null
+    return { from: slotLabel(before), to: slotLabel(after), where: `C${film.closet} · R${film.row || '–'} · S${film.shelf || '–'}` }
+  })()
+  useEffect(() => setConfirmingMove(false), [form.title])
+
   const sameFormatOf = (f) => (f.mediaType === 'digital' ? 'digital' : 'physical') === form.mediaType
   // نسخه‌ی هم‌فرمتی که از قبل تو آرشیوه — افزودن دوباره‌ش تکراری می‌سازه
   const sameFormatDuplicate = isNew && duplicateWarning ? duplicateWarning.find(sameFormatOf) : null
@@ -470,6 +484,10 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
     // (اگه این یکی Criterion باشه، یه Criterion هم به شمارشش اضافه می‌شه)
     if (sameFormatDuplicate && confirmingDuplicate && onAddCopy) {
       onAddCopy(sameFormatDuplicate, { criterion: !!form.criterion })
+      return
+    }
+    if (slotMove && !confirmingMove) {
+      setConfirmingMove(true)
       return
     }
     const patch = {
@@ -633,6 +651,14 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             )}
           </div>
           <div className="edit-primary-actions">
+            {confirmingMove && slotMove && (
+              <span className="edit-duplicate-confirm">
+                ⚠️ With the new title this film moves from Slot {slotMove.from} to Slot {slotMove.to} in {slotMove.where} — move the physical disc too (other films shift by one).
+                <button type="button" className="btn btn-ghost" onClick={() => setConfirmingMove(false)}>
+                  Back
+                </button>
+              </span>
+            )}
             {confirmingDuplicate && sameFormatDuplicate && (
               <span className="edit-duplicate-confirm">
                 ⚠️ You already own this {form.mediaType === 'digital' ? 'Digital' : 'Blu-ray'}.
@@ -648,7 +674,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             )}
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button className="btn btn-primary" onClick={save}>
-              <IconSave width={14} height={14} /> {!isNew ? 'Save' : confirmingDuplicate && sameFormatDuplicate ? (onAddCopy ? 'Add as +1 copy' : 'Add anyway') : 'Add Film'}
+              <IconSave width={14} height={14} /> {!isNew ? (confirmingMove && slotMove ? 'Save anyway' : 'Save') : confirmingDuplicate && sameFormatDuplicate ? (onAddCopy ? 'Add as +1 copy' : 'Add anyway') : 'Add Film'}
             </button>
           </div>
         </div>

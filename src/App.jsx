@@ -1135,7 +1135,8 @@ export default function App() {
             <EditModal
               film={editing}
               onClose={() => setEditing(null)}
-              onSave={(patch) => handleSaveFilm(editing.id, patch)}
+              existingFilms={allFilmsUnfiltered}
+          onSave={(patch) => handleSaveFilm(editing.id, patch)}
               onAutofill={() => handleAutofillFilm(editing.id)}
               onDelete={handleDeleteFilm}
             />
@@ -1599,6 +1600,7 @@ export default function App() {
         <EditModal
           film={editing}
           onClose={() => setEditing(null)}
+          existingFilms={allFilmsUnfiltered}
           onSave={(patch) => handleSaveFilm(editing.id, patch)}
           onAutofill={() => handleAutofillFilm(editing.id)}
           onDelete={handleDeleteFilm}
