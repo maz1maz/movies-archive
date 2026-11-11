@@ -265,3 +265,11 @@ END;
 -- 0009: ایندکس عنوان نرمال‌شده برای syncSharedMetadataToSibling
 CREATE INDEX IF NOT EXISTS idx_films_media_titlenorm
   ON films(mediaType, LOWER(TRIM(REPLACE(title, char(8217), char(39)))));
+
+-- 0010: ایندکس مرور بخش‌ها با مرتب‌سازی الفبایی
+CREATE INDEX IF NOT EXISTS idx_films_browse_order ON films(
+  mediaType,
+  itemType,
+  (CASE WHEN SUBSTR((CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END), 1, 1) BETWEEN '0' AND '9' THEN 1 ELSE 0 END),
+  (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE
+);

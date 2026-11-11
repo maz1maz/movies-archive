@@ -970,10 +970,25 @@ async function handleFetch(request, env, ctx) {
         // جدول (۱۷هزار+ ردیف) روی D1 بود؛ الان فقط یکی.
         let totalCount = null
         let offsetNum = 0
+        // مرور ساده‌ی یه بخش (فقط mediaType+itemType، مرتب‌سازی الفبایی): با ایندکس
+        // idx_films_browse_order (migration 0010) فقط offset+limit ردیف خونده می‌شه —
+        // به شرط این‌که COUNT(*) OVER() تو همون کوئری نباشه (اون کل بخش رو می‌خونه). پس کل بخش
+        // یه بار شمرده و تو KV نگه داشته می‌شه (زیر پیشوند filmscache تا با هر نوشتن پاک بشه).
+        const plainBrowse =
+          isPaginated && mediaType && itemType && !q && !genre && !shelf && !closet && !drive && !alpha && !decade &&
+          !loaned && !criterion && !watched && !minRating && (!sort || sort === 'title_az')
+        const totalKey = plainBrowse ? `${FILMS_CACHE_KEY}:total:${mediaType}|${itemType}` : null
+        let knownTotal = null
+        if (totalKey && env.BACKUPS) {
+          try { knownTotal = await env.BACKUPS.get(totalKey, 'json') } catch {}
+          if (typeof knownTotal !== 'number') knownTotal = null
+        }
         if (isPaginated) {
           const limitNum = Math.min(Math.max(parseInt(limit, 10) || 48, 1), 500)
           offsetNum = Math.max(parseInt(offset, 10) || 0, 0)
-          sql = sql.replace('SELECT * FROM films WHERE 1=1', 'SELECT *, COUNT(*) OVER() AS __total FROM films WHERE 1=1')
+          if (knownTotal === null) {
+            sql = sql.replace('SELECT * FROM films WHERE 1=1', 'SELECT *, COUNT(*) OVER() AS __total FROM films WHERE 1=1')
+          }
           sql += ' LIMIT ? OFFSET ?'
           params.push(limitNum, offsetNum)
         }
@@ -989,11 +1004,16 @@ async function handleFetch(request, env, ctx) {
           ftsClause = null
           result = await db.prepare(sql).bind(...params).all()
         }
-        if (isPaginated) {
+        if (isPaginated && knownTotal !== null) {
+          totalCount = knownTotal
+        } else if (isPaginated) {
           const rows0 = result.results || []
           if (rows0.length) {
             totalCount = rows0[0].__total
             for (const r of rows0) delete r.__total
+            if (totalKey && env.BACKUPS) {
+              ctx.waitUntil(env.BACKUPS.put(totalKey, JSON.stringify(totalCount), { expirationTtl: FILMS_CACHE_TTL }).catch(() => {}))
+            }
           } else if (offsetNum > 0) {
             // صفحه‌ی خالی (offset بعد از آخر) — total رو جدا می‌گیریم
             const countSql = 'SELECT COUNT(*) as cnt FROM films WHERE 1=1' + sql.slice(sql.indexOf('WHERE 1=1') + 'WHERE 1=1'.length, sql.indexOf(' ORDER BY'))
