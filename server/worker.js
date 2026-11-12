@@ -10,6 +10,7 @@ import { notifyServerError, runDailyBackup, gunzipToText, gzipText, fullExportGz
 import { resolveLetterboxdPersonUrl, syncLetterboxdUserToReviews, parseLetterboxdRss, parseLetterboxdBasic, titleToLetterboxdSlug, fetchLetterboxdRating } from './lib/letterboxd.js'
 import { fetchCinemaHeadlines, fetchCinemaHeadlinesFa } from './lib/cinemaNews.js'
 import { fetchTodaysBirthdays, fetchUpcomingFromCollection, fetchTrendingTrailers, fetchGeneralUpcoming, fetchTrendingAndBoxOffice, fetchTrendingPeople, fetchBornTodayGeneral, fetchFestivalCalendar, ageFromBirthDate } from './lib/tmdbFeeds.js'
+import { rememberSession, forgetSession, looksLikeD1Failure, staleResponse } from './lib/staleFallback.js'
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, findTmdbYear, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
@@ -81,7 +82,26 @@ async function mergeFilmIntoMetaCaches(env, film) {
 
 export default {
   async fetch(request, env, ctx) {
-    const response = await handleFetch(request, env, ctx)
+    // وقتی سقف روزانه‌ی خواندن D1 پر شد (یا D1 جواب نداد)، برای /api/ به‌جای خطا، آخرین بکاپ
+    // فیلم‌ها رو برای خواندن نشون می‌دیم (server/lib/staleFallback.js)
+    const reqUrl = new URL(request.url)
+    const isApi = reqUrl.pathname.startsWith('/api/')
+    const origin = request.headers.get('Origin')
+    const staleCors = origin && origin === reqUrl.origin ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Credentials': 'true' } : {}
+    let response
+    try {
+      response = await handleFetch(request, env, ctx)
+    } catch (e) {
+      if (isApi && looksLikeD1Failure(e?.message)) return staleResponse(request, env, staleCors, json)
+      throw e
+    }
+    if (isApi && response.status >= 500) {
+      try {
+        const text = await response.clone().text()
+        if (looksLikeD1Failure(text)) return staleResponse(request, env, staleCors, json)
+      } catch {}
+    }
+    if (isApi && request.method === 'POST' && reqUrl.pathname === '/api/auth/logout') ctx.waitUntil(forgetSession(env, request))
     try {
       const { pathname } = new URL(request.url)
       if (
@@ -245,6 +265,8 @@ async function handleFetch(request, env, ctx) {
 
     // کاربر لاگین‌شده‌ی فعلی (از روی کوکی سشن) — مهمان‌ها null می‌گیرن.
     let currentUser = await getSessionUser(db, request)
+    // سشن رو تو KV هم یادداشت می‌کنیم تا وقتی D1 بلاک بود هنوز بشه لاگین‌شده فیلم‌ها رو دید
+    if (currentUser && ctx?.waitUntil) ctx.waitUntil(rememberSession(env, request, currentUser))
     // اپ تلویزیون (فقط خواندنی): کوکی cf_app با توکن سرور، بدون لاگین.
     // توکن فقط تو secret سرور و داخل اپ هست؛ سایت معمولی هیچ‌وقت این کوکی رو نداره.
     const appReadOnly =
