@@ -463,9 +463,12 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
   const slotMove = (() => {
     if (isNew || film.mediaType === 'digital' || !film.closet || !Array.isArray(existingFilms)) return null
     if (!form.title || form.title === film.title) return null
-    const before = shelfSlotOf(existingFilms, film)
+    // لیست کل آرشیو ممکنه هنوز (یا دیگه) خودِ این فیلم رو نداشته باشه (مثلاً بعد از ایمپورت،
+    // قبل از ریفرش) — بدون این، شماره‌ی جایگاه null می‌شد و هشدار اصلاً نمی‌اومد
+    const list = existingFilms.some((f) => f.id === film.id) ? existingFilms : [...existingFilms, film]
+    const before = shelfSlotOf(list, film)
     const renamed = { ...film, title: form.title }
-    const after = shelfSlotOf(existingFilms.map((f) => (f.id === film.id ? renamed : f)), renamed)
+    const after = shelfSlotOf(list.map((f) => (f.id === film.id ? renamed : f)), renamed)
     if (!before || !after || before.start === after.start) return null
     return { from: slotLabel(before), to: slotLabel(after), where: `C${film.closet} · R${film.row || '–'} · S${film.shelf || '–'}` }
   })()
