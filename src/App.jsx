@@ -70,6 +70,7 @@ export default function App() {
   const [query, setQuery] = useState('')
   const [searchIn, setSearchIn] = useState('') // '' = عنوان (پیش‌فرض)، 'people' = بازیگر/کارگردان/تهیه‌کننده
   const [genre, setGenre] = useState('')
+  const [subject, setSubject] = useState('')
   const [loanedOnly, setLoanedOnly] = useState(false)
   const [criterionOnly, setCriterionOnly] = useState(false)
   const [watched, setWatched] = useState('')
@@ -81,12 +82,13 @@ export default function App() {
   const [page, setPage] = useState(1)
 
   const filtersActive = Boolean(
-    query.trim() || searchIn || genre || decade || drive || alpha || watched || minRating || loanedOnly || criterionOnly
+    query.trim() || searchIn || genre || subject || decade || drive || alpha || watched || minRating || loanedOnly || criterionOnly
   )
   const resetFilters = () => {
     setQuery('')
     setSearchIn('')
     setGenre('')
+    setSubject('')
     setDecade('')
     setDrive('')
     setAlpha('')
@@ -119,6 +121,7 @@ export default function App() {
   const changeSection = (next) => {
     setQuery('')
     setGenre('')
+    setSubject('')
     setDecade('')
     setDrive('')
     setAlpha('')
@@ -290,6 +293,7 @@ export default function App() {
     if (query.trim()) params.set('q', query.trim())
     if (searchIn) params.set('searchIn', searchIn)
     if (genre) params.set('genre', genre)
+    if (subject) params.set('theme', subject)
     if (loanedOnly) params.set('loaned', '1')
     if (criterionOnly) params.set('criterion', '1')
     if (watched) params.set('watched', watched)
@@ -344,7 +348,7 @@ export default function App() {
   useEffect(() => {
     setPage(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, searchIn, genre, loanedOnly, criterionOnly, watched, minRating, decade, drive, sort, alpha, section])
+  }, [query, searchIn, genre, subject, loanedOnly, criterionOnly, watched, minRating, decade, drive, sort, alpha, section])
 
   // section/page قبلاً اینجا نبودن — یعنی عوض‌کردن بخش (Digital Movies و
   // غیره) اصلاً دوباره fetch نمی‌کرد، و صفحه‌بندی هم کاملاً سمت مرورگر (روی
@@ -358,7 +362,7 @@ export default function App() {
     const t = setTimeout(loadFilms, searching ? 700 : 250)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, searchIn, genre, loanedOnly, criterionOnly, watched, minRating, decade, drive, sort, alpha, section, page])
+  }, [query, searchIn, genre, subject, loanedOnly, criterionOnly, watched, minRating, decade, drive, sort, alpha, section, page])
 
   useEffect(() => {
     fetch('/api/genres')
@@ -507,6 +511,7 @@ export default function App() {
       )
       setQuery('')
       setGenre('')
+    setSubject('')
       setDecade('')
       setAlpha('')
       loadFilms()
@@ -1325,6 +1330,8 @@ export default function App() {
         setSearchIn={setSearchIn}
         genre={genre}
         setGenre={setGenre}
+        subject={subject}
+        setSubject={setSubject}
         loanedOnly={loanedOnly}
         setLoanedOnly={setLoanedOnly}
         criterionOnly={criterionOnly}

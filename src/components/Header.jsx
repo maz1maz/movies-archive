@@ -60,6 +60,8 @@ export default function Header({
   genre,
   setGenre,
   genres,
+  subject,
+  setSubject,
   loanedOnly,
   setLoanedOnly,
   criterionOnly,
@@ -116,6 +118,31 @@ export default function Header({
   const filtersWrapRef = useRef(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  // فیلتر تم (موضوع از Wikidata). فهرست فقط بار اولی که پنل فیلتر باز می‌شه
+  // گرفته می‌شه. متن تایپ‌شده فقط وقتی اعمال می‌شه که دقیقاً یکی از تم‌ها باشه،
+  // تا با هر حرف یه درخواست بی‌نتیجه به سرور نره.
+  const [themes, setThemes] = useState(null)
+  const [themeInput, setThemeInput] = useState(subject || '')
+  useEffect(() => {
+    setThemeInput(subject || '')
+  }, [subject])
+  useEffect(() => {
+    if (!filtersOpen || themes) return
+    fetch('/api/themes')
+      .then((r) => r.json())
+      .then((data) => setThemes(Array.isArray(data) ? data : []))
+      .catch(() => setThemes([]))
+  }, [filtersOpen, themes])
+  const themeLabels = themes ? new Set(themes.map((t) => t.label)) : null
+  const applyTheme = (value) => {
+    setThemeInput(value)
+    if (!value) {
+      setSubject('')
+    } else if (themeLabels?.has(value)) {
+      setSubject(value)
+      setFiltersOpen(false)
+    }
+  }
   const [azOpen, setAzOpen] = useState(false)
   const [condensed, setCondensed] = useState(false)
   const [jumpValue, setJumpValue] = useState('')
@@ -293,6 +320,28 @@ export default function Header({
                     </option>
                   ))}
                 </select>
+                <div className="theme-filter">
+                  <input
+                    className="select"
+                    list="theme-filter-options"
+                    placeholder={themes ? `Theme (${themes.length})…` : 'Theme…'}
+                    value={themeInput}
+                    onChange={(e) => applyTheme(e.target.value)}
+                    aria-label="Theme"
+                  />
+                  {themeInput && (
+                    <button type="button" className="theme-filter-clear" onClick={() => applyTheme('')} aria-label="Clear theme">
+                      ×
+                    </button>
+                  )}
+                  <datalist id="theme-filter-options">
+                    {(themes || []).slice(0, 4000).map((t) => (
+                      <option key={t.label} value={t.label}>
+                        {t.count}
+                      </option>
+                    ))}
+                  </datalist>
+                </div>
                 <select className="select" value={watched} onChange={(e) => { setWatched(e.target.value); setFiltersOpen(false) }}>
                   <option value="">All watch statuses</option>
                   <option value="0">Unwatched</option>

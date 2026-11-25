@@ -378,6 +378,17 @@ async function wikidataSparql(query) {
   return (await res.json())?.results?.bindings || []
 }
 
+// «https://fa.wikipedia.org/wiki/۱۲_مرد_خشمگین_(فیلم_۱۹۵۷)» → «۱۲ مرد خشمگین»
+export function faTitleFromWikiUrl(url) {
+  if (!url || !url.includes('/wiki/')) return null
+  try {
+    const t = decodeURIComponent(url.split('/wiki/')[1]).replace(/_/g, ' ').replace(/\s*\([^)]*\)\s*$/, '').trim()
+    return t || null
+  } catch {
+    return null
+  }
+}
+
 export async function fetchWikidataExtras(imdbId) {
   if (!/^tt\d+$/.test(imdbId || '')) return null
   const itemsQuery = `SELECT ?prop ?vLabel ?coord WHERE {
@@ -439,7 +450,10 @@ export async function fetchWikidataExtras(imdbId) {
   const budget = maxUsd(scalars, 'budget', 'budgetUnit')
   if (boxOffice) out.boxOffice = boxOffice
   if (budget) out.budget = budget
-  if (first('faTitle')) out.faTitle = first('faTitle')
+  // برچسب فارسی Wikidata نیم‌فاصله (ZWNJ) نداره («بچههای آسمان»)؛ عنوان مقاله‌ی
+  // ویکی‌پدیای فارسی درسته («بچه‌های آسمان»)، پس اول از اون استفاده می‌کنیم.
+  const faTitle = faTitleFromWikiUrl(first('faWiki')) || first('faTitle')
+  if (faTitle) out.faTitle = faTitle
   if (first('faWiki')) out.faWiki = first('faWiki')
   const links = {}
   if (first('mubi')) links.mubi = `https://mubi.com/films/${first('mubi')}`

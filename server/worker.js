@@ -847,7 +847,7 @@ async function handleFetch(request, env, ctx) {
 
       // ---- GET /api/films ----
       if (method === 'GET' && pathname === '/api/films') {
-        const { q, genre, shelf, closet, sort, alpha, decade, drive, loaned, watched, minRating, mediaType, itemType, limit, offset, criterion } = Object.fromEntries(url.searchParams)
+        const { q, genre, theme, shelf, closet, sort, alpha, decade, drive, loaned, watched, minRating, mediaType, itemType, limit, offset, criterion } = Object.fromEntries(url.searchParams)
         // قبلاً فقط حالت «بدون هیچ فیلتری» (یا فقط mediaType/itemType/sort)
         // کش می‌شد — یعنی genre، decade، shelf/closet، alpha (A-Z)، minRating،
         // loaned/watched، q (سرچ) و pagination (limit/offset) هر کدوم روی هر
@@ -915,6 +915,8 @@ async function handleFetch(request, env, ctx) {
           )
         }
         if (genre) { sql += ' AND genre LIKE ?'; params.push(`%"${genre}"%`) }
+        // تم = موضوع اصلی از Wikidata (P921)، تطابق دقیق روی آرایه‌ی wikidata.subjects
+        if (theme) { sql += " AND EXISTS (SELECT 1 FROM json_each(films.wikidata, '$.subjects') WHERE value = ?)"; params.push(theme) }
         const searchIn = url.searchParams.get('searchIn') // 'people' یعنی صریحاً بازیگر/کارگردان/تهیه‌کننده هم جست‌وجو بشه
         if (q) {
           const ql = q.toLowerCase()
@@ -1793,6 +1795,31 @@ async function handleFetch(request, env, ctx) {
           try { await env.BACKUPS.put(GENRES_CACHE_KEY, JSON.stringify(genres), { expirationTtl: 3600 }) } catch {}
         }
         return json(genres, 200, corsHeaders)
+      }
+
+      // ---- GET /api/themes — فهرست تم‌ها (Wikidata P921) با تعداد عنوان ----
+      // بلوری و دیجیتالِ یه فیلم یکی حساب می‌شن (COUNT DISTINCT imdbId).
+      if (method === 'GET' && pathname === '/api/themes') {
+        const THEMES_CACHE_KEY = 'themescache:v1'
+        if (env.BACKUPS) {
+          try {
+            const cached = await env.BACKUPS.get(THEMES_CACHE_KEY, 'json')
+            if (cached) return json(cached, 200, corsHeaders)
+          } catch {}
+        }
+        const result = await db
+          .prepare(
+            `SELECT j.value AS label, COUNT(DISTINCT f.imdbId) AS count
+             FROM films f, json_each(f.wikidata, '$.subjects') j
+             WHERE f.wikidata IS NOT NULL AND f.wikidata != '{}'
+             GROUP BY j.value ORDER BY count DESC, label`
+          )
+          .all()
+        const themes = (result.results || []).map((r) => ({ label: r.label, count: r.count }))
+        if (env.BACKUPS) {
+          try { await env.BACKUPS.put(THEMES_CACHE_KEY, JSON.stringify(themes), { expirationTtl: 21600 }) } catch {}
+        }
+        return json(themes, 200, corsHeaders)
       }
 
       // ---- GET /api/shelves ----
