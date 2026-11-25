@@ -56,6 +56,16 @@ async function invalidateFilmsCache(env, resetMeta = false, resetCounts = true) 
   } catch {}
 }
 
+// داده‌های Wikidata (مختصات لوکیشن + محل داستان، دوره، تم، گیشه، عنوان فارسی)
+// برای فیلم تازه یا فیلمی که imdbId‌ش عوض شده، بعد از جواب دادن به کاربر.
+// بعدش کش لیست فیلم‌ها پاک می‌شه تا داده‌ی تازه دیده بشه.
+async function refreshWikidataInBackground(db, env, film) {
+  try {
+    await Promise.all([resolveShootingCoords(db, film), resolveWikidataExtras(db, film)])
+    await invalidateFilmsCache(env, false, false)
+  } catch {}
+}
+
 // فیلم تازه‌اضافه‌شده: به‌جای پاک‌کردن کش ژانر/دهه (که هر بار یه اسکن کامل جدوله، ۲۷ بار تو
 // یه صبح که چند فیلم اضافه می‌شد)، ژانر و دهه‌ی همین فیلم رو مستقیم تو کش ادغام می‌کنیم.
 async function mergeFilmIntoMetaCaches(env, film) {
@@ -1219,6 +1229,7 @@ async function handleFetch(request, env, ctx) {
           await syncSharedMetadataToSibling(db, film)
         } catch {}
         await logAudit({ filmId: film.id, filmTitle: film.title, action: 'create' })
+        if (film.imdbId) ctx.waitUntil(refreshWikidataInBackground(db, env, film))
         return json(film, 201, corsHeaders)
       }
 
@@ -1293,6 +1304,13 @@ async function handleFetch(request, env, ctx) {
         if ('imdbId' in changed || 'poster' in changed) {
           try {
             await db.prepare("DELETE FROM cinema_news_cache WHERE key = ?").bind(`posters:${updated.id}`).run()
+          } catch {}
+        }
+        // فیلم دیگه‌ای شد (imdbId عوض شد): داده‌ی Wikidata قبلی مال فیلم قبلیه
+        if ('imdbId' in changed && updated.imdbId) {
+          try {
+            await db.prepare('UPDATE films SET wikidata = NULL, shootingCoords = NULL, shootingLocation = NULL WHERE id = ?').bind(updated.id).run()
+            ctx.waitUntil(refreshWikidataInBackground(db, env, { ...updated, shootingLocation: null }))
           } catch {}
         }
         return json(parseFilmRow(updated), 200, corsHeaders)
