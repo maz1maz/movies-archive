@@ -321,7 +321,8 @@ export async function resolveShootingLocation(db, env, film) {
 // shootingCoords=NULL یعنی چک‌نشده، '[]' یعنی چک‌شده بدون مختصات.
 // متن لوکیشن (shootingLocation) هم همین‌جا پر می‌شه اگه خالی بود.
 export async function resolveShootingCoords(db, film) {
-  if (!film.imdbId) return null
+  // فقط شناسه‌ی معتبر؛ مقدار خام مستقیم توی متن کوئری SPARQL می‌ره
+  if (!/^tt\d+$/.test(film.imdbId || '')) return null
   try {
     const headers = {
       'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive; personal, single-user film archive app)',
