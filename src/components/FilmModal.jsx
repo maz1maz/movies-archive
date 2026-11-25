@@ -598,6 +598,11 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
     return seen.size
   }
 
+  // نامزدی‌های Wikidata (P1411) شامل رشته‌هایی هم هست که برنده شده؛ اونا تو AWARDS
+  // میان، پس اینجا حذف می‌شن تا تکراری نباشن
+  const wonAwards = new Set((festivalAwards || []).map((a) => String(a.award || '').toLowerCase()))
+  const nominationsOnly = (wikidata?.nominations || []).filter((n) => !wonAwards.has(n.toLowerCase()))
+
   const fullCrew = [
     { label: 'Director', value: film.director },
     { label: 'Writer', value: film.screenwriter },
@@ -609,8 +614,10 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
     { label: 'Set in', value: wikidata?.setIn?.map((x) => x.label).join(', ') },
     { label: 'Period', value: wikidata?.periods?.join(', ') },
     { label: 'Color', value: wikidata?.color && wikidata.color !== 'color' ? wikidata.color : null },
-    { label: 'Budget', value: formatUsd(wikidata?.budget) },
-    { label: 'Box office', value: formatUsd(wikidata?.boxOffice) },
+    // بودجه/فروش Wikidata فقط وقتی که بخش جزئیات (TMDB/OMDb) خودش عددی نداره؛
+    // وگرنه دو عدد متفاوت برای یه فیلم نشون داده می‌شد
+    { label: 'Budget', value: film.budget ? null : formatUsd(wikidata?.budget) },
+    { label: 'Box office', value: film.boxOffice || film.revenue ? null : formatUsd(wikidata?.boxOffice) },
     { label: 'Edition', value: film.editionType },
     { label: 'Runtime', value: film.runtime ? `${film.runtime} mins (${runtimeText})` : null },
   ].filter((item) => item.value)
@@ -1013,11 +1020,11 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
               </div>
             )}
 
-            {wikidata?.nominations?.length > 0 && (
+            {nominationsOnly.length > 0 && (
               <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
-                <div className="cine-section-label">NOMINATIONS ({wikidata.nominations.length})</div>
+                <div className="cine-section-label">NOMINATIONS ({nominationsOnly.length})</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4, maxHeight: 200, overflowY: 'auto' }}>
-                  {wikidata.nominations.map((n) => (
+                  {nominationsOnly.map((n) => (
                     <p key={n} style={{ margin: 0, fontSize: 13.5 }}>
                       {n.startsWith('Academy Award') ? '🏆 ' : '• '}
                       {n}
