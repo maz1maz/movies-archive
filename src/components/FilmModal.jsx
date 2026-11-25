@@ -943,6 +943,26 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                 </a>
               )}
 
+              {/* لینک‌های Rotten Tomatoes / Metacritic / MUBI (از Wikidata) کنار امتیازها؛
+                  اگه امتیازشون (از OMDb) ثبت شده، عددشون هم نشون داده می‌شه */}
+              {(() => {
+                const links = wikidata?.links || {}
+                const rt = film.rottenTomatoes && String(film.rottenTomatoes).trim()
+                const mc = film.metascore != null && String(film.metascore).trim() !== '' ? Number(film.metascore) : null
+                const mcTone = mc == null ? '' : mc >= 61 ? ' good' : mc >= 40 ? ' mixed' : ' bad'
+                const items = [
+                  links.rottenTomatoes && { key: 'rt', href: links.rottenTomatoes, name: 'Rotten Tomatoes', short: 'RT', value: rt, title: 'Rotten Tomatoes' },
+                  links.metacritic && { key: `mc${mcTone}`, href: links.metacritic, name: 'Metacritic', short: 'MC', value: mc != null && !Number.isNaN(mc) ? String(mc) : null, title: 'Metacritic (Metascore)' },
+                  links.mubi && { key: 'mubi', href: links.mubi, name: 'MUBI', short: 'MUBI', value: null, title: 'MUBI' },
+                ].filter(Boolean)
+                return items.map((it) => (
+                  <a key={it.key} href={it.href} target="_blank" rel="noopener noreferrer" className={`ext-score-badge ${it.key}`} title={it.title}>
+                    <span className="ext-score-name">{it.value ? it.short : it.name}</span>
+                    {it.value && <span className="ext-score-val">{it.value}</span>}
+                  </a>
+                ))
+              })()}
+
               {(film.myRating > 0 || onRateFilm) && (
                 <div className="my-rating-box" title="My rating">
                   <span className="my-rating-label">MY RATING</span>
@@ -998,13 +1018,6 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
               </div>
             )}
 
-            {wikidata?.links && (
-              <div className="cine-wd-links">
-                {wikidata.links.mubi && <a href={wikidata.links.mubi} target="_blank" rel="noopener noreferrer">MUBI</a>}
-                {wikidata.links.rottenTomatoes && <a href={wikidata.links.rottenTomatoes} target="_blank" rel="noopener noreferrer">Rotten Tomatoes</a>}
-                {wikidata.links.metacritic && <a href={wikidata.links.metacritic} target="_blank" rel="noopener noreferrer">Metacritic</a>}
-              </div>
-            )}
 
             {festivalAwards.length > 0 && (
               <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
