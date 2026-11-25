@@ -966,7 +966,6 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                   <div className="imdb-badge-top">
                     <span className="imdb-pill">IMDb</span>
                     <span className="imdb-score-black">{film.rating.toFixed(1)}</span>
-                    <span className="imdb-denom">/ 10</span>
                   </div>
                 </a>
               )}
