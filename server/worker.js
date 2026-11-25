@@ -14,7 +14,7 @@ import { rememberSession, forgetSession, looksLikeD1Failure, staleResponse } fro
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, findTmdbYear, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveWikidataExtras, fetchPlaceInfo, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, backfillOmdbScores, resolveOmdbScores, resolveMubiRating, resolveRtScore, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveWikidataExtras, fetchPlaceInfo, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, backfillOmdbScores, backfillTmdbExtras, resolveOmdbScores, resolveMubiRating, resolveRtScore, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -182,7 +182,7 @@ export default {
     if (event.cron === '*/10 * * * *') {
       // ۲۰ فیلم × حداکثر ۲ درخواست TMDB — زیر سقف subrequest هر invocation
       // نوبتی: IMDb id / بازیگر کامل / برچسب‌ها (با هم از سقف ۵۰ subrequest رد می‌شن)
-      const slot = Math.floor((Date.now() / 600000)) % 5
+      const slot = Math.floor((Date.now() / 600000)) % 6
       // هر اجرای بی‌کار کل جدول films رو اسکن می‌کرد (NOT EXISTS / LIKE / json_*)
       // و سقف ۵ میلیون row-read روزانه‌ی D1 پر می‌شد. حالا اگه کاری نمونده،
       // برای چند ساعت از اسکن بعدی صرف‌نظر می‌شه.
@@ -205,6 +205,8 @@ export default {
         // زیر سقف ۵۰ درخواست بیرونی هر اجرا بمونه؛ تدریجی و با سقف روزانه (backfillOmdbScores)؛
         // سقف که پر شد skipped برمی‌گرده و ۶ ساعت بعد دوباره سر می‌زنه
         4: ['scores', 6, 1, () => backfillOmdbScores(env.DB, env, 20), cursorIdle],
+        // جزئیات TMDB برای فیلم‌هایی که ندارن؛ ۱۰ فیلم × حداکثر ۴ درخواست TMDB
+        5: ['extras', 24, 1, () => backfillTmdbExtras(env.DB, env, 10), cursorIdle],
       }
       const [name, idleHours, activeHours, run, isIdle] = jobs[slot]
       const flagKey = `cronidle:${name}`

@@ -1471,6 +1471,40 @@ export async function backfillOmdbScores(db, env, limit = 30) {
   return { tried: rows.length, updated, scanned, wrapped }
 }
 
+// پر کردن تدریجی جزئیات TMDB (زبان، تاریخ اکران، شرکت‌های سازنده، بودجه، شعار، ...)
+// برای فیلم‌هایی که هیچ‌وقت نگرفتن (تاریخ اکران یا شرکت‌های سازنده خالی). فقط فیلدهای خالی پر می‌شن
+// (applyTmdbExtras) و نسخه‌ی دیگرِ همون فیلم هم هم‌گام می‌شه. هر فیلم یه بار (tmdbx:<id>).
+export async function backfillTmdbExtras(db, env, limit = 10) {
+  if (!env.TMDB_API_KEY) return { skipped: 'no key' }
+  const { rows, scanned, wrapped } = await findPendingByCursor(db, {
+    job: 'extras',
+    columns: 'id',
+    where: "imdbId LIKE 'tt%' AND (releaseDate IS NULL OR releaseDate = '' OR productionCompanies IS NULL OR productionCompanies IN ('', '[]'))",
+    marker: 'tmdbx:',
+    limit,
+  })
+  let filled = 0
+  for (const { id } of rows) {
+    try {
+      const row = await db.prepare('SELECT * FROM films WHERE id = ?').bind(id).first()
+      if (!row) continue
+      const film = parseFilmRow(row)
+      const { extras } = await fetchTmdbExtras(film.imdbId, film.itemType, env)
+      if (extras) {
+        const before = JSON.stringify(film)
+        applyTmdbExtras(film, extras)
+        if (JSON.stringify(film) !== before) {
+          await updateFilm(db, film)
+          await syncSharedMetadataToSibling(db, film).catch(() => {})
+          filled++
+        }
+      }
+      await db.prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))").bind(`tmdbx:${id}`).run()
+    } catch {}
+  }
+  return { tried: rows.length, filled, scanned, wrapped }
+}
+
 export async function backfillFilmTags(db, env, limit = 20) {
   if (!env.TMDB_API_KEY) return { skipped: 'no key' }
   const { rows: results, scanned, wrapped } = await findPendingByCursor(db, {

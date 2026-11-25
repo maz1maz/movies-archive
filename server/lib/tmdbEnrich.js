@@ -117,6 +117,7 @@ export function applyTmdbExtras(film, extras) {
     film.spokenLanguages = JSON.stringify(extras.spokenLanguages)
   }
   if (!film.status && extras.status) film.status = extras.status
+  if (!film.releaseDate && extras.releaseDate) film.releaseDate = extras.releaseDate
   if (film.popularity == null && extras.popularity != null) film.popularity = extras.popularity
 }
 
@@ -171,6 +172,8 @@ export async function fetchTmdbExtras(imdbId, itemType, env) {
       : undefined,
     status: details.status || undefined,
     popularity: typeof details.popularity === 'number' ? details.popularity : undefined,
+    // تاریخ اکران (فیلم) یا اولین پخش (سریال)، به فرمت YYYY-MM-DD
+    releaseDate: details.release_date || details.first_air_date || undefined,
   }
   return { extras, debug: `ok, tmdbId=${hit.id}, kind=${kind}` }
 }
