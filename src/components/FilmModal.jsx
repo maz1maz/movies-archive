@@ -531,21 +531,6 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
     return h > 0 ? `${h}h ${m}m` : `${m}m`
   }
 
-  const formatVotesK = (votes) => {
-    if (!votes) return null
-    const clean = String(votes).replace(/,/g, '').trim()
-    const num = parseInt(clean, 10)
-    if (isNaN(num)) return votes
-    if (num >= 1000000) {
-      const m = (num / 1000000).toFixed(1)
-      return (m.endsWith('.0') ? m.slice(0, -2) : m) + 'M'
-    }
-    if (num >= 1000) {
-      return Math.round(num / 1000) + 'K'
-    }
-    return String(num)
-  }
-
   const castList = fullCast || (Array.isArray(film.cast) ? film.cast : [])
   const displayedCast = castList
 
@@ -932,9 +917,6 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                     <span className="letterboxd-tag-label">Letterboxd</span>
                     <span className="letterboxd-tag-val">{letterboxdRating.toFixed(1)}</span>
                   </div>
-                  {formatVotesK(letterboxdVotes) && (
-                    <div className="letterboxd-badge-votes">{formatVotesK(letterboxdVotes)} ratings</div>
-                  )}
                 </a>
               )}
 
