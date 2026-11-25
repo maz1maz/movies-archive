@@ -12,6 +12,28 @@ const worldGeo = feature(worldTopo, worldTopo.objects.countries)
 const projection = geoNaturalEarth1().fitSize([WIDTH, HEIGHT], worldGeo)
 const pathGenerator = geoPath(projection)
 
+// بلوری و دیجیتالِ یه فیلم یک بار شمرده بشه
+const sameFilm = (a, b) => (a.imdbId && a.imdbId === b.imdbId) || a.id === b.id
+
+// نقطه‌ی هر مکان؛ فیلم‌های هم‌مکان زیر یک نقطه جمع می‌شن. دو منبع از Wikidata:
+// مکان فیلم‌برداری (P915 → shootingCoords) و محل داستان (P840 → wikidata.setIn)،
+// هر دو با مختصات P625؛ مکانِ بی‌مختصات نمایش داده نمی‌شه.
+function buildPlaces(films, pick) {
+  const map = new Map()
+  for (const film of films) {
+    const list = pick(film)
+    if (!Array.isArray(list)) continue
+    for (const c of list) {
+      if (typeof c.lat !== 'number' || typeof c.lon !== 'number') continue
+      const key = `${c.lat.toFixed(2)},${c.lon.toFixed(2)}`
+      const entry = map.get(key) || { key, label: c.label, lat: c.lat, lon: c.lon, films: [] }
+      if (!entry.films.some((f) => sameFilm(f, film))) entry.films.push(film)
+      map.set(key, entry)
+    }
+  }
+  return map
+}
+
 export default function CountriesMapPanel({ films, onOpenFilm, onFilmsChanged }) {
   const [hovered, setHovered] = useState(null)
   const [selected, setSelected] = useState(null) // alpha2 در حال نمایش جزئیات
@@ -22,22 +44,27 @@ export default function CountriesMapPanel({ films, onOpenFilm, onFilmsChanged })
   // نقطه‌ی هر مکان؛ فیلم‌های هم‌مکان زیر یک نقطه جمع می‌شن. دو منبع از Wikidata:
   // locations = مکان فیلم‌برداری (P915)، setin = محل داستان (P840). هر دو با
   // مختصات P625؛ پوشش ناقصه و مکانِ بی‌مختصات نمایش داده نمی‌شه.
+  const filmedPlaces = useMemo(() => buildPlaces(films, (f) => f.shootingCoords), [films])
+  const setInPlaces = useMemo(() => buildPlaces(films, (f) => f.wikidata?.setIn), [films])
   const locations = useMemo(() => {
-    const map = new Map()
-    for (const film of films) {
-      const list = mode === 'setin' ? film.wikidata?.setIn : film.shootingCoords
-      if (!Array.isArray(list)) continue
-      for (const c of list) {
-        if (typeof c.lat !== 'number' || typeof c.lon !== 'number') continue
-        const key = `${c.lat.toFixed(2)},${c.lon.toFixed(2)}`
-        const entry = map.get(key) || { key, label: c.label, lat: c.lat, lon: c.lon, films: [] }
-        // بلوری و دیجیتالِ یه فیلم یک بار نشون داده بشه
-        if (!entry.films.some((f) => (f.imdbId && f.imdbId === film.imdbId) || f.id === film.id)) entry.films.push(film)
-        map.set(key, entry)
-      }
-    }
+    const map = mode === 'setin' ? setInPlaces : filmedPlaces
     return [...map.values()].sort((a, b) => b.films.length - a.films.length)
-  }, [films, mode])
+  }, [mode, filmedPlaces, setInPlaces])
+
+  // با کلیک روی یه نقطه، هر دو فهرست همون مکان کنار هم: «داستانش اینجاست»
+  // و «اینجا فیلم‌برداری شده». تطبیق با مختصات گردشده یا اسم یکسان.
+  const pinLists = useMemo(() => {
+    if (!pin) return null
+    const collect = (map) => {
+      const out = []
+      for (const entry of map.values()) {
+        if (entry.key !== pin.key && entry.label !== pin.label) continue
+        for (const f of entry.films) if (!out.some((x) => sameFilm(x, f))) out.push(f)
+      }
+      return out
+    }
+    return { setHere: collect(setInPlaces), filmedHere: collect(filmedPlaces) }
+  }, [pin, filmedPlaces, setInPlaces])
 
   const fillCoords = useCallback(async () => {
     setFill({ running: true, remaining: null })
@@ -190,23 +217,37 @@ export default function CountriesMapPanel({ films, onOpenFilm, onFilmsChanged })
               })}
           </svg>
         </div>
-        {mode !== 'countries' && pin && (
+        {mode !== 'countries' && pin && pinLists && (
           <>
-            <h2>{pin.label} — {pin.films.length} film{pin.films.length === 1 ? '' : 's'}</h2>
-            <div className="grid">
-              {pin.films.map((film) => (
-                <DashboardPosterCard
-                  key={film.id}
-                  title={film.title}
-                  subtitle={film.year ? String(film.year) : ''}
-                  poster={film.poster}
-                  inArchive
-                  clickable
-                  showMissingBadge={false}
-                  onClick={() => onOpenFilm(film)}
-                />
-              ))}
-            </div>
+            <h2>{pin.label}</h2>
+            {[
+              ['setHere', 'Set here'], // داستانش اینجاست
+              ['filmedHere', 'Filmed here'], // اینجا فیلم‌برداری شده
+            ].map(([key, en]) => (
+              <section key={key} className="pin-list">
+                <h3 className="pin-list-title">
+                  {en} — {pinLists[key].length}
+                </h3>
+                {pinLists[key].length === 0 ? (
+                  <p className="oscars-intro">—</p>
+                ) : (
+                  <div className="grid">
+                    {pinLists[key].map((film) => (
+                      <DashboardPosterCard
+                        key={film.id}
+                        title={film.title}
+                        subtitle={film.year ? String(film.year) : ''}
+                        poster={film.poster}
+                        inArchive
+                        clickable
+                        showMissingBadge={false}
+                        onClick={() => onOpenFilm(film)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+            ))}
           </>
         )}
         {mode !== 'countries' && locations.length === 0 && (
