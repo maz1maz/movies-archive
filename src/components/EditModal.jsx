@@ -815,8 +815,28 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
                   {form.title}
                   {form.year ? <span> ({form.year})</span> : null}
                 </div>
+                {/* کارگردان و بازیگرها جدا و با برچسب، تا قبل از افزودن معلوم باشه
+                    فیلم درست (و نه یه هم‌نام) انتخاب شده */}
+                {form.director && (
+                  <div className="add-fetched-meta">
+                    <span className="add-fetched-key">Directed by</span> <strong>{form.director}</strong>
+                  </div>
+                )}
+                {form.cast && (
+                  <div className="add-fetched-meta">
+                    <span className="add-fetched-key">Starring</span>{' '}
+                    <strong>
+                      {form.cast
+                        .split(',')
+                        .map((n) => n.trim())
+                        .filter(Boolean)
+                        .slice(0, 4)
+                        .join(', ')}
+                    </strong>
+                  </div>
+                )}
                 <div className="add-fetched-meta">
-                  {[form.director, form.runtime ? `${form.runtime} min` : null, form.country].filter(Boolean).join(' · ')}
+                  {[form.runtime ? `${form.runtime} min` : null, form.country].filter(Boolean).join(' · ')}
                 </div>
                 {form.genre && <div className="add-fetched-meta">{form.genre}</div>}
                 {form.rating !== '' && form.rating != null && <div className="add-fetched-meta">IMDb {form.rating}</div>}

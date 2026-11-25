@@ -12094,3 +12094,5 @@ a.cine-collection-poster-btn {
   .place-card-img { width: 100%; flex-basis: auto; height: 170px; }
 }
 .place-card-desc[dir="rtl"] { text-align: left; }
+.add-fetched-key { color: var(--muted); font-weight: 500; }
+.add-fetched-meta strong { color: var(--text); font-weight: 600; }
