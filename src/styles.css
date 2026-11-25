@@ -3689,6 +3689,8 @@ body.light .header {
   color: var(--text);
   text-align: right;
   font-weight: 500;
+  min-width: 0;
+  padding-left: 12px;
 }
 .crew-val .clickable-person-text {
   cursor: pointer;
@@ -6613,10 +6615,19 @@ body.light .folder-back {
   .modal-cine:not(.cine-panel) .cine-actor-character {
     font-size: 12px;
   }
+  /* دو ستون هم‌عرض: برچسب راست‌چین، مقدار چپ‌چین؛ مقدار چندخطی هم زیر خودش می‌شکنه */
   .modal-cine:not(.cine-panel) .cine-crew-row {
-    justify-content: center;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: baseline;
     gap: 10px;
     font-size: 13.5px;
+  }
+  .modal-cine:not(.cine-panel) .crew-key {
+    text-align: right;
+  }
+  .modal-cine:not(.cine-panel) .crew-val {
+    text-align: left;
   }
 }
 .cine-collection-grid {

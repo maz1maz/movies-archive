@@ -624,14 +624,17 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
             <p className="cine-original-title-line">{film.originalTitle}</p>
           )}
           {wikidata?.faTitle && wikidata.faTitle !== film.title && (
-            <p className="cine-original-title-line cine-fa-title" dir="rtl">
-              {wikidata.faWiki ? (
-                <a href={wikidata.faWiki} target="_blank" rel="noopener noreferrer" title="ویکی‌پدیای فارسی">
-                  {wikidata.faTitle}
-                </a>
-              ) : (
-                wikidata.faTitle
-              )}
+            // زیر عنوان اصلی/اورجینال، هم‌تراز با اون‌ها (چپ)؛ فقط خود متن راست‌به‌چپه
+            <p className="cine-original-title-line cine-fa-title">
+              <bdi dir="rtl">
+                {wikidata.faWiki ? (
+                  <a href={wikidata.faWiki} target="_blank" rel="noopener noreferrer" title="ویکی‌پدیای فارسی">
+                    {wikidata.faTitle}
+                  </a>
+                ) : (
+                  wikidata.faTitle
+                )}
+              </bdi>
             </p>
           )}
           {metaSubParts.length > 0 && (
