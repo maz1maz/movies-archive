@@ -14,7 +14,7 @@ import { rememberSession, forgetSession, looksLikeD1Failure, staleResponse } fro
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, findTmdbYear, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveWikidataExtras, fetchPlaceInfo, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveWikidataExtras, fetchPlaceInfo, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, backfillOmdbScores, resolveOmdbScores, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -179,7 +179,7 @@ export default {
     if (event.cron === '*/10 * * * *') {
       // ۲۰ فیلم × حداکثر ۲ درخواست TMDB — زیر سقف subrequest هر invocation
       // نوبتی: IMDb id / بازیگر کامل / برچسب‌ها (با هم از سقف ۵۰ subrequest رد می‌شن)
-      const slot = Math.floor((Date.now() / 600000)) % 4
+      const slot = Math.floor((Date.now() / 600000)) % 5
       // هر اجرای بی‌کار کل جدول films رو اسکن می‌کرد (NOT EXISTS / LIKE / json_*)
       // و سقف ۵ میلیون row-read روزانه‌ی D1 پر می‌شد. حالا اگه کاری نمونده،
       // برای چند ساعت از اسکن بعدی صرف‌نظر می‌شه.
@@ -197,6 +197,9 @@ export default {
         1: ['cast', 24, 1, () => backfillFullCast(env.DB, env, 18), cursorIdle],
         // imdb با ایندکس جزئی migration 0013 دیگه کل جدول رو نمی‌خونه
         0: ['imdb', 12, 8, () => backfillImdbIds(env.DB, env, 20), idleCheck],
+        // امتیاز RT/Metascore از OMDb، تدریجی و با سقف روزانه (backfillOmdbScores)؛
+        // سقف که پر شد skipped برمی‌گرده و ۶ ساعت بعد دوباره سر می‌زنه
+        4: ['scores', 6, 1, () => backfillOmdbScores(env.DB, env, 30), cursorIdle],
       }
       const [name, idleHours, activeHours, run, isIdle] = jobs[slot]
       const flagKey = `cronidle:${name}`
@@ -1811,24 +1814,9 @@ async function handleFetch(request, env, ctx) {
           if (mark && Date.now() - Date.parse(mark.fetchedAt.replace(' ', 'T') + 'Z') < 30 * 86400000) {
             return json(current, 200, corsHeaders)
           }
-          const res = await fetch(`https://www.omdbapi.com/?apikey=${env.OMDB_API_KEY}&i=${film.imdbId}`, { signal: AbortSignal.timeout(8000) })
-          if (!res.ok) return json(current, 200, corsHeaders)
-          ctx.waitUntil(bumpApiUsage('omdb'))
-          const data = await res.json()
-          const rt = Array.isArray(data.Ratings) ? data.Ratings.find((r) => r.Source === 'Rotten Tomatoes')?.Value || null : null
-          const ms = data.Metascore && data.Metascore !== 'N/A' ? parseInt(data.Metascore, 10) : null
-          const next = {
-            rottenTomatoes: current.rottenTomatoes || rt,
-            metascore: current.metascore ?? (Number.isNaN(ms) ? null : ms),
-          }
-          if (next.rottenTomatoes !== current.rottenTomatoes || next.metascore !== current.metascore) {
-            await db.prepare('UPDATE films SET rottenTomatoes = ?, metascore = ? WHERE id = ?').bind(next.rottenTomatoes, next.metascore, film.id).run()
-            ctx.waitUntil(invalidateFilmsCache(env, false, false))
-          }
-          // OMDb اگه سهمیه تموم شده باشه Response: False برمی‌گردونه؛ اون‌وقت علامت نمی‌زنیم
-          if (data.Response !== 'False') {
-            await db.prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))").bind(markKey).run()
-          }
+          const r = await resolveOmdbScores(db, env, film)
+          if (r.updated) ctx.waitUntil(invalidateFilmsCache(env, false, false))
+          const next = { rottenTomatoes: r.rottenTomatoes, metascore: r.metascore }
           return json(next, 200, corsHeaders)
         } catch (e) {
           return json({ error: String(e) }, 200, corsHeaders)
