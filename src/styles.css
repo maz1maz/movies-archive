@@ -434,8 +434,9 @@ body.light .header {
   font-size: 12px;
   cursor: pointer;
 }
-/* صفحه‌ی فعلی: طلایی لوگو (public/logo.png) */
-.pagination-num-active {
+/* صفحه‌ی فعلی: طلایی لوگو (public/logo.png). با .pagination button تا از قانون عمومی
+   «.pagination button» (زمینه‌ی خاکستری) قوی‌تر باشه؛ قبلاً همیشه همون غالب می‌شد */
+.pagination button.pagination-num-active {
   background: #d4ac34;
   border-color: #d4ac34;
   color: #14110a;
