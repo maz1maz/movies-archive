@@ -12094,18 +12094,6 @@ a.cine-collection-poster-btn {
 .add-fetched-key { color: var(--muted); font-weight: 500; }
 .add-fetched-meta strong { color: var(--text); font-weight: 600; }
 
-/* Rotten Tomatoes / Metacritic / MUBI کنار امتیاز Letterboxd و IMDb */
-.ext-score-badge { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; min-height: 34px; padding: 4px 10px; border: 1.5px solid; border-radius: 7px; background: var(--bg); color: var(--text); font-size: 12px; font-weight: 800; text-decoration: none; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); transition: filter 0.15s; }
-.ext-score-badge:hover { filter: brightness(1.2); }
-.ext-score-name { letter-spacing: 0.02em; }
-.ext-score-val { font-size: 14px; }
-.ext-score-badge.rt { border-color: #fa320a; }
-.ext-score-badge.rt .ext-score-name { color: #fa320a; }
-.ext-score-badge.mc { border-color: #9aa0a6; }
-.ext-score-badge.rt .ext-score-val { color: #fa320a; }
-/* Meta: عدد ساده، بدون زمینه (رنگ متن: در تم تیره سفید) */
-.ext-score-badge.mc .ext-score-val { color: var(--text); }
-.ext-score-badge.mubi { border-color: #5a7fff; color: #5a7fff; }
 
 /* کارت فیلم: نشان IMDb توخالی مثل Letterboxd — حاشیه و عدد زرد، فقط برچسب IMDb پر */
 .cine-info-badges-top .imdb-badge-cine { background: var(--bg); border: 1.5px solid #f5c518; }
@@ -12114,3 +12102,13 @@ a.cine-collection-poster-btn {
 .cine-info-badges-top .imdb-badge-cine .imdb-denom,
 .cine-info-badges-top .imdb-badge-cine .imdb-badge-votes { color: #f5c518 !important; }
 .cine-info-badges-top .imdb-badge-cine .imdb-pill { background: #f5c518; color: #000; }
+
+/* Rotten Tomatoes / Metacritic / MUBI کنار Letterboxd و IMDb، با همون قالب:
+   برچسب پُر به رنگ سایت + عدد هم‌رنگ، حاشیه‌ی هم‌رنگ */
+.ext-score-badge { --brand: #9aa0a6; --brand-ink: #0b0b0b; display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex-shrink: 0; min-height: 34px; padding: 3px 8px; border: 1.5px solid var(--brand); border-radius: 7px; background: var(--bg); color: var(--brand); font-size: 12px; font-weight: 800; line-height: 1; text-decoration: none; white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); transition: filter 0.15s; }
+.ext-score-badge:hover { filter: brightness(1.15); }
+.ext-score-name { background: var(--brand); color: var(--brand-ink); padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: 900; letter-spacing: 0.3px; }
+.ext-score-val { color: var(--brand); font-size: 13.5px; font-weight: 900; }
+.ext-score-badge.rt { --brand: #fa320a; --brand-ink: #fff; }
+.ext-score-badge.mc { --brand: #e8e8e8; --brand-ink: #0b0b0b; }
+.ext-score-badge.mubi { --brand: #5a7fff; --brand-ink: #fff; }

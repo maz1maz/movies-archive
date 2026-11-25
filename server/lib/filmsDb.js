@@ -1360,6 +1360,43 @@ export async function resolveMubiRating(db, film) {
   return { ...r, fetched: true }
 }
 
+// Tomatometer از خود صفحه‌ی Rotten Tomatoes (وقتی OMDb نداره، مثل خیلی از فیلم‌های
+// غیرآمریکایی). عدد تو JSON صفحه‌ست: "criticsScore":{...,"scorePercent":"74%",...}.
+// '' یعنی صفحه هست ولی نقدی نداره؛ null یعنی جواب نیومد.
+export async function fetchRtScore(rtUrl) {
+  if (!/^https:\/\/www\.rottentomatoes\.com\/m\/[\w-]+$/.test(String(rtUrl || ''))) return null
+  try {
+    const res = await fetch(rtUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CinefilmArchive/1.0)' }, signal: AbortSignal.timeout(10000) })
+    if (res.status === 404) return ''
+    if (!res.ok) return null
+    const html = await res.text()
+    const m = /"criticsScore":\{[^}]*?"scorePercent":"(\d{1,3}%)"/.exec(html)
+    return m ? m[1] : ''
+  } catch {
+    return null
+  }
+}
+
+// Tomatometer از صفحه‌ی RT برای یه فیلم بی‌امتیاز که لینک RT (از Wikidata) داره.
+// هر فیلم حداکثر ماهی یه بار (کلید rtpage:<id>). خروجی: درصد، یا null
+export async function resolveRtScore(db, film) {
+  if (film.rottenTomatoes) return film.rottenTomatoes
+  let wd = film.wikidata
+  if (typeof wd === 'string') {
+    try { wd = JSON.parse(wd) } catch { wd = null }
+  }
+  const url = wd?.links?.rottenTomatoes
+  if (!url) return null
+  const key = `rtpage:${film.id}`
+  const mark = await db.prepare('SELECT fetchedAt FROM cinema_news_cache WHERE key = ?').bind(key).first().catch(() => null)
+  if (mark && Date.now() - Date.parse(mark.fetchedAt.replace(' ', 'T') + 'Z') < 30 * 86400000) return null
+  const score = await fetchRtScore(url)
+  if (score === null) return null
+  if (score) await db.prepare("UPDATE films SET rottenTomatoes = ? WHERE id = ? AND (rottenTomatoes IS NULL OR rottenTomatoes = '')").bind(score, film.id).run()
+  await db.prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))").bind(key, score || '').run()
+  return score || null
+}
+
 // امتیاز Rotten Tomatoes و Metascore از OMDb برای یه فیلم؛ فقط فیلدهای خالی پر می‌شن.
 // بعد از هر تلاش کلید scores:<id> علامت می‌خوره تا تا ۳۰ روز دوباره پرسیده نشه.
 // خروجی: { rottenTomatoes, metascore, updated, quotaExceeded }
@@ -1407,7 +1444,7 @@ export async function backfillOmdbScores(db, env, limit = 30) {
   if (room <= 0) return { skipped: 'daily budget' }
   const { rows, scanned, wrapped } = await findPendingByCursor(db, {
     job: 'scores',
-    columns: 'id, imdbId, rottenTomatoes, metascore',
+    columns: 'id, imdbId, rottenTomatoes, metascore, wikidata',
     where: "imdbId LIKE 'tt%' AND (rottenTomatoes IS NULL OR rottenTomatoes = '' OR metascore IS NULL)",
     marker: 'scores:',
     limit: Math.min(limit, room),
@@ -1417,6 +1454,8 @@ export async function backfillOmdbScores(db, env, limit = 30) {
     const r = await resolveOmdbScores(db, env, film).catch(() => null)
     if (r?.quotaExceeded) return { tried: rows.length, updated, scanned, wrapped, skipped: 'omdb quota' }
     if (r?.updated) updated++
+    // OMDb امتیاز RT نداشت: از صفحه‌ی خود Rotten Tomatoes
+    if (r && !r.rottenTomatoes && (await resolveRtScore(db, film).catch(() => null))) updated++
   }
   return { tried: rows.length, updated, scanned, wrapped }
 }

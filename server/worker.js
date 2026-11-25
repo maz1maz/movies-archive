@@ -14,7 +14,7 @@ import { rememberSession, forgetSession, looksLikeD1Failure, staleResponse } fro
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, findTmdbYear, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveWikidataExtras, fetchPlaceInfo, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, backfillOmdbScores, resolveOmdbScores, resolveMubiRating, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveWikidataExtras, fetchPlaceInfo, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, backfillOmdbScores, resolveOmdbScores, resolveMubiRating, resolveRtScore, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -197,9 +197,10 @@ export default {
         1: ['cast', 24, 1, () => backfillFullCast(env.DB, env, 18), cursorIdle],
         // imdb با ایندکس جزئی migration 0013 دیگه کل جدول رو نمی‌خونه
         0: ['imdb', 12, 8, () => backfillImdbIds(env.DB, env, 20), idleCheck],
-        // امتیاز RT/Metascore از OMDb، تدریجی و با سقف روزانه (backfillOmdbScores)؛
+        // امتیاز RT/Metascore از OMDb (و RT از صفحه‌ی خودش اگه OMDb نداشت)؛ ۲۰ فیلم تا
+        // زیر سقف ۵۰ درخواست بیرونی هر اجرا بمونه؛ تدریجی و با سقف روزانه (backfillOmdbScores)؛
         // سقف که پر شد skipped برمی‌گرده و ۶ ساعت بعد دوباره سر می‌زنه
-        4: ['scores', 6, 1, () => backfillOmdbScores(env.DB, env, 30), cursorIdle],
+        4: ['scores', 6, 1, () => backfillOmdbScores(env.DB, env, 20), cursorIdle],
       }
       const [name, idleHours, activeHours, run, isIdle] = jobs[slot]
       const flagKey = `cronidle:${name}`
@@ -1816,6 +1817,14 @@ async function handleFetch(request, env, ctx) {
               out.rottenTomatoes = r.rottenTomatoes
               out.metascore = r.metascore
               changed = changed || r.updated
+            }
+          }
+          // RT: اگه OMDb نداشت، از خود صفحه‌ی Rotten Tomatoes
+          if (!out.rottenTomatoes) {
+            const rt = await resolveRtScore(db, film).catch(() => null)
+            if (rt) {
+              out.rottenTomatoes = rt
+              changed = true
             }
           }
           // MUBI: از لینک MUBI که Wikidata داده
