@@ -1320,6 +1320,46 @@ export async function fetchFilmTags(db, env, film) {
   return tags
 }
 
+// امتیاز MUBI (میانگین از ۵ و تعداد رأی) از API عمومی MUBI، با لینک MUBI که Wikidata داده
+// (https://mubi.com/films/<id>). null یعنی جواب نیومد (دوباره امتحان می‌شه).
+export async function fetchMubiRating(mubiUrl) {
+  const id = String(mubiUrl || '').split('/films/')[1]?.split(/[/?#]/)[0]
+  if (!id || !/^[\w-]+$/.test(id)) return null
+  try {
+    const res = await fetch(`https://api.mubi.com/v3/films/${id}`, {
+      headers: { Client: 'web', 'Client-Country': 'US', Accept: 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (res.status === 404) return { rating: null, votes: null }
+    if (!res.ok) return null
+    const d = await res.json()
+    const rating = typeof d.average_rating === 'number' && d.average_rating > 0 ? d.average_rating : null
+    return { rating, votes: typeof d.number_of_ratings === 'number' ? d.number_of_ratings : null }
+  } catch {
+    return null
+  }
+}
+
+// MUBI برای یه فیلم (اگه لینک داره و هنوز امتیاز نداره)؛ تو wikidata.mubiRating/mubiVotes
+// ذخیره می‌شه، با mubiCheckedAt تا هر فیلم حداکثر ماهی یه بار پرسیده بشه.
+export async function resolveMubiRating(db, film) {
+  let wd = film.wikidata
+  if (typeof wd === 'string') {
+    try { wd = JSON.parse(wd) } catch { wd = null }
+  }
+  if (!wd?.links?.mubi) return null
+  if (wd.mubiRating != null) return { rating: wd.mubiRating, votes: wd.mubiVotes ?? null }
+  if (wd.mubiCheckedAt && Date.now() - Date.parse(wd.mubiCheckedAt) < 30 * 86400000) return { rating: null, votes: null }
+  const r = await fetchMubiRating(wd.links.mubi)
+  if (!r) return { rating: null, votes: null }
+  await db
+    .prepare("UPDATE films SET wikidata = json_set(wikidata, '$.mubiRating', ?, '$.mubiVotes', ?, '$.mubiCheckedAt', ?) WHERE id = ? AND wikidata IS NOT NULL")
+    .bind(r.rating, r.votes, new Date().toISOString(), film.id)
+    .run()
+  // fetched: تازه از MUBI گرفته و ذخیره شد (برای پاک کردن کش لیست فیلم‌ها)
+  return { ...r, fetched: true }
+}
+
 // امتیاز Rotten Tomatoes و Metascore از OMDb برای یه فیلم؛ فقط فیلدهای خالی پر می‌شن.
 // بعد از هر تلاش کلید scores:<id> علامت می‌خوره تا تا ۳۰ روز دوباره پرسیده نشه.
 // خروجی: { rottenTomatoes, metascore, updated, quotaExceeded }

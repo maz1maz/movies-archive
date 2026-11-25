@@ -14,7 +14,7 @@ import { rememberSession, forgetSession, looksLikeD1Failure, staleResponse } fro
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, findTmdbYear, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveWikidataExtras, fetchPlaceInfo, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, backfillOmdbScores, resolveOmdbScores, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveWikidataExtras, fetchPlaceInfo, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, backfillOmdbScores, resolveOmdbScores, resolveMubiRating, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -1803,21 +1803,30 @@ async function handleFetch(request, env, ctx) {
       const scoresMatch = pathname.match(/^\/api\/films\/([^/]+)\/scores$/)
       if (method === 'GET' && scoresMatch) {
         try {
-          const film = await db.prepare('SELECT id, imdbId, rottenTomatoes, metascore FROM films WHERE id = ?').bind(scoresMatch[1]).first()
+          const film = await db.prepare('SELECT id, imdbId, rottenTomatoes, metascore, wikidata FROM films WHERE id = ?').bind(scoresMatch[1]).first()
           if (!film) return json({}, 200, corsHeaders)
-          const current = { rottenTomatoes: film.rottenTomatoes || null, metascore: film.metascore ?? null }
-          if ((current.rottenTomatoes && current.metascore != null) || !/^tt\d+$/.test(film.imdbId || '') || !env.OMDB_API_KEY) {
-            return json(current, 200, corsHeaders)
+          const out = { rottenTomatoes: film.rottenTomatoes || null, metascore: film.metascore ?? null }
+          let changed = false
+          // OMDb: فقط اگه یکی از دو امتیاز خالیه و این ماه پرسیده نشده
+          const needOmdb = !(out.rottenTomatoes && out.metascore != null) && /^tt\d+$/.test(film.imdbId || '') && env.OMDB_API_KEY
+          if (needOmdb) {
+            const mark = await db.prepare('SELECT fetchedAt FROM cinema_news_cache WHERE key = ?').bind(`scores:${film.id}`).first()
+            if (!mark || Date.now() - Date.parse(mark.fetchedAt.replace(' ', 'T') + 'Z') >= 30 * 86400000) {
+              const r = await resolveOmdbScores(db, env, film)
+              out.rottenTomatoes = r.rottenTomatoes
+              out.metascore = r.metascore
+              changed = changed || r.updated
+            }
           }
-          const markKey = `scores:${film.id}`
-          const mark = await db.prepare('SELECT fetchedAt FROM cinema_news_cache WHERE key = ?').bind(markKey).first()
-          if (mark && Date.now() - Date.parse(mark.fetchedAt.replace(' ', 'T') + 'Z') < 30 * 86400000) {
-            return json(current, 200, corsHeaders)
+          // MUBI: از لینک MUBI که Wikidata داده
+          const mubi = await resolveMubiRating(db, film).catch(() => null)
+          if (mubi) {
+            out.mubiRating = mubi.rating
+            out.mubiVotes = mubi.votes
+            if (mubi.fetched && mubi.rating != null) changed = true
           }
-          const r = await resolveOmdbScores(db, env, film)
-          if (r.updated) ctx.waitUntil(invalidateFilmsCache(env, false, false))
-          const next = { rottenTomatoes: r.rottenTomatoes, metascore: r.metascore }
-          return json(next, 200, corsHeaders)
+          if (changed) ctx.waitUntil(invalidateFilmsCache(env, false, false))
+          return json(out, 200, corsHeaders)
         } catch (e) {
           return json({ error: String(e) }, 200, corsHeaders)
         }

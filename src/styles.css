@@ -12106,3 +12106,11 @@ a.cine-collection-poster-btn {
 /* Meta: عدد سفید روی مشکی */
 .ext-score-badge.mc .ext-score-val { min-width: 24px; padding: 2px 5px; border-radius: 4px; text-align: center; color: #fff; background: #000; }
 .ext-score-badge.mubi { border-color: #5a7fff; }
+
+/* کارت فیلم: نشان IMDb توخالی مثل Letterboxd — حاشیه و عدد زرد، فقط برچسب IMDb پر */
+.cine-info-badges-top .imdb-badge-cine { background: var(--bg); border: 1.5px solid #f5c518; }
+.cine-info-badges-top .imdb-badge-cine .imdb-badge-top,
+.cine-info-badges-top .imdb-badge-cine .imdb-score-black,
+.cine-info-badges-top .imdb-badge-cine .imdb-denom,
+.cine-info-badges-top .imdb-badge-cine .imdb-badge-votes { color: #f5c518 !important; }
+.cine-info-badges-top .imdb-badge-cine .imdb-pill { background: #f5c518; color: #000; }
