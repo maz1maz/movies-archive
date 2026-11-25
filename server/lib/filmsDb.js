@@ -1151,23 +1151,70 @@ export async function fetchTmdbPersonPhoto(db, env, name) {
 }
 
 // بک‌فیلِ پس‌زمینه‌ی بازیگرها: فیلم‌هایی که ≤۳ بازیگر دارن و هنوز امتحان نشدن.
+// پیدا کردن فیلم‌های «هنوز انجام‌نشده» برای jobهای پس‌زمینه، با مکان‌نما (cursor).
+// قبلاً هر اجرا با NOT EXISTS کل جدول رو اسکن می‌کرد (~۳۳ هزار ردیف خواندن D1
+// برای پیدا کردن ۲۰ فیلم). حالا از آخرین id قبلی جلو می‌ره، پنجره‌پنجره (۵۰۰ تایی،
+// روی ایندکس کلید اصلی)، و فقط تا وقتی limit تا پیدا بشه یا maxScan ردیف دیده بشه.
+// به آخر جدول که رسید از اول شروع می‌کنه (wrapped) تا فیلم‌های تازه هم دیده بشن.
+//   where: شرط اضافه روی ستون‌های films (اختیاری)
+//   marker: پیشوند کلید cinema_news_cache که یعنی «این فیلم انجام شده»
+export async function findPendingByCursor(db, { job, columns, where = '1=1', marker, limit, maxScan = 4000 }) {
+  const curKey = `croncursor:${job}`
+  const cur = await db.prepare('SELECT data FROM cinema_news_cache WHERE key = ?').bind(curKey).first().catch(() => null)
+  let after = cur?.data || ''
+  const found = []
+  let scanned = 0
+  let wrapped = false
+  while (found.length < limit && scanned < maxScan) {
+    const ids = (await db.prepare('SELECT id FROM films WHERE id > ? ORDER BY id LIMIT 500').bind(after).all()).results || []
+    if (!ids.length) {
+      wrapped = true
+      after = ''
+      break
+    }
+    const last = ids[ids.length - 1].id
+    scanned += ids.length
+    const rows = (await db.prepare(`SELECT ${columns} FROM films WHERE id > ? AND id <= ? AND (${where}) ORDER BY id`).bind(after, last).all()).results || []
+    const done = new Set()
+    for (let i = 0; i < rows.length; i += 90) {
+      const chunk = rows.slice(i, i + 90).map((r) => `${marker}${r.id}`)
+      const hit = (await db.prepare(`SELECT key FROM cinema_news_cache WHERE key IN (${chunk.map(() => '?').join(',')})`).bind(...chunk).all()).results || []
+      for (const h of hit) done.add(h.key)
+    }
+    for (const r of rows) if (!done.has(`${marker}${r.id}`)) found.push(r)
+    after = last
+    if (ids.length < 500) {
+      wrapped = true
+      after = ''
+      break
+    }
+  }
+  // اگه بیشتر از limit پیدا شد، مکان‌نما روی آخرین فیلمِ برداشته‌شده می‌مونه تا بقیه جا نیفتن
+  const picked = found.slice(0, limit)
+  if (found.length > limit) after = picked[picked.length - 1].id
+  await db
+    .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
+    .bind(curKey, after)
+    .run()
+    .catch(() => {})
+  return { rows: picked, scanned, wrapped }
+}
+
 export async function backfillFullCast(db, env, limit = 18) {
   if (!env.TMDB_API_KEY) return { skipped: 'no key' }
-  const { results } = await db
-    .prepare(
-      `SELECT id, title, year, imdbId, itemType, cast FROM films
-       WHERE (cast IS NULL OR cast = '' OR json_valid(cast) = 0 OR json_array_length(cast) <= 3)
-         AND NOT EXISTS (SELECT 1 FROM cinema_news_cache c WHERE c.key = 'castfill:' || films.id)
-       LIMIT ?`
-    )
-    .bind(limit)
-    .all()
+  const { rows: results, scanned, wrapped } = await findPendingByCursor(db, {
+    job: 'cast',
+    columns: 'id, title, year, imdbId, itemType, cast',
+    where: "cast IS NULL OR cast = '' OR json_valid(cast) = 0 OR json_array_length(cast) <= 3",
+    marker: 'castfill:',
+    limit,
+  })
   let filled = 0
   for (const row of results) {
     const got = await fetchFullCast(db, env, parseFilmRow(row)).catch(() => null)
     if (got) filled++
   }
-  return { tried: results.length, filled }
+  return { tried: results.length, filled, scanned, wrapped }
 }
 
 // عکس‌های صحنه/پشت‌صحنه (backdrops) از TMDB، کش ۹۰ روزه تو cinema_news_cache
@@ -1275,20 +1322,18 @@ export async function fetchFilmTags(db, env, film) {
 
 export async function backfillFilmTags(db, env, limit = 20) {
   if (!env.TMDB_API_KEY) return { skipped: 'no key' }
-  const { results } = await db
-    .prepare(
-      `SELECT id, title, year, imdbId, itemType FROM films
-       WHERE NOT EXISTS (SELECT 1 FROM cinema_news_cache c WHERE c.key = 'tags:' || films.id)
-       LIMIT ?`
-    )
-    .bind(limit)
-    .all()
+  const { rows: results, scanned, wrapped } = await findPendingByCursor(db, {
+    job: 'tags',
+    columns: 'id, title, year, imdbId, itemType',
+    marker: 'tags:',
+    limit,
+  })
   let tagged = 0
   for (const row of results) {
     const t = await fetchFilmTags(db, env, row).catch(() => [])
     if (t.length) tagged++
   }
-  return { tried: results.length, tagged }
+  return { tried: results.length, tagged, scanned, wrapped }
 }
 
 // فیلم‌های مرتبط (ادامه/قبلی/ریمیک/اقتباس از فیلم) + فرمت اکران (IMAX/70mm/…)

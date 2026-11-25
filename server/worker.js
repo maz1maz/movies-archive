@@ -32,7 +32,9 @@ const FILMS_CACHE_CHUNK = 3000
 // ولی قبلاً هر بار یه full table scan روی films می‌زد. حالا ۱ ساعت کش
 // می‌شه و با هر نوشتن روی films باطل می‌شه (مثل filmscache).
 const DECADES_CACHE_KEY = 'decadescache:all'
-const DECADES_CACHE_TTL = 3600
+// فهرست دهه‌ها و ژانرها: فیلم تازه یا ویرایش‌شده مستقیم تو کش ادغام می‌شه، پس کش
+// می‌تونه یه روز بمونه (قبلاً ۱ ساعت؛ هر بار بازسازی، اسکن کامل جدول بود)
+const DECADES_CACHE_TTL = 86400
 
 // دهه‌ها و ژانرها فقط وقتی فیلم تازه اضافه/ایمپورت می‌شه باطل می‌شن (resetMeta)؛
 // ویرایش/enrich/حذف دیگه کششون رو پاک نمی‌کنه — قبلاً هر PATCH و enrich یه
@@ -76,7 +78,7 @@ async function mergeFilmIntoMetaCaches(env, film) {
       const cached = await env.BACKUPS.get('genrescache:v1', 'json')
       if (Array.isArray(cached)) {
         const merged = [...new Set([...cached, ...genres.filter(Boolean)])].sort()
-        if (merged.length !== cached.length) await env.BACKUPS.put('genrescache:v1', JSON.stringify(merged), { expirationTtl: 3600 })
+        if (merged.length !== cached.length) await env.BACKUPS.put('genrescache:v1', JSON.stringify(merged), { expirationTtl: DECADES_CACHE_TTL })
       }
     }
     const year = Number(film.year)
@@ -122,7 +124,9 @@ export default {
       ) {
         // افزودن فیلم: ژانر/دهه‌ی فیلم تازه تو کش ادغام می‌شه (بدون اسکن)؛ فقط ایمپورت کامل پاکشون می‌کنه
         ctx.waitUntil(invalidateFilmsCache(env, pathname === '/api/import', request.method !== 'PATCH'))
-        if (request.method === 'POST' && pathname === '/api/films') {
+        // افزودن یا ویرایش فیلم: ژانر/دهه‌ی تازه‌اش همون لحظه تو فهرست فیلترها بیاد
+        // (کش این فهرست‌ها حالا یه روزه‌ست)
+        if ((request.method === 'POST' && pathname === '/api/films') || (request.method === 'PATCH' && /^\/api\/films\/[^/]+$/.test(pathname))) {
           ctx.waitUntil(response.clone().json().then((film) => mergeFilmIntoMetaCaches(env, film)).catch(() => {}))
         }
       }
@@ -183,10 +187,15 @@ export default {
       // [نام، ساعت وقفه وقتی کاری نمونده، ساعت حداقل فاصله بین اجراها وقتی کار هست]
       // هر اجرا کل جدول رو برای پیدا کردن ~۲۰ فیلم اسکن می‌کنه (~۳۷هزار ردیف)،
       // پس به‌جای هر ۴۰ دقیقه، هر job حداکثر هر ۸ ساعت اجرا می‌شه.
+      // tags و cast حالا با مکان‌نما کار می‌کنن (findPendingByCursor): هر اجرا فقط چند صد
+      // ردیف می‌خونه، پس وقتی کار هست هر ساعت اجرا می‌شن. «بی‌کار» فقط وقتیه که یه دور
+      // کامل جدول (wrapped) چیزی پیدا نکرده باشه؛ وسط دور، ادامه‌ی اسکن هم ساعتیه.
+      const cursorIdle = (r) => !r || r.error || r.skipped || (!r.tried && r.wrapped)
       const jobs = {
         3: ['posters', 8, 8, () => repairDeadPosters(env.DB, env, 15), () => true],
-        2: ['tags', 12, 8, () => backfillFilmTags(env.DB, env, 20), idleCheck],
-        1: ['cast', 12, 8, () => backfillFullCast(env.DB, env, 18), idleCheck],
+        2: ['tags', 24, 1, () => backfillFilmTags(env.DB, env, 20), cursorIdle],
+        1: ['cast', 24, 1, () => backfillFullCast(env.DB, env, 18), cursorIdle],
+        // imdb با ایندکس جزئی migration 0013 دیگه کل جدول رو نمی‌خونه
         0: ['imdb', 12, 8, () => backfillImdbIds(env.DB, env, 20), idleCheck],
       }
       const [name, idleHours, activeHours, run, isIdle] = jobs[slot]
@@ -1850,7 +1859,7 @@ async function handleFetch(request, env, ctx) {
         }
         const genres = [...set].sort()
         if (env.BACKUPS) {
-          try { await env.BACKUPS.put(GENRES_CACHE_KEY, JSON.stringify(genres), { expirationTtl: 3600 }) } catch {}
+          try { await env.BACKUPS.put(GENRES_CACHE_KEY, JSON.stringify(genres), { expirationTtl: DECADES_CACHE_TTL }) } catch {}
         }
         return json(genres, 200, corsHeaders)
       }
