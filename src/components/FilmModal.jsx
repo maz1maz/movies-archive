@@ -125,7 +125,12 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
   const [bookAdaptation, setBookAdaptation] = useState(null)
   const [shootingLocation, setShootingLocation] = useState(null)
   const [wikidata, setWikidata] = useState(film?.wikidata && typeof film.wikidata === 'object' ? film.wikidata : null)
-  const [scores, setScores] = useState({ rottenTomatoes: film?.rottenTomatoes || null, metascore: film?.metascore ?? null })
+  const initialScores = (f) => ({
+    rottenTomatoes: f?.rottenTomatoes || null,
+    metascore: f?.metascore ?? null,
+    mubiRating: f?.wikidata?.mubiRating ?? null,
+  })
+  const [scores, setScores] = useState(initialScores(film))
   const [festivalAwards, setFestivalAwards] = useState(Array.isArray(film?.festivalAwards) ? film.festivalAwards : [])
   const [altPosters, setAltPosters] = useState([])
   const [altPosterIndex, setAltPosterIndex] = useState(0)
@@ -394,21 +399,29 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
   // امتیاز Rotten Tomatoes / Metascore: اگه ثبت نشده، سرور از OMDb می‌گیره و ذخیره
   // می‌کنه (هر فیلم حداکثر ماهی یه بار پرسیده می‌شه)
   useEffect(() => {
-    const initial = { rottenTomatoes: film?.rottenTomatoes || null, metascore: film?.metascore ?? null }
+    const initial = initialScores(film)
     setScores(initial)
-    if (!film?.id || !film.imdbId || (initial.rottenTomatoes && initial.metascore != null)) return
+    const wd = film?.wikidata && typeof film.wikidata === 'object' ? film.wikidata : null
+    // MUBI: لینکش هست ولی امتیازش نه، و این ماه پرسیده نشده
+    const needMubi = Boolean(wd?.links?.mubi) && wd.mubiRating == null && !(wd.mubiCheckedAt && Date.now() - Date.parse(wd.mubiCheckedAt) < 30 * 86400000)
+    const needOmdb = Boolean(film?.imdbId) && !(initial.rottenTomatoes && initial.metascore != null)
+    if (!film?.id || (!needOmdb && !needMubi)) return
     let cancelled = false
     fetch(`/api/films/${film.id}/scores`)
       .then((r) => r.json())
       .then((data) => {
         if (cancelled || !data || data.error) return
-        setScores({ rottenTomatoes: data.rottenTomatoes || null, metascore: data.metascore ?? null })
+        setScores((prev) => ({
+          rottenTomatoes: data.rottenTomatoes || null,
+          metascore: data.metascore ?? null,
+          mubiRating: data.mubiRating ?? prev.mubiRating,
+        }))
       })
       .catch(() => {})
     return () => {
       cancelled = true
     }
-  }, [film?.id, film?.imdbId, film?.rottenTomatoes, film?.metascore])
+  }, [film?.id, film?.imdbId, film?.rottenTomatoes, film?.metascore, film?.wikidata?.mubiRating, film?.wikidata?.links?.mubi])
 
   // جوایز جشنواره‌ای — خودکار از Wikidata (P166). سرور خودش تشخیص می‌ده قبلاً
   // چک شده یا نه (raw column)، پس همیشه fetch می‌کنیم و سرور کشش رو مدیریت می‌کنه.
@@ -955,11 +968,6 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                     <span className="imdb-score-black">{film.rating.toFixed(1)}</span>
                     <span className="imdb-denom">/ 10</span>
                   </div>
-                  {formatVotesK(film.imdbVotes) && (
-                    <div className="imdb-badge-votes">
-                      {formatVotesK(film.imdbVotes)} votes
-                    </div>
-                  )}
                 </a>
               )}
 
@@ -973,7 +981,7 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                 const items = [
                   links.rottenTomatoes && { key: 'rt', href: links.rottenTomatoes, name: 'Rotten Tomatoes', short: 'Rotten', value: rt, title: 'Rotten Tomatoes' },
                   links.metacritic && { key: `mc${mcTone}`, href: links.metacritic, name: 'Metacritic', short: 'Meta', value: mc != null && !Number.isNaN(mc) ? String(mc) : null, title: 'Metacritic (Metascore)' },
-                  links.mubi && { key: 'mubi', href: links.mubi, name: 'MUBI', short: 'MUBI', value: null, title: 'MUBI' },
+                  links.mubi && { key: 'mubi', href: links.mubi, name: 'MUBI', short: 'MUBI', value: typeof scores.mubiRating === 'number' ? scores.mubiRating.toFixed(1) : null, title: 'MUBI (average rating out of 5)' },
                 ].filter(Boolean)
                 return items.map((it) => (
                   <a key={it.key} href={it.href} target="_blank" rel="noopener noreferrer" className={`ext-score-badge ${it.key}`} title={it.title}>
