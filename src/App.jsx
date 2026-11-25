@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
+import { sortArchiveByTitle } from './utils/archiveSort.js'
 import Header from './components/Header.jsx'
 import FilmGrid from './components/FilmGrid.jsx'
 import FilmList from './components/FilmList.jsx'
@@ -395,12 +396,13 @@ export default function App() {
   }
 
   const loadAllFilmsUnfiltered = () => {
-    return fetch('/api/films')
+    // order=none: سرور مرتب نمی‌کنه (نصف ردیف‌های خوانده‌شده‌ی D1)، اینجا مرتب می‌شه
+    return fetch('/api/films?order=none')
       .then((r) => r.json())
       .then((data) => {
         // همون مشکل loadFilms: اگه بجای آرایه، پاسخ خطا برگرده (مثلاً زیر بار
         // یه ایمپورت بزرگ)، نباید کل شمارش/آمار آرشیو صفر بشه.
-        if (Array.isArray(data)) setAllFilmsUnfiltered(data)
+        if (Array.isArray(data)) setAllFilmsUnfiltered(sortArchiveByTitle(data))
       })
       .catch(() => {})
   }
@@ -495,7 +497,7 @@ export default function App() {
       // نهایی هم فیلم‌های جدید و هم مجموع فعلی آرشیو رو نشون بده
       let total = null
       try {
-        const allRes = await fetch('/api/films')
+        const allRes = await fetch('/api/films?order=none') // فقط تعداد لازمه
         const all = await allRes.json()
         if (Array.isArray(all)) total = all.length
       } catch {
