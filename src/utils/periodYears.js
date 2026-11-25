@@ -44,6 +44,19 @@ const NAMED = {
   'georgian era': [1714, 1837],
   "seven years' war": [1756, 1763],
   'american revolution': [1765, 1791],
+  'american revolutionary war': [1775, 1783],
+  'bourbon restoration in france': [1814, 1830],
+  bakumatsu: [1853, 1867],
+  'battle of the somme': [1916, 1916],
+  'battle of the piave river': [1918, 1918],
+  'battle of stalingrad': [1942, 1943],
+  'operation höss': [1944, 1944],
+  'battle of berlin': [1945, 1945],
+  'communist romania': [1947, 1989],
+  'adolf eichmann trial': [1961, 1961],
+  '30 september movement': [1965, 1965],
+  'bloody sunday': [1972, 1972],
+  'walsh street police shootings': [1988, 1988],
   'french revolution': [1789, 1799],
   'napoleonic wars': [1803, 1815],
   'regency era': [1811, 1820],
@@ -148,8 +161,16 @@ export function periodRange(label) {
     // «1900s» در Wikidata معمولاً دهه است، نه قرن
     return [y, y + 9]
   }
-  m = /^(\d{3,4})$/.exec(l)
+  m = /^(\d{1,4})$/.exec(l)
   if (m) return [Number(m[1]), Number(m[1])]
+  // «410 BC»
+  m = /^(\d{1,4}) (bc|bce)$/.exec(l)
+  if (m) return [-Number(m[1]), -Number(m[1])]
+  // «1960s in France»، «19th century in the United States»
+  m = /^(\d{3,4})s in /.exec(l)
+  if (m) return [Number(m[1]), Number(m[1]) + 9]
+  const ordIn = /^(\d+)(?:st|nd|rd|th) century in /.exec(l)
+  if (ordIn) return [(Number(ordIn[1]) - 1) * 100 + 1, Number(ordIn[1]) * 100]
   // تاریخ‌هایی مثل «October 1988» یا «September 5, 1972»
   m = /\b(1[0-9]{3}|20[0-9]{2}|21[0-9]{2})\b/.exec(l)
   if (m) return [Number(m[1]), Number(m[1])]

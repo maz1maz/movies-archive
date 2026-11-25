@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import DashboardPosterCard from './DashboardPosterCard.jsx'
-import { periodRange, formatRange, centuryBucket } from '../utils/periodYears.js'
 import PeriodMindMap from './PeriodMindMap.jsx'
+import PeriodAccordion from './PeriodAccordion.jsx'
 import BoxOfficePanel from './BoxOfficePanel.jsx'
 
 // تب «Themes» — همه از ستون wikidata (Wikidata):
@@ -59,77 +59,14 @@ function FilmGrid({ films, onOpenFilm, subtitleFor }) {
   )
 }
 
-// خط زمان دوره‌ها: هر دوره با سال شروعش مرتب می‌شه و زیر سرفصل قرن خودش
-// میاد؛ طول نوار = تعداد فیلم. دوره‌ی بلندتر (قرن) قبل از کوتاه‌تر (دهه/سال)
-// با همون شروع. اونایی که سال‌شون معلوم نیست آخر، زیر «Other».
-function PeriodTimeline({ periods, onPick }) {
-  const { buckets, other, max } = useMemo(() => {
-    const dated = []
-    const other = []
-    for (const g of periods) {
-      const range = periodRange(g.label)
-      if (range) dated.push({ ...g, range })
-      else other.push(g)
-    }
-    dated.sort((a, b) => a.range[0] - b.range[0] || b.range[1] - b.range[0] - (a.range[1] - a.range[0]) || b.films.length - a.films.length)
-    const buckets = []
-    for (const g of dated) {
-      const b = centuryBucket(g.range[0])
-      let last = buckets[buckets.length - 1]
-      if (!last || last.key !== b.key) buckets.push((last = { ...b, rows: [] }))
-      last.rows.push(g)
-    }
-    const max = Math.max(1, ...dated.map((g) => g.films.length))
-    return { buckets, other, max }
-  }, [periods])
-
-  const spanClass = ([a, b]) => (b - a >= 90 ? 'span-long' : b - a >= 9 ? 'span-mid' : 'span-short')
-
-  return (
-    <div className="period-timeline">
-      <div className="period-legend">
-        <span><i className="span-long" /> Century / era</span>
-        <span><i className="span-mid" /> Decade / long event</span>
-        <span><i className="span-short" /> Year / event</span>
-      </div>
-      {buckets.map((b) => (
-        <div key={b.key} className="period-bucket">
-          <div className="period-bucket-label">{b.label}</div>
-          {b.rows.map((g) => (
-            <button key={g.label} className="period-row" onClick={() => onPick(g)} title={`${g.label} — ${g.films.length}`}>
-              <span className="period-range">{formatRange(g.range)}</span>
-              <span className="period-name">{g.label}</span>
-              <span className="period-bar-track">
-                <span className={`period-bar ${spanClass(g.range)}`} style={{ width: `${Math.max(2, (g.films.length / max) * 100)}%` }} />
-              </span>
-              <span className="period-count">{g.films.length}</span>
-            </button>
-          ))}
-        </div>
-      ))}
-      {other.length > 0 && (
-        <div className="period-bucket">
-          <div className="period-bucket-label">Other</div>
-          <div className="countries-list-grid">
-            {other.map((g) => (
-              <button key={g.label} className="countries-list-item" onClick={() => onPick(g)}>
-                <span className="countries-list-name">{g.label}</span>
-                <span className="countries-list-count">{g.films.length}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default function DashboardThemesPanel({ films, onOpenFilm }) {
   const [view, setView] = useState('subjects') // subjects | periods | bw | money
   const [picked, setPicked] = useState(null) // { label, films }
   // نمای دوره‌ها: مایند مپ یا فهرست خط زمان. وضعیت مایند مپ (گره‌های باز و
   // زوم) این‌جا نگه داشته می‌شه تا بعد از برگشت از فهرست فیلم‌ها از دست نره.
-  const [periodView, setPeriodView] = useState('map')
+  // پیش‌فرض کرکره‌ای: برای ~۴۷۰ دوره خواناتر از مایند مپه (به‌خصوص رو گوشی)
+  const [periodView, setPeriodView] = useState('accordion')
+  const [accordionOpen, setAccordionOpen] = useState(() => new Set())
   const [mindMap, setMindMap] = useState({ expanded: new Set(['root']), view: null })
 
   const withData = useMemo(() => dedupe(films.filter((f) => f.wikidata && typeof f.wikidata === 'object')), [films])
@@ -175,13 +112,13 @@ export default function DashboardThemesPanel({ films, onOpenFilm }) {
         {view === 'periods' && (
           <>
             <div className="countries-map-modes" style={{ marginBottom: 12 }}>
+              <button className={`btn ${periodView === 'accordion' ? '' : 'btn-ghost'}`} onClick={() => setPeriodView('accordion')}>List</button>
               <button className={`btn ${periodView === 'map' ? '' : 'btn-ghost'}`} onClick={() => setPeriodView('map')}>Mind map</button>
-              <button className={`btn ${periodView === 'list' ? '' : 'btn-ghost'}`} onClick={() => setPeriodView('list')}>Timeline list</button>
             </div>
             {periodView === 'map' ? (
               <PeriodMindMap periods={periods} onPick={setPicked} state={mindMap} setState={setMindMap} />
             ) : (
-              <PeriodTimeline periods={periods} onPick={setPicked} />
+              <PeriodAccordion periods={periods} onPick={setPicked} open={accordionOpen} setOpen={setAccordionOpen} />
             )}
           </>
         )}

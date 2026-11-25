@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { periodRange, formatRange, centuryBucket } from '../utils/periodYears.js'
+import { formatRange } from '../utils/periodYears.js'
+import { buildPeriodTree } from '../utils/periodTree.js'
 
 // مایند مپ دوره‌ها، به سبک NotebookLM: ریشه ← قرن ← دهه ← سال/رویداد.
 // کلیک روی گره‌ی شاخه‌دار بازش می‌کنه یا می‌بنده؛ کلیک روی برگ، فیلم‌هاش رو.
@@ -17,69 +18,6 @@ function textWidth(text) {
   if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d')
   measureCtx.font = FONT
   return measureCtx.measureText(text).width
-}
-
-const sameFilm = (a, b) => (a.imdbId && a.imdbId === b.imdbId) || a.id === b.id
-function mergeFilms(lists) {
-  const out = []
-  for (const list of lists) for (const f of list) if (!out.some((x) => sameFilm(x, f))) out.push(f)
-  return out
-}
-
-// درخت: دوره‌های بلند (۲۰ سال به بالا) مستقیم زیر قرن؛ بقیه زیر دهه‌ی شروعشون.
-// دهه‌ای که فقط یه بچه داره، با همون بچه جایگزین می‌شه تا درخت شلوغ نشه.
-function buildTree(periods) {
-  const buckets = new Map()
-  const other = []
-  for (const g of periods) {
-    const range = periodRange(g.label)
-    if (!range) {
-      other.push({ id: `o:${g.label}`, label: g.label, films: g.films })
-      continue
-    }
-    const b = centuryBucket(range[0])
-    if (!buckets.has(b.key)) buckets.set(b.key, { id: `b:${b.key}`, key: b.key, label: b.label, long: [], decades: new Map() })
-    const bucket = buckets.get(b.key)
-    const leaf = { id: `p:${g.label}`, label: g.label, films: g.films, range }
-    const span = range[1] - range[0]
-    const groupByDecade = span < 20 && range[0] >= 1500 && range[0] <= 2100
-    if (!groupByDecade) {
-      bucket.long.push(leaf)
-      continue
-    }
-    const dk = Math.floor(range[0] / 10) * 10
-    if (!bucket.decades.has(dk)) bucket.decades.set(dk, { id: `d:${dk}`, label: `${dk}s`, range: [dk, dk + 9], children: [] })
-    const decade = bucket.decades.get(dk)
-    // برچسب خودِ دهه («1940s») برگ اول گروهش می‌شه
-    if (g.label === `${dk}s`) decade.children.unshift({ ...leaf, label: 'Whole decade', fullLabel: g.label })
-    else decade.children.push(leaf)
-  }
-
-  const byStart = (a, b) => (a.range?.[0] ?? 0) - (b.range?.[0] ?? 0) || (b.range?.[1] ?? 0) - (a.range?.[1] ?? 0)
-  const children = [...buckets.values()]
-    .sort((a, b) => a.key - b.key)
-    .map((b) => {
-      const decades = [...b.decades.values()].map((d) => {
-        if (d.children.length === 1) {
-          const only = d.children[0]
-          return only.fullLabel ? { ...only, label: only.fullLabel } : only
-        }
-        d.children.sort((x, y) => (x.label === 'Whole decade' ? -1 : y.label === 'Whole decade' ? 1 : byStart(x, y)))
-        return d
-      })
-      const kids = [...b.long, ...decades].sort(byStart)
-      return { id: b.id, label: b.label, children: kids }
-    })
-  if (other.length) children.push({ id: 'b:other', label: 'Other', children: other.sort((a, b) => b.films.length - a.films.length) })
-
-  const root = { id: 'root', label: 'Periods', children }
-  // تعداد فیلم یکتا برای هر گره (بلوری و دیجیتال یکی)
-  const fill = (n) => {
-    if (n.children) n.films = mergeFilms(n.children.map(fill))
-    return n.films
-  }
-  fill(root)
-  return root
 }
 
 // چیدمان افقی: هر برگ قابل‌دیدن یه ردیف؛ گره‌ی پدر وسط بچه‌هاش.
@@ -116,7 +54,7 @@ function layout(root, expanded) {
 }
 
 export default function PeriodMindMap({ periods, onPick, state, setState }) {
-  const tree = useMemo(() => buildTree(periods), [periods])
+  const tree = useMemo(() => buildPeriodTree(periods), [periods])
   const expanded = state.expanded
   const view = state.view
   const { nodes, links, width, height } = useMemo(() => layout(tree, expanded), [tree, expanded])
