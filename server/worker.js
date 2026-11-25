@@ -14,7 +14,7 @@ import { rememberSession, forgetSession, looksLikeD1Failure, staleResponse } fro
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, findTmdbYear, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveWikidataExtras, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -1734,6 +1734,42 @@ async function handleFetch(request, env, ctx) {
         }
         const remaining = await db.prepare(`SELECT COUNT(*) as count FROM films WHERE ${where}`).first()
         return json({ processed: (batch.results || []).length, updated, remaining: remaining?.count || 0 }, 200, corsHeaders)
+      }
+
+      // ---- POST /api/films/wikidata — پر کردن دسته‌ای داده‌های Wikidata
+      // (مختصات لوکیشن + محل داستان، دوره، موضوع، گیشه، عنوان فارسی، ...) ----
+      // هر فیلم تا ۳ درخواست به Wikidata می‌زنه؛ سقف ۱۰ تا زیر حد subrequest بمونه.
+      if (method === 'POST' && pathname === '/api/films/wikidata') {
+        const denied = requireEditAccess()
+        if (denied) return denied
+        const requestedLimit = parseInt(url.searchParams.get('limit') || '8', 10)
+        const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 10) : 8
+        const where = "(shootingCoords IS NULL OR wikidata IS NULL) AND imdbId IS NOT NULL AND imdbId != ''"
+        const batch = await db.prepare(`SELECT id, imdbId, shootingLocation, shootingCoords, wikidata FROM films WHERE ${where} LIMIT ?`).bind(limit).all()
+        let failed = 0
+        for (const film of batch.results || []) {
+          const [coords, extras] = await Promise.all([
+            film.shootingCoords == null ? resolveShootingCoords(db, film) : true,
+            film.wikidata == null ? resolveWikidataExtras(db, film) : true,
+          ])
+          if (coords == null || extras == null) failed++
+        }
+        const remaining = await db.prepare(`SELECT COUNT(*) as count FROM films WHERE ${where}`).first()
+        return json({ processed: (batch.results || []).length, failed, remaining: remaining?.count || 0 }, 200, corsHeaders)
+      }
+
+      // ---- GET /api/films/:id/wikidata — داده‌های Wikidata یک فیلم، با کش در ستون wikidata ----
+      const wikidataMatch = pathname.match(/^\/api\/films\/([^/]+)\/wikidata$/)
+      if (method === 'GET' && wikidataMatch) {
+        try {
+          const film = await db.prepare('SELECT id, imdbId, wikidata FROM films WHERE id = ?').bind(wikidataMatch[1]).first()
+          if (!film) return json({ wikidata: null }, 200, corsHeaders)
+          if (film.wikidata != null) return json({ wikidata: JSON.parse(film.wikidata || '{}') }, 200, corsHeaders)
+          const wikidata = await resolveWikidataExtras(db, film)
+          return json({ wikidata }, 200, corsHeaders)
+        } catch (e) {
+          return json({ wikidata: null, error: String(e) }, 200, corsHeaders)
+        }
       }
 
       // ---- GET /api/genres ----

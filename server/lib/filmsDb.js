@@ -25,6 +25,9 @@ export function parseFilmRow(row) {
   if (typeof film.shootingCoords === 'string' && film.shootingCoords) {
     try { film.shootingCoords = JSON.parse(film.shootingCoords) } catch { film.shootingCoords = [] }
   }
+  if (typeof film.wikidata === 'string' && film.wikidata) {
+    try { film.wikidata = JSON.parse(film.wikidata) } catch { film.wikidata = {} }
+  }
   if (film.watched != null) film.watched = Boolean(film.watched)
   if (film.watchlisted != null) film.watchlisted = Boolean(film.watchlisted)
   if (film.criterion != null) film.criterion = Boolean(film.criterion)
@@ -354,6 +357,103 @@ export async function resolveShootingCoords(db, film) {
   } catch {
     return null
   }
+}
+
+// داده‌های اضافه از Wikidata برای یک فیلم (با imdbId). دو کوئری موازی:
+// ۱) آیتم‌ها: محل داستان، دوره، موضوع، نامزدی، رنگ
+// ۲) مقدارهای تکی: عنوان/ویکی فارسی، گیشه/بودجه به دلار، شناسه‌های سایت‌های دیگه
+// خروجی در ستون wikidata ذخیره می‌شه؛ اگه Wikidata جواب نده null برمی‌گرده
+// و ستون NULL می‌مونه تا دفعه‌ی بعد دوباره امتحان بشه.
+const WD_ITEM_PROPS = { P840: 'setIn', P2408: 'periods', P921: 'subjects', P1411: 'nominations', P462: 'color' }
+const WD_USD = 'http://www.wikidata.org/entity/Q4917'
+
+async function wikidataSparql(query) {
+  const res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(query)}`, {
+    headers: {
+      'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive; personal, single-user film archive app)',
+      accept: 'application/sparql-results+json',
+    },
+  })
+  if (!res.ok) throw new Error(`wikidata ${res.status}`)
+  return (await res.json())?.results?.bindings || []
+}
+
+export async function fetchWikidataExtras(imdbId) {
+  if (!/^tt\d+$/.test(imdbId || '')) return null
+  const itemsQuery = `SELECT ?prop ?vLabel ?coord WHERE {
+    ?f wdt:P345 "${imdbId}".
+    VALUES ?prop { ${Object.keys(WD_ITEM_PROPS).map((p) => `wdt:${p}`).join(' ')} }
+    ?f ?prop ?v.
+    OPTIONAL { ?v wdt:P625 ?coord. }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+  } LIMIT 200`
+  const scalarQuery = `SELECT ?faTitle ?faWiki ?box ?boxUnit ?budget ?budgetUnit ?mubi ?rt ?mc WHERE {
+    ?f wdt:P345 "${imdbId}".
+    OPTIONAL { ?f rdfs:label ?faTitle FILTER(lang(?faTitle) = "fa") }
+    OPTIONAL { ?faWiki schema:about ?f; schema:isPartOf <https://fa.wikipedia.org/> }
+    OPTIONAL { ?f p:P2142/psv:P2142 [ wikibase:quantityAmount ?box; wikibase:quantityUnit ?boxUnit ] }
+    OPTIONAL { ?f p:P2130/psv:P2130 [ wikibase:quantityAmount ?budget; wikibase:quantityUnit ?budgetUnit ] }
+    OPTIONAL { ?f wdt:P7299 ?mubi }
+    OPTIONAL { ?f wdt:P1258 ?rt }
+    OPTIONAL { ?f wdt:P1712 ?mc }
+  } LIMIT 100`
+
+  let items, scalars
+  try {
+    ;[items, scalars] = await Promise.all([wikidataSparql(itemsQuery), wikidataSparql(scalarQuery)])
+  } catch {
+    return null
+  }
+
+  const out = {}
+  for (const r of items) {
+    const key = WD_ITEM_PROPS[(r.prop?.value || '').split('/').pop()]
+    const label = r.vLabel?.value
+    // آیتمی که برچسب انگلیسی نداره، Q-id خام برمی‌گرده؛ به کار کاربر نمیاد.
+    if (!key || !label || /^Q\d+$/.test(label)) continue
+    if (key === 'setIn') {
+      out.setIn = out.setIn || []
+      if (out.setIn.some((x) => x.label === label)) continue
+      const m = /Point\(([-\d.]+) ([-\d.]+)\)/.exec(r.coord?.value || '')
+      out.setIn.push(m ? { label, lat: Number(m[2]), lon: Number(m[1]) } : { label })
+    } else if (key === 'color') {
+      out.color = out.color || label
+    } else {
+      out[key] = out[key] || []
+      if (!out[key].includes(label)) out[key].push(label)
+    }
+  }
+
+  // چند ردیف به‌خاطر ضرب OPTIONALها؛ برای گیشه/بودجه بزرگ‌ترین مقدار دلاری.
+  const maxUsd = (rows, val, unit) => {
+    let best = null
+    for (const r of rows) {
+      if (r[unit]?.value !== WD_USD) continue
+      const n = Number(r[val]?.value)
+      if (Number.isFinite(n) && n > 0 && (best == null || n > best)) best = n
+    }
+    return best
+  }
+  const first = (k) => scalars.find((r) => r[k]?.value)?.[k]?.value
+  const boxOffice = maxUsd(scalars, 'box', 'boxUnit')
+  const budget = maxUsd(scalars, 'budget', 'budgetUnit')
+  if (boxOffice) out.boxOffice = boxOffice
+  if (budget) out.budget = budget
+  if (first('faTitle')) out.faTitle = first('faTitle')
+  if (first('faWiki')) out.faWiki = first('faWiki')
+  const links = {}
+  if (first('mubi')) links.mubi = `https://mubi.com/films/${first('mubi')}`
+  if (first('rt')) links.rottenTomatoes = `https://www.rottentomatoes.com/${first('rt')}`
+  if (first('mc')) links.metacritic = `https://www.metacritic.com/${first('mc')}`
+  if (Object.keys(links).length) out.links = links
+  return out
+}
+
+export async function resolveWikidataExtras(db, film) {
+  const data = await fetchWikidataExtras(film.imdbId)
+  if (!data) return null
+  await db.prepare('UPDATE films SET wikidata = ? WHERE id = ?').bind(JSON.stringify(data), film.id).run()
+  return data
 }
 
 // جدول تشخیص جشنواره از روی متن اسم جایزه (Wikidata P166) — فقط ۵ جشنواره‌ی

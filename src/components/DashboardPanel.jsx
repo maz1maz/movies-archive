@@ -6,6 +6,7 @@ import { IconBarChart, IconTrophy, IconMasks, IconSun, IconMoon, IconSave, IconD
 // باندل که فقط برای رسم نقشه‌ی کشورها لازمن — کدسپلیت می‌کنیم تا این حجم
 // اضافه فقط وقتی کاربر واقعاً تب Countries رو باز می‌کنه دانلود بشه.
 const CountriesMapPanel = lazy(() => import('./CountriesMapPanel.jsx'))
+const DashboardThemesPanel = lazy(() => import('./DashboardThemesPanel.jsx'))
 
 const OscarsPanel = lazy(() => import('./OscarsPanel.jsx'))
 const GenreTopsPanel = lazy(() => import('./GenreTopsPanel.jsx'))
@@ -31,6 +32,7 @@ const TABS = [
   { key: 'oscars', label: 'Oscars', icon: IconTrophy },
   { key: 'genretops', label: 'Genre Tops', icon: IconMasks },
   { key: 'countries', label: 'Countries', icon: IconGlobe },
+  { key: 'themes', label: 'Themes', icon: IconMasks },
   { key: 'crafts', label: 'Crafts', icon: IconClapper },
   { key: 'watchlists', label: 'Watchlists', icon: IconBookshelf },
   { key: 'followed', label: 'Following', icon: IconUser },
@@ -99,7 +101,8 @@ export default function DashboardPanel({ films, onBack, onOpenFilm, onOpenPerson
           {tab === 'wrapped' && <DashboardWrappedPanel films={films} onOpenPerson={onOpenPerson} />}
           {tab === 'oscars' && <OscarsPanel films={films} onOpenFilm={onOpenFilm} onOpenPerson={onOpenPerson} />}
           {tab === 'genretops' && <GenreTopsPanel films={films} onOpenFilm={onOpenFilm} />}
-          {tab === 'countries' && <CountriesMapPanel films={films} onOpenFilm={onOpenFilm} />}
+          {tab === 'countries' && <CountriesMapPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
+          {tab === 'themes' && <DashboardThemesPanel films={films} onOpenFilm={onOpenFilm} />}
           {tab === 'crafts' && <CraftsPanel films={films} onOpenFilm={onOpenFilm} />}
           {tab === 'watchlists' && <DashboardWatchlistsPanel films={films} onOpenFilm={onOpenFilm} onFilmsChanged={onFilmsChanged} />}
           {tab === 'followed' && <DashboardFollowedPanel onOpenPerson={onOpenPerson} />}
