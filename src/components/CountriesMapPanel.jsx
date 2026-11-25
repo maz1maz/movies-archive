@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { geoNaturalEarth1, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
 import worldTopo from 'world-atlas/countries-110m.json'
@@ -15,6 +15,43 @@ const pathGenerator = geoPath(projection)
 export default function CountriesMapPanel({ films, onOpenFilm }) {
   const [hovered, setHovered] = useState(null)
   const [selected, setSelected] = useState(null) // alpha2 در حال نمایش جزئیات
+  const [mode, setMode] = useState('countries') // countries | locations
+  const [pin, setPin] = useState(null) // لوکیشن انتخاب‌شده روی نقشه
+  const [fill, setFill] = useState({ running: false, remaining: null })
+
+  // نقطه‌ی هر مکان فیلم‌برداری؛ فیلم‌های هم‌مکان زیر یک نقطه جمع می‌شن.
+  // منبع داده: Wikidata (P915 + P625)؛ پوشش ناقصه و فیلمِ بی‌مکان نمایش داده نمی‌شه.
+  const locations = useMemo(() => {
+    const map = new Map()
+    for (const film of films) {
+      if (!Array.isArray(film.shootingCoords)) continue
+      for (const c of film.shootingCoords) {
+        const key = `${c.lat.toFixed(2)},${c.lon.toFixed(2)}`
+        const entry = map.get(key) || { key, label: c.label, lat: c.lat, lon: c.lon, films: [] }
+        entry.films.push(film)
+        map.set(key, entry)
+      }
+    }
+    return [...map.values()].sort((a, b) => b.films.length - a.films.length)
+  }, [films])
+
+  const fillCoords = useCallback(async () => {
+    setFill({ running: true, remaining: null })
+    let last = Infinity
+    for (let i = 0; i < 200; i++) {
+      try {
+        const res = await fetch('/api/films/shooting-coords?limit=10', { method: 'POST' })
+        if (!res.ok) break
+        const data = await res.json()
+        setFill({ running: true, remaining: data.remaining })
+        if (!data.processed || data.remaining >= last) break
+        last = data.remaining
+      } catch {
+        break
+      }
+    }
+    setFill((f) => ({ ...f, running: false }))
+  }, [])
 
   const byAlpha2 = useMemo(() => aggregateFilmsByCountry(films), [films])
 
@@ -82,8 +119,23 @@ export default function CountriesMapPanel({ films, onOpenFilm }) {
     <div className="oscars-panel">
       <div className="card oscars-controls">
         <p className="oscars-intro">
-          {rankedCountries.length} کشور در آرشیو — روی هر کشور کلیک کن تا فیلم‌هاش رو ببینی.
+          {mode === 'countries'
+            ? `${rankedCountries.length} کشور در آرشیو — روی هر کشور کلیک کن تا فیلم‌هاش رو ببینی.`
+            : `${locations.length} مکان فیلم‌برداری (از Wikidata) — روی هر نقطه کلیک کن.`}
         </p>
+        <div className="countries-map-modes">
+          <button className={`btn ${mode === 'countries' ? '' : 'btn-ghost'}`} onClick={() => setMode('countries')}>
+            Countries
+          </button>
+          <button className={`btn ${mode === 'locations' ? '' : 'btn-ghost'}`} onClick={() => setMode('locations')}>
+            Filming locations
+          </button>
+          {mode === 'locations' && (
+            <button className="btn btn-ghost" onClick={fillCoords} disabled={fill.running}>
+              {fill.running ? `در حال پر کردن… ${fill.remaining ?? ''}` : 'پر کردن مکان‌ها'}
+            </button>
+          )}
+        </div>
       </div>
       <section>
         <div className="countries-map-wrap">
@@ -109,8 +161,47 @@ export default function CountriesMapPanel({ films, onOpenFilm }) {
                 </path>
               )
             })}
+            {mode === 'locations' &&
+              locations.map((loc) => {
+                const pt = projection([loc.lon, loc.lat])
+                if (!pt) return null
+                return (
+                  <circle
+                    key={loc.key}
+                    cx={pt[0]}
+                    cy={pt[1]}
+                    r={Math.min(3 + Math.sqrt(loc.films.length) * 1.5, 12)}
+                    className={`countries-map-pin${pin?.key === loc.key ? ' active' : ''}`}
+                    onClick={() => setPin(loc)}
+                  >
+                    <title>{`${loc.label} — ${loc.films.length}`}</title>
+                  </circle>
+                )
+              })}
           </svg>
         </div>
+        {mode === 'locations' && pin && (
+          <>
+            <h2>{pin.label} — {pin.films.length} film{pin.films.length === 1 ? '' : 's'}</h2>
+            <div className="grid">
+              {pin.films.map((film) => (
+                <DashboardPosterCard
+                  key={film.id}
+                  title={film.title}
+                  subtitle={film.year ? String(film.year) : ''}
+                  poster={film.poster}
+                  inArchive
+                  clickable
+                  showMissingBadge={false}
+                  onClick={() => onOpenFilm(film)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+        {mode === 'locations' && locations.length === 0 && (
+          <p className="oscars-intro">هنوز مکانی ثبت نشده؛ «پر کردن مکان‌ها» رو بزن. پوشش Wikidata ناقصه.</p>
+        )}
         <div className="countries-map-legend">
           <span>کم</span>
           <span className="countries-map-legend-bar" />
