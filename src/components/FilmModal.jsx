@@ -968,11 +968,6 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                     <span className="imdb-score-black">{film.rating.toFixed(1)}</span>
                     <span className="imdb-denom">/ 10</span>
                   </div>
-                  {formatVotesK(film.imdbVotes) && (
-                    <div className="imdb-badge-votes">
-                      {formatVotesK(film.imdbVotes)} votes
-                    </div>
-                  )}
                 </a>
               )}
 
