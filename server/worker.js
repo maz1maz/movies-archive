@@ -986,7 +986,14 @@ async function handleFetch(request, env, ctx) {
         // صفحه‌ها می‌شه؛ به‌جاش می‌فته رو همون ترتیب الفبایی پیش‌فرض.
         const isPaginated = limit != null && limit !== ''
         const effectiveSort = isPaginated && sort === 'random' ? 'title_az' : sort
-        if (effectiveSort === 'year_desc') sql += ' ORDER BY year DESC'
+        // ?order=none (فقط بارگذاری کل آرشیو از وب‌اپ، بدون هیچ فیلتر دیگه): بدون
+        // ORDER BY. مرتب‌سازی الفبایی سمت مرورگر انجام می‌شه؛ اینجا مرتب‌سازی کل
+        // جدول یه دور خوندن اضافه داشت (۳۷ هزار ردیف به‌جای ۱۸٫۷ هزار برای هر بار).
+        // پیش‌فرض عوض نشده تا اپ اندروید و بقیه همون ترتیب قبلی رو بگیرن.
+        const unordered = url.searchParams.get('order') === 'none' && [...url.searchParams.keys()].every((k) => k === 'order')
+        if (unordered) {
+          // بدون ORDER BY
+        } else if (effectiveSort === 'year_desc') sql += ' ORDER BY year DESC'
         else if (effectiveSort === 'year_asc') sql += ' ORDER BY year ASC'
         else if (effectiveSort === 'rating') sql += ' ORDER BY rating DESC'
         else if (effectiveSort === 'shelf') sql += ' ORDER BY shelf ASC'

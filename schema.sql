@@ -275,3 +275,7 @@ CREATE INDEX IF NOT EXISTS idx_films_browse_order ON films(
   (CASE WHEN SUBSTR((CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END), 1, 1) BETWEEN '0' AND '9' THEN 1 ELSE 0 END),
   (CASE WHEN LOWER(title) LIKE 'the %' THEN SUBSTR(title, 5) ELSE title END) COLLATE NOCASE
 );
+
+-- 0013: ایندکس‌های جزئی برای کوئری‌های «چند ردیف از کل جدول» (کم کردن ردیف‌های خوانده‌شده‌ی D1)
+CREATE INDEX IF NOT EXISTS idx_films_enrich_pending ON films(id) WHERE metadataEnrichmentAttemptedAt IS NULL;
+CREATE INDEX IF NOT EXISTS idx_films_imdb_missing ON films(id) WHERE imdbId IS NULL OR imdbId = '';

@@ -1012,7 +1012,9 @@ export async function backfillImdbIds(db, env, limit = 20) {
   if (!env.TMDB_API_KEY) return { processed: 0, matched: 0 }
   const rows = await db
     .prepare(
-      `SELECT id, title, year, itemType FROM films
+      // INDEXED BY: ایندکس جزئی migration 0013 (فقط فیلم‌های بی‌imdbId)؛ بدونش
+      // کل جدول خونده می‌شد
+      `SELECT id, title, year, itemType FROM films INDEXED BY idx_films_imdb_missing
        WHERE (imdbId IS NULL OR imdbId = '') AND year IS NOT NULL AND title IS NOT NULL
          AND NOT EXISTS (SELECT 1 FROM cinema_news_cache c WHERE c.key = 'imdbfill:' || films.id)
        LIMIT ?`
