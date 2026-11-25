@@ -12009,3 +12009,5 @@ a.cine-collection-poster-btn {
   .period-row { grid-template-columns: 74px 1fr 36px; }
   .period-bar-track { display: none; }
 }
+.pin-list { margin-top: 10px; }
+.pin-list-title { font-size: 14px; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); margin: 8px 0 10px; }

@@ -20,6 +20,28 @@ import GenresByDecade from './GenresByDecade.jsx'
 
 // Overview tab of the Dashboard — same stats as the old Stats modal, shown
 // inline as the landing view instead of jumping straight to Oscars.
+const COUNTRY_ALIASES = {
+  usa: 'United States',
+  us: 'United States',
+  'u.s.a.': 'United States',
+  'u.s.': 'United States',
+  'united states of america': 'United States',
+  uk: 'United Kingdom',
+  'u.k.': 'United Kingdom',
+  'great britain': 'United Kingdom',
+  'west germany': 'Germany',
+  'east germany': 'Germany',
+  'soviet union': 'Soviet Union',
+  ussr: 'Soviet Union',
+  korea: 'South Korea',
+  'republic of korea': 'South Korea',
+}
+function normalizeCountry(raw) {
+  const c = (raw || '').trim()
+  if (!c) return null
+  return COUNTRY_ALIASES[c.toLowerCase()] || c
+}
+
 export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isAdmin, onFilmsChanged }) {
   const totalFilms = films.length
   const totalRuntimeMins = films.reduce((acc, f) => acc + (f.runtime || 0), 0)
@@ -51,10 +73,16 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isA
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
 
+  // country گاهی چندتاست («France, Italy») و یه کشور با چند اسم ثبت شده
+  // («USA»، «United States of America»). قبلاً هر ترکیب یه کشور حساب می‌شد
+  // (۱۸۷۲ «کشور»). حالا جدا می‌کنیم و اسم‌های رایج رو یکی می‌کنیم.
   const countryCounts = {}
   films.forEach((f) => {
-    const c = f.country && f.country.trim()
-    if (c) countryCounts[c] = (countryCounts[c] || 0) + 1
+    const parts = String(f.country || '')
+      .split(',')
+      .map((c) => normalizeCountry(c))
+      .filter(Boolean)
+    for (const c of new Set(parts)) countryCounts[c] = (countryCounts[c] || 0) + 1
   })
   const topCountries = Object.entries(countryCounts)
     .sort((a, b) => b[1] - a[1])
