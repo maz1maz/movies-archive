@@ -405,7 +405,7 @@ export default function EditModal({ film, onClose, onSave, onAutofill, onDelete,
             <span className="title-suggest-text">
               <span className="title-suggest-name">{s.title}</span>
               <span className="title-suggest-meta">
-                {[s.year, s.originalTitle && s.originalTitle !== s.title ? s.originalTitle : null].filter(Boolean).join(' · ')}
+                {[s.year, s.director, s.originalTitle && s.originalTitle !== s.title ? s.originalTitle : null].filter(Boolean).join(' · ')}
               </span>
             </span>
             {s.inArchive.length > 0 && (
