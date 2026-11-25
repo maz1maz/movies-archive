@@ -1932,7 +1932,7 @@ async function handleFetch(request, env, ctx) {
         const tmdbType = isSeries ? 'tv' : 'movie'
         // کش لبه‌ی Cloudflare (یک روز) — فقط نتیجه‌ی غیرخالی کش می‌شه
         const cache = typeof caches !== 'undefined' ? caches.default : null
-        const cacheKey = new Request(`https://title-search.cache/v2/${tmdbType}?q=${encodeURIComponent(q.toLowerCase())}`)
+        const cacheKey = new Request(`https://title-search.cache/v3/${tmdbType}?q=${encodeURIComponent(q.toLowerCase())}`)
         if (cache) {
           try {
             const hit = await cache.match(cacheKey)
@@ -1959,6 +1959,23 @@ async function handleFetch(request, env, ctx) {
           } catch (e) {
             errors.push(`TMDB: ${e.message || e}`)
           }
+          // کارگردان هر پیشنهاد (سریال: سازنده)، تا بین هم‌نام‌ها درست انتخاب بشه.
+          // موازی و با سقف زمان؛ اگه نیومد، پیشنهاد بدون کارگردان نشون داده می‌شه.
+          await Promise.all(
+            results.map(async (r) => {
+              try {
+                if (isSeries) {
+                  const { data } = await tmdbRequest(`/tv/${r.tmdbId}`, {}, env.TMDB_API_KEY)
+                  const names = (data?.created_by || []).map((c) => c.name).filter(Boolean)
+                  if (names.length) r.director = names.slice(0, 2).join(', ')
+                } else {
+                  const { data } = await tmdbRequest(`/movie/${r.tmdbId}/credits`, {}, env.TMDB_API_KEY)
+                  const names = (data?.crew || []).filter((c) => c.job === 'Director').map((c) => c.name)
+                  if (names.length) r.director = [...new Set(names)].slice(0, 2).join(', ')
+                }
+              } catch {}
+            })
+          )
         } else {
           errors.push('TMDB: key not set')
         }
