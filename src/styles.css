@@ -12105,7 +12105,7 @@ a.cine-collection-poster-btn {
 .ext-score-badge.rt .ext-score-val { color: #fa320a; }
 /* Meta: عدد ساده، بدون زمینه (رنگ متن: در تم تیره سفید) */
 .ext-score-badge.mc .ext-score-val { color: var(--text); }
-.ext-score-badge.mubi { border-color: #5a7fff; }
+.ext-score-badge.mubi { border-color: #5a7fff; color: #5a7fff; }
 
 /* کارت فیلم: نشان IMDb توخالی مثل Letterboxd — حاشیه و عدد زرد، فقط برچسب IMDb پر */
 .cine-info-badges-top .imdb-badge-cine { background: var(--bg); border: 1.5px solid #f5c518; }
