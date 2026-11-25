@@ -434,10 +434,11 @@ body.light .header {
   font-size: 12px;
   cursor: pointer;
 }
+/* صفحه‌ی فعلی: طلایی لوگو (public/logo.png) */
 .pagination-num-active {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  color: var(--accent-ink);
+  background: #d4ac34;
+  border-color: #d4ac34;
+  color: #14110a;
   font-weight: 800;
 }
 .pagination-dots {

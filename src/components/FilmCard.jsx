@@ -47,6 +47,10 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
   const cardRef = useRef(null)
   const [altPosters, setAltPosters] = useState(null)
   const [posterIndex, setPosterIndex] = useState(0)
+  // پوستر اصلی لود نشد (لینک مرده): به‌جاش پوسترهای جایگزین، و به سرور گزارش می‌شه
+  // تا (بعد از تأیید خرابی) برای همیشه با اولین جایگزین عوض بشه
+  const [mainBroken, setMainBroken] = useState(false)
+  const [fixedPoster, setFixedPoster] = useState(null)
   const [festivalAwards, setFestivalAwards] = useState(
     Array.isArray(film.festivalAwards) ? film.festivalAwards : []
   )
@@ -54,6 +58,8 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
   useEffect(() => {
     setAltPosters(null)
     setPosterIndex(0)
+    setMainBroken(false)
+    setFixedPoster(null)
     setFestivalAwards(Array.isArray(film.festivalAwards) ? film.festivalAwards : [])
   }, [film.id, film.festivalAwards])
 
@@ -84,7 +90,18 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
     return () => observer.disconnect()
   }, [film.id, altPosters])
 
-  const posterList = altPosters && altPosters.length > 0 ? [film.poster, ...altPosters] : null
+  const basePoster = fixedPoster || (mainBroken ? null : film.poster)
+  const posterList =
+    altPosters && altPosters.length > 0 ? [...new Set([basePoster, ...altPosters].filter(Boolean))] : null
+  const reportBrokenPoster = () => {
+    if (mainBroken) return
+    setMainBroken(true)
+    setPosterIndex(0)
+    fetch(`/api/films/${film.id}/poster-broken`, { method: 'POST' })
+      .then((r) => r.json())
+      .then((data) => data?.poster && setFixedPoster(data.poster))
+      .catch(() => {})
+  }
 
   // چرخشِ بر اساس «دیده شدن» رو موبایل امتحان شد ولی مزاحم بود (کلی کارت
   // هم‌زمان رو صفحه پوستر عوض می‌کردن، حواس‌پرت‌کننده بود). الان فقط رو
@@ -121,7 +138,7 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, posterList?.length])
 
-  const displayedPoster = posterList ? posterList[posterIndex] : film.poster
+  const displayedPoster = posterList ? posterList[posterIndex % posterList.length] : basePoster
 
   const handleMouseEnter = () => setIsHovering(true)
   const handleMouseLeave = () => {
@@ -165,16 +182,19 @@ export default function FilmCard({ film, onSelect, onToggleWatch, hasBluray, has
         className="poster"
         style={{ background: `linear-gradient(160deg, ${c1}, ${c2})` }}
       >
-        <img
-          key={displayedPoster}
-          src={proxyImg(displayedPoster)}
-          alt={film.title}
-          loading="lazy"
-          className="poster-img-fade"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none'
-          }}
-        />
+        {displayedPoster && (
+          <img
+            key={displayedPoster}
+            src={proxyImg(displayedPoster)}
+            alt={film.title}
+            loading="lazy"
+            className="poster-img-fade"
+            onError={(e) => {
+              if (displayedPoster === film.poster && !fixedPoster) reportBrokenPoster()
+              else e.currentTarget.style.display = 'none'
+            }}
+          />
+        )}
         {typeof film.rating === 'number' && (
           <span className="rating-badge">
             <IconStar width={11} height={11} /> {film.rating.toFixed(1)}

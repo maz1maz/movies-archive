@@ -120,7 +120,10 @@ export default {
         request.method !== 'GET' &&
         env.BACKUPS &&
         response.status < 400 &&
-        (pathname.startsWith('/api/films') || pathname === '/api/import' || pathname.startsWith('/api/shelf/'))
+        (pathname.startsWith('/api/films') || pathname === '/api/import' || pathname.startsWith('/api/shelf/')) &&
+        // گزارش پوستر خراب از کارت‌های گرید: ممکنه یه صفحه چندتا بفرسته؛ پاک کردن کل کش
+        // با هر کدوم سقف روزانه‌ی حذف KV رو می‌خورد. کش خودش بعد از ۳۰ دقیقه تازه می‌شه.
+        !pathname.endsWith('/poster-broken')
       ) {
         // افزودن فیلم: ژانر/دهه‌ی فیلم تازه تو کش ادغام می‌شه (بدون اسکن)؛ فقط ایمپورت کامل پاکشون می‌کنه
         ctx.waitUntil(invalidateFilmsCache(env, pathname === '/api/import', request.method !== 'PATCH'))
@@ -192,7 +195,8 @@ export default {
       // کامل جدول (wrapped) چیزی پیدا نکرده باشه؛ وسط دور، ادامه‌ی اسکن هم ساعتیه.
       const cursorIdle = (r) => !r || r.error || r.skipped || (!r.tried && r.wrapped)
       const jobs = {
-        3: ['posters', 8, 8, () => repairDeadPosters(env.DB, env, 15), () => true],
+        // posters: با مکان‌نما؛ ۲۰ تا (HEAD + در صورت خرابی یه TMDB) زیر سقف ۵۰ درخواست
+        3: ['posters', 24, 1, () => repairDeadPosters(env.DB, env, 20), cursorIdle],
         2: ['tags', 24, 1, () => backfillFilmTags(env.DB, env, 20), cursorIdle],
         1: ['cast', 24, 1, () => backfillFullCast(env.DB, env, 18), cursorIdle],
         // imdb با ایندکس جزئی migration 0013 دیگه کل جدول رو نمی‌خونه
@@ -2753,6 +2757,28 @@ async function handleFetch(request, env, ctx) {
           return json({ stills: await fetchFilmStills(db, env, row) }, 200, corsHeaders)
         } catch (e) {
           return json({ stills: [], error: String(e) }, 200, corsHeaders)
+        }
+      }
+
+      // ---- POST /api/films/:id/poster-broken — کارت گرید پوستر رو نتونست لود کنه ----
+      // سرور خودش چک می‌کنه پوستر واقعاً خرابه (۴۰۴/۴۱۰)، و اگه هست با اولین پوستر
+      // جایگزین TMDB عوضش می‌کنه (همیشگی). چون فقط بعد از تأیید خرابی چیزی عوض می‌شه،
+      // دسترسی ویرایش لازم نیست. خروجی: { poster } جدید یا { poster: null }.
+      const posterBrokenMatch = pathname.match(/^\/api\/films\/([^/]+)\/poster-broken$/)
+      if (method === 'POST' && posterBrokenMatch) {
+        try {
+          const film = await db.prepare('SELECT id, imdbId, itemType, title, year, poster FROM films WHERE id = ?').bind(posterBrokenMatch[1]).first()
+          if (!film?.poster || !/^https:\/\//.test(film.poster)) return json({ poster: null }, 200, corsHeaders)
+          const head = await fetch(film.poster, { method: 'HEAD', signal: AbortSignal.timeout(8000) }).catch(() => null)
+          // فقط خرابی قطعی؛ خطای موقت شبکه یا ۵xx پوستر رو عوض نمی‌کنه
+          if (!head || ![403, 404, 410].includes(head.status)) return json({ poster: null }, 200, corsHeaders)
+          const alts = (await fetchAltPosters(db, env, film)).filter((p) => p && p !== film.poster)
+          if (!alts.length) return json({ poster: null }, 200, corsHeaders)
+          await db.prepare('UPDATE films SET poster = ? WHERE id = ? AND poster = ?').bind(alts[0], film.id, film.poster).run()
+          await logAudit({ filmId: film.id, filmTitle: film.title, action: 'update', changes: { poster: [film.poster, alts[0]] } }).catch(() => {})
+          return json({ poster: alts[0] }, 200, corsHeaders)
+        } catch (e) {
+          return json({ poster: null, error: String(e) }, 200, corsHeaders)
         }
       }
 

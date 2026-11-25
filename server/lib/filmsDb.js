@@ -1176,7 +1176,8 @@ export async function findPendingByCursor(db, { job, columns, where = '1=1', mar
     scanned += ids.length
     const rows = (await db.prepare(`SELECT ${columns} FROM films WHERE id > ? AND id <= ? AND (${where}) ORDER BY id`).bind(after, last).all()).results || []
     const done = new Set()
-    for (let i = 0; i < rows.length; i += 90) {
+    // بدون marker: فقط مکان‌نما (هر ردیف یه بار در هر دور دیده می‌شه)
+    for (let i = 0; marker && i < rows.length; i += 90) {
       const chunk = rows.slice(i, i + 90).map((r) => `${marker}${r.id}`)
       const hit = (await db.prepare(`SELECT key FROM cinema_news_cache WHERE key IN (${chunk.map(() => '?').join(',')})`).bind(...chunk).all()).results || []
       for (const h of hit) done.add(h.key)
@@ -1191,7 +1192,11 @@ export async function findPendingByCursor(db, { job, columns, where = '1=1', mar
   }
   // اگه بیشتر از limit پیدا شد، مکان‌نما روی آخرین فیلمِ برداشته‌شده می‌مونه تا بقیه جا نیفتن
   const picked = found.slice(0, limit)
-  if (found.length > limit) after = picked[picked.length - 1].id
+  if (found.length > limit) {
+    after = picked[picked.length - 1].id
+    // هنوز به آخر جدول نرسیدیم (بقیه‌ی این پنجره دفعه‌ی بعد)
+    wrapped = false
+  }
   await db
     .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, ?, datetime('now'))")
     .bind(curKey, after)
@@ -1574,14 +1579,15 @@ export async function fetchFilmRelations(db, film, env) {
 // IMDb پاکشون کرده. برای هر کدوم پوستر TMDB رو با imdbId پیدا و جایگزین می‌کنه.
 export async function repairDeadPosters(db, env, limit = 15) {
   if (!env.TMDB_API_KEY) return { skipped: 'no key' }
-  const { results } = await db
-    .prepare(
-      `SELECT id, poster, imdbId, itemType FROM films
-       WHERE poster LIKE 'https://m.media-amazon.com/%' AND imdbId IS NOT NULL
-       LIMIT ?`
-    )
-    .bind(limit)
-    .all()
+  // قبلاً همیشه همون ۱۵ پوستر اول (LIMIT بدون ترتیب/مکان‌نما) چک می‌شد؛ اگه سالم بودن
+  // هیچ‌وقت به بقیه نمی‌رسید. حالا با مکان‌نما کل پوسترهای Amazon دور به دور چک می‌شن.
+  const { rows: results, scanned, wrapped } = await findPendingByCursor(db, {
+    job: 'posters',
+    columns: 'id, poster, imdbId, itemType',
+    where: "poster LIKE 'https://m.media-amazon.com/%' AND imdbId IS NOT NULL",
+    marker: null,
+    limit,
+  })
   let repaired = 0
   for (const film of results || []) {
     try {
@@ -1601,5 +1607,5 @@ export async function repairDeadPosters(db, env, limit = 15) {
       repaired++
     } catch {}
   }
-  return { tried: (results || []).length, repaired }
+  return { tried: (results || []).length, repaired, scanned, wrapped }
 }
