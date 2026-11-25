@@ -22,6 +22,9 @@ export function parseFilmRow(row) {
   } else if (!film.reviews) {
     film.reviews = []
   }
+  if (typeof film.shootingCoords === 'string' && film.shootingCoords) {
+    try { film.shootingCoords = JSON.parse(film.shootingCoords) } catch { film.shootingCoords = [] }
+  }
   if (film.watched != null) film.watched = Boolean(film.watched)
   if (film.watchlisted != null) film.watchlisted = Boolean(film.watchlisted)
   if (film.criterion != null) film.criterion = Boolean(film.criterion)
@@ -306,6 +309,48 @@ export async function resolveShootingLocation(db, env, film) {
 
     await db.prepare('UPDATE films SET shootingLocation = ? WHERE id = ?').bind(locations, film.id).run()
     return locations
+  } catch {
+    return null
+  }
+}
+
+// مختصات لوکیشن‌های فیلم‌برداری از Wikidata (P915 → P625) برای نقشه.
+// shootingCoords=NULL یعنی چک‌نشده، '[]' یعنی چک‌شده بدون مختصات.
+// متن لوکیشن (shootingLocation) هم همین‌جا پر می‌شه اگه خالی بود.
+export async function resolveShootingCoords(db, film) {
+  if (!film.imdbId) return null
+  try {
+    const headers = {
+      'User-Agent': 'CinefilmArchive/1.0 (https://github.com/maz1maz/movies-archive; personal, single-user film archive app)',
+      accept: 'application/sparql-results+json',
+    }
+    const sparql = `SELECT ?locationLabel ?coord WHERE {
+      ?film wdt:P345 "${film.imdbId}".
+      ?film wdt:P915 ?location.
+      OPTIONAL { ?location wdt:P625 ?coord. }
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+    } LIMIT 30`
+    const res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`, { headers })
+    if (!res.ok) return null
+    const rows = (await res.json())?.results?.bindings || []
+
+    const seen = new Set()
+    const coords = []
+    const labels = []
+    for (const r of rows) {
+      const label = r.locationLabel?.value
+      if (label && !labels.includes(label)) labels.push(label)
+      const m = /Point\(([-\d.]+) ([-\d.]+)\)/.exec(r.coord?.value || '')
+      if (!label || !m || seen.has(label)) continue
+      seen.add(label)
+      coords.push({ label, lat: Number(m[2]), lon: Number(m[1]) })
+    }
+    const text = labels.slice(0, 5).join(', ')
+    await db
+      .prepare("UPDATE films SET shootingCoords = ?, shootingLocation = CASE WHEN shootingLocation IS NULL OR shootingLocation = '' THEN ? ELSE shootingLocation END WHERE id = ?")
+      .bind(JSON.stringify(coords), text, film.id)
+      .run()
+    return coords
   } catch {
     return null
   }

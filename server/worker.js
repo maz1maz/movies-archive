@@ -14,7 +14,7 @@ import { rememberSession, forgetSession, looksLikeD1Failure, staleResponse } fro
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, findTmdbYear, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -1717,6 +1717,23 @@ async function handleFetch(request, env, ctx) {
           .prepare("SELECT COUNT(*) as count FROM films WHERE itemType = 'series' AND totalSeasonsProduced IS NULL")
           .first()
         return json({ processed: candidates.length, updated, remaining: remaining?.count || 0 }, 200, corsHeaders)
+      }
+
+      // ---- POST /api/films/shooting-coords — پر کردن مختصات لوکیشن‌ها از Wikidata، دسته‌ای ----
+      if (method === 'POST' && pathname === '/api/films/shooting-coords') {
+        const denied = requireEditAccess()
+        if (denied) return denied
+        const requestedLimit = parseInt(url.searchParams.get('limit') || '10', 10)
+        const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 15) : 10
+        const where = "shootingCoords IS NULL AND imdbId IS NOT NULL AND imdbId != ''"
+        const batch = await db.prepare(`SELECT id, imdbId, shootingLocation FROM films WHERE ${where} LIMIT ?`).bind(limit).all()
+        let updated = 0
+        for (const film of batch.results || []) {
+          const coords = await resolveShootingCoords(db, film)
+          if (coords && coords.length) updated++
+        }
+        const remaining = await db.prepare(`SELECT COUNT(*) as count FROM films WHERE ${where}`).first()
+        return json({ processed: (batch.results || []).length, updated, remaining: remaining?.count || 0 }, 200, corsHeaders)
       }
 
       // ---- GET /api/genres ----

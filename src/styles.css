@@ -11957,3 +11957,8 @@ a.cine-collection-poster-btn {
 @media (max-width: 700px) {
   .location-browser-title .export-sub { display: none; }
 }
+
+/* نقشه‌ی مکان‌های فیلم‌برداری */
+.countries-map-modes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.countries-map-pin { fill: var(--accent, #e50914); fill-opacity: 0.75; stroke: #fff; stroke-width: 0.8; cursor: pointer; }
+.countries-map-pin:hover, .countries-map-pin.active { fill-opacity: 1; stroke-width: 1.6; }
