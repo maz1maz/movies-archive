@@ -14,7 +14,7 @@ import { rememberSession, forgetSession, looksLikeD1Failure, staleResponse } fro
 import { fetchWikidataFacts, resolveWikidataLabels, emptyPersonInfo } from './lib/wikidata.js'
 import { tmdbRequest, findVerifiedImdbId, findImdbIdAndDirectorByExactTitle, findTmdbYear, applyTmdbExtras, fetchTmdbExtras, fetchDirectorAwards, fetchDirectorRecommendations } from './lib/tmdbEnrich.js'
 import { tmdbFetch } from './lib/tmdb.js'
-import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveWikidataExtras, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
+import { parseFilmRow, fetchCollectionDetails, resolveFilmCollection, resolveBookAdaptation, resolveShootingLocation, resolveShootingCoords, resolveWikidataExtras, fetchPlaceInfo, resolveFestivalAwards, runPosterAuditChunk, repairDeadPosters, fetchAltPosters, backfillImdbIds, backfillFullCast, fetchFullCast, fetchFilmStills, fetchFilmTags, backfillFilmTags, fetchFilmRelations, fetchTmdbPersonPhoto, insertFilm, enrichScopeClause, enrichBatch, updateFilm, syncSharedMetadataToSibling } from './lib/filmsDb.js'
 
 // کش KV برای درخواست کاملاً بدون فیلتر GET /api/films — روی صفحه‌ی اول
 // (allFilmsUnfiltered) هر بار کل آرشیو (۱۶هزار+ ردیف) از D1 خونده می‌شد که
@@ -1776,6 +1776,27 @@ async function handleFetch(request, env, ctx) {
         }
         const remaining = await db.prepare(`SELECT COUNT(*) as count FROM films WHERE ${where}`).first()
         return json({ processed: (batch.results || []).length, failed, remaining: remaining?.count || 0 }, 200, corsHeaders)
+      }
+
+      // ---- GET /api/place?label=&lat=&lon= — کارت مکان روی نقشه (Wikidata)، کش ۳۰ روزه در KV ----
+      if (method === 'GET' && pathname === '/api/place') {
+        const label = (url.searchParams.get('label') || '').slice(0, 200)
+        const lat = Number(url.searchParams.get('lat'))
+        const lon = Number(url.searchParams.get('lon'))
+        if (!label || !Number.isFinite(lat) || !Number.isFinite(lon)) return json({ error: 'label, lat, lon required' }, 400, corsHeaders)
+        const cacheKey = `place:v1:${label}|${lat.toFixed(3)}|${lon.toFixed(3)}`
+        if (env.BACKUPS) {
+          try {
+            const cached = await env.BACKUPS.get(cacheKey, 'json')
+            if (cached) return json(cached, 200, corsHeaders)
+          } catch {}
+        }
+        const info = await fetchPlaceInfo(label, lat, lon)
+        // null = Wikidata جواب نداد؛ کش نمی‌شه تا دفعه‌ی بعد دوباره امتحان بشه
+        if (info && env.BACKUPS) {
+          ctx.waitUntil(env.BACKUPS.put(cacheKey, JSON.stringify(info), { expirationTtl: 30 * 86400 }).catch(() => {}))
+        }
+        return json(info || {}, 200, corsHeaders)
       }
 
       // ---- GET /api/films/:id/wikidata — داده‌های Wikidata یک فیلم، با کش در ستون wikidata ----
