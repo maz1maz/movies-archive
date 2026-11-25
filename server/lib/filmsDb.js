@@ -1320,6 +1320,67 @@ export async function fetchFilmTags(db, env, film) {
   return tags
 }
 
+// امتیاز Rotten Tomatoes و Metascore از OMDb برای یه فیلم؛ فقط فیلدهای خالی پر می‌شن.
+// بعد از هر تلاش کلید scores:<id> علامت می‌خوره تا تا ۳۰ روز دوباره پرسیده نشه.
+// خروجی: { rottenTomatoes, metascore, updated, quotaExceeded }
+export async function resolveOmdbScores(db, env, film) {
+  const current = { rottenTomatoes: film.rottenTomatoes || null, metascore: film.metascore ?? null }
+  if (!env.OMDB_API_KEY || !/^tt\d+$/.test(film.imdbId || '')) return { ...current, updated: false }
+  const res = await fetch(`https://www.omdbapi.com/?apikey=${env.OMDB_API_KEY}&i=${film.imdbId}`, { signal: AbortSignal.timeout(8000) })
+  try {
+    const today = new Date().toISOString().slice(0, 10)
+    await db
+      .prepare("INSERT INTO api_usage_daily (date, service, count) VALUES (?, 'omdb', 1) ON CONFLICT(date, service) DO UPDATE SET count = count + 1")
+      .bind(today)
+      .run()
+  } catch {}
+  if (!res.ok) return { ...current, updated: false, quotaExceeded: res.status === 401 }
+  const data = await res.json()
+  // سهمیه‌ی روزانه تموم شده: علامت نمی‌زنیم تا فردا دوباره امتحان بشه
+  if (data.Response === 'False' && /limit/i.test(data.Error || '')) return { ...current, updated: false, quotaExceeded: true }
+  const rt = Array.isArray(data.Ratings) ? data.Ratings.find((r) => r.Source === 'Rotten Tomatoes')?.Value || null : null
+  const ms = data.Metascore && data.Metascore !== 'N/A' ? parseInt(data.Metascore, 10) : null
+  const next = {
+    rottenTomatoes: current.rottenTomatoes || rt,
+    metascore: current.metascore ?? (Number.isNaN(ms) ? null : ms),
+  }
+  const updated = next.rottenTomatoes !== current.rottenTomatoes || next.metascore !== current.metascore
+  if (updated) {
+    await db.prepare('UPDATE films SET rottenTomatoes = ?, metascore = ? WHERE id = ?').bind(next.rottenTomatoes, next.metascore, film.id).run()
+  }
+  await db
+    .prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))")
+    .bind(`scores:${film.id}`)
+    .run()
+  return { ...next, updated }
+}
+
+// پر کردن تدریجی امتیازها برای همه‌ی فیلم‌ها (cron). سهمیه‌ی رایگان OMDb روزی ۱۰۰۰ تاست؛
+// این job روزانه حداکثر تا DAILY_BUDGET (شمارش کل مصرف OMDb همون روز) جلو می‌ره تا
+// برای افزودن فیلم و بقیه‌ی سایت جا بمونه.
+export async function backfillOmdbScores(db, env, limit = 30) {
+  if (!env.OMDB_API_KEY) return { skipped: 'no key' }
+  const DAILY_BUDGET = 700
+  const today = new Date().toISOString().slice(0, 10)
+  const used = await db.prepare("SELECT count FROM api_usage_daily WHERE date = ? AND service = 'omdb'").bind(today).first().catch(() => null)
+  const room = DAILY_BUDGET - (used?.count || 0)
+  if (room <= 0) return { skipped: 'daily budget' }
+  const { rows, scanned, wrapped } = await findPendingByCursor(db, {
+    job: 'scores',
+    columns: 'id, imdbId, rottenTomatoes, metascore',
+    where: "imdbId LIKE 'tt%' AND (rottenTomatoes IS NULL OR rottenTomatoes = '' OR metascore IS NULL)",
+    marker: 'scores:',
+    limit: Math.min(limit, room),
+  })
+  let updated = 0
+  for (const film of rows) {
+    const r = await resolveOmdbScores(db, env, film).catch(() => null)
+    if (r?.quotaExceeded) return { tried: rows.length, updated, scanned, wrapped, skipped: 'omdb quota' }
+    if (r?.updated) updated++
+  }
+  return { tried: rows.length, updated, scanned, wrapped }
+}
+
 export async function backfillFilmTags(db, env, limit = 20) {
   if (!env.TMDB_API_KEY) return { skipped: 'no key' }
   const { rows: results, scanned, wrapped } = await findPendingByCursor(db, {
