@@ -26,6 +26,7 @@ const NAMED = {
   'high middle ages': [1000, 1300],
   'late middle ages': [1300, 1500],
   'england in the high middle ages': [1066, 1272],
+  'england in the late middle ages': [1272, 1485],
   'first war of scottish independence': [1296, 1328],
   "hundred years' war": [1337, 1453],
   'muromachi period': [1336, 1573],
@@ -159,4 +160,14 @@ export function periodRange(label) {
 export function formatRange([a, b]) {
   const y = (n) => (n < 0 ? `${Math.abs(n).toLocaleString('en')} BC` : String(n))
   return a === b ? y(a) : `${y(a)}–${y(b)}`
+}
+
+// سرفصل قرنِ یه سال شروع، برای گروه‌بندی خط زمان و مایند مپ
+export function centuryBucket(start) {
+  if (start > 2026) return { key: 99999, label: 'Future' }
+  if (start < 1500) return { key: -99999, label: 'Before 1500' }
+  const c = Math.floor((start - 1) / 100)
+  const n = c + 1
+  const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'
+  return { key: c, label: `${n}${suffix} century` }
 }
