@@ -12110,6 +12110,6 @@ a.cine-collection-poster-btn {
 .ext-score-badge:hover { filter: brightness(1.15); }
 .ext-score-name { background: var(--brand); color: var(--brand-ink); padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: 900; letter-spacing: 0.3px; }
 .ext-score-val { color: var(--brand); font-size: 13.5px; font-weight: 900; }
-.ext-score-badge.rt { --brand: #fa320a; --brand-ink: #fff; }
+.ext-score-badge.rt { --brand: #fa320a; --brand-ink: #0b0b0b; }
 .ext-score-badge.mc { --brand: #e8e8e8; --brand-ink: #0b0b0b; }
-.ext-score-badge.mubi { --brand: #5a7fff; --brand-ink: #fff; }
+.ext-score-badge.mubi { --brand: #5a7fff; --brand-ink: #0b0b0b; }
