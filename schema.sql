@@ -58,7 +58,8 @@ CREATE TABLE IF NOT EXISTS films (
   screenwriter TEXT,                      -- نویسنده فیلمنامه
   cultClassic INTEGER DEFAULT 0,          -- برچسب فیلم کالت
   shootingLocation TEXT,                  -- لوکیشن فیلم‌برداری
-  shootingCoords TEXT,                    -- JSON: [{label,lat,lon}] مختصات لوکیشن‌ها (Wikidata P625)
+  shootingCoords TEXT,
+  wikidata TEXT,                          -- JSON: داده‌های اضافه از Wikidata (محل داستان، دوره، موضوع، گیشه، عنوان فارسی، ...)                    -- JSON: [{label,lat,lon}] مختصات لوکیشن‌ها (Wikidata P625)
   editionType TEXT,                       -- Theatrical / Extended / Director's Cut / ...
   festivalAwards TEXT,                    -- JSON: [{festival, award, year}]
   screeningFormat TEXT,                   -- 35mm / 70mm / IMAX / Digital / ...

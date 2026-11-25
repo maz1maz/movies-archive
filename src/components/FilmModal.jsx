@@ -39,6 +39,15 @@ function CollectionOrderButton({ title, year }) {
   )
 }
 
+// مبلغ دلاری کوتاه: 7000000 → $7M
+function formatUsd(n) {
+  if (!n) return null
+  if (n >= 1e9) return `$${(n / 1e9).toFixed(n >= 1e10 ? 0 : 1)}B`
+  if (n >= 1e6) return `$${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M`
+  if (n >= 1e3) return `$${Math.round(n / 1e3)}K`
+  return `$${n}`
+}
+
 export default function FilmModal({ film, films = [], archiveFilms = null, onNavigate, onSelectPerson, onManageLoan, onEdit, onClose, onRateFilm, panel = false, hasBluray = false, hasDigital = false, siblingFilm = null, onSaveSeasonDrive, onShowOnShelf }) {
   // films = لیست ناوبری (صفحه/بخش فعلی)؛ allFilms = کل آرشیو برای شمارش/تطبیق
   const allFilms = Array.isArray(archiveFilms) && archiveFilms.length ? archiveFilms : films
@@ -108,6 +117,7 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
   const [collectionLoading, setCollectionLoading] = useState(false)
   const [bookAdaptation, setBookAdaptation] = useState(null)
   const [shootingLocation, setShootingLocation] = useState(null)
+  const [wikidata, setWikidata] = useState(film?.wikidata && typeof film.wikidata === 'object' ? film.wikidata : null)
   const [festivalAwards, setFestivalAwards] = useState(Array.isArray(film?.festivalAwards) ? film.festivalAwards : [])
   const [altPosters, setAltPosters] = useState([])
   const [altPosterIndex, setAltPosterIndex] = useState(0)
@@ -355,6 +365,24 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
     }
   }, [film?.id, film?.shootingLocation])
 
+  // داده‌های اضافه از Wikidata (محل داستان، دوره، موضوع، نامزدی، گیشه،
+  // عنوان فارسی، لینک‌ها). اگه ستون wikidata هنوز پر نشده، سرور می‌گیره و کش می‌کنه.
+  useEffect(() => {
+    const cached = film?.wikidata && typeof film.wikidata === 'object' ? film.wikidata : null
+    setWikidata(cached)
+    if (!film?.id || cached || !film.imdbId) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/wikidata`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && data?.wikidata) setWikidata(data.wikidata)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [film?.id, film?.imdbId, film?.wikidata])
+
   // جوایز جشنواره‌ای — خودکار از Wikidata (P166). سرور خودش تشخیص می‌ده قبلاً
   // چک شده یا نه (raw column)، پس همیشه fetch می‌کنیم و سرور کشش رو مدیریت می‌کنه.
   useEffect(() => {
@@ -553,6 +581,11 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
     { label: 'Cinematography', value: film.cinematographer },
     { label: 'Country', value: film.country },
     { label: 'Filmed in', value: shootingLocation },
+    { label: 'Set in', value: wikidata?.setIn?.map((x) => x.label).join(', ') },
+    { label: 'Period', value: wikidata?.periods?.join(', ') },
+    { label: 'Color', value: wikidata?.color && wikidata.color !== 'color' ? wikidata.color : null },
+    { label: 'Budget', value: formatUsd(wikidata?.budget) },
+    { label: 'Box office', value: formatUsd(wikidata?.boxOffice) },
     { label: 'Edition', value: film.editionType },
     { label: 'Runtime', value: film.runtime ? `${film.runtime} mins (${runtimeText})` : null },
   ].filter((item) => item.value)
@@ -589,6 +622,17 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
           </div>
           {film.originalTitle && film.originalTitle.trim() && film.originalTitle.trim() !== film.title.trim() && (
             <p className="cine-original-title-line">{film.originalTitle}</p>
+          )}
+          {wikidata?.faTitle && wikidata.faTitle !== film.title && (
+            <p className="cine-original-title-line cine-fa-title" dir="rtl">
+              {wikidata.faWiki ? (
+                <a href={wikidata.faWiki} target="_blank" rel="noopener noreferrer" title="ویکی‌پدیای فارسی">
+                  {wikidata.faTitle}
+                </a>
+              ) : (
+                wikidata.faTitle
+              )}
+            </p>
           )}
           {metaSubParts.length > 0 && (
             <p className="cine-subtitle">{metaSubParts.join(' | ')}</p>
@@ -918,6 +962,39 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                   }.`}
               </p>
             </div>
+
+            {wikidata?.subjects?.length > 0 && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">THEMES</div>
+                <div className="cine-wd-chips">
+                  {wikidata.subjects.map((t) => (
+                    <span key={t} className="cine-wd-chip">{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {wikidata?.nominations?.length > 0 && (
+              <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
+                <div className="cine-section-label">NOMINATIONS ({wikidata.nominations.length})</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4, maxHeight: 200, overflowY: 'auto' }}>
+                  {wikidata.nominations.map((n) => (
+                    <p key={n} style={{ margin: 0, fontSize: 13.5 }}>
+                      {n.startsWith('Academy Award') ? '🏆 ' : '• '}
+                      {n}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {wikidata?.links && (
+              <div className="cine-wd-links">
+                {wikidata.links.mubi && <a href={wikidata.links.mubi} target="_blank" rel="noopener noreferrer">MUBI</a>}
+                {wikidata.links.rottenTomatoes && <a href={wikidata.links.rottenTomatoes} target="_blank" rel="noopener noreferrer">Rotten Tomatoes</a>}
+                {wikidata.links.metacritic && <a href={wikidata.links.metacritic} target="_blank" rel="noopener noreferrer">Metacritic</a>}
+              </div>
+            )}
 
             {festivalAwards.length > 0 && (
               <div className="cine-collection-box" style={{ padding: '10px 16px' }}>
