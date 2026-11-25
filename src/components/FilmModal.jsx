@@ -971,8 +971,8 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                 const mc = scores.metascore != null && String(scores.metascore).trim() !== '' ? Number(scores.metascore) : null
                 const mcTone = mc == null ? '' : mc >= 61 ? ' good' : mc >= 40 ? ' mixed' : ' bad'
                 const items = [
-                  links.rottenTomatoes && { key: 'rt', href: links.rottenTomatoes, name: 'Rotten Tomatoes', short: 'RT', value: rt, title: 'Rotten Tomatoes' },
-                  links.metacritic && { key: `mc${mcTone}`, href: links.metacritic, name: 'Metacritic', short: 'MC', value: mc != null && !Number.isNaN(mc) ? String(mc) : null, title: 'Metacritic (Metascore)' },
+                  links.rottenTomatoes && { key: 'rt', href: links.rottenTomatoes, name: 'Rotten Tomatoes', short: 'Rotten', value: rt, title: 'Rotten Tomatoes' },
+                  links.metacritic && { key: `mc${mcTone}`, href: links.metacritic, name: 'Metacritic', short: 'Meta', value: mc != null && !Number.isNaN(mc) ? String(mc) : null, title: 'Metacritic (Metascore)' },
                   links.mubi && { key: 'mubi', href: links.mubi, name: 'MUBI', short: 'MUBI', value: null, title: 'MUBI' },
                 ].filter(Boolean)
                 return items.map((it) => (
