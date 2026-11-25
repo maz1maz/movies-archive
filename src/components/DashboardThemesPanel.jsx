@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import DashboardPosterCard from './DashboardPosterCard.jsx'
 import { periodRange, formatRange, centuryBucket } from '../utils/periodYears.js'
 import PeriodMindMap from './PeriodMindMap.jsx'
+import BoxOfficePanel from './BoxOfficePanel.jsx'
 
 // تب «Themes» — همه از ستون wikidata (Wikidata):
 // موضوع اصلی (P921)، دوره‌ی زمانی داستان (P2408)، سیاه‌وسفید (P462)،
@@ -135,18 +136,6 @@ export default function DashboardThemesPanel({ films, onOpenFilm }) {
   const subjects = useMemo(() => groupBy(withData, (f) => f.wikidata.subjects), [withData])
   const periods = useMemo(() => groupBy(withData, (f) => f.wikidata.periods), [withData])
   const bw = useMemo(() => withData.filter((f) => f.wikidata.color === 'black-and-white').sort((a, b) => (a.year || 0) - (b.year || 0)), [withData])
-  const money = useMemo(() => {
-    const rows = withData.filter((f) => f.wikidata.boxOffice)
-    const topGross = [...rows].sort((a, b) => b.wikidata.boxOffice - a.wikidata.boxOffice).slice(0, 24)
-    // نسبت فروش به بودجه — فقط وقتی هر دو هست؛ بودجه‌ی خیلی کم (<۱۰۰هزار) نسبت‌های بی‌معنی می‌سازه.
-    const topRatio = rows
-      .filter((f) => f.wikidata.budget >= 100000)
-      .map((f) => ({ film: f, ratio: f.wikidata.boxOffice / f.wikidata.budget }))
-      .sort((a, b) => b.ratio - a.ratio)
-      .slice(0, 24)
-    return { topGross, topRatio }
-  }, [withData])
-
   const tabs = [
     ['subjects', `Themes (${subjects.length})`],
     ['periods', `Periods (${periods.length})`],
@@ -207,18 +196,7 @@ export default function DashboardThemesPanel({ films, onOpenFilm }) {
           </div>
         )}
         {view === 'bw' && <FilmGrid films={bw} onOpenFilm={onOpenFilm} />}
-        {view === 'money' && (
-          <>
-            <h2>پرفروش‌ترین‌ها</h2>
-            <FilmGrid films={money.topGross} onOpenFilm={onOpenFilm} subtitleFor={(f) => formatUsd(f.wikidata.boxOffice)} />
-            <h2>بیشترین سود نسبت به بودجه</h2>
-            <FilmGrid
-              films={money.topRatio.map((r) => r.film)}
-              onOpenFilm={onOpenFilm}
-              subtitleFor={(f) => `×${Math.round(f.wikidata.boxOffice / f.wikidata.budget)} · ${formatUsd(f.wikidata.budget)} → ${formatUsd(f.wikidata.boxOffice)}`}
-            />
-          </>
-        )}
+        {view === 'money' && <BoxOfficePanel films={films} onOpenFilm={onOpenFilm} onPick={setPicked} />}
         {withData.length === 0 && <p className="oscars-intro" dir="rtl">هنوز داده‌ای نیست.</p>}
       </section>
     </div>

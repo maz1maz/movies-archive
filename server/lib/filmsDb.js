@@ -367,6 +367,8 @@ export async function resolveShootingCoords(db, film) {
 // و ستون NULL می‌مونه تا دفعه‌ی بعد دوباره امتحان بشه.
 const WD_ITEM_PROPS = { P840: 'setIn', P2408: 'periods', P921: 'subjects', P1411: 'nominations', P462: 'color' }
 const WD_USD = 'http://www.wikidata.org/entity/Q4917'
+const WD_WORLDWIDE = 'http://www.wikidata.org/entity/Q13780930'
+const WD_US = 'http://www.wikidata.org/entity/Q30'
 
 async function wikidataSparql(query) {
   const res = await fetch(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(query)}`, {
@@ -399,11 +401,11 @@ export async function fetchWikidataExtras(imdbId) {
     OPTIONAL { ?v wdt:P625 ?coord. }
     SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
   } LIMIT 200`
-  const scalarQuery = `SELECT ?faTitle ?faWiki ?box ?boxUnit ?budget ?budgetUnit ?mubi ?rt ?mc WHERE {
+  const scalarQuery = `SELECT ?faTitle ?faWiki ?box ?boxUnit ?boxPlace ?budget ?budgetUnit ?mubi ?rt ?mc WHERE {
     ?f wdt:P345 "${imdbId}".
     OPTIONAL { ?f rdfs:label ?faTitle FILTER(lang(?faTitle) = "fa") }
     OPTIONAL { ?faWiki schema:about ?f; schema:isPartOf <https://fa.wikipedia.org/> }
-    OPTIONAL { ?f p:P2142/psv:P2142 [ wikibase:quantityAmount ?box; wikibase:quantityUnit ?boxUnit ] }
+    OPTIONAL { ?f p:P2142 ?boxSt. ?boxSt psv:P2142 [ wikibase:quantityAmount ?box; wikibase:quantityUnit ?boxUnit ]. OPTIONAL { ?boxSt pq:P3005 ?boxPlace } }
     OPTIONAL { ?f p:P2130/psv:P2130 [ wikibase:quantityAmount ?budget; wikibase:quantityUnit ?budgetUnit ] }
     OPTIONAL { ?f wdt:P7299 ?mubi }
     OPTIONAL { ?f wdt:P1258 ?rt }
@@ -437,10 +439,12 @@ export async function fetchWikidataExtras(imdbId) {
   }
 
   // چند ردیف به‌خاطر ضرب OPTIONALها؛ برای گیشه/بودجه بزرگ‌ترین مقدار دلاری.
-  const maxUsd = (rows, val, unit) => {
+  // place: فقط ردیف‌هایی که قید «معتبر در» (P3005) شون این مکانه.
+  const maxUsd = (rows, val, unit, place) => {
     let best = null
     for (const r of rows) {
       if (r[unit]?.value !== WD_USD) continue
+      if (place && r.boxPlace?.value !== place) continue
       const n = Number(r[val]?.value)
       if (Number.isFinite(n) && n > 0 && (best == null || n > best)) best = n
     }
@@ -450,6 +454,11 @@ export async function fetchWikidataExtras(imdbId) {
   const boxOffice = maxUsd(scalars, 'box', 'boxUnit')
   const budget = maxUsd(scalars, 'budget', 'budgetUnit')
   if (boxOffice) out.boxOffice = boxOffice
+  // گیشه‌ی جهانی و آمریکا جدا؛ boxOffice بالا بزرگ‌ترین عدده و ممکنه هر کدوم باشه
+  const boxWorld = maxUsd(scalars, 'box', 'boxUnit', WD_WORLDWIDE)
+  const boxUS = maxUsd(scalars, 'box', 'boxUnit', WD_US)
+  if (boxWorld) out.boxOfficeWorld = boxWorld
+  if (boxUS) out.boxOfficeUS = boxUS
   if (budget) out.budget = budget
   // برچسب فارسی Wikidata نیم‌فاصله (ZWNJ) نداره («بچههای آسمان»)؛ عنوان مقاله‌ی
   // ویکی‌پدیای فارسی درسته («بچه‌های آسمان»)، پس اول از اون استفاده می‌کنیم.
@@ -461,6 +470,62 @@ export async function fetchWikidataExtras(imdbId) {
   if (first('rt')) links.rottenTomatoes = `https://www.rottentomatoes.com/${first('rt')}`
   if (first('mc')) links.metacritic = `https://www.metacritic.com/${first('mc')}`
   if (Object.keys(links).length) out.links = links
+  return out
+}
+
+// اطلاعات یه مکان روی نقشه (کارت مکان): عکس، توضیح، نوع، کشور، جمعیت، ویکی‌پدیا.
+// مکان با اسم انگلیسی + مختصات P625 خودش پیدا می‌شه (مختصات ذخیره‌شده‌ی ما از
+// همون آیتم اومده، پس شعاع ۲ کیلومتر کافیه و با هم‌نام‌های دیگه قاطی نمی‌شه).
+export async function fetchPlaceInfo(label, lat, lon) {
+  const clean = String(label || '').slice(0, 200)
+  if (!clean || !Number.isFinite(lat) || !Number.isFinite(lon)) return null
+  const lit = clean.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  // اگه چند آیتم هم‌نام همون‌جا باشن (مثلاً «New York City» شهر و یه ضرابخونه)،
+  // اونی که بیشترین لینک ویکی‌پدیا داره انتخاب می‌شه
+  const query = `SELECT ?item ?desc ?faLabel ?faDesc ?image ?typeLabel ?countryLabel ?pop ?enwiki ?fawiki WHERE {
+    {
+      SELECT ?item WHERE {
+        SERVICE wikibase:around {
+          ?item wdt:P625 ?loc.
+          bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral; wikibase:radius "2".
+        }
+        ?item rdfs:label "${lit}"@en; wikibase:sitelinks ?links.
+      } ORDER BY DESC(?links) LIMIT 1
+    }
+    OPTIONAL { ?item schema:description ?desc FILTER(lang(?desc) = "en") }
+    OPTIONAL { ?item rdfs:label ?faLabel FILTER(lang(?faLabel) = "fa") }
+    OPTIONAL { ?item schema:description ?faDesc FILTER(lang(?faDesc) = "fa") }
+    OPTIONAL { ?item wdt:P18 ?image }
+    OPTIONAL { ?item wdt:P31 ?type }
+    OPTIONAL { ?item wdt:P17 ?country }
+    OPTIONAL { ?item wdt:P1082 ?pop }
+    OPTIONAL { ?enwiki schema:about ?item; schema:isPartOf <https://en.wikipedia.org/> }
+    OPTIONAL { ?fawiki schema:about ?item; schema:isPartOf <https://fa.wikipedia.org/> }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "en". ?type rdfs:label ?typeLabel. ?country rdfs:label ?countryLabel. }
+  } LIMIT 40`
+  let rows
+  try {
+    rows = await wikidataSparql(query)
+  } catch {
+    return null
+  }
+  if (!rows.length) return {}
+  const first = (k) => rows.find((r) => r[k]?.value)?.[k]?.value
+  const out = { wikidataUrl: first('item') }
+  if (first('desc')) out.description = first('desc')
+  if (first('faDesc')) out.faDescription = first('faDesc')
+  const fawiki = first('fawiki')
+  // عنوان مقاله‌ی ویکی‌پدیای فارسی نیم‌فاصله‌ی درست داره، برچسب Wikidata نه
+  const faLabel = faTitleFromWikiUrl(fawiki) || first('faLabel')
+  if (faLabel) out.faLabel = faLabel
+  if (first('image')) out.image = `${first('image').replace(/^http:/, 'https:')}?width=480`
+  const types = [...new Set(rows.map((r) => r.typeLabel?.value).filter((t) => t && !/^Q\d+$/.test(t)))].slice(0, 2)
+  if (types.length) out.types = types
+  if (first('countryLabel') && !/^Q\d+$/.test(first('countryLabel'))) out.country = first('countryLabel')
+  const pops = rows.map((r) => Number(r.pop?.value)).filter((n) => n > 0)
+  if (pops.length) out.population = Math.max(...pops)
+  if (first('enwiki')) out.enwiki = first('enwiki')
+  if (fawiki) out.fawiki = fawiki
   return out
 }
 

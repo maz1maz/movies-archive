@@ -12037,3 +12037,60 @@ a.cine-collection-poster-btn {
 .mm-toolbar button { min-width: 32px; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--surface-3, rgba(127, 127, 127, 0.3)); background: var(--surface-2, rgba(30, 30, 30, 0.85)); color: var(--text); font: 600 13px system-ui, sans-serif; cursor: pointer; }
 .mm-toolbar button:hover { border-color: var(--accent); }
 .mm-hint { position: absolute; left: 12px; bottom: 10px; font-size: 11.5px; color: var(--muted); pointer-events: none; }
+
+/* بخش Box office (تب Themes) */
+.bo-panel { display: flex; flex-direction: column; gap: 14px; }
+.bo-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.bo-adjust { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.bo-adjust input { accent-color: var(--accent); width: 16px; height: 16px; }
+.bo-scatter-wrap { position: relative; border-radius: 14px; border: 1px solid var(--surface-3, rgba(127, 127, 127, 0.18)); padding: 8px; background: var(--surface-1, rgba(127, 127, 127, 0.04)); }
+.bo-scatter { width: 100%; height: auto; display: block; }
+.bo-grid { stroke: rgba(127, 127, 127, 0.16); stroke-width: 1; }
+.bo-tick { font-size: 11px; fill: var(--muted); }
+.bo-axis { font-size: 12px; font-weight: 700; fill: var(--muted); letter-spacing: 0.04em; }
+.bo-line-even { stroke: var(--text); stroke-opacity: 0.45; stroke-width: 1.4; fill: none; }
+.bo-line-real { stroke: var(--accent); stroke-opacity: 0.7; stroke-width: 1.2; stroke-dasharray: 5 5; fill: none; }
+.bo-line-label { font-size: 11px; fill: var(--muted); }
+.bo-dot { cursor: pointer; fill-opacity: 0.6; stroke: none; transition: r 0.12s; }
+.bo-dot.hit { fill: #3fb27f; }
+.bo-dot.even { fill: var(--accent); }
+.bo-dot.flop { fill: #e05a5a; }
+.bo-dot.active { fill-opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+.bo-tooltip { position: absolute; top: 14px; left: 80px; padding: 8px 12px; border-radius: 10px; font-size: 13px; line-height: 1.45; background: var(--surface-2, rgba(20, 20, 20, 0.92)); border: 1px solid var(--surface-3, rgba(127, 127, 127, 0.3)); pointer-events: none; }
+.bo-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding: 6px 10px 2px; }
+.bo-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.bo-legend i.hit { background: #3fb27f; }
+.bo-legend i.even { background: var(--accent); }
+.bo-legend i.flop { background: #e05a5a; }
+.bo-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 900px) { .bo-two-col { grid-template-columns: 1fr; } }
+.bo-bars { display: flex; flex-direction: column; gap: 4px; }
+.bo-bar-row { display: grid; grid-template-columns: minmax(110px, 200px) 1fr 120px; align-items: center; gap: 10px; padding: 4px 8px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.bo-bar-row:hover { background: var(--surface-2, rgba(127, 127, 127, 0.12)); }
+.bo-bar-label { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bo-bar-track { height: 10px; border-radius: 5px; background: rgba(127, 127, 127, 0.12); overflow: hidden; }
+.bo-bar { display: block; height: 100%; border-radius: 5px; background: var(--accent); }
+.bo-bar-value { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
+
+/* کارت مکان روی نقشه */
+.place-card { display: flex; gap: 18px; margin: 16px 0 6px; padding: 14px; border-radius: 16px; border: 1px solid var(--surface-3, rgba(127, 127, 127, 0.2)); background: var(--surface-1, rgba(127, 127, 127, 0.05)); scroll-margin-top: 80px; }
+.place-card-img { flex: 0 0 220px; width: 220px; height: 150px; object-fit: cover; border-radius: 12px; background: rgba(127, 127, 127, 0.12); }
+.place-card-img-empty { display: flex; align-items: center; justify-content: center; font-size: 34px; }
+.place-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.place-card-titles { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; }
+.oscars-panel .place-card h2.place-card-name, .place-card-name { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); text-transform: none; }
+.place-card-fa { font-size: 20px; font-weight: 600; color: var(--accent); }
+.place-card-meta { font-size: 13px; font-weight: 600; color: var(--accent); text-transform: capitalize; }
+.place-card-desc { margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.place-card-loading { opacity: 0.6; }
+.place-card-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.place-card-stats span { font-size: 12.5px; padding: 4px 10px; border-radius: 999px; background: rgba(127, 127, 127, 0.14); color: var(--muted); }
+.place-card-stats strong { color: var(--text); margin-right: 3px; }
+.place-card-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+.place-card-links a { font-size: 12.5px; padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(127, 127, 127, 0.35); color: inherit; text-decoration: none; }
+.place-card-links a:hover { border-color: var(--accent); color: var(--accent); }
+@media (max-width: 640px) {
+  .place-card { flex-direction: column; }
+  .place-card-img { width: 100%; flex-basis: auto; height: 170px; }
+}
+.place-card-desc[dir="rtl"] { text-align: left; }

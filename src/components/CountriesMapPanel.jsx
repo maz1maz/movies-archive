@@ -4,6 +4,7 @@ import { feature } from 'topojson-client'
 import worldTopo from 'world-atlas/countries-110m.json'
 import { aggregateFilmsByCountry } from '../utils/countryGeo.js'
 import DashboardPosterCard from './DashboardPosterCard.jsx'
+import PlaceCard from './PlaceCard.jsx'
 
 const WIDTH = 960
 const HEIGHT = 500
@@ -219,7 +220,7 @@ export default function CountriesMapPanel({ films, onOpenFilm, onFilmsChanged })
         </div>
         {mode !== 'countries' && pin && pinLists && (
           <>
-            <h2>{pin.label}</h2>
+            <PlaceCard pin={pin} setCount={pinLists.setHere.length} filmedCount={pinLists.filmedHere.length} />
             {[
               ['setHere', 'Set here'], // داستانش اینجاست
               ['filmedHere', 'Filmed here'], // اینجا فیلم‌برداری شده
