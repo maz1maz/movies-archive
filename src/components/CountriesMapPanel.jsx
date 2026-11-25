@@ -31,7 +31,8 @@ export default function CountriesMapPanel({ films, onOpenFilm, onFilmsChanged })
         if (typeof c.lat !== 'number' || typeof c.lon !== 'number') continue
         const key = `${c.lat.toFixed(2)},${c.lon.toFixed(2)}`
         const entry = map.get(key) || { key, label: c.label, lat: c.lat, lon: c.lon, films: [] }
-        entry.films.push(film)
+        // بلوری و دیجیتالِ یه فیلم یک بار نشون داده بشه
+        if (!entry.films.some((f) => (f.imdbId && f.imdbId === film.imdbId) || f.id === film.id)) entry.films.push(film)
         map.set(key, entry)
       }
     }

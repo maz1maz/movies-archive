@@ -39,6 +39,13 @@ function CollectionOrderButton({ title, year }) {
   )
 }
 
+// فیلم ایرانی: عنوان اورجینال خودش فارسیه؛ عنوان فارسی Wikidata تکراری نشون داده نشه
+// (نیم‌فاصله، فاصله و ی/ک عربی در مقایسه نادیده گرفته می‌شن).
+function sameFaTitle(a, b) {
+  const norm = (x) => (x || '').replace(/[\u200c\s]/g, '').replace(/ي/g, 'ی').replace(/ك/g, 'ک')
+  return Boolean(a && b) && norm(a) === norm(b)
+}
+
 // مبلغ دلاری کوتاه: 7000000 → $7M
 function formatUsd(n) {
   if (!n) return null
@@ -623,7 +630,7 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
           {film.originalTitle && film.originalTitle.trim() && film.originalTitle.trim() !== film.title.trim() && (
             <p className="cine-original-title-line">{film.originalTitle}</p>
           )}
-          {wikidata?.faTitle && wikidata.faTitle !== film.title && (
+          {wikidata?.faTitle && !sameFaTitle(wikidata.faTitle, film.title) && !sameFaTitle(wikidata.faTitle, film.originalTitle) && (
             // زیر عنوان اصلی/اورجینال، هم‌تراز با اون‌ها (چپ)؛ فقط خود متن راست‌به‌چپه
             <p className="cine-original-title-line cine-fa-title">
               <bdi dir="rtl">

@@ -11982,3 +11982,8 @@ a.cine-collection-poster-btn {
 .cine-wd-links a { font-size: 12.5px; padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(127, 127, 127, 0.35); color: inherit; text-decoration: none; }
 .cine-wd-links a:hover { border-color: currentColor; }
 .countries-map-pin.setin { fill: #3b82f6; }
+
+/* فیلتر تم (Wikidata) در پنل فیلترها */
+.theme-filter { position: relative; }
+.theme-filter input { width: 100%; padding-right: 28px; }
+.theme-filter-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; line-height: 1; }
