@@ -1794,6 +1794,47 @@ async function handleFetch(request, env, ctx) {
         return json({ processed: (batch.results || []).length, failed, remaining: remaining?.count || 0 }, 200, corsHeaders)
       }
 
+      // ---- GET /api/films/:id/scores — امتیاز Rotten Tomatoes و Metascore از OMDb ----
+      // فقط وقتی یکی‌شون خالیه. بعد از هر تلاش، ۳۰ روز دوباره پرسیده نمی‌شه
+      // (کلید scores:<id>) تا سهمیه‌ی روزانه‌ی OMDb هدر نره. نتیجه تو خود فیلم ذخیره می‌شه.
+      const scoresMatch = pathname.match(/^\/api\/films\/([^/]+)\/scores$/)
+      if (method === 'GET' && scoresMatch) {
+        try {
+          const film = await db.prepare('SELECT id, imdbId, rottenTomatoes, metascore FROM films WHERE id = ?').bind(scoresMatch[1]).first()
+          if (!film) return json({}, 200, corsHeaders)
+          const current = { rottenTomatoes: film.rottenTomatoes || null, metascore: film.metascore ?? null }
+          if ((current.rottenTomatoes && current.metascore != null) || !/^tt\d+$/.test(film.imdbId || '') || !env.OMDB_API_KEY) {
+            return json(current, 200, corsHeaders)
+          }
+          const markKey = `scores:${film.id}`
+          const mark = await db.prepare('SELECT fetchedAt FROM cinema_news_cache WHERE key = ?').bind(markKey).first()
+          if (mark && Date.now() - Date.parse(mark.fetchedAt.replace(' ', 'T') + 'Z') < 30 * 86400000) {
+            return json(current, 200, corsHeaders)
+          }
+          const res = await fetch(`https://www.omdbapi.com/?apikey=${env.OMDB_API_KEY}&i=${film.imdbId}`, { signal: AbortSignal.timeout(8000) })
+          if (!res.ok) return json(current, 200, corsHeaders)
+          ctx.waitUntil(bumpApiUsage('omdb'))
+          const data = await res.json()
+          const rt = Array.isArray(data.Ratings) ? data.Ratings.find((r) => r.Source === 'Rotten Tomatoes')?.Value || null : null
+          const ms = data.Metascore && data.Metascore !== 'N/A' ? parseInt(data.Metascore, 10) : null
+          const next = {
+            rottenTomatoes: current.rottenTomatoes || rt,
+            metascore: current.metascore ?? (Number.isNaN(ms) ? null : ms),
+          }
+          if (next.rottenTomatoes !== current.rottenTomatoes || next.metascore !== current.metascore) {
+            await db.prepare('UPDATE films SET rottenTomatoes = ?, metascore = ? WHERE id = ?').bind(next.rottenTomatoes, next.metascore, film.id).run()
+            ctx.waitUntil(invalidateFilmsCache(env, false, false))
+          }
+          // OMDb اگه سهمیه تموم شده باشه Response: False برمی‌گردونه؛ اون‌وقت علامت نمی‌زنیم
+          if (data.Response !== 'False') {
+            await db.prepare("INSERT OR REPLACE INTO cinema_news_cache (key, data, fetchedAt) VALUES (?, '1', datetime('now'))").bind(markKey).run()
+          }
+          return json(next, 200, corsHeaders)
+        } catch (e) {
+          return json({ error: String(e) }, 200, corsHeaders)
+        }
+      }
+
       // ---- GET /api/place?label=&lat=&lon= — کارت مکان روی نقشه (Wikidata)، کش ۳۰ روزه در KV ----
       if (method === 'GET' && pathname === '/api/place') {
         const label = (url.searchParams.get('label') || '').slice(0, 200)
