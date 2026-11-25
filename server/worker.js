@@ -1782,10 +1782,22 @@ async function handleFetch(request, env, ctx) {
       const wikidataMatch = pathname.match(/^\/api\/films\/([^/]+)\/wikidata$/)
       if (method === 'GET' && wikidataMatch) {
         try {
-          const film = await db.prepare('SELECT id, imdbId, wikidata FROM films WHERE id = ?').bind(wikidataMatch[1]).first()
+          const film = await db.prepare('SELECT id, imdbId, wikidata, shootingCoords, shootingLocation FROM films WHERE id = ?').bind(wikidataMatch[1]).first()
           if (!film) return json({ wikidata: null }, 200, corsHeaders)
-          if (film.wikidata != null) return json({ wikidata: JSON.parse(film.wikidata || '{}') }, 200, corsHeaders)
-          const wikidata = await resolveWikidataExtras(db, film)
+          // مختصات مکان فیلم‌برداری (برای نقطه‌ی نقشه) هم اگه هنوز گرفته نشده،
+          // همین‌جا؛ وگرنه فیلمی که پر شدن پس‌زمینه‌اش ناموفق بوده، روی نقشه نمیومد.
+          // پاک کردن کش لیست فیلم‌ها بعد از جواب، تا نقطه روی نقشه دیده بشه.
+          const fillCoords = film.shootingCoords == null && film.imdbId
+          const coordsTask = fillCoords ? resolveShootingCoords(db, film) : null
+          let wikidata
+          if (film.wikidata != null) {
+            wikidata = JSON.parse(film.wikidata || '{}')
+          } else {
+            wikidata = await resolveWikidataExtras(db, film)
+          }
+          if (coordsTask || film.wikidata == null) {
+            ctx.waitUntil(Promise.resolve(coordsTask).then(() => invalidateFilmsCache(env, false, false)).catch(() => {}))
+          }
           return json({ wikidata }, 200, corsHeaders)
         } catch (e) {
           return json({ wikidata: null, error: String(e) }, 200, corsHeaders)
