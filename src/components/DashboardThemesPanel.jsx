@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import DashboardPosterCard from './DashboardPosterCard.jsx'
+import { periodRange, formatRange } from '../utils/periodYears.js'
 
 // تب «Themes» — همه از ستون wikidata (Wikidata):
 // موضوع اصلی (P921)، دوره‌ی زمانی داستان (P2408)، سیاه‌وسفید (P462)،
@@ -28,6 +29,8 @@ function groupBy(films, pick) {
   const map = new Map()
   for (const f of films) {
     for (const label of pick(f) || []) {
+      // گره‌های بی‌نام Wikidata (genid) برچسب ندارن و URL خام برمی‌گردونن
+      if (!label || label.startsWith('http')) continue
       if (!map.has(label)) map.set(label, [])
       map.get(label).push(f)
     }
@@ -50,6 +53,80 @@ function FilmGrid({ films, onOpenFilm, subtitleFor }) {
           onClick={() => onOpenFilm(film)}
         />
       ))}
+    </div>
+  )
+}
+
+// خط زمان دوره‌ها: هر دوره با سال شروعش مرتب می‌شه و زیر سرفصل قرن خودش
+// میاد؛ طول نوار = تعداد فیلم. دوره‌ی بلندتر (قرن) قبل از کوتاه‌تر (دهه/سال)
+// با همون شروع. اونایی که سال‌شون معلوم نیست آخر، زیر «Other».
+function bucketOf(start) {
+  if (start > 2026) return { key: 99999, label: 'Future' }
+  if (start < 1500) return { key: -99999, label: 'Before 1500' }
+  const c = Math.floor((start - 1) / 100)
+  const n = c + 1
+  const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'
+  return { key: c, label: `${n}${suffix} century` }
+}
+
+function PeriodTimeline({ periods, onPick }) {
+  const { buckets, other, max } = useMemo(() => {
+    const dated = []
+    const other = []
+    for (const g of periods) {
+      const range = periodRange(g.label)
+      if (range) dated.push({ ...g, range })
+      else other.push(g)
+    }
+    dated.sort((a, b) => a.range[0] - b.range[0] || b.range[1] - b.range[0] - (a.range[1] - a.range[0]) || b.films.length - a.films.length)
+    const buckets = []
+    for (const g of dated) {
+      const b = bucketOf(g.range[0])
+      let last = buckets[buckets.length - 1]
+      if (!last || last.key !== b.key) buckets.push((last = { ...b, rows: [] }))
+      last.rows.push(g)
+    }
+    const max = Math.max(1, ...dated.map((g) => g.films.length))
+    return { buckets, other, max }
+  }, [periods])
+
+  const spanClass = ([a, b]) => (b - a >= 90 ? 'span-long' : b - a >= 9 ? 'span-mid' : 'span-short')
+
+  return (
+    <div className="period-timeline">
+      <div className="period-legend">
+        <span><i className="span-long" /> Century / era</span>
+        <span><i className="span-mid" /> Decade / long event</span>
+        <span><i className="span-short" /> Year / event</span>
+      </div>
+      {buckets.map((b) => (
+        <div key={b.key} className="period-bucket">
+          <div className="period-bucket-label">{b.label}</div>
+          {b.rows.map((g) => (
+            <button key={g.label} className="period-row" onClick={() => onPick(g)} title={`${g.label} — ${g.films.length}`}>
+              <span className="period-range">{formatRange(g.range)}</span>
+              <span className="period-name">{g.label}</span>
+              <span className="period-bar-track">
+                <span className={`period-bar ${spanClass(g.range)}`} style={{ width: `${Math.max(2, (g.films.length / max) * 100)}%` }} />
+              </span>
+              <span className="period-count">{g.films.length}</span>
+            </button>
+          ))}
+        </div>
+      ))}
+      {other.length > 0 && (
+        <div className="period-bucket">
+          <div className="period-bucket-label">Other</div>
+          <div className="countries-list-grid">
+            {other.map((g) => (
+              <button key={g.label} className="countries-list-item" onClick={() => onPick(g)}>
+                <span className="countries-list-name">{g.label}</span>
+                <span className="countries-list-count">{g.films.length}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -99,7 +176,7 @@ export default function DashboardThemesPanel({ films, onOpenFilm }) {
     <div className="oscars-panel">
       <div className="card oscars-controls">
         <p className="oscars-intro" dir="rtl">
-          {withData.length} فیلم داده‌ی Wikidata دارن. برای پر کردن بقیه، از تب Countries دکمه‌ی «پر کردن از Wikidata» رو بزن.
+          {withData.length} فیلم داده‌ی Wikidata دارن. روی هر مورد کلیک کن تا فیلم‌هاش رو ببینی.
         </p>
         <div className="countries-map-modes">
           {tabs.map(([key, label]) => (
@@ -110,9 +187,10 @@ export default function DashboardThemesPanel({ films, onOpenFilm }) {
         </div>
       </div>
       <section>
-        {(view === 'subjects' || view === 'periods') && (
+        {view === 'periods' && <PeriodTimeline periods={periods} onPick={setPicked} />}
+        {view === 'subjects' && (
           <div className="countries-list-grid">
-            {(view === 'subjects' ? subjects : periods).slice(0, 80).map((g) => (
+            {subjects.slice(0, 80).map((g) => (
               <button key={g.label} className="countries-list-item" onClick={() => setPicked(g)}>
                 <span className="countries-list-name">{g.label}</span>
                 <span className="countries-list-count">{g.films.length}</span>

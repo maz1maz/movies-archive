@@ -1616,6 +1616,23 @@ export default function App() {
         </>
       )}
 
+      {/* داشبورد، Year in Film، Gallery و Cinema News فرم ویرایش خودشون رو
+          نداشتن؛ دکمه‌ی Edit کارت فیلم اونجا کاری نمی‌کرد و فرم بعداً تو صفحه‌ی
+          کارت‌ها باز می‌شد. */}
+      {editing && ['dashboard', 'year-in-film', 'movements', 'gallery', 'cinema-news', 'special-collections'].includes(section) && (
+        <EditModal
+          film={editing}
+          onClose={() => setEditing(null)}
+          existingFilms={allFilmsUnfiltered}
+          onSave={(patch) => handleSaveFilm(editing.id, patch)}
+          onAutofill={() => handleAutofillFilm(editing.id)}
+          onDelete={handleDeleteFilm}
+        />
+      )}
+      {loanFilm && ['dashboard', 'year-in-film', 'movements', 'gallery', 'cinema-news', 'special-collections'].includes(section) && (
+        <LoanModal film={loanFilm} onClose={() => setLoanFilm(null)} onSaveLoan={(id, patch) => handleSaveFilm(id, patch)} />
+      )}
+
       {showLocationBrowser && (
         <Suspense fallback={<div className="dashboard-panel-loading">Loading…</div>}>
           <LocationBrowserModal

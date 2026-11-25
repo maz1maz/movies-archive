@@ -193,6 +193,9 @@ export default function DashboardOverview({ films, onOpenFilm, onOpenPerson, isA
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean)
+        // «7» و «Drive 7» هر دو تو دیتابیس هستن؛ یکی حساب بشن
+        .map((d) => d.replace(/^(?:drive\s*)?(\d+)$/i, 'Drive $1'))
+        .filter((d, i, arr) => arr.indexOf(d) === i)
         .forEach((d) => {
           driveCounts[d] = (driveCounts[d] || 0) + 1
         })
