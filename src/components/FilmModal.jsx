@@ -125,6 +125,7 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
   const [bookAdaptation, setBookAdaptation] = useState(null)
   const [shootingLocation, setShootingLocation] = useState(null)
   const [wikidata, setWikidata] = useState(film?.wikidata && typeof film.wikidata === 'object' ? film.wikidata : null)
+  const [scores, setScores] = useState({ rottenTomatoes: film?.rottenTomatoes || null, metascore: film?.metascore ?? null })
   const [festivalAwards, setFestivalAwards] = useState(Array.isArray(film?.festivalAwards) ? film.festivalAwards : [])
   const [altPosters, setAltPosters] = useState([])
   const [altPosterIndex, setAltPosterIndex] = useState(0)
@@ -389,6 +390,25 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
       cancelled = true
     }
   }, [film?.id, film?.imdbId, film?.wikidata])
+
+  // امتیاز Rotten Tomatoes / Metascore: اگه ثبت نشده، سرور از OMDb می‌گیره و ذخیره
+  // می‌کنه (هر فیلم حداکثر ماهی یه بار پرسیده می‌شه)
+  useEffect(() => {
+    const initial = { rottenTomatoes: film?.rottenTomatoes || null, metascore: film?.metascore ?? null }
+    setScores(initial)
+    if (!film?.id || !film.imdbId || (initial.rottenTomatoes && initial.metascore != null)) return
+    let cancelled = false
+    fetch(`/api/films/${film.id}/scores`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled || !data || data.error) return
+        setScores({ rottenTomatoes: data.rottenTomatoes || null, metascore: data.metascore ?? null })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [film?.id, film?.imdbId, film?.rottenTomatoes, film?.metascore])
 
   // جوایز جشنواره‌ای — خودکار از Wikidata (P166). سرور خودش تشخیص می‌ده قبلاً
   // چک شده یا نه (raw column)، پس همیشه fetch می‌کنیم و سرور کشش رو مدیریت می‌کنه.
@@ -947,8 +967,8 @@ export default function FilmModal({ film, films = [], archiveFilms = null, onNav
                   اگه امتیازشون (از OMDb) ثبت شده، عددشون هم نشون داده می‌شه */}
               {(() => {
                 const links = wikidata?.links || {}
-                const rt = film.rottenTomatoes && String(film.rottenTomatoes).trim()
-                const mc = film.metascore != null && String(film.metascore).trim() !== '' ? Number(film.metascore) : null
+                const rt = scores.rottenTomatoes && String(scores.rottenTomatoes).trim()
+                const mc = scores.metascore != null && String(scores.metascore).trim() !== '' ? Number(scores.metascore) : null
                 const mcTone = mc == null ? '' : mc >= 61 ? ' good' : mc >= 40 ? ' mixed' : ' bad'
                 const items = [
                   links.rottenTomatoes && { key: 'rt', href: links.rottenTomatoes, name: 'Rotten Tomatoes', short: 'RT', value: rt, title: 'Rotten Tomatoes' },
