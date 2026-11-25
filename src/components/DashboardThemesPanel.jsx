@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import DashboardPosterCard from './DashboardPosterCard.jsx'
-import { periodRange, formatRange } from '../utils/periodYears.js'
+import { periodRange, formatRange, centuryBucket } from '../utils/periodYears.js'
+import PeriodMindMap from './PeriodMindMap.jsx'
 
 // تب «Themes» — همه از ستون wikidata (Wikidata):
 // موضوع اصلی (P921)، دوره‌ی زمانی داستان (P2408)، سیاه‌وسفید (P462)،
@@ -60,15 +61,6 @@ function FilmGrid({ films, onOpenFilm, subtitleFor }) {
 // خط زمان دوره‌ها: هر دوره با سال شروعش مرتب می‌شه و زیر سرفصل قرن خودش
 // میاد؛ طول نوار = تعداد فیلم. دوره‌ی بلندتر (قرن) قبل از کوتاه‌تر (دهه/سال)
 // با همون شروع. اونایی که سال‌شون معلوم نیست آخر، زیر «Other».
-function bucketOf(start) {
-  if (start > 2026) return { key: 99999, label: 'Future' }
-  if (start < 1500) return { key: -99999, label: 'Before 1500' }
-  const c = Math.floor((start - 1) / 100)
-  const n = c + 1
-  const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'
-  return { key: c, label: `${n}${suffix} century` }
-}
-
 function PeriodTimeline({ periods, onPick }) {
   const { buckets, other, max } = useMemo(() => {
     const dated = []
@@ -81,7 +73,7 @@ function PeriodTimeline({ periods, onPick }) {
     dated.sort((a, b) => a.range[0] - b.range[0] || b.range[1] - b.range[0] - (a.range[1] - a.range[0]) || b.films.length - a.films.length)
     const buckets = []
     for (const g of dated) {
-      const b = bucketOf(g.range[0])
+      const b = centuryBucket(g.range[0])
       let last = buckets[buckets.length - 1]
       if (!last || last.key !== b.key) buckets.push((last = { ...b, rows: [] }))
       last.rows.push(g)
@@ -134,6 +126,10 @@ function PeriodTimeline({ periods, onPick }) {
 export default function DashboardThemesPanel({ films, onOpenFilm }) {
   const [view, setView] = useState('subjects') // subjects | periods | bw | money
   const [picked, setPicked] = useState(null) // { label, films }
+  // نمای دوره‌ها: مایند مپ یا فهرست خط زمان. وضعیت مایند مپ (گره‌های باز و
+  // زوم) این‌جا نگه داشته می‌شه تا بعد از برگشت از فهرست فیلم‌ها از دست نره.
+  const [periodView, setPeriodView] = useState('map')
+  const [mindMap, setMindMap] = useState({ expanded: new Set(['root']), view: null })
 
   const withData = useMemo(() => dedupe(films.filter((f) => f.wikidata && typeof f.wikidata === 'object')), [films])
   const subjects = useMemo(() => groupBy(withData, (f) => f.wikidata.subjects), [withData])
@@ -187,7 +183,19 @@ export default function DashboardThemesPanel({ films, onOpenFilm }) {
         </div>
       </div>
       <section>
-        {view === 'periods' && <PeriodTimeline periods={periods} onPick={setPicked} />}
+        {view === 'periods' && (
+          <>
+            <div className="countries-map-modes" style={{ marginBottom: 12 }}>
+              <button className={`btn ${periodView === 'map' ? '' : 'btn-ghost'}`} onClick={() => setPeriodView('map')}>Mind map</button>
+              <button className={`btn ${periodView === 'list' ? '' : 'btn-ghost'}`} onClick={() => setPeriodView('list')}>Timeline list</button>
+            </div>
+            {periodView === 'map' ? (
+              <PeriodMindMap periods={periods} onPick={setPicked} state={mindMap} setState={setMindMap} />
+            ) : (
+              <PeriodTimeline periods={periods} onPick={setPicked} />
+            )}
+          </>
+        )}
         {view === 'subjects' && (
           <div className="countries-list-grid">
             {subjects.slice(0, 80).map((g) => (
