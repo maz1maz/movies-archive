@@ -12102,8 +12102,7 @@ a.cine-collection-poster-btn {
 .ext-score-badge.rt { border-color: #fa320a; }
 .ext-score-badge.rt .ext-score-name { color: #fa320a; }
 .ext-score-badge.mc { border-color: #9aa0a6; }
-.ext-score-badge.mc .ext-score-val { min-width: 24px; padding: 2px 4px; border-radius: 4px; text-align: center; color: #fff; background: #666; }
-.ext-score-badge.mc.good .ext-score-val { background: #00ce7a; color: #000; }
-.ext-score-badge.mc.mixed .ext-score-val { background: #ffbd3f; color: #000; }
-.ext-score-badge.mc.bad .ext-score-val { background: #ff6874; color: #000; }
+.ext-score-badge.rt .ext-score-val { color: #fa320a; }
+/* Meta: عدد سفید روی مشکی */
+.ext-score-badge.mc .ext-score-val { min-width: 24px; padding: 2px 5px; border-radius: 4px; text-align: center; color: #fff; background: #000; }
 .ext-score-badge.mubi { border-color: #5a7fff; }
