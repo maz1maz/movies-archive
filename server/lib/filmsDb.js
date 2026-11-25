@@ -957,6 +957,11 @@ export const SHARED_METADATA_FIELDS = [
   'originalTitle', 'director', 'producer', 'cast', 'genre', 'rating',
   'runtime', 'country', 'synopsis', 'poster', 'studio', 'rated',
   'imdbId', 'imdbVotes', 'letterboxdRating', 'letterboxdVotes',
+  // جزئیات TMDB/OMDb هم مال خود فیلمن نه فرمت؛ قبلاً نبودن و نسخه‌ی بلوری و دیجیتال
+  // یه فیلم جزئیات متفاوت (یکی کامل، یکی خالی) داشتن
+  'originalLanguage', 'tagline', 'budget', 'revenue', 'boxOffice', 'releaseDate',
+  'productionCompanies', 'productionCountries', 'spokenLanguages', 'homepage', 'status',
+  'rottenTomatoes', 'metascore',
 ]
 
 
@@ -978,7 +983,8 @@ export async function syncSharedMetadataToSibling(db, film) {
   let changed = false
   for (const key of SHARED_METADATA_FIELDS) {
     const incoming = film[key]
-    const isIncomingEmpty = incoming == null || (Array.isArray(incoming) ? incoming.length === 0 : String(incoming).trim() === '')
+    // ۰ (مثلاً budget: 0 از TMDB یعنی «نامعلوم») هم خالی حساب می‌شه تا عدد واقعی نسخه‌ی دیگه رو پاک نکنه
+    const isIncomingEmpty = incoming == null || incoming === 0 || (Array.isArray(incoming) ? incoming.length === 0 : String(incoming).trim() === '')
     if (isIncomingEmpty) continue
     const current = siblingParsed[key]
     const same = Array.isArray(incoming) && Array.isArray(current)
