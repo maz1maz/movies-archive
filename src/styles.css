@@ -12113,3 +12113,5 @@ a.cine-collection-poster-btn {
 .ext-score-badge.rt { --brand: #fa320a; --brand-ink: #0b0b0b; }
 .ext-score-badge.mc { --brand: #e8e8e8; --brand-ink: #0b0b0b; }
 .ext-score-badge.mubi { --brand: #5a7fff; --brand-ink: #0b0b0b; }
+/* شماره‌ی صفحه‌ی فعلی در نوار پایین: طلایی لوگو، مثل نوار بالا */
+.pagination-current { color: #d4ac34; font-weight: 800; }

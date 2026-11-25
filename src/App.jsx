@@ -1476,7 +1476,7 @@ export default function App() {
         {pageCount > 1 && !loading && (
           <div className="pagination">
             <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Previous</button>
-            <span>Page {page} of {pageCount}</span>
+            <span>Page <strong className="pagination-current">{page}</strong> of {pageCount}</span>
             <button type="button" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next →</button>
           </div>
         )}
