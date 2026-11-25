@@ -12116,3 +12116,25 @@ a.cine-collection-poster-btn {
 .ext-score-badge.mubi { --brand: #5a7fff; --brand-ink: #0b0b0b; }
 /* شماره‌ی صفحه‌ی فعلی در نوار پایین: طلایی لوگو، مثل نوار بالا */
 .pagination-current { color: #d4ac34; font-weight: 800; }
+
+/* دوره‌ها، نمای کرکره‌ای (Themes → Periods → List) */
+.pa-wrap { display: flex; flex-direction: column; gap: 2px; }
+.pa-toolbar { display: flex; gap: 8px; margin-bottom: 8px; }
+.pa-row { display: grid; grid-template-columns: 18px minmax(120px, 280px) 110px 1fr 48px; align-items: center; gap: 10px; width: 100%; min-height: 34px; padding: 4px 12px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.pa-row:hover { background: var(--surface-2, rgba(127, 127, 127, 0.12)); }
+.pa-row.depth-0 { font-size: 15px; font-weight: 700; border-top: 1px solid var(--surface-3, rgba(127, 127, 127, 0.18)); border-radius: 0; }
+.pa-row.depth-0 .pa-label { color: var(--accent); }
+.pa-row.depth-1.branch .pa-label { font-weight: 700; }
+.pa-row.leaf .pa-label { font-weight: 500; }
+.pa-chevron { color: var(--accent); font-size: 12px; text-align: center; }
+.pa-row.leaf .pa-chevron { color: var(--muted); font-size: 10px; }
+.pa-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.pa-range { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.pa-bar-track { height: 8px; border-radius: 4px; background: rgba(127, 127, 127, 0.12); overflow: hidden; }
+.pa-bar { display: block; height: 100%; border-radius: 4px; background: var(--accent); opacity: 0.8; }
+.pa-row.leaf .pa-bar { opacity: 0.5; }
+.pa-count { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .pa-row { grid-template-columns: 16px 1fr 40px; }
+  .pa-range, .pa-bar-track { display: none; }
+}
