@@ -194,19 +194,22 @@ export default {
       // ردیف می‌خونه، پس وقتی کار هست هر ساعت اجرا می‌شن. «بی‌کار» فقط وقتیه که یه دور
       // کامل جدول (wrapped) چیزی پیدا نکرده باشه؛ وسط دور، ادامه‌ی اسکن هم ساعتیه.
       const cursorIdle = (r) => !r || r.error || r.skipped || (!r.tried && r.wrapped)
+      // نوبت هر job دقیقاً هر ۶۰ دقیقه می‌رسه (۶ نوبت × ۱۰ دقیقه)؛ با «۱ ساعت» چک فاصله
+      // چند ثانیه کم می‌آورد و نوبت رد می‌شد (عملاً هر ۲ ساعت). ۰٫۹ ساعت = ۵۴ دقیقه.
+      const ACTIVE = 0.9
       const jobs = {
         // posters: با مکان‌نما؛ ۲۰ تا (HEAD + در صورت خرابی یه TMDB) زیر سقف ۵۰ درخواست
-        3: ['posters', 24, 1, () => repairDeadPosters(env.DB, env, 20), cursorIdle],
-        2: ['tags', 24, 1, () => backfillFilmTags(env.DB, env, 20), cursorIdle],
-        1: ['cast', 24, 1, () => backfillFullCast(env.DB, env, 18), cursorIdle],
+        3: ['posters', 24, ACTIVE, () => repairDeadPosters(env.DB, env, 20), cursorIdle],
+        2: ['tags', 24, ACTIVE, () => backfillFilmTags(env.DB, env, 20), cursorIdle],
+        1: ['cast', 24, ACTIVE, () => backfillFullCast(env.DB, env, 18), cursorIdle],
         // imdb با ایندکس جزئی migration 0013 دیگه کل جدول رو نمی‌خونه
         0: ['imdb', 12, 8, () => backfillImdbIds(env.DB, env, 20), idleCheck],
         // امتیاز RT/Metascore از OMDb (و RT از صفحه‌ی خودش اگه OMDb نداشت)؛ ۲۰ فیلم تا
         // زیر سقف ۵۰ درخواست بیرونی هر اجرا بمونه؛ تدریجی و با سقف روزانه (backfillOmdbScores)؛
         // سقف که پر شد skipped برمی‌گرده و ۶ ساعت بعد دوباره سر می‌زنه
-        4: ['scores', 6, 1, () => backfillOmdbScores(env.DB, env, 20), cursorIdle],
+        4: ['scores', 6, ACTIVE, () => backfillOmdbScores(env.DB, env, 20), cursorIdle],
         // جزئیات TMDB برای فیلم‌هایی که ندارن؛ ۱۰ فیلم × حداکثر ۴ درخواست TMDB
-        5: ['extras', 24, 1, () => backfillTmdbExtras(env.DB, env, 10), cursorIdle],
+        5: ['extras', 24, ACTIVE, () => backfillTmdbExtras(env.DB, env, 10), cursorIdle],
       }
       const [name, idleHours, activeHours, run, isIdle] = jobs[slot]
       const flagKey = `cronidle:${name}`
